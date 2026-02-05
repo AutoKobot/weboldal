@@ -1,0 +1,100 @@
+Adatok integritásának ellenőrzése (Backend és Frontend szinkronizációja)
+a) Audio adatfolyam teljes letöltésének ellenőrzése
+A backend oldalon ellenőrizd, hogy az OpenAI TTS API által generált teljes hangfolyam elkészült-e, mielőtt a streaminget lezárnád.
+Példa:
+Az OpenAI által visszaküldött adatfolyam végén egy "done" jelző érkezhet. Addig ne zárd le a kapcsolatot, amíg ez a jelző meg nem érkezik.
+b) Adathossz ellenőrzése
+Az audio adatfolyam generálása során a backend számolja ki a generált MP3 fájl hosszát (pl. byte méretét vagy időtartamát). Ezt a hosszt küldd el a frontendnek metaadatként a streaming előtt.
+A frontend oldalon folyamatosan ellenőrizheted, hogy a letöltött adatfolyam elérte-e a megadott hosszúságot. Ha nem, indíts újra egy letöltési folyamatot a hiányzó részekhez.
+2. Streaming újrakezdése (Retry Mechanizmus)
+a) Automatikus újrapróbálkozás (Retry)
+Ha a streaming megszakad vagy hiányos, a frontend automatikusan újrapróbálkozhat, hogy letöltse a hiányzó részeket.
+Például:
+Az audio adatfolyamot chunk-ekre (darabokra) osztod a backend oldalon.
+Ha egy chunk hiányzik vagy megsérül, a frontend csak a hiányzó részt kéri újra.
+Példa:
+javascript
+
+Copy
+function fetchAudioStream(retryCount = 3) {
+    let attempt = 0;
+
+    function fetchStream() {
+        return new Promise((resolve, reject) => {
+            const source = new EventSource('/api/chat/audio-stream');
+            let audioData = [];
+
+            source.onmessage = (event) => {
+                audioData.push(event.data);
+            };
+
+            source.onerror = () => {
+                if (attempt < retryCount) {
+                    attempt++;
+                    fetchStream();
+                } else {
+                    reject('Audio stream failed after multiple retries.');
+                }
+            };
+
+            source.onopen = () => resolve(audioData);
+        });
+    }
+
+    return fetchStream();
+}
+3. Bufferelés és Lejátszás Elkülönítése
+a) Előzetes bufferelés
+Használj buffer-t a frontend oldalon, hogy az audio lejátszása csak akkor induljon el, amikor egy minimális mennyiségű adat már letöltődött.
+Példa:
+Ha a teljes audio 20 másodperc, várd meg, hogy legalább 5 másodpercnyi adatot letöltsön a buffer, mielőtt a lejátszás elindul.
+javascript
+
+Copy
+let audioBuffer = [];
+let isPlaying = false;
+
+function onAudioDataReceived(chunk) {
+    audioBuffer.push(chunk);
+
+    if (!isPlaying && audioBuffer.length > MIN_REQUIRED_CHUNKS) {
+        playAudio(audioBuffer);
+        isPlaying = true;
+    }
+}
+4. Hibakezelés és Felhasználói Értesítés
+a) Hibaüzenet megjelenítése
+Ha a streaming megszakad, jeleníts meg egy értesítést a felhasználónak (pl. "A hang generálása megszakadt. Újraindítjuk..."), miközben a háttérben újrapróbálkozás történik.
+b) Fallback Mechanizmus
+Ha a streaming folyamatosan elakad, generálj egy teljes audio fájlt a háttérben (nem streaming módban), és küldd el a frontendnek egyszerre.
+5. Audio Streaming Optimalizálása (Backend)
+a) Chunked Transfer Encoding (HTTP/2 vagy HTTP/3 támogatása)
+A backend oldalon használj chunked transfer encoding-ot, hogy az audio adatfolyam kis darabokban érkezzen a frontendhez.
+Például, ha az audio 10 másodperces, küldj 1 másodperces darabokat (chunk-eket) a kliensnek.
+javascript
+
+Copy
+res.writeHead(200, {
+    'Content-Type': 'audio/mpeg',
+    'Transfer-Encoding': 'chunked',
+});
+
+audioStream.on('data', (chunk) => {
+    res.write(chunk);
+});
+
+audioStream.on('end', () => {
+    res.end();
+});
+b) Timeout kezelése
+Állíts be egy maximális időkorlátot a streamingre. Ha az audio generálása túl sokáig tart, küldj egy hibajelzést a frontendnek, hogy a felhasználó ne várjon feleslegesen.
+6. Frontend Audio API Optimalizálása
+a) AudioContext használata
+Használj egyedi AudioContext-et a HTML5 Audio API helyett, hogy finomabb vezérlést kapj a streamelt audio kezelésében.
+b) Partial Playback támogatása
+Engedd meg, hogy az audio lejátszás újrainduljon a már letöltött adatfolyamból, akkor is, ha a teljes fájl nem érkezett meg.
+7. Monitoring és Debugging
+a) Stream Health Monitoring
+Implementálj egy mechanizmust a streaming állapotának figyelésére, hogy a backend értesítést küldjön, ha a generálás vagy a streaming megszakad.
+b) Logolás
+Logold a streaming eseményeket (pl. "chunk received", "stream completed"), hogy könnyebben azonosíthasd a problémákat.

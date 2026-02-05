@@ -1,0 +1,84 @@
+Valószínűleg egy "single-page application" (SPA) környezetben vagy, ahol az oldal frissítése valójában nem teljes oldalbetöltést jelent, hanem csak a DOM (Document Object Model) bizonyos részeinek dinamikus módosítását.
+
+Amikor egy SPA-ban navigálsz vagy frissítesz egy komponenst, a böngésző nem tölti be újra az egész HTML-t és a benne lévő szkripteket. Ehelyett a JavaScript keretrendszer (pl. React, Angular, Vue, vagy akár egy egyszerűbb saját implementáció) csak a szükséges részeket frissíti.
+
+A Mermaid.js alapértelmezett mermaid.initialize({ startOnLoad: true }); beállítása a DOMContentLoaded eseményre támaszkodik, ami csak az első teljes oldalbetöltéskor fut le. Ha az oldal frissítése során nem történik meg a teljes DOMContentLoaded esemény (ami egy SPA-ban gyakori), akkor a Mermaid nem fogja automatikusan újra átvizsgálni a DOM-ot és újrarajzolni a diagramokat.
+
+Íme a lehetséges okok és megoldások:
+
+Okok:
+SPA környezet: A leggyakoribb ok, hogy a weboldal egy SPA, és a "frissítés" nem indít el egy teljes oldalbetöltést, így a Mermaid inicializálása sem fut le újra.
+Dinamikus tartalom: A diagramok a Markdown-ból dinamikusan kerülnek be a DOM-ba (pl. egy API hívás eredményeként, vagy egy felhasználói interakció hatására). A Mermaid nem tudja, hogy új tartalom került az oldalra, hacsak nem mondod meg neki.
+Időzítés: Lehet, hogy a Mermaid inicializálása túl korán történik, mielőtt a Markdown tartalom (és benne a Mermaid kódblokkok) a DOM-ba kerülne.
+A Mermaid "tisztázatlan" állapota: Ha a Mermaid már egyszer megpróbált renderelni egy elemet, és az eltűnt, esetleg bent maradt a memóriájában valamilyen "eltűnt" állapot, és nem próbálja újra. (Ez ritkább, de előfordulhat komplex esetekben).
+A startOnLoad beállítás: Ha a startOnLoad: false van beállítva, akkor sosem fogja automatikusan inicializálni magát. Bár ez nem magyarázza a "frissítés után tűnik el" problémát, érdemes ellenőrizni.
+Megoldások:
+A kulcs az, hogy manuálisan kell szólni a Mermaid-nek, hogy nézze meg újra az oldalt.
+
+1. A mermaid.init() vagy mermaid.run() manuális meghívása:
+
+Ez a leggyakoribb és leghatékonyabb megoldás. Amikor a Markdown tartalom (benne a diagramokkal) bekerül a DOM-ba, hívja meg a Mermaid inicializáló függvényét.
+
+mermaid.init(): Ez a függvény újra feldolgozza azokat az elemeket, amelyek tartalmazzák a Mermaid kódokat.
+Specifikus elemekre: Adhatsz neki egy második argumentumot, ami egy DOM elem vagy egy NodeList, így csak azokat az elemeket dolgozza fel, amikben diagramot vársz (pl. a frissített Markdown konténer). Ez hatékonyabb.
+JavaScript
+
+// Példa: A Markdown tartalom betöltése és utána a Mermaid inicializálása
+function loadMarkdownContent(content) {
+  document.getElementById('markdown-container').innerHTML = content;
+  // Most, hogy a tartalom a DOM-ban van, inicializáljuk a Mermaid-et
+  mermaid.init(undefined, document.querySelectorAll('.language-mermaid'));
+  // Vagy ha az egész containerben vannak:
+  // mermaid.init(undefined, document.getElementById('markdown-container').querySelectorAll('.language-mermaid'));
+}
+
+// Amikor az oldal frissül, vagy új tartalmat tölt be, hívja meg ezt a függvényt
+// Például egy SPA routerében, vagy egy adatok betöltése utáni callback-ben.
+// loadMarkdownContent(myDynamicMarkdownText);
+Az egész oldalon: Ha nincs más lehetőséged, és szeretnéd, hogy az egész oldalt újra átvizsgálja:
+JavaScript
+
+mermaid.init(); // Eredetileg a startOnLoad:true ezt hívja le
+mermaid.run() (újabb verziókban): Ez egy újabb függvény, ami a init()-hez hasonlóan működik, és specifikus elemekre is célozható.
+JavaScript
+
+mermaid.run({
+    querySelector: '.language-mermaid' // Ez a CSS selector alapján keresi a diagramokat
+});
+vagy
+JavaScript
+
+const elements = document.querySelectorAll('.language-mermaid');
+mermaid.run({
+    nodes: elements
+});
+Hol hívjuk meg?
+
+SPA-ban (React, Vue, Angular): A megfelelő életciklus horogban (pl. useEffect React-ben, mounted Vue-ban, ngAfterViewInit Angularban), miután a komponens frissült vagy a tartalom bekerült a DOM-ba.
+Sima JavaScript oldalon: Minden alkalommal, amikor dinamikusan töltesz be Markdown tartalmat, vagy módosítod a DOM-ot, ahol Mermaid diagramok lehetnek. Például egy AJAX hívás befejeztével, ami a Markdown-t hozza le.
+2. Győződj meg róla, hogy a startOnLoad be van kapcsolva, ha az oldalt TELJESEN újratöltöd:
+
+Ha az oldal valóban teljes F5 frissítést kap (és nem csak egy SPA "frissítést"), akkor a mermaid.initialize({ startOnLoad: true }); beállításnak működnie kell. Ha mégsem, akkor valami más probléma van (pl. a Mermaid szkript betöltése sikertelen, vagy valamilyen JavaScript hiba megakadályozza az inicializálást).
+
+3. A mermaid.render() használata (ha egyedi renderinget szeretnél):
+
+Ha teljes kontrollt szeretnél, és nem szeretnéd, hogy a Mermaid automatikusan keressen, használhatod a mermaid.render() függvényt is. Ez egy adott Mermaid szintaxist vesz át, és egy SVG stringet ad vissza, amit te magad szúrhatsz be a DOM-ba. Ez főleg akkor hasznos, ha már tudod, melyik kódblokkból akarsz diagramot generálni.
+
+JavaScript
+
+async function renderMermaidDiagram(mermaidCode, targetElementId) {
+  const { svg } = await mermaid.render(`diagram-${Math.random().toString(36).substr(2, 9)}`, mermaidCode);
+  document.getElementById(targetElementId).innerHTML = svg;
+}
+
+// Példa használatra:
+// renderMermaidDiagram("graph TD; A-->B;", "myDiagramDiv");
+Ez egyedi ID-t generál, hogy ne legyen ID ütközés, ha több diagramot is renderelsz.
+
+4. Ellenőrizd a böngésző konzolját (F12):
+
+Mindig az első lépés hibaelhárításkor! Keresd a JavaScript hibákat vagy a Mermaid-től származó figyelmeztetéseket. Ezek nagyon sokat segíthetnek a probléma azonosításában.
+
+Összefoglalva:
+
+A probléma valószínűleg abban rejlik, hogy a Mermaid nem kapja meg az "újrarenderelési" parancsot, amikor a DOM tartalma megváltozik a "frissítés" (SPA környezetben) vagy dinamikus tartalombetöltés során. A megoldás az, hogy manuálisan hívja meg a mermaid.init() vagy mermaid.run() függvényt, miután a diagramot tartalmazó Markdown tartalom megjelent az oldalon.

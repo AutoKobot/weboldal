@@ -1,0 +1,12 @@
+<svg width="640" height="400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <style>
+        .node { fill: #e1f5fe; stroke: #01579b; stroke-width: 2; rx: 8; }
+        .node-text { font-family: Arial, sans-serif; font-size: 12px; text-anchor: middle; fill: #01579b; font-weight: 500; }
+        .edge { stroke: #666; stroke-width: 2; marker-end: url(#arrowhead); }
+        .edge-label { font-family: Arial, sans-serif; font-size: 10px; text-anchor: middle; fill: #444; background: white; }
+      </style>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+      </marker>
+    </defs><line x1="290" y1="75" x2="470" y2="75" class="edge" /><line x1="470" y1="75" x2="110" y2="175" class="edge" /><line x1="110" y1="175" x2="290" y2="175" class="edge" /><line x1="290" y1="175" x2="470" y2="175" class="edge" /><line x1="470" y1="175" x2="110" y2="275" class="edge" /><rect x="40" y="50" width="140" height="50" class="node" /><text x="110" y="79" class="node-text">Kockázatfelmérés</text><rect x="250" y="50" width="80" height="50" class="node" /><text x="290" y="79" class="node-text">B</text><rect x="430" y="50" width="80" height="50" class="node" /><text x="470" y="79" class="node-text">C</text><rect x="70" y="150" width="80" height="50" class="node" /><text x="110" y="179" class="node-text">D</text><rect x="250" y="150" width="80" height="50" class="node" /><text x="290" y="179" class="node-text">E</text><rect x="430" y="150" width="80" height="50" class="node" /><text x="470" y="179" class="node-text">F</text><rect x="70" y="250" width="80" height="50" class="node" /><text x="110" y="279" class="node-text">G</text></svg>

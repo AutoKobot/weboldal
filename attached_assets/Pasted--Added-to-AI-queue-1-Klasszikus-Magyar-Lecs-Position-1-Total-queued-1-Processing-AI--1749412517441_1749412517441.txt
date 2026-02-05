@@ -1,0 +1,47 @@
+📝 Added to AI queue: "1. Klasszikus Magyar Lecsó" (Position: 1, Total queued: 1)
+🔄 Processing AI task: "1. Klasszikus Magyar Lecsó" - Starting 4-step enhancement process... (0 remaining in queue)
+🔥 SEQUENTIAL AI STEP 1: Generating internet-enhanced detailed content...
+📝 Original content length: 9034
+✅ STEP 1 COMPLETED - Enhanced detailed content length: 13351
+🔥 SEQUENTIAL AI STEP 1B: Generating concise version with dedicated prompt...
+📝 Strict concise generation started
+✅ STEP 1B COMPLETED - Concise content length: 876
+⚠️ Concise version too long, truncating...
+✂️ Truncated to: 605 characters
+🔥 SEQUENTIAL AI STEP 2: Adding Wikipedia links to enhanced content...
+🔥 SEQUENTIAL AI STEP 2A: Generating Wikipedia keywords with admin prompt
+🎯 Detected field for Wikipedia: cooking, using examples: [ 'főzés', 'gasztronómia', 'szakácsképzés', 'élelmiszer-készítés' ]
+📝 Wikipedia prompt being used for keywords
+🔍 Wikipedia AI response: ```json
+[
+  {
+    "kulcsszó": "lecsó",
+    "wikipedia": "https://hu.wikipedia.org/wiki/Lecs%C3%B3"
+  },
+  {
+    "kulcsszó": "magyar konyha",
+    "wikipedia": "https://hu.wikipedia.org/wiki/Magyar_kony...
+✅ Wikipedia keywords extracted from JSON: []
+🔥 SEQUENTIAL AI STEP 2A: Generating Wikipedia keywords with admin prompt
+🎯 Detected field for Wikipedia: welding, using examples: [ 'hegesztés', 'fémfeldolgozás', 'hegesztéstechnika', 'varratképzés' ]
+📝 Wikipedia prompt being used for keywords
+🔍 Wikipedia AI response: ```json
+[
+  {
+    "kulcsszo": "Lecsó",
+    "wiki_link": "https://hu.wikipedia.org/wiki/Lecs%C3%B3"
+  },
+  {
+    "kulcsszo": "Paprika",
+    "wiki_link": "https://hu.wikipedia.org/wiki/Paprika"
+  },
+  {...
+✅ Wikipedia keywords extracted from JSON: []
+📚 Wikipedia keywords generated: 0 0
+✅ STEP 2 COMPLETED - Wikipedia links added to content
+🔥 SEQUENTIAL AI STEP 3: Generating YouTube search terms from detailed content...
+🔥 SEQUENTIAL AI STEP 3A: Generating YouTube search terms with admin prompt
+🎯 Detected field: welding, using examples: [ 'hegesztés', 'fémfeldolgozás', 'hegesztéstechnika', 'varratképzés' ]
+📝 YouTube search terms generation started
+🔍 YouTube AI response: ```json
+[

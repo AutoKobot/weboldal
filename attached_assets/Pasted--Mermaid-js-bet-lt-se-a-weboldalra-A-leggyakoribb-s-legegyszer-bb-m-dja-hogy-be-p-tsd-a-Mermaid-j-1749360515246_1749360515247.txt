@@ -1,0 +1,107 @@
+. Mermaid.js betöltése a weboldalra
+A leggyakoribb és legegyszerűbb módja, hogy beépítsd a Mermaid.js-t a weboldaladba, ha a <head> vagy a <body> részben betöltöd a szkriptet.
+
+A. CDN használata (egyszerű és gyors):
+Ez a legegyszerűbb, ha csak gyorsan szeretnéd használni. Add hozzá ezt a sort a HTML-fájlodhoz, lehetőleg a </body> zárótag elé:
+
+HTML
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+B. Helyi telepítés (fejlettebb, ha offline is kell):
+Ha nagyobb kontrollt szeretnél, vagy offline is használnád, telepítheted a Mermaid.js-t a projekt mappádba (például npm-en keresztül):
+
+Bash
+
+npm install mermaid
+Ezután be kell töltened a fájlt a HTML-ben, például:
+
+HTML
+
+<script src="path/to/your/node_modules/mermaid/dist/mermaid.min.js"></script>
+2. Mermaid konfigurálása és inicializálása
+Miután betöltötted a szkriptet, inicializálnod kell a Mermaid-et. Ezt általában egy <script> blokkban teszed meg a Mermaid szkript betöltése után.
+
+HTML
+
+<script>
+  mermaid.initialize({ startOnLoad: true });
+</script>
+A startOnLoad: true beállítás azt jelenti, hogy a Mermaid automatikusan átvizsgálja a teljes oldalt a diagramok után, amikor az oldal betöltődik.
+
+3. Mermaid diagramok írása Markdown-ban
+A Markdown fájlodban vagy a HTML-ben, ahol a Markdown tartalom van, a Mermaid diagramokat egy speciális kódblokkba kell tenned: a mermaid nyelvet kell megadnod a kódblokk elején.
+
+Például egy folyamatábra (flowchart):
+
+&lt;pre>
+
+Kódrészlet
+
+graph TD;
+    A[Kezdés] --&gt; B{Döntés};
+    B --&gt; C{Igen};
+    B --&gt; D{Nem};
+    C --&gt; E[Vég];
+    D --&gt; E;
+&lt;/pre>
+
+Vagy egy szekvenciadiagram:
+
+&lt;pre>
+
+Kódrészlet
+
+sequenceDiagram
+    Alice-&gt;&gt;Bob: Helló Bob, hogy vagy?
+    Bob--&gt;&gt;Alice: Jól, köszi!
+&lt;/pre>
+
+Összefoglalva a teljes HTML-struktúra:
+HTML
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mermaid Diagramok</title>
+</head>
+<body>
+
+  <h1>Mermaid Diagram példa</h1>
+
+  <div class="markdown-content">
+    <pre>
+      <code class="language-mermaid">
+graph TD;
+    A[Ez egy] --> B(Mermaid);
+    B --> C{Diagram};
+    C --> D[Markdown-ban];
+      </code>
+    </pre>
+  </div>
+
+  <div class="markdown-content">
+    <h2>Szekvenciadiagram</h2>
+    <pre>
+      <code class="language-mermaid">
+sequenceDiagram
+    Kliens->>Szerver: Kérés
+    Szerver-->>Adatbázis: Adatok lekérése
+    Adatbázis-->>Szerver: Adatok vissza
+    Szerver-->>Kliens: Válasz
+      </code>
+    </pre>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+
+</body>
+</html>
+Fontos megjegyzések:
+
+Markdown renderelő: Ha egy Markdown renderelő könyvtárat használsz (pl. Marked.js, CommonMark.js), győződj meg róla, hogy az lehetővé teszi az egyedi kódblokkok (mint a mermaid nyelv) kezelését. Néhány renderelő alapból támogatja, másoknál szükség lehet egyéni beállításokra vagy pluginokra.
+A pre és code tag-ek: Bár a Mermaid képes közvetlenül a div elemekből is dolgozni, a pre és code tagek használata language-mermaid osztállyal egy bevett gyakorlat a kódblokkok jelölésére, és segít a szintaktikai kiemelésben is, ha használsz ilyen renderert.
+Hibaelhárítás: Ha nem jelennek meg a diagramok, ellenőrizd a böngésző konzolját (F12), hogy van-e JavaScript hiba. Győződj meg róla, hogy a Mermaid.js szkript betöltődött, és az inicializálás is lefutott.

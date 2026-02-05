@@ -1,0 +1,83 @@
+Ha a weboldalon használt Mermaid diagram eltűnik, és nem jelenik meg újra, az alábbi lépéseket érdemes követni a hiba elhárítására:
+
+1. Ellenőrizd a JavaScript hibákat
+Nyisd meg a böngésződ fejlesztői eszközeit (általában F12 vagy jobb kattintás → "Elem vizsgálata"), majd válaszd a Konzol (Console) fület.
+
+Ha a Mermaid inicializálása során hiba történt, itt láthatod a hibaüzenetet.
+Gyakori hibák:
+Hibás Mermaid szintaxis.
+A Mermaid könyvtár nem megfelelő betöltése.
+Példa:
+text
+
+Copy
+TypeError: Cannot read property 'mermaidAPI' of undefined
+2. Ellenőrizd, hogy a Mermaid könyvtár helyesen van-e betöltve
+A Mermaid működéséhez a megfelelő JavaScript könyvtárt kell betölteni. Ellenőrizd, hogy a Mermaid.js fájl megtalálható és helyesen van importálva.
+
+Példa Mermaid betöltésére:
+html
+
+Copy
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true });
+</script>
+Ha a könyvtár nem töltődik be, győződj meg arról, hogy a CDN vagy helyi fájl elérhető.
+
+3. Újrarenderelés manuálisan
+Ha a diagram valamilyen okból nem renderelődik automatikusan, kézzel is újrarenderelheted a Mermaid elemeket a következő JavaScript kóddal:
+
+Manuális renderelés:
+javascript
+
+Copy
+mermaid.contentLoaded();
+Ez a parancs újraindítja a Mermaid által támogatott elemek renderelését a weboldalon.
+
+4. Ellenőrizd a Mermaid diagram szintaxisát
+A Mermaid diagramok szigorú szintaxist követnek. Ha a kódodban szintaktikai hiba van, a diagram nem jelenik meg.
+
+Példa helyes szintaxisra:
+mermaid
+
+Copy
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Option 1]
+    B -->|No| D[Option 2]
+Használhatsz online Mermaid szintaxis-ellenőrzőt is, például a Mermaid Live Editor, hogy ellenőrizd a kód helyességét.
+
+5. Ellenőrizd a CSS-stílusokat
+Néha a Mermaid diagramok megjelenését hibás CSS-stílusok akadályozhatják (pl. display: none;, visibility: hidden; vagy z-index problémák).
+
+Használj fejlesztői eszközöket a diagram DOM-elemének ellenőrzéséhez, és győződj meg arról, hogy látható.
+6. Frissítsd a Mermaid könyvtárat
+Ha elavult Mermaid verziót használsz, érdemes frissíteni a legújabb verzióra, mert előfordulhat, hogy a régebbi verziók hibákat tartalmaznak.
+
+Példa legújabb verzió CDN-re:
+html
+
+Copy
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.4.0/dist/mermaid.min.js"></script>
+7. Használj DOMContentLoaded eseményt
+Bizonyos esetekben előfordulhat, hogy a Mermaid inicializálása előtt a DOM még nem töltődött be teljesen. Ezt elkerülheted, ha a Mermaid inicializálását a DOMContentLoaded eseményhez kötöd.
+
+Példa:
+javascript
+
+Copy
+document.addEventListener("DOMContentLoaded", function () {
+  mermaid.initialize({ startOnLoad: true });
+});
+8. Cache törlése
+Ha minden más rendben van, de a diagram továbbra sem jelenik meg, próbáld meg törölni a böngésző gyorsítótárát, mivel régi fájlok akadályozhatják a helyes működést.
+
+Összegzés
+A leggyakoribb megoldások:
+
+Ellenőrizd a JavaScript hibákat.
+Győződj meg arról, hogy a Mermaid könyvtár helyesen van betöltve.
+Használj manuális újrarenderelést (mermaid.contentLoaded()).
+Ellenőrizd a szintaxist és a CSS-stílusokat.
+Ha ezek után sem működik, érdemes lehet egy egyszerű tesztoldalon kipróbálni a diagramot, hogy kizárd a környezeti problémákat.

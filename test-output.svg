@@ -1,0 +1,18 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <style>
+            .node { fill: #e1f5fe; stroke: #01579b; stroke-width: 2; }
+            .text { font-family: Arial, sans-serif; font-size: 14px; text-anchor: middle; }
+            .edge { stroke: #666; stroke-width: 2; marker-end: url(#arrowhead); }
+          </style>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+          </marker>
+        </defs>
+        <rect x="60" y="40" width="80" height="40" rx="5" class="node" />
+        <text x="100" y="65" class="text">Start</text>
+        <rect x="260" y="40" width="80" height="40" rx="5" class="node" />
+        <text x="300" y="65" class="text">End</text>
+        <line x1="140" y1="60" x2="260" y2="60" class="edge" />
+        <text x="400" y="20" style="font-family: Arial; font-size: 12px; fill: #666;">Generated from Mermaid</text>
+      </svg>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI az Oktatásban</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden; /* This is crucial for the highlights to appear only over the image */
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+            padding: 30px;
+            position: relative; /* Needed for positioning the highlight overlay */
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            object-fit: cover;
+            margin-top: 20px;
+            display: block; /* Remove extra space below image */
+            width: 100%; /* Ensure image fills container */
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 50px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Data pulse/dot animation styles */
+        .image-wrapper {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .data-pulse {
+            position: absolute;
+            width: 6px; /* Small dot size */
+            height: 6px; /* Small dot size */
+            background: radial-gradient(circle, rgba(0, 255, 255, 1) 0%, rgba(0, 255, 255, 0.5) 50%, rgba(0, 255, 255, 0) 100%); /* Glowing dot */
+            border-radius: 50%; /* Make it a perfect circle */
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.9); /* Brighter glow */
+            animation: movePulse 3s infinite linear; /* Fast movement */
+            pointer-events: none;
+        }
+
+        /* Define multiple data pulses with different delays, vertical positions, and speeds */
+        /* These are for the main knowledge transfer between heads */
+        .data-pulse-one { top: 40%; animation-delay: 0s; animation-duration: 3.0s; }
+        .data-pulse-two { top: 43%; animation-delay: 0.3s; animation-duration: 3.2s; }
+        .data-pulse-three { top: 46%; animation-delay: 0.6s; animation-duration: 2.8s; }
+        .data-pulse-four { top: 49%; animation-delay: 0.9s; animation-duration: 3.1s; }
+        .data-pulse-five { top: 52%; animation-delay: 1.2s; animation-duration: 2.9s; }
+        .data-pulse-six { top: 55%; animation-delay: 1.5s; animation-duration: 3.3s; }
+        .data-pulse-seven { top: 58%; animation-delay: 1.8s; animation-duration: 3.0s; }
+        .data-pulse-eight { top: 41%; animation-delay: 0.2s; animation-duration: 2.7s; }
+        .data-pulse-nine { top: 44%; animation-delay: 0.5s; animation-duration: 3.1s; }
+        .data-pulse-ten { top: 47%; animation-delay: 0.8s; animation-duration: 2.9s; }
+        .data-pulse-eleven { top: 50%; animation-delay: 1.1s; animation-duration: 3.2s; }
+        .data-pulse-twelve { top: 53%; animation-delay: 1.4s; animation-duration: 2.8s; }
+        .data-pulse-thirteen { top: 56%; animation-delay: 1.7s; animation-duration: 3.1s; }
+        .data-pulse-fourteen { top: 59%; animation-delay: 2.0s; animation-duration: 2.9s; }
+        .data-pulse-fifteen { top: 40%; animation-delay: 0.1s; animation-duration: 3.2s; }
+
+        @keyframes movePulse {
+            0% {
+                left: 20%; /* Start near robot head */
+                opacity: 0;
+                transform: translateY(0px);
+            }
+            15% {
+                opacity: 1; /* Become visible */
+            }
+            50% {
+                transform: translateY(3px); /* Subtle vertical wobble */
+            }
+            85% {
+                opacity: 1; /* Remain visible */
+            }
+            100% {
+                left: 80%; /* End near human head */
+                opacity: 0; /* Disappear */
+                transform: translateY(0px);
+            }
+        }
+
+        /* Mouth speaking animations */
+        .mouth-glow {
+            position: absolute;
+            width: 12px; /* Size of the glow */
+            height: 8px; /* Slightly rectangular for mouth */
+            border-radius: 50%; /* Oval shape */
+            background: rgba(255, 255, 255, 0.7); /* White glow */
+            box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.6), 0 0 20px 10px rgba(0, 255, 255, 0.3); /* Soft glow with a hint of cyan */
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+
+        /* Robot mouth position and animation */
+        .robot-mouth-glow {
+            left: 25%; /* Estimated position for robot mouth */
+            top: 55%; /* Estimated position for robot mouth */
+            animation: robotSpeak 4s infinite ease-in-out; /* Total cycle for both to speak */
+        }
+
+        @keyframes robotSpeak {
+            0%, 45%, 100% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            10% {
+                opacity: 1;
+                transform: scale(1.0);
+            }
+            35% {
+                opacity: 1;
+                transform: scale(0.9);
+            }
+        }
+
+        /* Human mouth position and animation */
+        .human-mouth-glow {
+            left: 70%; /* Estimated position for human mouth */
+            top: 55%; /* Estimated position for human mouth */
+            animation: humanSpeak 4s infinite ease-in-out; /* Total cycle for both to speak */
+        }
+
+        @keyframes humanSpeak {
+            0%, 5% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            50% { /* Start human speaking after robot finishes */
+                opacity: 1;
+                transform: scale(1.0);
+            }
+            75% {
+                opacity: 1;
+                transform: scale(0.9);
+            }
+            95%, 100% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Mesterséges Intelligencia az Oktatás Szolgálatában</h1>
+        <p class="text-lg text-gray-600 mb-6">Fedezze fel, hogyan alakítja át az MI a tanulás és tanítás élményét.</p>
+        <div id="image-container" class="image-wrapper">
+            <div class="loading-spinner"></div>
+            <p class="text-gray-500 mt-4">Kép generálása...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const imageContainer = document.getElementById('image-container');
+            
+            try {
+                // The prompt for the image generation, emphasizing data flow *between* a robot head and a human head
+                const prompt = "A hyper-realistic, futuristic close-up image depicting a stylized **glowing robot head (representing AI) on the left side, facing right, with a subtle, illuminated mouth area**, and a **warm, contemplative human head on the right side, facing left, with a subtle, illuminated mouth area**. The focus is on the space directly between these two heads. **Numerous, bright, ultra-fine, pulsating light dots and glowing data packets rapidly flow and connect specifically within this central area, forming a concentrated, dynamic, visible pathway of knowledge and information transfer.** These lights should visually originate from the robot head and flow directly towards the human head, creating a powerful sense of focused, seamless learning and electrical impulses. The background should be subtly dark and abstract, indicating an advanced, intelligent learning environment, with soft light glows emanating from the heads themselves to highlight the data flow. The aesthetic is clean, highly detailed, and deeply luminous, with a strong emphasis on the seamless, one-way interconnectedness of knowledge flowing from AI to human within a defined central channel. The dominant colors should be deep electric blues, vibrant glowing greens, and ethereal, bright whites for the data pulses, conveying clarity and intellectual exchange, all concentrated in the central flow area.";
+                
+                // Construct the payload for the image generation API
+                const payload = {
+                    instances: { prompt: prompt },
+                    parameters: { "sampleCount": 1 }
+                };
+
+                // Define the API URL for image generation
+                const apiKey = ""; // API key will be provided by the Canvas runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+                // Make the fetch call to the image generation API
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Parse the JSON response
+                const result = await await response.json();
+
+                // Check if image data is available in the response
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    // Add the image and multiple data pulse overlays for a dynamic effect
+                    imageContainer.innerHTML = `
+                        <img src="${imageUrl}" alt="Mesterséges intelligencia az oktatásban" class="rounded-lg shadow-lg">
+                        <div class="data-pulse data-pulse-one"></div>
+                        <div class="data-pulse data-pulse-two"></div>
+                        <div class="data-pulse data-pulse-three"></div>
+                        <div class="data-pulse data-pulse-four"></div>
+                        <div class="data-pulse data-pulse-five"></div>
+                        <div class="data-pulse data-pulse-six"></div>
+                        <div class="data-pulse data-pulse-seven"></div>
+                        <div class="data-pulse data-pulse-eight"></div>
+                        <div class="data-pulse data-pulse-nine"></div>
+                        <div class="data-pulse data-pulse-ten"></div>
+                        <div class="data-pulse data-pulse-eleven"></div>
+                        <div class="data-pulse data-pulse-twelve"></div>
+                        <div class="data-pulse data-pulse-thirteen"></div>
+                        <div class="data-pulse data-pulse-fourteen"></div>
+                        <div class="data-pulse data-pulse-fifteen"></div>
+                        <div class="mouth-glow robot-mouth-glow"></div>
+                        <div class="mouth-glow human-mouth-glow"></div>
+                    `;
+                } else {
+                    // Display an error message if image generation fails
+                    imageContainer.innerHTML = `<p class="text-red-500">Nem sikerült képet generálni. Kérem, próbálja újra.</p>`;
+                    console.error("Image generation failed:", result);
+                }
+            } catch (error) {
+                // Catch and display any network or other errors
+                imageContainer.innerHTML = `<p class="text-red-500">Hiba történt a kép betöltésekor: ${error.message}</p>`;
+                console.error("Error fetching image:", error);
+            }
+        });
+    </script>
+</body>
+</html>

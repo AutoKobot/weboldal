@@ -1,0 +1,82 @@
+3530-842d1d66048789b8.js:1 Replit version ca7546e0, pid2 version 0.0.1357
+_app-5fdefa18dc81f0ca.js:38 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-5fdefa18dc81f0ca.js:38 [LaunchDarkly] LaunchDarkly client initialized
+content.bundle.js:64733 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/meta.json?:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 ()
+InteractiveLearning:1 Uncaught (in promise) SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+framework-6d917f9e0933a72b.js:1 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'battery'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-6d917f9e0933a72b.js:1
+framework-6d917f9e0933a72b.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-6d917f9e0933a72b.js:1
+workspace_iframe.html:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+Console.js:61 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Mt.forEach.n.<computed> @ Console.js:61
+Console.js:61 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Mt.forEach.n.<computed> @ Console.js:61
+Console.js:61 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Mt.forEach.n.<computed> @ Console.js:61
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
