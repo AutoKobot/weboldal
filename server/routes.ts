@@ -1472,6 +1472,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subject operations
+  app.post('/api/subjects', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const subjectData = insertSubjectSchema.parse(req.body);
+      const subject = await storage.createSubject(subjectData);
+      res.json(subject);
+    } catch (error) {
+      console.error("Error creating subject:", error);
+      res.status(500).json({ message: "Failed to create subject" });
+    }
+  });
+
+  app.put('/api/subjects/:id', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const subjectId = parseInt(req.params.id);
+      const subjectData = insertSubjectSchema.parse(req.body);
+      const subject = await storage.updateSubject(subjectId, subjectData);
+      res.json(subject);
+    } catch (error) {
+      console.error("Error updating subject:", error);
+      res.status(500).json({ message: "Failed to update subject" });
+    }
+  });
+
+  app.delete('/api/subjects/:id', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const subjectId = parseInt(req.params.id);
+      await storage.deleteSubject(subjectId);
+      res.json({ message: "Subject deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      res.status(500).json({ message: "Failed to delete subject" });
+    }
+  });
+
+  // Module operations
+  app.post('/api/modules', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const moduleData = insertModuleSchema.parse(req.body);
+      const module = await storage.createModule(moduleData);
+      res.json(module);
+    } catch (error) {
+      console.error("Error creating module:", error);
+      res.status(500).json({ message: "Failed to create module" });
+    }
+  });
+
+  app.patch('/api/modules/:id', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const moduleId = parseInt(req.params.id);
+      const moduleData = insertModuleSchema.partial().parse(req.body);
+      const module = await storage.updateModule(moduleId, moduleData);
+      res.json(module);
+    } catch (error) {
+      console.error("Error updating module:", error);
+      res.status(500).json({ message: "Failed to update module" });
+    }
+  });
+
+  app.delete('/api/modules/:id', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const moduleId = parseInt(req.params.id);
+      await storage.deleteModule(moduleId);
+      res.json({ message: "Module deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting module:", error);
+      res.status(500).json({ message: "Failed to delete module" });
+    }
+  });
+
 
 
   app.get('/api/public/modules', combinedAuth, async (req: any, res) => {
@@ -1596,6 +1708,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating profession:", error);
       res.status(500).json({ message: "Failed to update profession" });
+    }
+  });
+
+  app.delete('/api/professions/:id', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const professionId = parseInt(req.params.id);
+      await storage.deleteProfession(professionId);
+      res.json({ message: "Profession deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting profession:", error);
+      res.status(500).json({ message: "Failed to delete profession" });
     }
   });
 
