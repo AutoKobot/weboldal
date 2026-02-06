@@ -1218,241 +1218,240 @@ export class DatabaseStorage implements IStorage {
 
 
 
-    return result[0]?.total || 0;
-  }
+
 
   // API pricing operations
-  async getApiPricing(): Promise < ApiPricing[] > {
-  return await db
-    .select()
-    .from(apiPricing)
-    .where(eq(apiPricing.isActive, true))
-    .orderBy(apiPricing.provider, apiPricing.service);
-}
-
-  async upsertApiPricing(pricingData: InsertApiPricing): Promise < ApiPricing > {
-  // Check if record exists
-  const existing = await db
-    .select()
-    .from(apiPricing)
-    .where(
-      and(
-        eq(apiPricing.provider, pricingData.provider),
-        eq(apiPricing.service, pricingData.service),
-        pricingData.model ? eq(apiPricing.model, pricingData.model) : isNull(apiPricing.model)
-      )
-    );
-
-  if(existing.length > 0) {
-  // Update existing record
-  const [updated] = await db
-    .update(apiPricing)
-    .set({
-      ...pricingData,
-      updatedAt: new Date(),
-    })
-    .where(eq(apiPricing.id, existing[0].id))
-    .returning();
-  return updated;
-} else {
-  // Insert new record
-  const [inserted] = await db
-    .insert(apiPricing)
-    .values(pricingData)
-    .returning();
-  return inserted;
-}
+  async getApiPricing(): Promise<ApiPricing[]> {
+    return await db
+      .select()
+      .from(apiPricing)
+      .where(eq(apiPricing.isActive, true))
+      .orderBy(apiPricing.provider, apiPricing.service);
   }
 
-  async deleteApiPricing(id: number): Promise < void> {
-  await db
-      .update(apiPricing)
-    .set({ isActive: false })
-    .where(eq(apiPricing.id, id));
-}
-
-  async getUniqueApiProviders(): Promise < { provider: string, service: string, model?: string }[] > {
-  const result = await db
-    .selectDistinct({
-      provider: apiCalls.provider,
-      service: apiCalls.service,
-      model: apiCalls.model,
-    })
-    .from(apiCalls)
-    .orderBy(apiCalls.provider, apiCalls.service);
-
-  return result;
-}
-
-  // API Call tracking for AI regeneration
-  async recordSimpleApiCall(provider: string, service: string, estimatedCost: number = 0.01): Promise < void> {
-  try {
-    // Record actual API call in database
-    await db.insert(apiCalls).values({
-      provider: provider,
-      service: service,
-      model: provider === 'openai' ? 'gpt-4o-mini' : (provider === 'gemini' ? 'gemini-pro' : null),
-      tokenCount: Math.floor(Math.random() * 1000) + 500, // Estimated token count
-      costUsd: estimatedCost.toFixed(4),
-      userId: null,
-      moduleId: null,
-      requestData: { type: 'ai_generation', service: service },
-      responseData: { success: true, provider: provider },
-      createdAt: new Date()
-    });
-
-    console.log(`💰 API call recorded in database: ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
-  } catch(error) {
-    console.error('Failed to record API call in database:', error);
-    // Fallback to console logging
-    console.log(`💰 AI Cost Tracked (console only): ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
-  }
-}
-
-  async calculateApiCost(provider: string, service: string, model: string | null, inputTokens: number, outputTokens: number): Promise < number > {
-  try {
-    const pricing = await db
+  async upsertApiPricing(pricingData: InsertApiPricing): Promise<ApiPricing> {
+    // Check if record exists
+    const existing = await db
       .select()
       .from(apiPricing)
       .where(
         and(
-          eq(apiPricing.provider, provider),
-          eq(apiPricing.service, service),
-          model ? eq(apiPricing.model, model) : sql`${apiPricing.model} IS NULL`,
-          eq(apiPricing.isActive, true)
+          eq(apiPricing.provider, pricingData.provider),
+          eq(apiPricing.service, pricingData.service),
+          pricingData.model ? eq(apiPricing.model, pricingData.model) : isNull(apiPricing.model)
         )
-      )
-      .limit(1);
+      );
 
-    if(pricing.length === 0) {
-  console.log(`No pricing found for ${provider}/${service}/${model || 'null'}`);
-  return 0;
-}
-
-const price = pricing[0];
-let cost = 0;
-
-if (price.pricingType === 'token') {
-  if (price.inputTokenPrice && inputTokens > 0) {
-    cost += (inputTokens / 1000) * parseFloat(price.inputTokenPrice);
+    if (existing.length > 0) {
+      // Update existing record
+      const [updated] = await db
+        .update(apiPricing)
+        .set({
+          ...pricingData,
+          updatedAt: new Date(),
+        })
+        .where(eq(apiPricing.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      // Insert new record
+      const [inserted] = await db
+        .insert(apiPricing)
+        .values(pricingData)
+        .returning();
+      return inserted;
+    }
   }
-  if (price.outputTokenPrice && outputTokens > 0) {
-    cost += (outputTokens / 1000) * parseFloat(price.outputTokenPrice);
-  }
-} else if (price.pricingType === 'request' && price.requestPrice) {
-  cost = parseFloat(price.requestPrice);
-}
 
-return cost;
+  async deleteApiPricing(id: number): Promise<void> {
+    await db
+      .update(apiPricing)
+      .set({ isActive: false })
+      .where(eq(apiPricing.id, id));
+  }
+
+  async getUniqueApiProviders(): Promise<{ provider: string, service: string, model?: string }[]> {
+    const result = await db
+      .selectDistinct({
+        provider: apiCalls.provider,
+        service: apiCalls.service,
+        model: apiCalls.model,
+      })
+      .from(apiCalls)
+      .orderBy(apiCalls.provider, apiCalls.service);
+
+    return result;
+  }
+
+  // API Call tracking for AI regeneration
+  async recordSimpleApiCall(provider: string, service: string, estimatedCost: number = 0.01): Promise<void> {
+    try {
+      // Record actual API call in database
+      await db.insert(apiCalls).values({
+        provider: provider,
+        service: service,
+        model: provider === 'openai' ? 'gpt-4o-mini' : (provider === 'gemini' ? 'gemini-pro' : null),
+        tokenCount: Math.floor(Math.random() * 1000) + 500, // Estimated token count
+        costUsd: estimatedCost.toFixed(4),
+        userId: null,
+        moduleId: null,
+        requestData: { type: 'ai_generation', service: service },
+        responseData: { success: true, provider: provider },
+        createdAt: new Date()
+      });
+
+      console.log(`💰 API call recorded in database: ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
     } catch (error) {
-  console.error('Failed to calculate API cost:', error);
-  return 0;
-}
+      console.error('Failed to record API call in database:', error);
+      // Fallback to console logging
+      console.log(`💰 AI Cost Tracked (console only): ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
+    }
+  }
+
+  async calculateApiCost(provider: string, service: string, model: string | null, inputTokens: number, outputTokens: number): Promise<number> {
+    try {
+      const pricing = await db
+        .select()
+        .from(apiPricing)
+        .where(
+          and(
+            eq(apiPricing.provider, provider),
+            eq(apiPricing.service, service),
+            model ? eq(apiPricing.model, model) : sql`${apiPricing.model} IS NULL`,
+            eq(apiPricing.isActive, true)
+          )
+        )
+        .limit(1);
+
+      if (pricing.length === 0) {
+        console.log(`No pricing found for ${provider}/${service}/${model || 'null'}`);
+        return 0;
+      }
+
+      const price = pricing[0];
+      let cost = 0;
+
+      if (price.pricingType === 'token') {
+        if (price.inputTokenPrice && inputTokens > 0) {
+          cost += (inputTokens / 1000) * parseFloat(price.inputTokenPrice);
+        }
+        if (price.outputTokenPrice && outputTokens > 0) {
+          cost += (outputTokens / 1000) * parseFloat(price.outputTokenPrice);
+        }
+      } else if (price.pricingType === 'request' && price.requestPrice) {
+        cost = parseFloat(price.requestPrice);
+      }
+
+      return cost;
+    } catch (error) {
+      console.error('Failed to calculate API cost:', error);
+      return 0;
+    }
   }
 
   // Privacy and GDPR compliance operations
-  async saveUserConsent(consent: InsertUserConsent): Promise < UserConsent > {
-  const [savedConsent] = await db
-    .insert(userConsents)
-    .values(consent)
-    .returning();
-  return savedConsent;
-}
-
-  async getUserConsents(userId ?: string, sessionId ?: string): Promise < UserConsent[] > {
-  const conditions = [];
-  if(userId) conditions.push(eq(userConsents.userId, userId));
-  if(sessionId) conditions.push(eq(userConsents.sessionId, sessionId));
-
-  if(conditions.length === 0) {
-  return await db.select().from(userConsents).orderBy(desc(userConsents.createdAt));
-}
-
-return await db.select().from(userConsents)
-  .where(and(...conditions))
-  .orderBy(desc(userConsents.createdAt));
+  async saveUserConsent(consent: InsertUserConsent): Promise<UserConsent> {
+    const [savedConsent] = await db
+      .insert(userConsents)
+      .values(consent)
+      .returning();
+    return savedConsent;
   }
 
-  async createPrivacyRequest(request: InsertPrivacyRequest): Promise < PrivacyRequest > {
-  const [savedRequest] = await db
-    .insert(privacyRequests)
-    .values(request)
-    .returning();
-  return savedRequest;
-}
+  async getUserConsents(userId?: string, sessionId?: string): Promise<UserConsent[]> {
+    const conditions = [];
+    if (userId) conditions.push(eq(userConsents.userId, userId));
+    if (sessionId) conditions.push(eq(userConsents.sessionId, sessionId));
 
-  async getPrivacyRequests(email ?: string): Promise < PrivacyRequest[] > {
-  if(email) {
-    return await db.select().from(privacyRequests)
-      .where(eq(privacyRequests.email, email))
-      .orderBy(desc(privacyRequests.createdAt));
+    if (conditions.length === 0) {
+      return await db.select().from(userConsents).orderBy(desc(userConsents.createdAt));
+    }
+
+    return await db.select().from(userConsents)
+      .where(and(...conditions))
+      .orderBy(desc(userConsents.createdAt));
   }
+
+  async createPrivacyRequest(request: InsertPrivacyRequest): Promise<PrivacyRequest> {
+    const [savedRequest] = await db
+      .insert(privacyRequests)
+      .values(request)
+      .returning();
+    return savedRequest;
+  }
+
+  async getPrivacyRequests(email?: string): Promise<PrivacyRequest[]> {
+    if (email) {
+      return await db.select().from(privacyRequests)
+        .where(eq(privacyRequests.email, email))
+        .orderBy(desc(privacyRequests.createdAt));
+    }
     return await db.select().from(privacyRequests).orderBy(desc(privacyRequests.createdAt));
-}
-
-  async getPrivacyRequest(id: number): Promise < PrivacyRequest | undefined > {
-  const [request] = await db.select().from(privacyRequests).where(eq(privacyRequests.id, id));
-  return request;
-}
-
-  async updatePrivacyRequestStatus(id: number, status: string, responseData ?: any, processedBy ?: string): Promise < PrivacyRequest > {
-  const updateData: Partial<InsertPrivacyRequest> = {
-  status,
-    responseData,
-    processedBy
-};
-
-if (status === 'completed') {
-  updateData.completedAt = new Date();
-}
-
-const [updatedRequest] = await db
-  .update(privacyRequests)
-  .set(updateData)
-  .where(eq(privacyRequests.id, id))
-  .returning();
-
-return updatedRequest;
   }
 
-  async exportUserData(userId: string): Promise < any > {
-  try {
-    // Get user data
-    const userData = await this.getUser(userId);
-    if(!userData) return null;
+  async getPrivacyRequest(id: number): Promise<PrivacyRequest | undefined> {
+    const [request] = await db.select().from(privacyRequests).where(eq(privacyRequests.id, id));
+    return request;
+  }
 
-    // Get chat messages
-    const chatMessages = await this.getChatMessages(userId);
-
-    // Get API calls
-    const apiCalls = await db.select().from(apiCalls).where(eq(apiCalls.userId, userId));
-
-    // Get consents
-    const consents = await this.getUserConsents(userId);
-
-    // Get privacy requests
-    const requests = await this.getPrivacyRequests(userData.email || '');
-
-    return {
-      user: userData,
-      chatMessages,
-      apiCalls,
-      consents,
-      privacyRequests: requests,
-      exportedAt: new Date().toISOString(),
-      exportFormat: 'JSON'
+  async updatePrivacyRequestStatus(id: number, status: string, responseData?: any, processedBy?: string): Promise<PrivacyRequest> {
+    const updateData: Partial<InsertPrivacyRequest> = {
+      status,
+      responseData,
+      processedBy
     };
-  } catch(error) {
-    console.error('Failed to export user data:', error);
-    throw error;
-  }
-}
 
-  async deleteUserPersonalData(userId: string): Promise < void> {
-  // This is the same as the existing deleteUser method
-  // but explicitly named for GDPR compliance
-  await this.deleteUser(userId);
-}
+    if (status === 'completed') {
+      updateData.completedAt = new Date();
+    }
+
+    const [updatedRequest] = await db
+      .update(privacyRequests)
+      .set(updateData)
+      .where(eq(privacyRequests.id, id))
+      .returning();
+
+    return updatedRequest;
+  }
+
+  async exportUserData(userId: string): Promise<any> {
+    try {
+      // Get user data
+      const userData = await this.getUser(userId);
+      if (!userData) return null;
+
+      // Get chat messages
+      const chatMessages = await this.getChatMessages(userId);
+
+      // Get API calls
+      const apiCalls = await db.select().from(apiCalls).where(eq(apiCalls.userId, userId));
+
+      // Get consents
+      const consents = await this.getUserConsents(userId);
+
+      // Get privacy requests
+      const requests = await this.getPrivacyRequests(userData.email || '');
+
+      return {
+        user: userData,
+        chatMessages,
+        apiCalls,
+        consents,
+        privacyRequests: requests,
+        exportedAt: new Date().toISOString(),
+        exportFormat: 'JSON'
+      };
+    } catch (error) {
+      console.error('Failed to export user data:', error);
+      throw error;
+    }
+  }
+
+  async deleteUserPersonalData(userId: string): Promise<void> {
+    // This is the same as the existing deleteUser method
+    // but explicitly named for GDPR compliance
+    await this.deleteUser(userId);
+  }
 }
 
 export const storage = new DatabaseStorage();
