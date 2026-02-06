@@ -85,25 +85,25 @@ export interface IStorage {
   assignStudentToTeacher(studentId: string, teacherId: string): Promise<void>;
   removeStudentFromTeacher(studentId: string): Promise<void>;
   deleteUser(id: string): Promise<void>;
-  
+
   // Class operations
   getClassesBySchoolAdmin(schoolAdminId: string): Promise<Class[]>;
   getClassById(classId: number): Promise<Class | undefined>;
   getStudentsByClass(classId: number): Promise<User[]>;
   getStudentsBySchoolAdmin(schoolAdminId: string): Promise<User[]>;
-  
+
   // Cost tracking operations
   logApiCall(callData: InsertApiCall): Promise<ApiCall>;
   getApiCallStats(year?: number, month?: number): Promise<any>;
   getMonthlyCosts(year?: number): Promise<MonthlyCost[]>;
   upsertMonthlyCost(costData: InsertMonthlyCost): Promise<MonthlyCost>;
   calculateMonthlyApiCosts(year: number, month: number): Promise<number>;
-  
+
   // API pricing operations
   getApiPricing(): Promise<ApiPricing[]>;
   upsertApiPricing(pricingData: InsertApiPricing): Promise<ApiPricing>;
   deleteApiPricing(id: number): Promise<void>;
-  getUniqueApiProviders(): Promise<{provider: string, service: string, model?: string}[]>;
+  getUniqueApiProviders(): Promise<{ provider: string, service: string, model?: string }[]>;
   getTeachersBySchoolAdmin(schoolAdminId: string): Promise<User[]>;
   createClass(classData: InsertClass): Promise<Class>;
   updateClass(id: number, classData: Partial<InsertClass>): Promise<Class>;
@@ -115,21 +115,21 @@ export interface IStorage {
   assignProfessionToClass(classId: number, professionId: number): Promise<void>;
   assignTeacherToClassById(classId: number, teacherId: string): Promise<void>;
   getClassWithProfession(classId: number): Promise<Class & { profession?: any } | undefined>;
-  
+
   // Profession operations
   getProfessions(): Promise<Profession[]>;
   getProfession(id: number): Promise<Profession | undefined>;
   createProfession(profession: InsertProfession): Promise<Profession>;
   updateProfession(id: number, profession: Partial<InsertProfession>): Promise<Profession>;
   deleteProfession(id: number): Promise<void>;
-  
+
   // Subject operations
   getSubjects(professionId?: number): Promise<Subject[]>;
   getSubject(id: number): Promise<Subject | undefined>;
   createSubject(subject: InsertSubject): Promise<Subject>;
   updateSubject(id: number, subject: Partial<InsertSubject>): Promise<Subject>;
   deleteSubject(id: number): Promise<void>;
-  
+
   // Module operations
   getModules(subjectId?: number): Promise<Module[]>;
   getPublishedModules(subjectId?: number): Promise<Module[]>;
@@ -137,20 +137,20 @@ export interface IStorage {
   createModule(module: InsertModule): Promise<Module>;
   updateModule(id: number, module: Partial<InsertModule>): Promise<Module>;
   deleteModule(id: number): Promise<void>;
-  
+
   // Chat operations
   getChatMessages(userId: string, moduleId?: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   deleteChatMessages(userId: string, moduleId?: number): Promise<void>;
-  
+
   // System settings operations
   getSystemSetting(key: string): Promise<SystemSetting | undefined>;
   setSystemSetting(key: string, value: string, updatedBy: string): Promise<SystemSetting>;
-  
+
   // AI settings operations
   getAISettings(): Promise<AISetting | undefined>;
   updateAISettings(settings: InsertAISetting, updatedBy: string): Promise<AISetting>;
-  
+
   // Community operations
   getCommunityGroups(professionId?: number): Promise<CommunityGroup[]>;
   getCommunityGroup(id: number): Promise<CommunityGroup | undefined>;
@@ -158,28 +158,28 @@ export interface IStorage {
   joinCommunityGroup(groupId: number, userId: string): Promise<void>;
   leaveCommunityGroup(groupId: number, userId: string): Promise<void>;
   getGroupMembers(groupId: number): Promise<GroupMember[]>;
-  
+
   // Community projects
   getCommunityProjects(groupId?: number): Promise<CommunityProject[]>;
   getCommunityProject(id: number): Promise<CommunityProject | undefined>;
   createCommunityProject(project: InsertCommunityProject): Promise<CommunityProject>;
   joinProject(projectId: number, userId: string): Promise<void>;
   getProjectParticipants(projectId: number): Promise<ProjectParticipant[]>;
-  
+
   // Discussions
   getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]>;
   createDiscussion(discussion: InsertDiscussion): Promise<Discussion>;
-  
+
   // Peer reviews
   createPeerReview(review: InsertPeerReview): Promise<PeerReview>;
   getPeerReviews(projectId: number): Promise<PeerReview[]>;
-  
+
   // Admin messages
   createAdminMessage(message: InsertAdminMessage): Promise<AdminMessage>;
   getAdminMessages(): Promise<AdminMessage[]>;
   getUserAdminMessages(userId: string): Promise<AdminMessage[]>;
   respondToAdminMessage(messageId: number, response: string): Promise<AdminMessage>;
-  
+
   // Privacy and GDPR compliance operations
   saveUserConsent(consent: InsertUserConsent): Promise<UserConsent>;
   getUserConsents(userId?: string, sessionId?: string): Promise<UserConsent[]>;
@@ -233,7 +233,7 @@ export class DatabaseStorage implements IStorage {
     // Check if this is the first user (make them admin)
     const existingUsers = await db.select().from(users);
     const isFirstUser = existingUsers.length === 0;
-    
+
     const [user] = await db
       .insert(users)
       .values({
@@ -268,9 +268,9 @@ export class DatabaseStorage implements IStorage {
   async createUser(userData: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string }): Promise<User> {
     const { hashPassword } = await import('./localAuth');
     const hashedPassword = await hashPassword(userData.password);
-    
+
     const userId = userData.id || `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const [user] = await db
       .insert(users)
       .values({
@@ -293,62 +293,62 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserRole(id: string, role: string): Promise<void> {
     console.log(`🔄 Updating user ${id} role to ${role}`);
-    
+
     // Get current user data
     const currentUser = await this.getUser(id);
     if (!currentUser) {
       throw new Error('User not found');
     }
-    
+
     const oldRole = currentUser.role;
     console.log(`Role change: ${oldRole} → ${role}`);
-    
+
     // Clean up role-specific data when changing roles
     await this.cleanupRoleSpecificData(id, oldRole, role);
-    
+
     // Update the user role
     await db
       .update(users)
       .set({ role, updatedAt: new Date() })
       .where(eq(users.id, id));
-    
+
     console.log(`✅ User role updated successfully`);
   }
-  
+
   /**
    * Clean up role-specific data when a user's role changes
    */
   private async cleanupRoleSpecificData(userId: string, oldRole: string, newRole: string): Promise<void> {
     console.log(`🧹 Cleaning up role-specific data for ${oldRole} → ${newRole}`);
-    
+
     try {
       // If changing FROM teacher role, clean up teacher relationships
       if (oldRole === 'teacher' && newRole !== 'teacher') {
         console.log('Removing teacher-student relationships');
         await db.execute(sql`DELETE FROM teacher_students WHERE teacher_id = ${userId}`);
-        
+
         // Update classes where this user was assigned teacher
         await db.execute(sql`UPDATE classes SET assigned_teacher_id = NULL WHERE assigned_teacher_id = ${userId}`);
       }
-      
+
       // If changing FROM student role, clean up student relationships  
       if (oldRole === 'student' && newRole !== 'student') {
         console.log('Removing student-teacher relationships');
         await db.execute(sql`DELETE FROM teacher_students WHERE student_id = ${userId}`);
-        
+
         // Clean up student progress data if needed
         await db.execute(sql`DELETE FROM module_progress WHERE user_id = ${userId}`);
       }
-      
+
       // If changing FROM admin/school_admin, clean up admin-specific data
-      if ((oldRole === 'admin' || oldRole === 'school_admin') && 
-          (newRole !== 'admin' && newRole !== 'school_admin')) {
+      if ((oldRole === 'admin' || oldRole === 'school_admin') &&
+        (newRole !== 'admin' && newRole !== 'school_admin')) {
         console.log('Removing admin-specific data');
         await db.execute(sql`DELETE FROM admin_messages WHERE sender_id = ${userId}`);
       }
-      
+
       console.log('✅ Role-specific data cleanup completed');
-      
+
     } catch (error) {
       console.error('❌ Error during role cleanup:', error);
       // Don't throw error here - allow role change to proceed even if cleanup fails
@@ -358,7 +358,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserProfession(id: string, professionId: number): Promise<void> {
     await db
       .update(users)
-      .set({ 
+      .set({
         selectedProfessionId: professionId,
         updatedAt: new Date()
       })
@@ -408,7 +408,7 @@ export class DatabaseStorage implements IStorage {
   async assignStudentToTeacher(studentId: string, teacherId: string): Promise<void> {
     await db
       .update(users)
-      .set({ 
+      .set({
         assignedTeacherId: teacherId,
         updatedAt: new Date()
       })
@@ -418,7 +418,7 @@ export class DatabaseStorage implements IStorage {
   async removeStudentFromTeacher(studentId: string): Promise<void> {
     await db
       .update(users)
-      .set({ 
+      .set({
         assignedTeacherId: null,
         updatedAt: new Date()
       })
@@ -427,44 +427,44 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: string): Promise<void> {
     console.log(`🗑️ Starting comprehensive user deletion for: ${id}`);
-    
+
     try {
       // Delete in reverse dependency order to avoid foreign key violations
-      
+
       // 1. Delete chat messages
       const deletedMessages = await db.delete(chatMessages).where(eq(chatMessages.userId, id));
       console.log(`Deleted ${deletedMessages.rowCount || 0} chat messages`);
-      
+
       // 2. Delete module progress
       await db.execute(sql`DELETE FROM module_progress WHERE user_id = ${id}`);
-      
+
       // 3. Delete API calls
       await db.execute(sql`DELETE FROM api_calls WHERE user_id = ${id}`);
-      
+
       // 4. Delete admin messages (as sender)
       await db.execute(sql`DELETE FROM admin_messages WHERE sender_id = ${id}`);
-      
+
       // 5. Delete teacher-student relationships (both directions)
       await db.execute(sql`DELETE FROM teacher_students WHERE teacher_id = ${id} OR student_id = ${id}`);
-      
+
       // 6. Delete group memberships
       await db.execute(sql`DELETE FROM group_members WHERE user_id = ${id}`);
-      
+
       // 7. Delete project participations
       await db.execute(sql`DELETE FROM project_participants WHERE user_id = ${id}`);
-      
+
       // 8. Delete discussions authored by user
       await db.execute(sql`DELETE FROM discussions WHERE author_id = ${id}`);
-      
+
       // 9. Delete peer reviews (both as reviewer and reviewed)
       await db.execute(sql`DELETE FROM peer_reviews WHERE reviewer_id = ${id} OR reviewed_user_id = ${id}`);
-      
+
       // 10. Delete equipment manuals uploaded by user
       await db.execute(sql`DELETE FROM equipment_manuals WHERE uploaded_by = ${id}`);
-      
+
       // 11. Delete equipment models manufactured by user
       await db.execute(sql`DELETE FROM equipment_models WHERE manufacturer_id = ${id}`);
-      
+
       // 12. Handle community groups created by user (cascade delete)
       const userGroups = await db.execute(sql`SELECT id FROM community_groups WHERE created_by = ${id}`);
       for (const group of userGroups.rows) {
@@ -481,15 +481,15 @@ export class DatabaseStorage implements IStorage {
         // Finally delete the group
         await db.execute(sql`DELETE FROM community_groups WHERE id = ${groupId}`);
       }
-      
+
       // 13. Update classes where user is assigned teacher (set to null)
       await db.execute(sql`UPDATE classes SET assigned_teacher_id = NULL WHERE assigned_teacher_id = ${id}`);
-      
+
       // 14. Finally delete the user
       const deletedUser = await db.delete(users).where(eq(users.id, id));
-      
+
       console.log(`✅ User ${id} and all related data successfully deleted`);
-      
+
     } catch (error) {
       console.error(`❌ Error during user deletion:`, error);
       throw error;
@@ -689,7 +689,7 @@ export class DatabaseStorage implements IStorage {
   async updateAISettings(settingsData: any, updatedBy: string): Promise<AISetting> {
     // Check if AI settings exist
     const existing = await this.getAISettings();
-    
+
     if (existing) {
       // Update existing settings
       const [updated] = await db
@@ -743,7 +743,7 @@ export class DatabaseStorage implements IStorage {
     if (!existingGroup || existingGroup.createdBy !== userId) {
       throw new Error('Unauthorized to update this group');
     }
-    
+
     const [updatedGroup] = await db
       .update(communityGroups)
       .set({ ...groupData, updatedAt: new Date() })
@@ -758,7 +758,7 @@ export class DatabaseStorage implements IStorage {
     if (!existingGroup || existingGroup.createdBy !== userId) {
       throw new Error('Unauthorized to delete this group');
     }
-    
+
     // Delete all related data first
     await db.delete(groupMembers).where(eq(groupMembers.groupId, id));
     await db.delete(discussions).where(eq(discussions.groupId, id));
@@ -827,7 +827,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(discussions.projectId, projectId))
         .orderBy(desc(discussions.createdAt));
     }
-    
+
     return await db.select().from(discussions).orderBy(desc(discussions.createdAt));
   }
 
@@ -948,7 +948,7 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ classId: null })
       .where(eq(users.classId, id));
-    
+
     // Delete the class
     await db.delete(classes).where(eq(classes.id, id));
   }
@@ -987,7 +987,7 @@ export class DatabaseStorage implements IStorage {
       .update(classes)
       .set({ professionId, updatedAt: new Date() })
       .where(eq(classes.id, classId));
-    
+
     // Az osztályban lévő összes diák szakmájának frissítése
     await db
       .update(users)
@@ -1020,7 +1020,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(professions, eq(classes.professionId, professions.id))
       .where(eq(classes.id, classId))
       .limit(1);
-    
+
     return result[0] || undefined;
   }
 
@@ -1070,7 +1070,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(monthlyCosts.year, year))
         .orderBy(desc(monthlyCosts.year), desc(monthlyCosts.month));
     }
-    
+
     return await db
       .select()
       .from(monthlyCosts)
@@ -1091,7 +1091,7 @@ export class DatabaseStorage implements IStorage {
             sql`EXTRACT(MONTH FROM ${apiCalls.createdAt}) = ${month}`
           )
         );
-      
+
       return parseFloat(result[0]?.totalCost || '0');
     } catch (error) {
       console.error('Error calculating monthly API costs:', error);
@@ -1120,10 +1120,10 @@ export class DatabaseStorage implements IStorage {
       // Update API costs for existing entry
       const apiCosts = await this.calculateMonthlyApiCosts(year, month);
       const existingEntry = existing[0];
-      const totalCosts = parseFloat(apiCosts.toString()) + 
-                        parseFloat(existingEntry.developmentCosts?.toString() || '0') + 
-                        parseFloat(existingEntry.infrastructureCosts?.toString() || '0') + 
-                        parseFloat(existingEntry.otherCosts?.toString() || '0');
+      const totalCosts = parseFloat(apiCosts.toString()) +
+        parseFloat(existingEntry.developmentCosts?.toString() || '0') +
+        parseFloat(existingEntry.infrastructureCosts?.toString() || '0') +
+        parseFloat(existingEntry.otherCosts?.toString() || '0');
 
       const [updated] = await db
         .update(monthlyCosts)
@@ -1162,7 +1162,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(monthlyCosts)
         .where(eq(monthlyCosts.id, id));
-      
+
       return result[0] || null;
     } catch (error) {
       console.error('Error getting monthly cost by ID:', error);
@@ -1216,254 +1216,243 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async calculateMonthlyApiCosts(year: number, month: number): Promise<number> {
-    const result = await db
-      .select({
-        total: sql<number>`sum(${apiCalls.costUsd})::float`
-      })
-      .from(apiCalls)
-      .where(
-        and(
-          sql`extract(year from ${apiCalls.createdAt}) = ${year}`,
-          sql`extract(month from ${apiCalls.createdAt}) = ${month}`
-        )
-      );
+
 
     return result[0]?.total || 0;
   }
 
   // API pricing operations
-  async getApiPricing(): Promise<ApiPricing[]> {
-    return await db
-      .select()
-      .from(apiPricing)
-      .where(eq(apiPricing.isActive, true))
-      .orderBy(apiPricing.provider, apiPricing.service);
+  async getApiPricing(): Promise < ApiPricing[] > {
+  return await db
+    .select()
+    .from(apiPricing)
+    .where(eq(apiPricing.isActive, true))
+    .orderBy(apiPricing.provider, apiPricing.service);
+}
+
+  async upsertApiPricing(pricingData: InsertApiPricing): Promise < ApiPricing > {
+  // Check if record exists
+  const existing = await db
+    .select()
+    .from(apiPricing)
+    .where(
+      and(
+        eq(apiPricing.provider, pricingData.provider),
+        eq(apiPricing.service, pricingData.service),
+        pricingData.model ? eq(apiPricing.model, pricingData.model) : isNull(apiPricing.model)
+      )
+    );
+
+  if(existing.length > 0) {
+  // Update existing record
+  const [updated] = await db
+    .update(apiPricing)
+    .set({
+      ...pricingData,
+      updatedAt: new Date(),
+    })
+    .where(eq(apiPricing.id, existing[0].id))
+    .returning();
+  return updated;
+} else {
+  // Insert new record
+  const [inserted] = await db
+    .insert(apiPricing)
+    .values(pricingData)
+    .returning();
+  return inserted;
+}
   }
 
-  async upsertApiPricing(pricingData: InsertApiPricing): Promise<ApiPricing> {
-    // Check if record exists
-    const existing = await db
+  async deleteApiPricing(id: number): Promise < void> {
+  await db
+      .update(apiPricing)
+    .set({ isActive: false })
+    .where(eq(apiPricing.id, id));
+}
+
+  async getUniqueApiProviders(): Promise < { provider: string, service: string, model?: string }[] > {
+  const result = await db
+    .selectDistinct({
+      provider: apiCalls.provider,
+      service: apiCalls.service,
+      model: apiCalls.model,
+    })
+    .from(apiCalls)
+    .orderBy(apiCalls.provider, apiCalls.service);
+
+  return result;
+}
+
+  // API Call tracking for AI regeneration
+  async recordSimpleApiCall(provider: string, service: string, estimatedCost: number = 0.01): Promise < void> {
+  try {
+    // Record actual API call in database
+    await db.insert(apiCalls).values({
+      provider: provider,
+      service: service,
+      model: provider === 'openai' ? 'gpt-4o-mini' : (provider === 'gemini' ? 'gemini-pro' : null),
+      tokenCount: Math.floor(Math.random() * 1000) + 500, // Estimated token count
+      costUsd: estimatedCost.toFixed(4),
+      userId: null,
+      moduleId: null,
+      requestData: { type: 'ai_generation', service: service },
+      responseData: { success: true, provider: provider },
+      createdAt: new Date()
+    });
+
+    console.log(`💰 API call recorded in database: ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
+  } catch(error) {
+    console.error('Failed to record API call in database:', error);
+    // Fallback to console logging
+    console.log(`💰 AI Cost Tracked (console only): ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
+  }
+}
+
+  async calculateApiCost(provider: string, service: string, model: string | null, inputTokens: number, outputTokens: number): Promise < number > {
+  try {
+    const pricing = await db
       .select()
       .from(apiPricing)
       .where(
         and(
-          eq(apiPricing.provider, pricingData.provider),
-          eq(apiPricing.service, pricingData.service),
-          pricingData.model ? eq(apiPricing.model, pricingData.model) : isNull(apiPricing.model)
+          eq(apiPricing.provider, provider),
+          eq(apiPricing.service, service),
+          model ? eq(apiPricing.model, model) : sql`${apiPricing.model} IS NULL`,
+          eq(apiPricing.isActive, true)
         )
-      );
+      )
+      .limit(1);
 
-    if (existing.length > 0) {
-      // Update existing record
-      const [updated] = await db
-        .update(apiPricing)
-        .set({
-          ...pricingData,
-          updatedAt: new Date(),
-        })
-        .where(eq(apiPricing.id, existing[0].id))
-        .returning();
-      return updated;
-    } else {
-      // Insert new record
-      const [inserted] = await db
-        .insert(apiPricing)
-        .values(pricingData)
-        .returning();
-      return inserted;
-    }
+    if(pricing.length === 0) {
+  console.log(`No pricing found for ${provider}/${service}/${model || 'null'}`);
+  return 0;
+}
+
+const price = pricing[0];
+let cost = 0;
+
+if (price.pricingType === 'token') {
+  if (price.inputTokenPrice && inputTokens > 0) {
+    cost += (inputTokens / 1000) * parseFloat(price.inputTokenPrice);
   }
-
-  async deleteApiPricing(id: number): Promise<void> {
-    await db
-      .update(apiPricing)
-      .set({ isActive: false })
-      .where(eq(apiPricing.id, id));
+  if (price.outputTokenPrice && outputTokens > 0) {
+    cost += (outputTokens / 1000) * parseFloat(price.outputTokenPrice);
   }
+} else if (price.pricingType === 'request' && price.requestPrice) {
+  cost = parseFloat(price.requestPrice);
+}
 
-  async getUniqueApiProviders(): Promise<{provider: string, service: string, model?: string}[]> {
-    const result = await db
-      .selectDistinct({
-        provider: apiCalls.provider,
-        service: apiCalls.service,
-        model: apiCalls.model,
-      })
-      .from(apiCalls)
-      .orderBy(apiCalls.provider, apiCalls.service);
-
-    return result;
-  }
-
-  // API Call tracking for AI regeneration
-  async recordSimpleApiCall(provider: string, service: string, estimatedCost: number = 0.01): Promise<void> {
-    try {
-      // Record actual API call in database
-      await db.insert(apiCalls).values({
-        provider: provider,
-        service: service,
-        model: provider === 'openai' ? 'gpt-4o-mini' : (provider === 'gemini' ? 'gemini-pro' : null),
-        tokenCount: Math.floor(Math.random() * 1000) + 500, // Estimated token count
-        costUsd: estimatedCost.toFixed(4),
-        userId: null,
-        moduleId: null,
-        requestData: { type: 'ai_generation', service: service },
-        responseData: { success: true, provider: provider },
-        createdAt: new Date()
-      });
-      
-      console.log(`💰 API call recorded in database: ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
+return cost;
     } catch (error) {
-      console.error('Failed to record API call in database:', error);
-      // Fallback to console logging
-      console.log(`💰 AI Cost Tracked (console only): ${provider}/${service} - $${estimatedCost.toFixed(4)}`);
-    }
-  }
-
-  async calculateApiCost(provider: string, service: string, model: string | null, inputTokens: number, outputTokens: number): Promise<number> {
-    try {
-      const pricing = await db
-        .select()
-        .from(apiPricing)
-        .where(
-          and(
-            eq(apiPricing.provider, provider),
-            eq(apiPricing.service, service),
-            model ? eq(apiPricing.model, model) : sql`${apiPricing.model} IS NULL`,
-            eq(apiPricing.isActive, true)
-          )
-        )
-        .limit(1);
-
-      if (pricing.length === 0) {
-        console.log(`No pricing found for ${provider}/${service}/${model || 'null'}`);
-        return 0;
-      }
-
-      const price = pricing[0];
-      let cost = 0;
-
-      if (price.pricingType === 'token') {
-        if (price.inputTokenPrice && inputTokens > 0) {
-          cost += (inputTokens / 1000) * parseFloat(price.inputTokenPrice);
-        }
-        if (price.outputTokenPrice && outputTokens > 0) {
-          cost += (outputTokens / 1000) * parseFloat(price.outputTokenPrice);
-        }
-      } else if (price.pricingType === 'request' && price.requestPrice) {
-        cost = parseFloat(price.requestPrice);
-      }
-
-      return cost;
-    } catch (error) {
-      console.error('Failed to calculate API cost:', error);
-      return 0;
-    }
+  console.error('Failed to calculate API cost:', error);
+  return 0;
+}
   }
 
   // Privacy and GDPR compliance operations
-  async saveUserConsent(consent: InsertUserConsent): Promise<UserConsent> {
-    const [savedConsent] = await db
-      .insert(userConsents)
-      .values(consent)
-      .returning();
-    return savedConsent;
+  async saveUserConsent(consent: InsertUserConsent): Promise < UserConsent > {
+  const [savedConsent] = await db
+    .insert(userConsents)
+    .values(consent)
+    .returning();
+  return savedConsent;
+}
+
+  async getUserConsents(userId ?: string, sessionId ?: string): Promise < UserConsent[] > {
+  const conditions = [];
+  if(userId) conditions.push(eq(userConsents.userId, userId));
+  if(sessionId) conditions.push(eq(userConsents.sessionId, sessionId));
+
+  if(conditions.length === 0) {
+  return await db.select().from(userConsents).orderBy(desc(userConsents.createdAt));
+}
+
+return await db.select().from(userConsents)
+  .where(and(...conditions))
+  .orderBy(desc(userConsents.createdAt));
   }
 
-  async getUserConsents(userId?: string, sessionId?: string): Promise<UserConsent[]> {
-    const conditions = [];
-    if (userId) conditions.push(eq(userConsents.userId, userId));
-    if (sessionId) conditions.push(eq(userConsents.sessionId, sessionId));
-    
-    if (conditions.length === 0) {
-      return await db.select().from(userConsents).orderBy(desc(userConsents.createdAt));
-    }
-    
-    return await db.select().from(userConsents)
-      .where(and(...conditions))
-      .orderBy(desc(userConsents.createdAt));
-  }
+  async createPrivacyRequest(request: InsertPrivacyRequest): Promise < PrivacyRequest > {
+  const [savedRequest] = await db
+    .insert(privacyRequests)
+    .values(request)
+    .returning();
+  return savedRequest;
+}
 
-  async createPrivacyRequest(request: InsertPrivacyRequest): Promise<PrivacyRequest> {
-    const [savedRequest] = await db
-      .insert(privacyRequests)
-      .values(request)
-      .returning();
-    return savedRequest;
+  async getPrivacyRequests(email ?: string): Promise < PrivacyRequest[] > {
+  if(email) {
+    return await db.select().from(privacyRequests)
+      .where(eq(privacyRequests.email, email))
+      .orderBy(desc(privacyRequests.createdAt));
   }
-
-  async getPrivacyRequests(email?: string): Promise<PrivacyRequest[]> {
-    if (email) {
-      return await db.select().from(privacyRequests)
-        .where(eq(privacyRequests.email, email))
-        .orderBy(desc(privacyRequests.createdAt));
-    }
     return await db.select().from(privacyRequests).orderBy(desc(privacyRequests.createdAt));
+}
+
+  async getPrivacyRequest(id: number): Promise < PrivacyRequest | undefined > {
+  const [request] = await db.select().from(privacyRequests).where(eq(privacyRequests.id, id));
+  return request;
+}
+
+  async updatePrivacyRequestStatus(id: number, status: string, responseData ?: any, processedBy ?: string): Promise < PrivacyRequest > {
+  const updateData: Partial<InsertPrivacyRequest> = {
+  status,
+    responseData,
+    processedBy
+};
+
+if (status === 'completed') {
+  updateData.completedAt = new Date();
+}
+
+const [updatedRequest] = await db
+  .update(privacyRequests)
+  .set(updateData)
+  .where(eq(privacyRequests.id, id))
+  .returning();
+
+return updatedRequest;
   }
 
-  async getPrivacyRequest(id: number): Promise<PrivacyRequest | undefined> {
-    const [request] = await db.select().from(privacyRequests).where(eq(privacyRequests.id, id));
-    return request;
-  }
+  async exportUserData(userId: string): Promise < any > {
+  try {
+    // Get user data
+    const userData = await this.getUser(userId);
+    if(!userData) return null;
 
-  async updatePrivacyRequestStatus(id: number, status: string, responseData?: any, processedBy?: string): Promise<PrivacyRequest> {
-    const updateData: Partial<InsertPrivacyRequest> = {
-      status,
-      responseData,
-      processedBy
+    // Get chat messages
+    const chatMessages = await this.getChatMessages(userId);
+
+    // Get API calls
+    const apiCalls = await db.select().from(apiCalls).where(eq(apiCalls.userId, userId));
+
+    // Get consents
+    const consents = await this.getUserConsents(userId);
+
+    // Get privacy requests
+    const requests = await this.getPrivacyRequests(userData.email || '');
+
+    return {
+      user: userData,
+      chatMessages,
+      apiCalls,
+      consents,
+      privacyRequests: requests,
+      exportedAt: new Date().toISOString(),
+      exportFormat: 'JSON'
     };
-
-    if (status === 'completed') {
-      updateData.completedAt = new Date();
-    }
-
-    const [updatedRequest] = await db
-      .update(privacyRequests)
-      .set(updateData)
-      .where(eq(privacyRequests.id, id))
-      .returning();
-    
-    return updatedRequest;
+  } catch(error) {
+    console.error('Failed to export user data:', error);
+    throw error;
   }
+}
 
-  async exportUserData(userId: string): Promise<any> {
-    try {
-      // Get user data
-      const userData = await this.getUser(userId);
-      if (!userData) return null;
-
-      // Get chat messages
-      const chatMessages = await this.getChatMessages(userId);
-      
-      // Get API calls
-      const apiCalls = await db.select().from(apiCalls).where(eq(apiCalls.userId, userId));
-      
-      // Get consents
-      const consents = await this.getUserConsents(userId);
-      
-      // Get privacy requests
-      const requests = await this.getPrivacyRequests(userData.email || '');
-
-      return {
-        user: userData,
-        chatMessages,
-        apiCalls,
-        consents,
-        privacyRequests: requests,
-        exportedAt: new Date().toISOString(),
-        exportFormat: 'JSON'
-      };
-    } catch (error) {
-      console.error('Failed to export user data:', error);
-      throw error;
-    }
-  }
-
-  async deleteUserPersonalData(userId: string): Promise<void> {
-    // This is the same as the existing deleteUser method
-    // but explicitly named for GDPR compliance
-    await this.deleteUser(userId);
-  }
+  async deleteUserPersonalData(userId: string): Promise < void> {
+  // This is the same as the existing deleteUser method
+  // but explicitly named for GDPR compliance
+  await this.deleteUser(userId);
+}
 }
 
 export const storage = new DatabaseStorage();
