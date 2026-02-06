@@ -1473,7 +1473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subject operations
-  app.post('/api/subjects', customAuth, async (req: any, res) => {
+  app.post('/api/subjects', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1491,7 +1491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/subjects/:id', customAuth, async (req: any, res) => {
+  app.put('/api/subjects/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1510,7 +1510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/subjects/:id', customAuth, async (req: any, res) => {
+  app.delete('/api/subjects/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1529,7 +1529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Module operations
-  app.post('/api/modules', customAuth, async (req: any, res) => {
+  app.post('/api/modules', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1547,7 +1547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/modules/:id', customAuth, async (req: any, res) => {
+  app.patch('/api/modules/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1566,7 +1566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/modules/:id', customAuth, async (req: any, res) => {
+  app.delete('/api/modules/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1655,7 +1655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Profession routes
-  app.post('/api/professions', customAuth, async (req: any, res) => {
+  app.post('/api/professions', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1673,7 +1673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/professions/:id', customAuth, async (req: any, res) => {
+  app.patch('/api/professions/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1692,7 +1692,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/professions/:id', customAuth, async (req: any, res) => {
+  app.put('/api/professions/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1711,7 +1711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/professions/:id', customAuth, async (req: any, res) => {
+  app.delete('/api/professions/:id', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
