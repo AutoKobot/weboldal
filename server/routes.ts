@@ -42,6 +42,10 @@ const combinedAuth = async (req: any, res: any, next: any) => {
     // Check for local authentication
     if (req.isAuthenticated && req.isAuthenticated()) {
       console.log('Combined auth - Using local auth');
+      // Normalize local user structure to match Replit auth expectation
+      if (req.user && !req.user.claims) {
+        req.user.claims = { sub: req.user.id };
+      }
       return next();
     }
 
@@ -477,11 +481,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Custom auth middleware that supports both auth types
   const customAuth = async (req: any, res: any, next: any) => {
+    // Check for local admin session directly first
     if (req.session && req.session.adminUser) {
-      req.user = { claims: { sub: req.session.adminUser.id } };
+      req.user = {
+        id: req.session.adminUser.id,
+        claims: { sub: req.session.adminUser.id },
+        role: 'admin'
+      };
       return next();
     }
-    return isAuthenticated(req, res, next);
+
+    // Check for school admin session
+    if (req.session?.schoolAdminUser) {
+      req.user = {
+        id: req.session.schoolAdminUser.id,
+        claims: { sub: req.session.schoolAdminUser.id },
+        role: 'school_admin'
+      };
+      return next();
+    }
+
+    // Check for passport authentication (Replit or Local)
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      // Normalize local user structure if needed
+      if (req.user && !req.user.claims) {
+        req.user.claims = { sub: req.user.id };
+      }
+      return next();
+    }
+
+    // Failed all checks
+    return res.status(401).json({ message: "Unauthorized" });
   };
 
   // Users management endpoint for admin
@@ -1566,23 +1596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/modules/:id', combinedAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const moduleId = parseInt(req.params.id);
-      await storage.deleteModule(moduleId);
-      res.json({ message: "Module deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting module:", error);
-      res.status(500).json({ message: "Failed to delete module" });
-    }
-  });
 
 
 
@@ -1711,23 +1725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/professions/:id', combinedAuth, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const professionId = parseInt(req.params.id);
-      await storage.deleteProfession(professionId);
-      res.json({ message: "Profession deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting profession:", error);
-      res.status(500).json({ message: "Failed to delete profession" });
-    }
-  });
 
   app.delete('/api/professions/:id', customAuth, async (req: any, res) => {
     try {
