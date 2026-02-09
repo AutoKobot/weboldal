@@ -1,18 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import legacy from "@vitejs/plugin-legacy";
+
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
   plugins: [
     react(),
     runtimeErrorOverlay(),
-    legacy({
-      targets: ['chrome >= 87', 'firefox >= 78', 'safari >= 14', 'edge >= 88'],
-      renderLegacyChunks: true,
-      modernPolyfills: true
-    }),
+
     ...(process.env.NODE_ENV !== "production" &&
       process.env.REPL_ID !== undefined
       ? [
