@@ -120,7 +120,7 @@
     "bufferutil": "^4.0.8"
   },
   "devDependencies": {
-    "@vitejs/plugin-legacy": "^7.2.1",
+    "@vitejs/plugin-legacy": "^5.0.0",
     "terser": "^5.46.0"
   }
 }
