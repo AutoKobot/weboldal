@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     runtimeErrorOverlay(),
     legacy({
-      targets: ['chrome >= 64', 'android >= 6'],
+      targets: ['chrome >= 87', 'firefox >= 78', 'safari >= 14', 'edge >= 88'],
       renderLegacyChunks: true,
       modernPolyfills: true
     }),
