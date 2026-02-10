@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
-import { VoiceNavigation } from "@/components/voice-navigation";
 
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing-futuristic-fixed";
@@ -159,29 +158,14 @@ function Router() {
   );
 }
 
-function AppWithVoiceNavigation() {
-  const [location, navigate] = useLocation();
-
-  const handleNavigation = (path: string) => {
-    navigate(path);
-  };
-
-  return (
-    <>
-      <Router />
-      <VoiceNavigation onNavigationCommand={handleNavigation} />
-      <CookieBanner />
-    </>
-  );
-}
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="global-learning-system-theme">
         <TooltipProvider>
           <Toaster />
-          <AppWithVoiceNavigation />
+          <Router />
+          <CookieBanner />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

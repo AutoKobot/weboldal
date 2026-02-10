@@ -40,7 +40,7 @@ export default function ModuleViewer() {
   const [contentVersion, setContentVersion] = useState<'concise' | 'detailed'>('concise');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showWikipediaModal, setShowWikipediaModal] = useState(false);
-  const [wikipediaContent, setWikipediaContent] = useState<{title: string, content: string, url: string} | null>(null);
+  const [wikipediaContent, setWikipediaContent] = useState<{ title: string, content: string, url: string } | null>(null);
   const [isLoadingWikipedia, setIsLoadingWikipedia] = useState(false);
   const mermaidRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +59,7 @@ export default function ModuleViewer() {
       const mermaidElements = document.querySelectorAll('code.language-mermaid, .mermaid');
       if (mermaidElements.length > 0) {
         console.log(`DOM changed: Re-rendering ${mermaidElements.length} Mermaid diagrams`);
-        
+
         // Convert code blocks to mermaid divs if needed
         mermaidElements.forEach((element, index) => {
           if (element.tagName === 'CODE' && element.textContent) {
@@ -73,7 +73,7 @@ export default function ModuleViewer() {
             }
           }
         });
-        
+
         // Re-run mermaid
         setTimeout(async () => {
           const mermaidDivs = document.querySelectorAll('.mermaid');
@@ -97,7 +97,7 @@ export default function ModuleViewer() {
     let lastRenderTime = 0;
     const observer = new MutationObserver((mutations) => {
       let shouldRerender = false;
-      
+
       mutations.forEach((mutation) => {
         // Only trigger on significant content changes
         if (mutation.type === 'childList') {
@@ -105,16 +105,16 @@ export default function ModuleViewer() {
           mutation.addedNodes.forEach(node => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
-              if (element.classList?.contains('prose') || 
-                  element.querySelector?.('code.language-mermaid, .mermaid') ||
-                  element.textContent?.includes('mermaid')) {
+              if (element.classList?.contains('prose') ||
+                element.querySelector?.('code.language-mermaid, .mermaid') ||
+                element.textContent?.includes('mermaid')) {
                 shouldRerender = true;
               }
             }
           });
         }
       });
-      
+
       if (shouldRerender) {
         const now = Date.now();
         // Prevent excessive rendering (max once per 1000ms)
@@ -183,12 +183,12 @@ export default function ModuleViewer() {
     const renderMermaidDiagrams = async () => {
       try {
         // Initialize mermaid if not already done
-        mermaid.initialize({ 
+        mermaid.initialize({
           startOnLoad: false, // We'll handle rendering manually
           theme: 'default',
           securityLevel: 'loose',
         });
-        
+
         // Find all possible mermaid selectors
         const possibleSelectors = [
           '.language-mermaid',
@@ -197,20 +197,20 @@ export default function ModuleViewer() {
           '.mermaid',
           'code.mermaid'
         ];
-        
+
         let mermaidElements: Element[] = [];
-        
+
         for (const selector of possibleSelectors) {
           const elements = document.querySelectorAll(selector);
           mermaidElements = mermaidElements.concat(Array.from(elements));
         }
-        
+
         // Remove duplicates
         mermaidElements = Array.from(new Set(mermaidElements));
-        
+
         console.log(`Found ${mermaidElements.length} potential Mermaid diagrams`);
         console.log('Mermaid elements:', mermaidElements);
-        
+
         if (mermaidElements.length > 0) {
           // Convert code blocks to mermaid divs if needed
           mermaidElements.forEach((element, index) => {
@@ -225,11 +225,11 @@ export default function ModuleViewer() {
               }
             }
           });
-          
+
           // Now run mermaid on the converted elements
           const mermaidDivs = document.querySelectorAll('.mermaid');
           console.log(`Processing ${mermaidDivs.length} Mermaid divs`);
-          
+
           if (mermaidDivs.length > 0) {
             try {
               await mermaid.run({
@@ -249,7 +249,7 @@ export default function ModuleViewer() {
         console.warn('Mermaid rendering failed:', error);
       }
     };
-    
+
     // Wait for DOM to be updated with content
     const timer = setTimeout(renderMermaidDiagrams, 500);
     return () => clearTimeout(timer);
@@ -262,10 +262,10 @@ export default function ModuleViewer() {
     onSuccess: async () => {
       // Clear all cache and force fresh data fetch
       queryClient.clear();
-      
+
       // Force immediate refresh of user data to get updated completed_modules
       await queryClient.refetchQueries({ queryKey: ['/api/auth/user'] });
-      
+
       toast({
         title: "Modul befejezve!",
         description: "Sikeresen teljesítetted ezt a modult.",
@@ -277,7 +277,7 @@ export default function ModuleViewer() {
         const sortedModules = allModules
           .filter(m => m.subjectId === module.subjectId)
           .sort((a, b) => a.moduleNumber - b.moduleNumber);
-        
+
         const currentIndex = sortedModules.findIndex(m => m.id === module.id);
         if (currentIndex !== -1 && currentIndex < sortedModules.length - 1) {
           const nextModule = sortedModules[currentIndex + 1];
@@ -303,7 +303,7 @@ export default function ModuleViewer() {
         }, 500);
         return;
       }
-      
+
       toast({
         title: "Hiba",
         description: "Nem sikerült befejezni a modult. Próbáld újra!",
@@ -363,7 +363,7 @@ export default function ModuleViewer() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: text.slice(0, 1000), // Limit text length
           voice: 'Bella'
         }),
@@ -374,7 +374,7 @@ export default function ModuleViewer() {
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      
+
       audio.onended = () => {
         setIsPlaying(false);
         setCurrentAudio(null);
@@ -433,7 +433,7 @@ export default function ModuleViewer() {
   // Determine which content to show
   const hasEnhancedContent = module.conciseContent || module.detailedContent;
   let displayContent = '';
-  
+
   if (hasEnhancedContent) {
     if (contentVersion === 'concise' && module.conciseContent) {
       displayContent = module.conciseContent;
@@ -453,10 +453,10 @@ export default function ModuleViewer() {
         <div className="hidden lg:block">
           <Sidebar user={user!} />
         </div>
-        
+
         <div className="min-h-screen overflow-auto">
           <MobileNav user={user!} isOpen={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} />
-          
+
           <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-4">
@@ -477,7 +477,7 @@ export default function ModuleViewer() {
                   Vissza a tananyaghoz
                 </Button>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {module.imageUrl && (
                   <Button
@@ -489,7 +489,7 @@ export default function ModuleViewer() {
                     Kép
                   </Button>
                 )}
-                
+
                 {module.youtubeUrl && (
                   <Button
                     variant="outline"
@@ -500,7 +500,7 @@ export default function ModuleViewer() {
                     YouTube
                   </Button>
                 )}
-                
+
                 {module.videoUrl && (
                   <Button
                     variant="outline"
@@ -511,7 +511,7 @@ export default function ModuleViewer() {
                     Videó
                   </Button>
                 )}
-                
+
                 {module.audioUrl && (
                   <Button
                     variant="outline"
@@ -531,18 +531,18 @@ export default function ModuleViewer() {
                     className="hidden sm:flex"
                   >
                     <Volume2 className="h-4 w-4 mr-2" />
-                    {module.podcastUrl.includes('spotify') ? 'Spotify' : 
-                     module.podcastUrl.includes('youtube') ? 'YouTube' : 'Podcast'}
+                    {module.podcastUrl.includes('spotify') ? 'Spotify' :
+                      module.podcastUrl.includes('youtube') ? 'YouTube' : 'Podcast'}
                   </Button>
                 )}
-                
+
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsChatOpen(true)}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Szabolcs AI
+                  AI Chat
                 </Button>
               </div>
             </div>
@@ -601,26 +601,26 @@ export default function ModuleViewer() {
                 </CardHeader>
                 <CardContent>
                   <div ref={mermaidRef} className="prose prose-neutral max-w-none dark:prose-invert">
-                    <ReactMarkdown 
+                    <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
                         // Custom styling for markdown elements
-                        h1: ({children}) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
-                        h2: ({children}) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
-                        h3: ({children}) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
-                        p: ({children}) => <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>,
-                        ul: ({children}) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
-                        ol: ({children}) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
-                        li: ({children}) => <li className="text-gray-700 dark:text-gray-300">{children}</li>,
-                        blockquote: ({children}) => (
+                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
+                        p: ({ children }) => <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li className="text-gray-700 dark:text-gray-300">{children}</li>,
+                        blockquote: ({ children }) => (
                           <blockquote className="border-l-4 border-blue-500 pl-4 italic my-4 bg-blue-50 dark:bg-blue-900/20 py-2">
                             {children}
                           </blockquote>
                         ),
-                        code: ({className, children, ...props}) => {
+                        code: ({ className, children, ...props }) => {
                           const match = /language-(\w+)/.exec(className || '');
                           const language = match ? match[1] : '';
-                          
+
                           if (language === 'mermaid') {
                             return (
                               <div className="mermaid bg-white p-4 border rounded-lg my-4">
@@ -628,14 +628,14 @@ export default function ModuleViewer() {
                               </div>
                             );
                           }
-                          
+
                           return (
                             <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono" {...props}>
                               {children}
                             </code>
                           );
                         },
-                        pre: ({children}) => (
+                        pre: ({ children }) => (
                           <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-4">
                             {children}
                           </pre>
@@ -645,7 +645,7 @@ export default function ModuleViewer() {
                       {displayContent}
                     </ReactMarkdown>
                   </div>
-                  
+
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Button
                       onClick={() => playAudio(displayContent)}
@@ -703,160 +703,160 @@ export default function ModuleViewer() {
           </div>
         </div>
 
-      {/* Modals */}
-      <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Modul kép</DialogTitle>
-          </DialogHeader>
-          {module.imageUrl && (
-            <img 
-              src={module.imageUrl} 
-              alt={module.title}
-              className="w-full h-auto rounded-lg"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        {/* Modals */}
+        <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Modul kép</DialogTitle>
+            </DialogHeader>
+            {module.imageUrl && (
+              <img
+                src={module.imageUrl}
+                alt={module.title}
+                className="w-full h-auto rounded-lg"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
 
-      <Dialog open={showYoutubeModal} onOpenChange={setShowYoutubeModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>YouTube videó</DialogTitle>
-          </DialogHeader>
-          {module.youtubeUrl && (
-            <div className="aspect-video">
-              <iframe 
-                src={module.youtubeUrl?.replace('watch?v=', 'embed/') || ''}
-                className="w-full h-full rounded-lg"
+        <Dialog open={showYoutubeModal} onOpenChange={setShowYoutubeModal}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>YouTube videó</DialogTitle>
+            </DialogHeader>
+            {module.youtubeUrl && (
+              <div className="aspect-video">
+                <iframe
+                  src={module.youtubeUrl?.replace('watch?v=', 'embed/') || ''}
+                  className="w-full h-full rounded-lg"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Videó</DialogTitle>
+            </DialogHeader>
+            {module.videoUrl && (
+              <video
+                src={module.videoUrl}
+                controls
+                className="w-full rounded-lg"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAudioModal} onOpenChange={setShowAudioModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Hang</DialogTitle>
+            </DialogHeader>
+            {module.audioUrl && (
+              <audio
+                src={module.audioUrl}
+                controls
+                className="w-full"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showPodcastModal} onOpenChange={setShowPodcastModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Podcast</DialogTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPodcastModal(false)}
+                className="absolute right-4 top-4"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogHeader>
+            {module.podcastUrl && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {module.podcastUrl.includes('spotify') ? 'Spotify podcast megnyitása...' :
+                    module.podcastUrl.includes('youtube') ? 'YouTube podcast megnyitása...' : 'Podcast megnyitása...'}
+                </p>
+                <Button
+                  onClick={() => module?.podcastUrl && window.open(module.podcastUrl, '_blank')}
+                  className="w-full"
+                >
+                  Podcast megnyitása külső oldalon
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modals - Outside grid layout */}
+        <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Modul kép</DialogTitle>
+            </DialogHeader>
+            {module?.imageUrl && (
+              <img
+                src={module.imageUrl}
+                alt={module.title}
+                className="w-full h-auto rounded-lg"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showPodcastPlayer} onOpenChange={setShowPodcastPlayer}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Podcast lejátszás</DialogTitle>
+            </DialogHeader>
+            {module?.podcastUrl && (
+              <audio
+                controls
+                className="w-full"
+                src={module.podcastUrl}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Videó lejátszás</DialogTitle>
+            </DialogHeader>
+            {selectedVideoUrl && (
+              <iframe
+                width="100%"
+                height="400"
+                src={selectedVideoUrl}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
 
-      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Videó</DialogTitle>
-          </DialogHeader>
-          {module.videoUrl && (
-            <video 
-              src={module.videoUrl} 
-              controls 
-              className="w-full rounded-lg"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAudioModal} onOpenChange={setShowAudioModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Hang</DialogTitle>
-          </DialogHeader>
-          {module.audioUrl && (
-            <audio 
-              src={module.audioUrl} 
-              controls 
-              className="w-full"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPodcastModal} onOpenChange={setShowPodcastModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Podcast</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPodcastModal(false)}
-              className="absolute right-4 top-4"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogHeader>
-          {module.podcastUrl && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {module.podcastUrl.includes('spotify') ? 'Spotify podcast megnyitása...' : 
-                 module.podcastUrl.includes('youtube') ? 'YouTube podcast megnyitása...' : 'Podcast megnyitása...'}
-              </p>
-              <Button
-                onClick={() => module?.podcastUrl && window.open(module.podcastUrl, '_blank')}
-                className="w-full"
-              >
-                Podcast megnyitása külső oldalon
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modals - Outside grid layout */}
-      <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Modul kép</DialogTitle>
-          </DialogHeader>
-          {module?.imageUrl && (
-            <img 
-              src={module.imageUrl} 
-              alt={module.title}
-              className="w-full h-auto rounded-lg"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPodcastPlayer} onOpenChange={setShowPodcastPlayer}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Podcast lejátszás</DialogTitle>
-          </DialogHeader>
-          {module?.podcastUrl && (
-            <audio 
-              controls 
-              className="w-full"
-              src={module.podcastUrl}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Videó lejátszás</DialogTitle>
-          </DialogHeader>
-          {selectedVideoUrl && (
-            <iframe
-              width="100%"
-              height="400"
-              src={selectedVideoUrl}
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {isChatOpen && (
-        <ChatInterface 
-          userId={user?.id || ''}
-          moduleId={moduleId}
-        />
-      )}
+        {isChatOpen && (
+          <ChatInterface
+            userId={user?.id || ''}
+            moduleId={moduleId}
+          />
+        )}
 
       </div>
 
       {isChatOpen && (
-        <ChatInterface 
+        <ChatInterface
           userId={user?.id || ''}
           moduleId={moduleId}
         />
