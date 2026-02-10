@@ -1,7 +1,7 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema";
 
 // Configure Neon for serverless environments
 neonConfig.webSocketConstructor = ws;
@@ -14,7 +14,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ 
+export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10, // Reduced connection pool size
   idleTimeoutMillis: 20000,
@@ -41,8 +41,8 @@ pool.on('connect', (client) => {
 // Handle process-level unhandled errors related to database
 process.on('uncaughtException', (error) => {
   if (error.message.includes('terminating connection due to administrator command') ||
-      error.message.includes('connection terminated') ||
-      error.message.includes('Client has encountered a connection error')) {
+    error.message.includes('connection terminated') ||
+    error.message.includes('Client has encountered a connection error')) {
     console.error('Database connection error handled gracefully:', error.message);
     // Don't exit the process for database connection errors
     return;
@@ -56,8 +56,8 @@ process.on('unhandledRejection', (reason, promise) => {
   if (reason && typeof reason === 'object' && 'message' in reason) {
     const message = (reason as any).message;
     if (message.includes('terminating connection due to administrator command') ||
-        message.includes('connection terminated') ||
-        message.includes('Client has encountered a connection error')) {
+      message.includes('connection terminated') ||
+      message.includes('Client has encountered a connection error')) {
       console.error('Database rejection handled gracefully:', message);
       return;
     }

@@ -73,6 +73,7 @@
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.4",
     "drizzle-kit": "^0.30.4",
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
@@ -120,6 +121,7 @@
     "bufferutil": "^4.0.8"
   },
   "devDependencies": {
-    "terser": "^5.46.0"
+    "terser": "^5.46.0",
+    "tsconfig-paths": "^4.2.0"
   }
 }

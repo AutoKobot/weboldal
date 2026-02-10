@@ -13,29 +13,29 @@ import { promisify } from "util";
 export function fixMermaidSyntax(content: string): string {
   // Find all Mermaid code blocks
   const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g;
-  
+
   return content.replace(mermaidRegex, (match, mermaidCode) => {
     let fixedCode = mermaidCode.trim();
-    
+
     // Step 0: Remove Wikipedia links that break Mermaid syntax
     fixedCode = fixedCode.replace(/\[([^\]]+)\]\(https:\/\/hu\.wikipedia\.org\/wiki\/[^)]+\)/g, '$1');
-    
+
     // Step 1: Handle duplicate flowchart declarations
     fixedCode = fixedCode.replace(/flowchart\s+TD\s*flowchart\s+TD/gi, 'flowchart TD');
     fixedCode = fixedCode.replace(/flowchart\s+TD\s*flowchart/gi, 'flowchart TD');
     fixedCode = fixedCode.replace(/flowchart\s*flowchart/gi, 'flowchart');
-    
+
     // Step 2: Handle duplicate graph declarations
     fixedCode = fixedCode.replace(/graph\s+TD\s*graph\s+TD/gi, 'graph TD');
     fixedCode = fixedCode.replace(/graph\s+TD\s*graph/gi, 'graph TD');
     fixedCode = fixedCode.replace(/graph\s*graph/gi, 'graph');
-    
+
     // Step 3: Clean up and split into lines
     const lines = fixedCode.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
-    
+
     let cleanedLines: string[] = [];
     let hasValidStart = false;
-    
+
     // Step 4: Process each line
     for (const line of lines) {
       // Check if this is a diagram type declaration
@@ -47,52 +47,52 @@ export function fixMermaidSyntax(content: string): string {
         // Skip duplicate diagram declarations
         continue;
       }
-      
+
       // Fix parentheses in node text that break syntax
       let fixedLine = line;
-      
+
       // Handle nodes with parentheses in labels - escape them properly
       fixedLine = fixedLine.replace(/([A-Z]\w*)\(([^)]*\([^)]*\)[^)]*)\)/g, (match: string, nodeId: string, content: string) => {
         const escapedContent = content.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
         return `${nodeId}["${escapedContent}"]`;
       });
-      
+
       // Handle arrow syntax with parentheses in labels
       fixedLine = fixedLine.replace(/-->\s*([A-Z]\w*)\(([^)]*\([^)]*\)[^)]*)\)/g, (match: string, nodeId: string, content: string) => {
         const escapedContent = content.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
         return `--> ${nodeId}["${escapedContent}"]`;
       });
-      
+
       // Add regular content lines
       if (hasValidStart) {
         cleanedLines.push(fixedLine);
       }
     }
-    
+
     // Step 5: Ensure we have a valid diagram type
     if (!hasValidStart || cleanedLines.length === 0) {
-      cleanedLines = ['flowchart TD', ...cleanedLines.filter(line => 
+      cleanedLines = ['flowchart TD', ...cleanedLines.filter(line =>
         !line.match(/^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gitgraph)/)
       )];
     }
-    
+
     // Step 6: Apply proper indentation
     cleanedLines = cleanedLines.map((line, index) => {
       if (index === 0) return line; // Keep diagram declaration as-is
       if (line.startsWith('    ')) return line; // Already indented
       return '    ' + line; // Add indentation
     });
-    
+
     // Step 7: Basic syntax fixes
     fixedCode = cleanedLines.join('\n');
-    
+
     // Remove quotes around node IDs
     fixedCode = fixedCode.replace(/["'`]/g, '');
-    
+
     // Fix arrow spacing
     fixedCode = fixedCode.replace(/-->/g, ' --> ');
     fixedCode = fixedCode.replace(/\s+-->\s+/g, ' --> ');
-    
+
     return '```mermaid\n' + fixedCode + '\n```';
   });
 }
@@ -111,7 +111,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // Get OpenAI client with API key from database
 async function getOpenAIClient(): Promise<OpenAI> {
   const now = Date.now();
-  
+
   // Use cached client if still valid
   if (cachedOpenAIClient && cachedOpenAIApiKey && (now - cacheTimestamp) < CACHE_DURATION) {
     return cachedOpenAIClient;
@@ -119,7 +119,7 @@ async function getOpenAIClient(): Promise<OpenAI> {
 
   const apiKeySetting = await storage.getSystemSetting('openai_api_key');
   const currentApiKey = apiKeySetting?.value || process.env.OPENAI_API_KEY;
-  
+
   if (!currentApiKey) {
     throw new Error('OpenAI API key not configured. Please set it in admin settings.');
   }
@@ -128,14 +128,14 @@ async function getOpenAIClient(): Promise<OpenAI> {
   cachedOpenAIClient = new OpenAI({ apiKey: currentApiKey });
   cachedOpenAIApiKey = currentApiKey;
   cacheTimestamp = now;
-  
+
   return cachedOpenAIClient;
 }
 
 // Get Gemini client with API key from database
 async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   const now = Date.now();
-  
+
   // Use cached client if still valid
   if (cachedGeminiClient && cachedGeminiApiKey && (now - cacheTimestamp) < CACHE_DURATION) {
     return cachedGeminiClient;
@@ -143,7 +143,7 @@ async function getGeminiClient(): Promise<GoogleGenerativeAI> {
 
   const apiKeySetting = await storage.getSystemSetting('gemini_api_key');
   const currentApiKey = apiKeySetting?.value || process.env.GEMINI_API_KEY;
-  
+
   if (!currentApiKey) {
     throw new Error('Gemini API key not configured. Please set it in admin settings.');
   }
@@ -152,14 +152,14 @@ async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   cachedGeminiClient = new GoogleGenerativeAI(currentApiKey);
   cachedGeminiApiKey = currentApiKey;
   cacheTimestamp = now;
-  
+
   return cachedGeminiClient;
 }
 
 // Get cached system message or fetch from database
 async function getCachedSystemMessage(): Promise<string | null> {
   const now = Date.now();
-  
+
   // Use cached message if still valid
   if (cachedSystemMessage && (now - cacheTimestamp) < CACHE_DURATION) {
     return cachedSystemMessage;
@@ -167,7 +167,7 @@ async function getCachedSystemMessage(): Promise<string | null> {
 
   const customSystemMessage = await storage.getSystemSetting('ai_system_message');
   cachedSystemMessage = customSystemMessage?.value || null;
-  
+
   return cachedSystemMessage;
 }
 
@@ -205,7 +205,7 @@ export async function generateStreamingChatResponse(
   try {
     const provider = await getCurrentAIProvider();
     const customSystemMessage = await getCachedSystemMessage();
-    
+
     if (provider === 'gemini') {
       return await generateGeminiChatResponse(userMessage, moduleContent, chatHistory, onChunk, customPrompt);
     } else {
@@ -229,7 +229,7 @@ async function generateOpenAIChatResponse(
   customPrompt?: string | null
 ): Promise<string> {
   let systemPrompt;
-  
+
   if (customPrompt) {
     // Use the custom prompt from admin settings
     systemPrompt = customPrompt;
@@ -250,7 +250,7 @@ async function generateOpenAIChatResponse(
     messages.push(...chatHistory);
   }
 
-    messages.push({ role: "user", content: userMessage });
+  messages.push({ role: "user", content: userMessage });
 
   try {
     const stream = await openai.chat.completions.create({
@@ -265,7 +265,7 @@ async function generateOpenAIChatResponse(
 
     let fullResponse = '';
     const startTime = Date.now();
-    
+
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
@@ -294,7 +294,7 @@ async function generateGeminiChatResponse(
 ): Promise<string> {
   const gemini = await getGeminiClient();
   const customSystemMessage = await getCachedSystemMessage();
-  
+
   let systemPrompt;
   if (customPrompt) {
     // Use the custom prompt from admin settings
@@ -310,7 +310,7 @@ async function generateGeminiChatResponse(
 
   // Build conversation history for Gemini
   let fullPrompt = systemPrompt + "\n\n";
-  
+
   if (chatHistory && chatHistory.length > 0) {
     chatHistory.forEach(msg => {
       if (msg.role === 'user') {
@@ -320,17 +320,17 @@ async function generateGeminiChatResponse(
       }
     });
   }
-  
+
   fullPrompt += `Felhasználó: ${userMessage}\nAsszisztens: `;
 
   try {
-    const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    
+    const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const result = await model.generateContentStream(fullPrompt);
-    
+
     let fullResponse = '';
     const startTime = Date.now();
-    
+
     for await (const chunk of result.stream) {
       const content = chunk.text();
       if (content) {
@@ -345,28 +345,25 @@ async function generateGeminiChatResponse(
     return fullResponse;
   } catch (error: any) {
     console.error("Gemini streaming API error:", error);
-    
-    // Handle quota exceeded (429) error
-    if (error.status === 429) {
-      console.log("Gemini API quota exceeded, switching to OpenAI for this request");
-      // Fallback to OpenAI when Gemini quota is exceeded
-      try {
-        const openai = await getOpenAIClient();
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: fullPrompt }],
-          temperature: 0.7,
-          max_tokens: 4000,
-        });
-        
-        return response.choices[0]?.message?.content || "Nem sikerült válasz generálása.";
-      } catch (openaiError) {
-        console.error("OpenAI fallback error:", openaiError);
-        throw new Error("Mindkét AI szolgáltató elérhetetlen");
-      }
+
+    // Handle any Gemini error by falling back to OpenAI
+    console.log(`Gemini API error (${error.status || error.message}), switching to OpenAI for this request`);
+
+    // Fallback to OpenAI
+    try {
+      const openai = await getOpenAIClient();
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // Upgraded to gpt-4o for better quality
+        messages: [{ role: "user", content: fullPrompt }],
+        temperature: 0.7,
+        max_tokens: 4000,
+      });
+
+      return response.choices[0]?.message?.content || "Nem sikerült válasz generálása.";
+    } catch (openaiError) {
+      console.error("OpenAI fallback error:", openaiError);
+      throw new Error("Mindkét AI szolgáltató elérhetetlen");
     }
-    
-    throw new Error("Failed to generate Gemini AI response");
   }
 }
 
@@ -381,11 +378,11 @@ export async function generateChatResponse(
   try {
     const provider = await getCurrentAIProvider();
     const cachedSystemMessage = await getCachedSystemMessage();
-    
+
     // Skip external API routing for basic AI-only mode or simple chat
     if (moduleContent === 'basic_ai_only' || moduleContent === 'standalone' || moduleContent === 'chat') {
       const systemMessage = customSystemMessage || cachedSystemMessage || "Te egy szakértő oktatási AI asszisztens vagy, aki magyar nyelven segít a tanulásban.";
-      
+
       if (provider === 'openai') {
         const openai = await getOpenAIClient();
         const message = await generateOpenAIChatResponse(openai, userMessage, undefined, [], systemMessage);
@@ -396,10 +393,10 @@ export async function generateChatResponse(
         return { message, suggestions: [] };
       }
     }
-    
+
     // Check if user message requires specialized API routing
     const taskRoute = await multiApiService.routeTask(userMessage);
-    
+
     if (taskRoute.type === 'enhanced_content') {
       // Use enhanced content generation with internet search
       const enhanced = taskRoute.data;
@@ -408,10 +405,10 @@ export async function generateChatResponse(
     } else if (taskRoute.type === 'search') {
       // Format search results for chat response
       const searchResults = taskRoute.data;
-      const formattedResults = searchResults.map((result: any) => 
+      const formattedResults = searchResults.map((result: any) =>
         `**${result.title}**\n${result.snippet}\nForrás: ${result.link}`
       ).join('\n\n');
-      
+
       return {
         message: `Itt vannak a keresési eredmények a következőre: "${userMessage}"\n\n${formattedResults}`,
         suggestions: ["További információk", "Másik keresés", "Kérdések a témáról"]
@@ -419,27 +416,27 @@ export async function generateChatResponse(
     } else if (taskRoute.type === 'youtube') {
       // Format YouTube results for chat response
       const videos = taskRoute.data;
-      const formattedVideos = videos.map((video: any) => 
+      const formattedVideos = videos.map((video: any) =>
         `**${video.snippet.title}**\n${video.snippet.description.substring(0, 200)}...\nYouTube link: https://youtube.com/watch?v=${video.id.videoId}`
       ).join('\n\n');
-      
+
       return {
         message: `YouTube videók a következő témában: "${userMessage}"\n\n${formattedVideos}`,
         suggestions: ["Videó megtekintése", "További videók", "Kapcsolódó témák"]
       };
     }
-    
+
     if (provider === 'gemini') {
       const response = await generateGeminiChatResponse(userMessage, moduleContent, chatHistory);
       const fixedResponse = fixMermaidSyntax(response);
       return { message: fixedResponse };
     }
-    
+
     // OpenAI implementation with GPT-4 Turbo
     const openai = await getOpenAIClient();
-    
+
     let systemPrompt;
-    
+
     // Enhanced prompt with multi-API context
     if (customSystemMessage) {
       systemPrompt = customSystemMessage;
@@ -472,7 +469,7 @@ export async function generateChatResponse(
     });
 
     const content = response.choices[0].message.content || "Sajnálom, nem tudtam választ generálni.";
-    
+
     // Apply Mermaid syntax fixes to the generated content
     const fixedContent = fixMermaidSyntax(content);
 
@@ -492,7 +489,7 @@ export async function generateQuizQuestions(
 ): Promise<QuizQuestion[]> {
   try {
     const openai = await getOpenAIClient();
-    
+
     const prompt = `Based on the following module content, create ${numQuestions} multiple choice quiz questions to test understanding. Each question should have 4 options with only one correct answer.
 
 Module content:
@@ -528,7 +525,7 @@ export async function explainConcept(
 ): Promise<string> {
   try {
     const openai = await getOpenAIClient();
-    
+
     const prompt = `Explain the concept "${concept}" in simple, clear terms that a student can understand. ${moduleContent ? `Use this module content as context: ${moduleContent}` : ''}
 
 Provide a concise but comprehensive explanation with examples where helpful.`;
@@ -582,9 +579,9 @@ export async function generateSynchronizedStreamingResponse(
       getOpenAIClient(),
       getCachedSystemMessage()
     ]);
-    
+
     let systemPrompt;
-    
+
     if (customPrompt) {
       // Use the custom prompt from admin settings
       systemPrompt = customPrompt;
@@ -622,26 +619,26 @@ export async function generateSynchronizedStreamingResponse(
     const startTime = Date.now();
     const chunkSize = 300; // Nagyobb chunk = kevesebb audio generálás
     const audioPromises: Promise<void>[] = []; // Track all audio generation promises
-    
+
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
         fullResponse += content;
         accumulatedText += content;
         const timestamp = Date.now() - startTime;
-        
+
         // Send text chunk immediately
         if (onTextChunk) {
           onTextChunk(content, timestamp);
         }
-        
+
         // Generate audio only for complete sentences with substantial length
-        if ((accumulatedText.length >= chunkSize || 
-             (accumulatedText.match(/[.!?]\s/) && accumulatedText.length >= 80)) && onAudioChunk) {
+        if ((accumulatedText.length >= chunkSize ||
+          (accumulatedText.match(/[.!?]\s/) && accumulatedText.length >= 80)) && onAudioChunk) {
           // Find a good breaking point (only at complete sentence boundaries)
           let breakPoint = accumulatedText.length;
           const sentenceEnders = ['. ', '! ', '? ', '.\n', '!\n', '?\n'];
-          
+
           // Look for sentence boundaries, but only if text is substantial enough
           for (const ender of sentenceEnders) {
             const lastIndex = accumulatedText.lastIndexOf(ender);
@@ -650,7 +647,7 @@ export async function generateSynchronizedStreamingResponse(
               break;
             }
           }
-          
+
           const textForAudio = accumulatedText.substring(0, breakPoint).trim();
           if (textForAudio) {
             // CRITICAL FIX: Track audio generation promises to wait for completion
@@ -662,7 +659,7 @@ export async function generateSynchronizedStreamingResponse(
                   input: textForAudio,
                   response_format: "mp3",
                 });
-                
+
                 const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
                 onAudioChunk(audioBuffer, timestamp, textForAudio);
               } catch (audioError) {
@@ -670,19 +667,19 @@ export async function generateSynchronizedStreamingResponse(
                 // Continue with text streaming even if audio fails
               }
             })();
-            
+
             audioPromises.push(audioPromise);
             accumulatedText = accumulatedText.substring(breakPoint); // Keep remaining text
           }
         }
       }
     }
-    
+
     // Generate audio for any remaining text - Wait for completion
     if (accumulatedText.trim() && onAudioChunk) {
       const finalText = accumulatedText.trim();
       const finalTimestamp = Date.now() - startTime;
-      
+
       // Track final audio generation promise
       const finalAudioPromise = (async () => {
         try {
@@ -692,14 +689,14 @@ export async function generateSynchronizedStreamingResponse(
             input: finalText,
             response_format: "mp3",
           });
-          
+
           const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
           onAudioChunk(audioBuffer, finalTimestamp, finalText);
         } catch (audioError) {
           console.error('Error generating final audio chunk:', audioError);
         }
       })();
-      
+
       audioPromises.push(finalAudioPromise);
     }
 
@@ -720,30 +717,30 @@ export async function generateSynchronizedStreamingResponse(
 export async function transcribeAudio(audioBuffer: Buffer, filename: string = "audio.webm"): Promise<string> {
   try {
     const openai = await getOpenAIClient();
-    
+
     // Convert WebM to WAV if needed using FFmpeg
     let processedBuffer = audioBuffer;
     let processedFilename = filename;
-    
+
     if (filename.endsWith('.webm')) {
       const execAsync = promisify(exec);
-      
+
       // Create temporary files
       const tempDir = '/tmp';
       const inputPath = path.join(tempDir, `input_${Date.now()}.webm`);
       const outputPath = path.join(tempDir, `output_${Date.now()}.wav`);
-      
+
       try {
         // Write WebM buffer to temporary file
         fs.writeFileSync(inputPath, audioBuffer);
-        
+
         // Convert WebM to WAV using FFmpeg
         await execAsync(`ffmpeg -i "${inputPath}" -acodec pcm_s16le -ar 16000 -ac 1 "${outputPath}"`);
-        
+
         // Read converted WAV file
         processedBuffer = fs.readFileSync(outputPath);
         processedFilename = 'converted.wav';
-        
+
         // Clean up temporary files
         fs.unlinkSync(inputPath);
         fs.unlinkSync(outputPath);
@@ -754,7 +751,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
         processedFilename = filename;
       }
     }
-    
+
     // Determine MIME type from filename extension
     let mimeType = "audio/wav";
     if (processedFilename.endsWith('.mp4') || processedFilename.endsWith('.m4a')) {
@@ -766,10 +763,10 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
     } else if (processedFilename.endsWith('.ogg')) {
       mimeType = "audio/ogg";
     }
-    
+
     // Create a File object from the processed buffer
     const audioFile = new File([processedBuffer], processedFilename, { type: mimeType });
-    
+
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-1",
@@ -787,7 +784,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
 export async function generateQuizFromModule(moduleContent: string): Promise<QuizQuestion[]> {
   try {
     const openai = await getOpenAIClient();
-    
+
     const prompt = `A következő tananyag alapján generálj 3-5 tesztkérdést magyar nyelven. 
     Minden kérdéshez adj 4 válaszlehetőséget, amelyből pontosan egy a helyes.
     A kérdések fedelje fel a tananyag fő pontjait és legyenek megfelelő nehézségűek.
@@ -839,7 +836,7 @@ export async function evaluateAnswer(
 ): Promise<QuizEvaluation> {
   try {
     const openai = await getOpenAIClient();
-    
+
     const prompt = `Értékeld a tanuló válaszát a következő kérdésre magyar nyelven:
 
 Kérdés: ${question}
@@ -878,7 +875,7 @@ Válaszolj JSON formátumban:
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"score": 0, "feedback": "Hiba történt az értékelés során", "isCorrect": false}');
-    
+
     return {
       score: Math.max(1, Math.min(100, result.score)),
       feedback: result.feedback,
