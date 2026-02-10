@@ -1,0 +1,9 @@
+Verifying Class and Student Import Prerequisites...
+Database client connected
+❌ 'Borga' school admin not found or invalid role!
+✅ 'Hegesztő' profession found (ID: 1).
+ℹ️ Class creation requires: name, schoolAdminId, professionId (optional)
+ℹ️ Student import features:
+   - Single student registration: AVAILABLE (/api/school-admin/register-student)
+   - Add existing student to class: AVAILABLE (/api/school-admin/classes/:id/add-student)
+   - Bulk CSV Import: ❌ NOT FOUND in routes.

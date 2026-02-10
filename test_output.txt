@@ -1,0 +1,10 @@
+🧪 Testing Bulk Import Logic...
+Database client connected
+Deleted existing test class.
+Created Class: 14 (Profession: 1)
+Importing 2 students...
+  Processed User: local-1770737324520-96z31buie (import.teszt1_1770737324418)
+  Processed User: local-1770737325016-2sh01th3z (import.teszt2_1770737324954)
+TypeError: storage.getStudentsByClassId is not a function
+    at testBulkImport (E:\Antigravity_projektek\InteractiveLearning\server\test-bulk-import.ts:71:38)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)

@@ -4239,6 +4239,101 @@ Platform funkciók és navigáció:
     }
   });
 
+
+  // Tömeges diák importálás osztályba
+  app.post("/api/school-admin/classes/:classId/bulk-import", schoolAdminAuth, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const { students } = req.body; // Array of { name, email? }
+      const schoolAdminId = req.session.schoolAdminUser.id;
+
+      if (!students || !Array.isArray(students) || students.length === 0) {
+        return res.status(400).json({ message: "Érvényes diákhallgató lista szükséges" });
+      }
+
+      const targetClass = await storage.getClassById(parseInt(classId));
+      if (!targetClass) {
+        return res.status(404).json({ message: "Osztály nem található" });
+      }
+
+      if (targetClass.schoolAdminId !== schoolAdminId) {
+        return res.status(403).json({ message: "Nincs jogosultsága ehhez az osztályhoz" });
+      }
+
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+
+      for (const student of students) {
+        try {
+          // Ha nincs email, generálunk egy kamut vagy null-t? A createUser elfogad null-t.
+          // Ha a bemenet "Név Listából", akkor szét kell szedni vezetéknév/keresztnévre.
+          // Feltételezzük, hogy a frontend már struktúráltan küldi, vagy itt szedjük szét.
+          // A legegyszerűbb, ha a frontend küldi: { name: "Kiss János", email: "..." }
+
+          const nameParts = student.name.trim().split(" ");
+          const lastName = nameParts[0] || "";
+          const firstName = nameParts.slice(1).join(" ") || "";
+
+          // Generáljunk felhasználónevet: vezeteknev.keresztnev + random szám
+          const baseUsername = `${lastName.toLowerCase()}.${firstName.toLowerCase()}`.replace(/[^a-z0-9]/g, "");
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4 digit
+          const username = `${baseUsername}${randomSuffix}`;
+
+          // Jelszó generálás: Diak + random szám
+          const password = `Diak${randomSuffix}`;
+
+          const userData = {
+            firstName,
+            lastName,
+            username,
+            email: student.email || null, // Ha nincs email, az nem baj (schema: text, nullable?) - Check schema: email varchar, unique?
+            // users table schema: email varchar usually unique. If null is allowed, unique constraint might ignore nulls in Postgres?
+            // Let's verify schema. If email is unique and not null, we have a problem.
+            // Let's check shared/schema.ts again. 
+            // Warning: I need to be sure about email constraints.
+            // If email is unique and we pass null, it might fail if column is not nullable.
+            // Assuming we check this. For now, generate a fake unique email if missing? "username@school.local"
+            role: "student" as const, // Cast to specific string literal type
+            password,
+            schoolAdminId
+          };
+
+          // Create User
+          const newUser = await storage.createUser({
+            ...userData,
+            email: userData.email || `${username}@school.local`
+          });
+
+          // Add to Class
+          await storage.addStudentToClass(newUser.id, parseInt(classId));
+
+          // Set Profession if class has one
+          if (targetClass.professionId) {
+            await storage.updateUserProfession(newUser.id, targetClass.professionId);
+          }
+
+          results.success++;
+        } catch (err: any) {
+          console.error(`Failed to import student ${student.name}:`, err);
+          results.failed++;
+          results.errors.push(`${student.name}: ${err.message}`);
+        }
+      }
+
+      res.json({
+        message: "Importálás befejeződött",
+        results
+      });
+
+    } catch (error) {
+      console.error("Bulk import error:", error);
+      res.status(500).json({ message: "Szerver hiba történt az importálás során" });
+    }
+  });
+
   // Enhanced module generation endpoints
   app.post('/api/admin/modules/generate-enhanced', combinedAuth, async (req: any, res) => {
     try {

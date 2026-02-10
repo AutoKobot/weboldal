@@ -142,6 +142,86 @@ interface Profession {
   description?: string;
 }
 
+
+// BulkImportDialog komponens
+function BulkImportDialog({ classId, className, onSuccess, onCancel }: { classId: number, className: string, onSuccess: () => void, onCancel: () => void }) {
+  const [text, setText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleImport = async () => {
+    if (!text.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      // Parse text: "Name; Email" or just "Name" per line
+      const lines = text.split("\n").filter(l => l.trim().length > 0);
+      const students = lines.map(line => {
+        const [name, email] = line.split(";").map(s => s.trim());
+        return { name, email: email || null };
+      });
+
+      const response = await fetch(`/api/school-admin/classes/${classId}/bulk-import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ students }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Importálás sikeres",
+          description: `${data.results.success} diák importálva, ${data.results.failed} hiba.`,
+          variant: data.results.failed > 0 ? "default" : "default" // TODO: Warning if failed > 0?
+        });
+        if (data.results.failed > 0) {
+          console.error("Import errors:", data.results.errors);
+          alert(`Importálás kész, de ${data.results.failed} hiba történt:\n` + data.results.errors.join("\n"));
+        }
+        onSuccess();
+      } else {
+        toast({
+          title: "Importálás sikertelen",
+          description: data.message || "Hiba történt",
+          variant: "destructive"
+        });
+      }
+    } catch (e) {
+      toast({
+        title: "Hiba",
+        description: "Hálózati hiba",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 border p-4 rounded-md bg-white">
+      <h3 className="font-bold">Tömeges Diák Importálás - {className}</h3>
+      <p className="text-sm text-gray-600">
+        Másolja be a diákok névsorát. Minden sor egy diák.<br />
+        Formátum: <code>Név</code> vagy <code>Név; Email</code>
+      </p>
+      <textarea
+        className="w-full h-48 p-2 border rounded font-mono text-sm"
+        placeholder="Kiss János&#10;Nagy Éva; eva@email.com&#10;Kovács Péter"
+        value={text}
+        onChange={e => setText(e.target.value)}
+      />
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>Mégse</Button>
+        <Button onClick={handleImport} disabled={isSubmitting || !text.trim()}>
+          {isSubmitting ? "Importálás..." : "Importálás Indítása"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function SchoolAdminDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -158,6 +238,7 @@ export default function SchoolAdminDashboard() {
   // Regisztrációs state változók
   const [isTeacherDialogOpen, setIsTeacherDialogOpen] = useState(false);
   const [isStudentDialogOpen, setIsStudentDialogOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [teacherForm, setTeacherForm] = useState({
     firstName: "",
     lastName: "",
@@ -191,7 +272,7 @@ export default function SchoolAdminDashboard() {
         const teachersData = await teachersResponse.json();
         const classesData = await classesResponse.json();
         const professionsData = await professionsResponse.json();
-        
+
         setStudents(studentsData);
         setTeachers(teachersData);
         setClasses(classesData);
@@ -284,8 +365,8 @@ export default function SchoolAdminDashboard() {
     if (!teacherId) return "Nincs hozzárendelve";
     const teacher = teachers.find(t => t.id === teacherId);
     if (!teacher) return "Ismeretlen tanár";
-    return teacher.firstName && teacher.lastName 
-      ? `${teacher.firstName} ${teacher.lastName}` 
+    return teacher.firstName && teacher.lastName
+      ? `${teacher.firstName} ${teacher.lastName}`
       : teacher.username;
   };
 
@@ -434,11 +515,11 @@ export default function SchoolAdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/school-admin/logout", { 
+      const response = await fetch("/api/school-admin/logout", {
         method: "GET",
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         toast({
           title: "Sikeres kijelentkezés",
@@ -542,15 +623,15 @@ export default function SchoolAdminDashboard() {
   const filteredStudents = students.filter(student => {
     const searchLower = searchTerm.toLowerCase();
     const fullName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
-    
+
     const matchesSearch = searchTerm === "" || (
       student.username.toLowerCase().includes(searchLower) ||
       fullName.toLowerCase().includes(searchLower) ||
       (student.email && student.email.toLowerCase().includes(searchLower))
     );
-    
+
     const matchesTeacher = selectedTeacher === "all" || selectedTeacher === "" || student.assignedTeacherId === selectedTeacher;
-    
+
     return matchesSearch && matchesTeacher;
   });
 
@@ -576,8 +657,8 @@ export default function SchoolAdminDashboard() {
                 <p className="text-gray-600">Tanulók és tanárok kezelése</p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleLogout}
               className="flex items-center space-x-2"
             >
@@ -600,7 +681,7 @@ export default function SchoolAdminDashboard() {
               <div className="text-2xl font-bold">{students.length}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Összes tanár</CardTitle>
@@ -610,7 +691,7 @@ export default function SchoolAdminDashboard() {
               <div className="text-2xl font-bold">{teachers.length}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Hozzárendelt tanulók</CardTitle>
@@ -657,7 +738,7 @@ export default function SchoolAdminDashboard() {
                           Hozzon létre egy új osztályt a diákok szervezéséhez és szakma hozzárendeléséhez.
                         </DialogDescription>
                       </DialogHeader>
-                      <CreateClassForm 
+                      <CreateClassForm
                         professions={professions}
                         onSuccess={() => {
                           fetchData();
@@ -673,7 +754,7 @@ export default function SchoolAdminDashboard() {
                 <div className="text-sm text-gray-600 mb-4">
                   Jelenleg csak a saját iskolájához tartozó diákok és tanárok láthatók.
                 </div>
-                
+
                 {/* Osztályok listája */}
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-3">Létrehozott osztályok ({classes.length})</h3>
@@ -765,16 +846,16 @@ export default function SchoolAdminDashboard() {
                                       </SelectContent>
                                     </Select>
                                   )}
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     onClick={() => setEditingClass(classItem.id)}
                                   >
                                     <Edit size={16} />
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="secondary" 
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
                                     onClick={() => setManagingStudents(classItem.id)}
                                   >
                                     <Users size={16} />
@@ -819,88 +900,88 @@ export default function SchoolAdminDashboard() {
               </CardContent>
             </Card>
 
-        {/* Tanulók listája */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Tanulók ({filteredStudents.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center space-x-2">
-                  <Info size={16} className="text-blue-600" />
-                  <p className="text-sm text-blue-800">
-                    Csak az Ön iskolájához tartozó diákok és tanárok láthatók. Az adatok elkülönítve vannak tárolva.
-                  </p>
-                </div>
-              </div>
-              
-              {filteredStudents.map((student) => (
-                <div
-                  key={student.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">
-                      {`${student.firstName || ""} ${student.lastName || ""}`.trim() || student.username}
-                    </h3>
-                    <p className="text-sm text-gray-500">@{student.username}</p>
-                    {student.email && (
-                      <p className="text-sm text-gray-500">{student.email}</p>
-                    )}
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant="outline" className="text-xs">
-                        Saját iskola
-                      </Badge>
+            {/* Tanulók listája */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tanulók ({filteredStudents.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Info size={16} className="text-blue-600" />
+                      <p className="text-sm text-blue-800">
+                        Csak az Ön iskolájához tartozó diákok és tanárok láthatók. Az adatok elkülönítve vannak tárolva.
+                      </p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    {student.assignedTeacherId ? (
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">
-                          {getTeacherName(student.assignedTeacherId)}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeStudentFromTeacher(student.id)}
-                        >
-                          Eltávolítás
-                        </Button>
+
+                  {filteredStudents.map((student) => (
+                    <div
+                      key={student.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">
+                          {`${student.firstName || ""} ${student.lastName || ""}`.trim() || student.username}
+                        </h3>
+                        <p className="text-sm text-gray-500">@{student.username}</p>
+                        {student.email && (
+                          <p className="text-sm text-gray-500">{student.email}</p>
+                        )}
+                        <div className="flex items-center space-x-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            Saját iskola
+                          </Badge>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <Select
-                          onValueChange={(teacherId) => assignStudentToTeacher(student.id, teacherId)}
-                        >
-                          <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Tanár kiválasztása" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {teachers.map((teacher) => (
-                              <SelectItem key={teacher.id} value={teacher.id}>
-                                {getTeacherName(teacher.id)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+
+                      <div className="flex items-center space-x-4">
+                        {student.assignedTeacherId ? (
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary">
+                              {getTeacherName(student.assignedTeacherId)}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeStudentFromTeacher(student.id)}
+                            >
+                              Eltávolítás
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              onValueChange={(teacherId) => assignStudentToTeacher(student.id, teacherId)}
+                            >
+                              <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Tanár kiválasztása" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {teachers.map((teacher) => (
+                                  <SelectItem key={teacher.id} value={teacher.id}>
+                                    {getTeacherName(teacher.id)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
+
+                  {filteredStudents.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      {searchTerm || selectedTeacher !== 'all'
+                        ? 'Nem található tanuló a keresési feltételeknek megfelelően'
+                        : 'Még nincsenek tanulók regisztrálva az Ön iskolájához'}
+                    </div>
+                  )}
                 </div>
-              ))}
-              
-              {filteredStudents.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  {searchTerm || selectedTeacher !== 'all' 
-                    ? 'Nem található tanuló a keresési feltételeknek megfelelően' 
-                    : 'Még nincsenek tanulók regisztrálva az Ön iskolájához'}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Tanár regisztráció tab */}
@@ -922,7 +1003,7 @@ export default function SchoolAdminDashboard() {
                     <Input
                       id="teacher-firstName"
                       value={teacherForm.firstName}
-                      onChange={(e) => setTeacherForm({...teacherForm, firstName: e.target.value})}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, firstName: e.target.value })}
                       placeholder="Keresztnév"
                     />
                   </div>
@@ -931,7 +1012,7 @@ export default function SchoolAdminDashboard() {
                     <Input
                       id="teacher-lastName"
                       value={teacherForm.lastName}
-                      onChange={(e) => setTeacherForm({...teacherForm, lastName: e.target.value})}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, lastName: e.target.value })}
                       placeholder="Vezetéknév"
                     />
                   </div>
@@ -940,7 +1021,7 @@ export default function SchoolAdminDashboard() {
                     <Input
                       id="teacher-username"
                       value={teacherForm.username}
-                      onChange={(e) => setTeacherForm({...teacherForm, username: e.target.value})}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, username: e.target.value })}
                       placeholder="Felhasználónév"
                       required
                     />
@@ -951,7 +1032,7 @@ export default function SchoolAdminDashboard() {
                       id="teacher-email"
                       type="email"
                       value={teacherForm.email}
-                      onChange={(e) => setTeacherForm({...teacherForm, email: e.target.value})}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })}
                       placeholder="email@example.com"
                     />
                   </div>
@@ -961,14 +1042,14 @@ export default function SchoolAdminDashboard() {
                       id="teacher-password"
                       type="password"
                       value={teacherForm.password}
-                      onChange={(e) => setTeacherForm({...teacherForm, password: e.target.value})}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, password: e.target.value })}
                       placeholder="Minimum 6 karakter"
                       required
                     />
                   </div>
                 </div>
                 <div className="flex justify-end mt-6">
-                  <Button 
+                  <Button
                     onClick={registerTeacher}
                     disabled={!teacherForm.username || !teacherForm.password || teacherForm.password.length < 6}
                     className="flex items-center space-x-2"
@@ -1000,7 +1081,7 @@ export default function SchoolAdminDashboard() {
                     <Input
                       id="student-firstName"
                       value={studentForm.firstName}
-                      onChange={(e) => setStudentForm({...studentForm, firstName: e.target.value})}
+                      onChange={(e) => setStudentForm({ ...studentForm, firstName: e.target.value })}
                       placeholder="Keresztnév"
                     />
                   </div>
@@ -1009,7 +1090,7 @@ export default function SchoolAdminDashboard() {
                     <Input
                       id="student-lastName"
                       value={studentForm.lastName}
-                      onChange={(e) => setStudentForm({...studentForm, lastName: e.target.value})}
+                      onChange={(e) => setStudentForm({ ...studentForm, lastName: e.target.value })}
                       placeholder="Vezetéknév"
                     />
                   </div>
@@ -1018,7 +1099,7 @@ export default function SchoolAdminDashboard() {
                     <Input
                       id="student-username"
                       value={studentForm.username}
-                      onChange={(e) => setStudentForm({...studentForm, username: e.target.value})}
+                      onChange={(e) => setStudentForm({ ...studentForm, username: e.target.value })}
                       placeholder="Felhasználónév"
                       required
                     />
@@ -1029,7 +1110,7 @@ export default function SchoolAdminDashboard() {
                       id="student-email"
                       type="email"
                       value={studentForm.email}
-                      onChange={(e) => setStudentForm({...studentForm, email: e.target.value})}
+                      onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
                       placeholder="email@example.com"
                     />
                   </div>
@@ -1039,14 +1120,14 @@ export default function SchoolAdminDashboard() {
                       id="student-password"
                       type="password"
                       value={studentForm.password}
-                      onChange={(e) => setStudentForm({...studentForm, password: e.target.value})}
+                      onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })}
                       placeholder="Minimum 6 karakter"
                       required
                     />
                   </div>
                 </div>
                 <div className="flex justify-end mt-6">
-                  <Button 
+                  <Button
                     onClick={registerStudent}
                     disabled={!studentForm.username || !studentForm.password || studentForm.password.length < 6}
                     className="flex items-center space-x-2"
@@ -1067,8 +1148,8 @@ export default function SchoolAdminDashboard() {
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Diákok kezelése - {classes.find(c => c.id === managingStudents)?.name}</h2>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setManagingStudents(null)}
               >
                 Bezárás
@@ -1103,36 +1184,57 @@ export default function SchoolAdminDashboard() {
                 </div>
               </div>
 
+
+
+
               {/* Elérhető diákok */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Elérhető diákok</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {students
-                    .filter(student => !student.classId || student.classId !== managingStudents)
-                    .map(student => (
-                      <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{student.firstName} {student.lastName}</p>
-                          <p className="text-sm text-gray-600">{student.username}</p>
-                          {student.classId && (
-                            <p className="text-xs text-orange-600">
-                              Már másik osztályban: {classes.find(c => c.id === student.classId)?.name}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => addStudentToClass(managingStudents, student.id)}
-                        >
-                          Hozzáadás
-                        </Button>
-                      </div>
-                    ))}
-                  {students.filter(student => !student.classId || student.classId !== managingStudents).length === 0 && (
-                    <p className="text-gray-500 text-center py-4">Nincsenek elérhető diákok</p>
-                  )}
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Elérhető diákok</h3>
+                  <Button size="sm" variant="outline" onClick={() => setIsBulkImportOpen(true)}>
+                    <UserPlus size={16} className="mr-2" /> Tömeges Import
+                  </Button>
                 </div>
+
+                {isBulkImportOpen ? (
+                  <BulkImportDialog
+                    classId={managingStudents}
+                    className={classes.find(c => c.id === managingStudents)?.name || ""}
+                    onSuccess={() => {
+                      setIsBulkImportOpen(false);
+                      fetchData();
+                    }}
+                    onCancel={() => setIsBulkImportOpen(false)}
+                  />
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {students
+                      .filter(student => !student.classId || student.classId !== managingStudents)
+                      .map(student => (
+                        <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium">{student.firstName} {student.lastName}</p>
+                            <p className="text-sm text-gray-600">{student.username}</p>
+                            {student.classId && (
+                              <p className="text-xs text-orange-600">
+                                Már másik osztályban: {classes.find(c => c.id === student.classId)?.name}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => addStudentToClass(managingStudents, student.id)}
+                          >
+                            Hozzáadás
+                          </Button>
+                        </div>
+                      ))}
+                    {students.filter(student => !student.classId || student.classId !== managingStudents).length === 0 && (
+                      <p className="text-gray-500 text-center py-4">Nincsenek elérhető diákok</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
