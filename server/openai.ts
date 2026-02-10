@@ -485,7 +485,7 @@ export async function generateChatResponse(
 
 export async function generateQuizQuestions(
   moduleContent: string,
-  numQuestions: number = 3
+  numQuestions: number = 10
 ): Promise<QuizQuestion[]> {
   try {
     const openai = await getOpenAIClient();
@@ -785,7 +785,7 @@ export async function generateQuizFromModule(moduleContent: string): Promise<Qui
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `A következő tananyag alapján generálj 3-5 tesztkérdést magyar nyelven. 
+    const prompt = `A következő tananyag alapján generálj 10 tesztkérdést magyar nyelven. 
     Minden kérdéshez adj 4 válaszlehetőséget, amelyből pontosan egy a helyes.
     A kérdések fedelje fel a tananyag fő pontjait és legyenek megfelelő nehézségűek.
     

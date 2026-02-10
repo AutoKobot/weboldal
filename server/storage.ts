@@ -60,6 +60,9 @@ import {
   type InsertPrivacyRequest,
   type DataProcessingActivity,
   type InsertDataProcessingActivity,
+  testResults,
+  type TestResult,
+  type InsertTestResult,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql } from "drizzle-orm";
@@ -189,6 +192,11 @@ export interface IStorage {
   updatePrivacyRequestStatus(id: number, status: string, responseData?: any, processedBy?: string): Promise<PrivacyRequest>;
   exportUserData(userId: string): Promise<any>;
   deleteUserPersonalData(userId: string): Promise<void>;
+
+  // Test result operations
+  createTestResult(result: InsertTestResult): Promise<TestResult>;
+  getTestResultsByUser(userId: string): Promise<TestResult[]>;
+  getTestResultsByModule(moduleId: number): Promise<TestResult[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1513,6 +1521,29 @@ export class DatabaseStorage implements IStorage {
     // This is the same as the existing deleteUser method
     // but explicitly named for GDPR compliance
     await this.deleteUser(userId);
+  }
+
+  // Test result operations
+  async createTestResult(result: InsertTestResult): Promise<TestResult> {
+    const [testResult] = await db
+      .insert(testResults)
+      .values(result)
+      .returning();
+    return testResult;
+  }
+
+  async getTestResultsByUser(userId: string): Promise<TestResult[]> {
+    return await db.select()
+      .from(testResults)
+      .where(eq(testResults.userId, userId))
+      .orderBy(desc(testResults.createdAt));
+  }
+
+  async getTestResultsByModule(moduleId: number): Promise<TestResult[]> {
+    return await db.select()
+      .from(testResults)
+      .where(eq(testResults.moduleId, moduleId))
+      .orderBy(desc(testResults.createdAt));
   }
 }
 

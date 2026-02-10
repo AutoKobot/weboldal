@@ -3211,7 +3211,45 @@ Platform funkciók és navigáció:
     }
   });
 
-  // Quiz endpoints
+  app.post('/api/modules/:id/quiz-result', combinedAuth, async (req: any, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      const userId = req.user.claims?.sub || req.user.id;
+      const { score, maxScore, passed, details } = req.body;
+
+      if (score === undefined || maxScore === undefined || passed === undefined) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // 1. Create test result record
+      const result = await storage.createTestResult({
+        userId,
+        moduleId,
+        score,
+        maxScore,
+        passed,
+        details: details || {},
+        createdAt: new Date()
+      });
+
+      // 2. If passed, update user's completed modules
+      if (passed) {
+        const user = await storage.getUser(userId);
+        if (user) {
+          const completedModules = user.completedModules || [];
+          if (!completedModules.includes(moduleId)) {
+            await storage.updateUserCompletedModules(userId, [...completedModules, moduleId]);
+          }
+        }
+      }
+
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error saving quiz result:", error);
+      res.status(500).json({ message: "Failed to save quiz result" });
+    }
+  });
+
   app.post('/api/modules/:id/quiz', combinedAuth, async (req: any, res) => {
     try {
       const moduleId = parseInt(req.params.id);
@@ -3664,13 +3702,26 @@ Platform funkciók és navigáció:
   app.get("/api/teacher/students", combinedAuth, async (req: any, res) => {
     try {
       // Check if user is a teacher
-      const user = await storage.getUser(req.user.id);
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
       if (user?.role !== 'teacher') {
         return res.status(403).json({ message: "Access denied. Teachers only." });
       }
 
-      const students = await storage.getAllStudents();
-      res.json(students);
+      // Get students assigned to this teacher
+      const students = await storage.getStudentsByTeacher(userId);
+
+      // Attach test results to each student
+      const studentsWithResults = await Promise.all(students.map(async (student) => {
+        const testResults = await storage.getTestResultsByUser(student.id);
+        return {
+          ...student,
+          testResults
+        };
+      }));
+
+      res.json(studentsWithResults);
     } catch (error) {
       console.error("Error fetching students:", error);
       res.status(500).json({ message: "Failed to fetch students" });

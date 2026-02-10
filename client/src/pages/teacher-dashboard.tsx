@@ -8,17 +8,44 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Users, 
-  BookOpen, 
-  TrendingUp, 
-  Award, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Users,
+  BookOpen,
+  TrendingUp,
+  Award,
   Search,
   GraduationCap,
   Clock,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  XCircle,
+  FileText
 } from "lucide-react";
+
+interface TestResult {
+  id: number;
+  moduleId: number;
+  score: number;
+  maxScore: number;
+  passed: boolean;
+  createdAt: string;
+}
 
 interface Student {
   id: string;
@@ -29,6 +56,7 @@ interface Student {
   selectedProfessionId?: number;
   completedModules: number[];
   createdAt: string;
+  testResults?: TestResult[];
 }
 
 interface Module {
@@ -49,12 +77,12 @@ export default function TeacherDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch students
-  const { data: students = [], isLoading: studentsLoading } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ["/api/teacher/students"],
   });
 
   // Fetch modules
-  const { data: modules = [], isLoading: modulesLoading } = useQuery({
+  const { data: modules = [], isLoading: modulesLoading } = useQuery<Module[]>({
     queryKey: ["/api/public/modules"],
   });
 
@@ -89,7 +117,7 @@ export default function TeacherDashboard() {
 
   const totalStudents = students.length;
   const activeStudents = students.filter((s: Student) => s.completedModules?.length > 0).length;
-  const averageProgress = students.length > 0 
+  const averageProgress = students.length > 0
     ? Math.round(students.reduce((sum: number, s: Student) => sum + getStudentProgress(s), 0) / students.length)
     : 0;
 
@@ -205,8 +233,8 @@ export default function TeacherDashboard() {
                   {searchTerm ? "Nincs találat" : "Nincsenek tanulók"}
                 </h3>
                 <p className="text-gray-500">
-                  {searchTerm 
-                    ? "Próbáljon meg más keresési feltételekkel." 
+                  {searchTerm
+                    ? "Próbáljon meg más keresési feltételekkel."
                     : "Még nincsenek regisztrált tanulók a rendszerben."
                   }
                 </p>
@@ -234,7 +262,7 @@ export default function TeacherDashboard() {
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <h3 className="text-lg font-semibold text-gray-900">
-                                {student.firstName && student.lastName 
+                                {student.firstName && student.lastName
                                   ? `${student.firstName} ${student.lastName}`
                                   : student.username
                                 }
@@ -271,21 +299,90 @@ export default function TeacherDashboard() {
                             <Progress value={progress} className="h-2" />
                           </div>
 
-                          {recentModules.length > 0 && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-600 mb-2">
-                                Legutóbb teljesített modulok
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {recentModules.map((moduleId: number) => (
-                                  <Badge key={moduleId} variant="outline" className="text-xs">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    {getModuleName(moduleId)}
-                                  </Badge>
-                                ))}
-                              </div>
+                          <div className="flex justify-between items-center mt-4">
+                            <div className="flex flex-wrap gap-2">
+                              {recentModules.length > 0 && recentModules.map((moduleId: number) => (
+                                <Badge key={moduleId} variant="outline" className="text-xs">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  {getModuleName(moduleId)}
+                                </Badge>
+                              ))}
                             </div>
-                          )}
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Részletek
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    {student.firstName && student.lastName
+                                      ? `${student.firstName} ${student.lastName}`
+                                      : student.username
+                                    } tanulmányi eredményei
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    Részletes áttekintés a modulok teljesítéséről és a teszt eredményekről.
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="mt-4">
+                                  <h4 className="text-sm font-medium mb-3">Teszt eredmények</h4>
+                                  {student.testResults && student.testResults.length > 0 ? (
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Modul</TableHead>
+                                          <TableHead>Dátum</TableHead>
+                                          <TableHead>Pontszám</TableHead>
+                                          <TableHead>Eredmény</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {student.testResults.map((result) => (
+                                          <TableRow key={result.id}>
+                                            <TableCell className="font-medium">
+                                              {getModuleName(result.moduleId)}
+                                            </TableCell>
+                                            <TableCell>
+                                              {new Date(result.createdAt).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                              <span className={
+                                                result.score >= 80 ? "text-green-600 font-bold" :
+                                                  result.score >= 60 ? "text-yellow-600 font-bold" :
+                                                    "text-red-600 font-bold"
+                                              }>
+                                                {result.score}%
+                                              </span>
+                                            </TableCell>
+                                            <TableCell>
+                                              {result.passed ? (
+                                                <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                                                  Sikeres
+                                                </Badge>
+                                              ) : (
+                                                <Badge variant="destructive">
+                                                  Sikertelen
+                                                </Badge>
+                                              )}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                      Nincsenek elérhető teszt eredmények.
+                                    </p>
+                                  )}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </div>
                       </div>
                     </div>

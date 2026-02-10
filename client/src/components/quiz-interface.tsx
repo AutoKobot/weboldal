@@ -82,7 +82,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       const newEvaluations = [...evaluations];
       newEvaluations[currentQuestionIndex] = evaluation;
       setEvaluations(newEvaluations);
-      
+
       toast({
         title: `Pontszám: ${evaluation.score}/100`,
         description: evaluation.isCorrect ? "Helyes válasz!" : "Javítható válasz",
@@ -98,20 +98,27 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
     },
   });
 
-  const completeModuleMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/modules/${moduleId}/complete`);
+  const submitQuizResultMutation = useMutation({
+    mutationFn: async (result: { score: number; maxScore: number; passed: boolean; details: any }) => {
+      const response = await apiRequest('POST', `/api/modules/${moduleId}/quiz-result`, result);
       return await response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Gratulálunk!",
-        description: "Sikeresen befejezted a modult! 🎉",
-      });
-      onModuleComplete?.();
+    onSuccess: (data) => {
+      if (data.passed) {
+        toast({
+          title: "Gratulálunk!",
+          description: "Sikeresen teljesítetted a modult! 🎉",
+        });
+        onModuleComplete?.();
+      }
     },
     onError: (error: Error) => {
-      console.error('Error completing module:', error);
+      console.error('Error submitting quiz result:', error);
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült menteni az eredményt.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -124,7 +131,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   const handleSubmitAnswer = () => {
     const currentQuestion = questions[currentQuestionIndex];
     const selectedIndex = selectedAnswers[currentQuestionIndex];
-    
+
     if (selectedIndex === null) {
       toast({
         title: "Válasz hiányzik",
@@ -172,27 +179,45 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       setOpenAnswer('');
     } else {
       setIsQuizCompleted(true);
-      
-      // Check if score meets 88% threshold for module completion
+
+      // Calculate final score and submit results
       const finalScore = calculateFinalScore();
-      if (finalScore >= 88) {
-        completeModuleMutation.mutate();
-      }
+      const passed = finalScore >= 60; // New threshold: 60%
+
+      submitQuizResultMutation.mutate({
+        score: finalScore,
+        maxScore: 100,
+        passed,
+        details: {
+          questions,
+          evaluations
+        }
+      });
     }
   };
 
   const calculateFinalScore = () => {
     const validEvaluations = evaluations.filter(e => e !== null) as QuizEvaluation[];
     if (validEvaluations.length === 0) return 0;
-    
+
     const totalScore = validEvaluations.reduce((sum, evaluation) => sum + evaluation.score, 0);
     return Math.round(totalScore / validEvaluations.length);
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 95) return 'text-green-700'; // Kiváló
+    if (score >= 80) return 'text-green-600'; // Jó
+    if (score >= 70) return 'text-yellow-600'; // Közepesen megfelelt
+    if (score >= 60) return 'text-orange-500'; // Megfelelt
+    return 'text-red-600'; // Nem felelt meg
+  };
+
+  const getGradeLabel = (score: number) => {
+    if (score >= 95) return 'Kiváló';
+    if (score >= 80) return 'Jó';
+    if (score >= 70) return 'Közepesen megfelelt';
+    if (score >= 60) return 'Megfelelt';
+    return 'Nem felelt meg';
   };
 
   if (!isQuizStarted) {
@@ -209,9 +234,9 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
         </CardHeader>
         <CardContent className="text-center">
           <p className="mb-6 text-muted-foreground">
-            Az AI automatikusan generál kérdéseket a modul tartalma alapján, majd értékeli a válaszaidat 1-100 pontos skálán.
+            Az AI automatikusan generál 10 kérdést a modul tartalma alapján. A sikeres teljesítéshez legalább 60%-ot kell elérned.
           </p>
-          <Button 
+          <Button
             onClick={() => generateQuizMutation.mutate()}
             disabled={generateQuizMutation.isPending}
             size="lg"
@@ -236,8 +261,8 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   if (isQuizCompleted) {
     const finalScore = calculateFinalScore();
     const correctAnswers = evaluations.filter(e => e?.isCorrect).length;
-    const isModuleCompleted = finalScore >= 88;
-    
+    const isPassed = finalScore >= 60;
+
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader className="text-center">
@@ -251,33 +276,37 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
             <div className={`text-4xl font-bold ${getScoreColor(finalScore)}`}>
               {finalScore}/100 pont
             </div>
+            <div className={`text-xl font-medium ${getScoreColor(finalScore)}`}>
+              {getGradeLabel(finalScore)}
+            </div>
             <p className="text-lg">
               {correctAnswers}/{questions.length} helyes válasz
             </p>
-            
-            {isModuleCompleted && (
+
+            {isPassed && (
               <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
                 <div className="flex items-center justify-center gap-2 text-green-700">
                   <CheckCircle className="h-5 w-5" />
-                  <span className="font-semibold">Modul sikeresen befejezve!</span>
+                  <span className="font-semibold">Modul sikeresen teljesítve!</span>
                 </div>
                 <p className="text-sm text-green-600 mt-1">
-                  Elérted a 88%-os küszöböt, ezért a modul befejezettnek számít.
+                  Gratulálunk a sikeres vizsgához!
                 </p>
               </div>
             )}
-            
-            {!isModuleCompleted && (
-              <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-yellow-700">
+
+            {!isPassed && (
+              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                <div className="flex items-center justify-center gap-2 text-red-700">
                   <XCircle className="h-5 w-5" />
-                  <span className="font-semibold">Modul nem befejezett</span>
+                  <span className="font-semibold">Nem sikerült</span>
                 </div>
-                <p className="text-sm text-yellow-600 mt-1">
-                  A modul befejezéséhez legalább 88 pont szükséges.
+                <p className="text-sm text-red-600 mt-1">
+                  A modul teljesítéséhez legalább 60 pont szükséges. Próbáld újra!
                 </p>
               </div>
             )}
+
           </div>
 
           <div className="space-y-3">
@@ -285,7 +314,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
               evaluation && (
                 <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-2">
-                    {evaluation.isCorrect ? 
+                    {evaluation.isCorrect ?
                       <CheckCircle className="h-4 w-4 text-green-600" /> :
                       <XCircle className="h-4 w-4 text-red-600" />
                     }
@@ -299,7 +328,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
             ))}
           </div>
 
-          <Button 
+          <Button
             onClick={() => {
               setIsQuizStarted(false);
               setIsQuizCompleted(false);
@@ -366,7 +395,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
             </div>
 
             <div className="flex gap-2">
-              <Button 
+              <Button
                 onClick={handleSubmitAnswer}
                 disabled={evaluateAnswerMutation.isPending || selectedAnswers[currentQuestionIndex] === null}
                 className="flex-1"
@@ -380,9 +409,9 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
                   'Válasz elküldése'
                 )}
               </Button>
-              
+
               {openAnswer.trim() && (
-                <Button 
+                <Button
                   onClick={handleSubmitOpenAnswer}
                   disabled={evaluateAnswerMutation.isPending}
                   variant="outline"
@@ -404,7 +433,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
           <div className="space-y-4">
             <div className={`p-4 rounded-lg border-2 ${currentEvaluation.isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
               <div className="flex items-center gap-2 mb-2">
-                {currentEvaluation.isCorrect ? 
+                {currentEvaluation.isCorrect ?
                   <CheckCircle className="h-5 w-5 text-green-600" /> :
                   <XCircle className="h-5 w-5 text-red-600" />
                 }
@@ -426,7 +455,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
               </p>
             </div>
 
-            <Button 
+            <Button
               onClick={goToNextQuestion}
               className="w-full"
             >

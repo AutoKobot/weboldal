@@ -100,11 +100,24 @@ export const chatMessages = pgTable("chat_messages", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Test results table - teszt eredmények
+export const testResults = pgTable("test_results", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  score: integer("score").notNull(),
+  maxScore: integer("max_score").default(100).notNull(),
+  passed: boolean("passed").default(false).notNull(),
+  details: jsonb("details"), // Store question/answer details
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   selectedProfession: one(professions, { fields: [users.selectedProfessionId], references: [professions.id] }),
   chatMessages: many(chatMessages),
   assignedClass: one(classes, { fields: [users.classId], references: [classes.id] }),
+  testResults: many(testResults),
 }));
 
 export const professionsRelations = relations(professions, ({ many }) => ({
@@ -439,6 +452,12 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
   students: many(users),
 }));
 
+export const testResultsRelations = relations(testResults, ({ one }) => ({
+  user: one(users, { fields: [testResults.userId], references: [users.id] }),
+  module: one(modules, { fields: [testResults.moduleId], references: [modules.id] }),
+}));
+
+
 // Community schemas
 export const insertCommunityGroupSchema = createInsertSchema(communityGroups).omit({
   id: true,
@@ -572,6 +591,16 @@ export type InsertPrivacyRequest = typeof privacyRequests.$inferInsert;
 export type DataProcessingActivity = typeof dataProcessingActivities.$inferSelect;
 export type InsertDataProcessingActivity = typeof dataProcessingActivities.$inferInsert;
 
+
 export const insertUserConsentSchema = createInsertSchema(userConsents);
 export const insertPrivacyRequestSchema = createInsertSchema(privacyRequests);
 export const insertDataProcessingActivitySchema = createInsertSchema(dataProcessingActivities);
+
+// Test results types and schemas
+export type TestResult = typeof testResults.$inferSelect;
+export type InsertTestResult = typeof testResults.$inferInsert;
+export const insertTestResultSchema = createInsertSchema(testResults).omit({
+  id: true,
+  createdAt: true,
+});
+

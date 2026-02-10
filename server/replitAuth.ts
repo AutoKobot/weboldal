@@ -82,7 +82,7 @@ export async function setupAuth(app: Express) {
 
   // Only setup Replit Auth if REPLIT_DOMAINS is present
   if (process.env.REPLIT_DOMAINS) {
-    constconfig = await getOidcConfig();
+    const config = await getOidcConfig();
 
     const verify: VerifyFunction = async (
       tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
@@ -129,13 +129,18 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+    req.logout(async () => {
+      try {
+        const config = await getOidcConfig();
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          }).href
+        );
+      } catch {
+        res.redirect("/");
+      }
     });
   });
 }
