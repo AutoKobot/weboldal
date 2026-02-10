@@ -752,8 +752,20 @@ export default function AdminDashboard() {
   const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string>("");
   const [newPassword, setNewPassword] = useState("");
+  const [aiChatEnabled, setAiChatEnabled] = useState(true);
 
   // Queries
+  const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
+    queryKey: ['/api/settings/ai-chat-enabled'],
+  });
+
+  // Sync aiChatEnabled state with server data
+  useEffect(() => {
+    if (aiChatEnabledData) {
+      setAiChatEnabled(aiChatEnabledData.enabled);
+    }
+  }, [aiChatEnabledData]);
+
   const { data: apiStatus } = useQuery<{
     openai: boolean;
     gemini: boolean;
