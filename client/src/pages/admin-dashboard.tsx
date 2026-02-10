@@ -1383,38 +1383,7 @@ export default function AdminDashboard() {
     },
   });
 
-  // Fetch AI system message
-  const { data: systemMessageData } = useQuery({
-    queryKey: ['/api/admin/settings/system-message'],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/admin/settings/system-message");
-      return res.json();
-    }
-  });
 
-  // Fetch AI Chat Enabled setting
-  const { data: aiChatEnabledData, isLoading: isAiChatEnabledLoading } = useQuery({
-    queryKey: ['/api/settings/ai-chat-enabled'],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/settings/ai-chat-enabled");
-      return res.json();
-    }
-  });
-
-  const [systemMessage, setSystemMessage] = useState("");
-  const [aiChatEnabled, setAiChatEnabled] = useState(true);
-
-  useEffect(() => {
-    if (systemMessageData) {
-      setSystemMessage(systemMessageData.message);
-    }
-  }, [systemMessageData]);
-
-  useEffect(() => {
-    if (aiChatEnabledData) {
-      setAiChatEnabled(aiChatEnabledData.enabled);
-    }
-  }, [aiChatEnabledData]);
 
   const updateSystemMessageMutation = useMutation({
     mutationFn: async (message: string) => {
