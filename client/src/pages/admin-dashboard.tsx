@@ -3,15 +3,18 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink } from "lucide-react";
 import FileUpload, { UrlInput } from "@/components/file-upload";
@@ -965,6 +968,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
       setIsDialogOpen(false);
       toast({ title: "Siker", description: "Modul létrehozva" });
       form.reset();
@@ -1003,6 +1007,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
       toast({ title: "Siker", description: "Modul állapota frissítve" });
     },
     onError: (error: Error) => {
@@ -1030,6 +1035,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
       toast({ title: "Siker", description: "Modul törölve" });
     },
     onError: (error: Error) => {
@@ -1377,20 +1383,89 @@ export default function AdminDashboard() {
     },
   });
 
-  // Rendszerüzenet kezelő mutáció
+  // Fetch AI system message
+  const { data: systemMessageData } = useQuery({
+    queryKey: ['/api/admin/settings/system-message'],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/settings/system-message");
+      return res.json();
+    }
+  });
+
+  // Fetch AI Chat Enabled setting
+  const { data: aiChatEnabledData, isLoading: isAiChatEnabledLoading } = useQuery({
+    queryKey: ['/api/settings/ai-chat-enabled'],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/settings/ai-chat-enabled");
+      return res.json();
+    }
+  });
+
+  const [systemMessage, setSystemMessage] = useState("");
+  const [aiChatEnabled, setAiChatEnabled] = useState(true);
+
+  useEffect(() => {
+    if (systemMessageData) {
+      setSystemMessage(systemMessageData.message);
+    }
+  }, [systemMessageData]);
+
+  useEffect(() => {
+    if (aiChatEnabledData) {
+      setAiChatEnabled(aiChatEnabledData.enabled);
+    }
+  }, [aiChatEnabledData]);
+
   const updateSystemMessageMutation = useMutation({
     mutationFn: async (message: string) => {
-      const res = await apiRequest("POST", "/api/admin/settings/system-message", { message });
-      return await res.json();
+      await apiRequest("POST", "/api/admin/settings/system-message", { message });
     },
     onSuccess: () => {
-      toast({ title: "Siker", description: "AI rendszerüzenet mentve" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/system-message"] });
+      toast({
+        title: "Sikeres mentés",
+        description: "Az AI rendszer üzenet frissítve lett.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/system-message'] });
     },
-    onError: (error: Error) => {
-      toast({ title: "Hiba", description: error.message, variant: "destructive" });
-    },
+    onError: () => {
+      toast({
+        title: "Hiba történt",
+        description: "Nem sikerült menteni a beállításokat.",
+        variant: "destructive",
+      });
+    }
   });
+
+  const updateAiChatEnabledMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await apiRequest("POST", "/api/admin/settings/ai-chat-enabled", { enabled });
+      setAiChatEnabled(enabled); // Optimistic update
+    },
+    onSuccess: (data, variables) => {
+      toast({
+        title: variables ? "AI Chat Engedélyezve" : "AI Chat Letiltva",
+        description: variables ? "Az AI chat funkció mostantól elérhető a felhasználók számára." : "Az AI chat funkció mostantól nem elérhető (kivéve adminoknak).",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/ai-chat-enabled'] });
+    },
+    onError: () => {
+      toast({
+        title: "Hiba történt",
+        description: "Nem sikerült módosítani a beállítást.",
+        variant: "destructive",
+      });
+      // Revert state on error
+      if (aiChatEnabledData) {
+        setAiChatEnabled(aiChatEnabledData.enabled);
+      }
+    }
+  });
+
+  const resetSystemMessage = () => {
+    if (systemMessageData) {
+      setSystemMessage(systemMessageData.message);
+    }
+  };
 
   // Modul frissítési üzenet kezelő mutáció
   const updateModuleUpdateMessageMutation = useMutation({
@@ -3119,24 +3194,49 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-red-600">Veszélyes műveletek</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
-                  <div>
-                    <h4 className="font-medium text-red-800">Rendszer újraindítása</h4>
-                    <p className="text-sm text-red-600">Ez ideiglenesen megszakítja a szolgáltatást</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Funkciók Kezelése</CardTitle>
+                  <CardDescription>
+                    Globális beállítások az AI funkciók elérhetőségéhez
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between space-x-2">
+                    <div className="flex flex-col space-y-1">
+                      <Label htmlFor="ai-chat-enable">AI Tanár Chat Engedélyezése</Label>
+                      <span className="text-sm text-muted-foreground">
+                        Ha ki van kapcsolva, a diákok és tanárok nem érik el az AI chat funkciót. (Adminoknak továbbra is elérhető)
+                      </span>
+                    </div>
+                    <Switch
+                      id="ai-chat-enable"
+                      checked={aiChatEnabled}
+                      onCheckedChange={(checked) => updateAiChatEnabledMutation.mutate(checked)}
+                      disabled={updateAiChatEnabledMutation.isPending}
+                    />
                   </div>
-                  <Button variant="destructive" disabled>
-                    Újraindítás
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-red-600">Veszélyes műveletek</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
+                    <div>
+                      <h4 className="font-medium text-red-800">Rendszer újraindítása</h4>
+                      <p className="text-sm text-red-600">Ez ideiglenesen megszakítja a szolgáltatást</p>
+                    </div>
+                    <Button variant="destructive" disabled>
+                      Újraindítás
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="school-admins" className="space-y-6">
@@ -3612,8 +3712,8 @@ export default function AdminDashboard() {
           }}
           isPending={resetPasswordMutation.isPending}
         />
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
 

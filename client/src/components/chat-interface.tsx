@@ -11,6 +11,7 @@ import { Bot, Send, User, Trash2, Mic, MicOff, Volume2, Play, Pause, Square, Fil
 import type { ChatMessage } from "@shared/schema";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useAuth } from "@/hooks/useAuth";
 
 interface ChatInterfaceProps {
   userId: string;
@@ -38,10 +39,16 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const streamingAudioChunks = useRef<string[]>([]);
-  const synchronizedAudioQueue = useRef<{buffer: Uint8Array, timestamp: number, text: string}[]>([]);
+  const synchronizedAudioQueue = useRef<{ buffer: Uint8Array, timestamp: number, text: string }[]>([]);
+  const { user } = useAuth();
+  const { data: aiChatEnabledData } = useQuery({
+    queryKey: ['/api/settings/ai-chat-enabled'],
+  });
+  const aiChatEnabled = (aiChatEnabledData as { enabled: boolean })?.enabled !== false;
+
   const [playbackStartTime, setPlaybackStartTime] = useState<number>(0);
   const firstChunkTimestamp = useRef<number | null>(null);
-  
+
   // Live conversation state - ENHANCED WITH SYNCHRONIZATION
   const [isLiveConversationActive, setIsLiveConversationActive] = useState(false);
   const isLiveConversationActiveRef = useRef(false);
@@ -49,7 +56,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
   const liveConversationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const allowAudioPlaybackRef = useRef<boolean>(true);
   const audioQueueProcessing = useRef<boolean>(false);
-  
+
   // Enhanced state tracking for debugging
   const recordingCycleCountRef = useRef<number>(0);
   const lastRecordingStartTime = useRef<number | null>(null);
@@ -58,17 +65,17 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       // Check if the rejection is related to audio interruption
-      if (event.reason?.message?.includes('interrupted') || 
-          event.reason?.name === 'AbortError' ||
-          event.reason?.message?.includes('play') ||
-          event.reason?.message?.includes('audio')) {
+      if (event.reason?.message?.includes('interrupted') ||
+        event.reason?.name === 'AbortError' ||
+        event.reason?.message?.includes('play') ||
+        event.reason?.message?.includes('audio')) {
         event.preventDefault();
         console.log('Audio interruption handled gracefully');
       }
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    
+
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
@@ -158,23 +165,23 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
     setIsAIResponding(true);
     setStreamingMessage("");
     setIsGeneratingAudio(true);
-    
+
     const processAudioQueue = async () => {
       if (audioQueueProcessing.current || synchronizedAudioQueue.current.length === 0 || !allowAudioPlaybackRef.current) {
         return;
       }
-      
+
       audioQueueProcessing.current = true;
       const audioChunk = synchronizedAudioQueue.current.shift();
-      
+
       if (audioChunk && allowAudioPlaybackRef.current) {
         try {
-          const audioBlob = new Blob([audioChunk.buffer], { type: 'audio/mpeg' });
+          const audioBlob = new Blob([audioChunk.buffer as any], { type: 'audio/mpeg' });
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
-          
+
           console.log(`Playing audio chunk (${audioChunk.text.length} chars): "${audioChunk.text.substring(0, 50)}..." at ${audioChunk.timestamp}ms`);
-          
+
           audio.onplay = () => {
             // Guard against playback if stopped during the brief window between play() and onplay
             if (!allowAudioPlaybackRef.current) {
@@ -199,20 +206,20 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
             }
             setIsPlaying(false);
             audioQueueProcessing.current = false;
-            
+
             if (allowAudioPlaybackRef.current) {
               // Continue processing the audio queue immediately
               const nextProcessTimeout = setTimeout(() => {
                 processAudioQueue();
-                
+
                 // ENHANCED TIMING: Only restart recording cycle after ALL audio chunks are processed AND longer delay
                 // Check multiple times with increasing delays to ensure queue is truly empty and stable
                 setTimeout(() => {
-                  if (synchronizedAudioQueue.current.length === 0 && 
-                      isLiveConversationActiveRef.current && 
-                      !liveConversationTimeoutRef.current &&
-                      !audioQueueProcessing.current &&
-                      !isPlaying) {
+                  if (synchronizedAudioQueue.current.length === 0 &&
+                    isLiveConversationActiveRef.current &&
+                    !liveConversationTimeoutRef.current &&
+                    !audioQueueProcessing.current &&
+                    !isPlaying) {
                     console.log('🎤 [TIMING FIX] All audio chunks completed, preparing to restart live recording cycle...', {
                       conversationActive: isLiveConversationActiveRef.current,
                       queueEmpty: synchronizedAudioQueue.current.length === 0,
@@ -221,7 +228,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                       notPlaying: !isPlaying,
                       queueLength: synchronizedAudioQueue.current.length
                     });
-                    
+
                     // CRITICAL TIMING FIX: Wait much longer to ensure ALL audio processing is complete
                     // This prevents microphone from starting during AI speech
                     liveConversationTimeoutRef.current = setTimeout(() => {
@@ -230,15 +237,15 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                       const isConversationStillActive = isLiveConversationActiveRef.current;
                       const isNotCurrentlyProcessing = !audioQueueProcessing.current;
                       const isNotCurrentlyPlaying = !isPlaying;
-                      
+
                       console.log('🎤 [RESTART VALIDATION] State check before restart:', {
                         isQueueReallyEmpty,
-                        isConversationStillActive, 
+                        isConversationStillActive,
                         isNotCurrentlyProcessing,
                         isNotCurrentlyPlaying,
                         allConditionsMet: isQueueReallyEmpty && isConversationStillActive && isNotCurrentlyProcessing && isNotCurrentlyPlaying
                       });
-                      
+
                       if (isQueueReallyEmpty && isConversationStillActive && isNotCurrentlyProcessing && isNotCurrentlyPlaying) {
                         console.log('🎤 [RESTART] All conditions validated, starting new recording cycle');
                         liveConversationTimeoutRef.current = null; // Clear timeout ref before starting
@@ -261,35 +268,35 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
             }
             setIsPlaying(false);
             audioQueueProcessing.current = false;
-            
+
             if (allowAudioPlaybackRef.current) {
               // Continue with next chunk even on error with enhanced timing
               setTimeout(() => {
                 processAudioQueue();
-                
+
                 // ENHANCED ERROR RECOVERY TIMING: Check if we need to restart recording after error
                 setTimeout(() => {
-                  if (synchronizedAudioQueue.current.length === 0 && 
-                      isLiveConversationActiveRef.current && 
-                      !liveConversationTimeoutRef.current &&
-                      !audioQueueProcessing.current &&
-                      !isPlaying) {
+                  if (synchronizedAudioQueue.current.length === 0 &&
+                    isLiveConversationActiveRef.current &&
+                    !liveConversationTimeoutRef.current &&
+                    !audioQueueProcessing.current &&
+                    !isPlaying) {
                     console.log('🎤 [ERROR RECOVERY] Audio error recovery - preparing to restart live recording cycle...');
-                    
+
                     // ENHANCED TIMING: Same longer delay as success path for consistency
                     liveConversationTimeoutRef.current = setTimeout(() => {
                       const isQueueReallyEmpty = synchronizedAudioQueue.current.length === 0;
                       const isConversationStillActive = isLiveConversationActiveRef.current;
                       const isNotCurrentlyProcessing = !audioQueueProcessing.current;
                       const isNotCurrentlyPlaying = !isPlaying;
-                      
+
                       console.log('🎤 [ERROR RECOVERY VALIDATION] State check after error:', {
                         isQueueReallyEmpty,
-                        isConversationStillActive, 
+                        isConversationStillActive,
                         isNotCurrentlyProcessing,
                         isNotCurrentlyPlaying
                       });
-                      
+
                       if (isQueueReallyEmpty && isConversationStillActive && isNotCurrentlyProcessing && isNotCurrentlyPlaying) {
                         console.log('🎤 [ERROR RECOVERY] Starting new recording cycle after error');
                         liveConversationTimeoutRef.current = null;
@@ -304,7 +311,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               }, 100);
             }
           };
-          
+
           if (currentAudio) {
             currentAudio.pause();
             if (currentAudioUrlRef.current) {
@@ -313,7 +320,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           }
           setCurrentAudio(audio);
           currentAudioUrlRef.current = audioUrl;
-          
+
           // Handle audio play promise properly with better error recovery and enhanced timing
           audio.play().catch(error => {
             console.error(`⚠️ Audio play failed for chunk: ${audioChunk.text.substring(0, 30)}...`, error);
@@ -323,35 +330,35 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
             }
             setIsPlaying(false);
             audioQueueProcessing.current = false;
-            
+
             if (allowAudioPlaybackRef.current) {
               // Continue processing queue even if this chunk failed with enhanced timing
               setTimeout(() => {
                 processAudioQueue();
-                
+
                 // ENHANCED PLAY FAILURE RECOVERY: Check restart conditions after play failure with better timing
                 setTimeout(() => {
-                  if (synchronizedAudioQueue.current.length === 0 && 
-                      isLiveConversationActiveRef.current && 
-                      !liveConversationTimeoutRef.current &&
-                      !audioQueueProcessing.current &&
-                      !isPlaying) {
+                  if (synchronizedAudioQueue.current.length === 0 &&
+                    isLiveConversationActiveRef.current &&
+                    !liveConversationTimeoutRef.current &&
+                    !audioQueueProcessing.current &&
+                    !isPlaying) {
                     console.log('🎤 [PLAY FAILURE] Audio play failure recovery - preparing to restart live recording cycle...');
-                    
+
                     // ENHANCED TIMING: Same consistent delay as other recovery paths
                     liveConversationTimeoutRef.current = setTimeout(() => {
                       const isQueueReallyEmpty = synchronizedAudioQueue.current.length === 0;
                       const isConversationStillActive = isLiveConversationActiveRef.current;
                       const isNotCurrentlyProcessing = !audioQueueProcessing.current;
                       const isNotCurrentlyPlaying = !isPlaying;
-                      
+
                       console.log('🎤 [PLAY FAILURE VALIDATION] State check after play failure:', {
                         isQueueReallyEmpty,
-                        isConversationStillActive, 
+                        isConversationStillActive,
                         isNotCurrentlyProcessing,
                         isNotCurrentlyPlaying
                       });
-                      
+
                       if (isQueueReallyEmpty && isConversationStillActive && isNotCurrentlyProcessing && isNotCurrentlyPlaying) {
                         console.log('🎤 [PLAY FAILURE] Starting new recording cycle after play failure');
                         liveConversationTimeoutRef.current = null;
@@ -366,7 +373,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               }, 100);
             }
           });
-          
+
         } catch (error) {
           console.error('Error playing synchronized audio chunk:', error);
           audioQueueProcessing.current = false;
@@ -416,7 +423,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              
+
               switch (data.type) {
                 case 'user_message':
                   queryClient.invalidateQueries({ queryKey: ['/api/chat/messages'] });
@@ -432,21 +439,21 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                       for (let i = 0; i < audioData.length; i++) {
                         bytes[i] = audioData.charCodeAt(i);
                       }
-                      
+
                       // Normalize timestamps to start from 0
                       if (firstChunkTimestamp.current === null) {
                         firstChunkTimestamp.current = data.timestamp;
                         console.log(`🎵 First audio chunk baseline: ${data.timestamp}ms`);
                       }
-                      
+
                       const normalizedTimestamp = data.timestamp - (firstChunkTimestamp.current || 0);
-                      
+
                       synchronizedAudioQueue.current.push({
                         buffer: bytes,
                         timestamp: normalizedTimestamp,
                         text: data.text
                       });
-                      
+
                       if (!audioQueueProcessing.current && synchronizedAudioQueue.current.length === 1) {
                         setTimeout(processAudioQueue, Math.max(0, normalizedTimestamp));
                       }
@@ -464,20 +471,20 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                       for (let i = 0; i < audioData.length; i++) {
                         bytes[i] = audioData.charCodeAt(i);
                       }
-                      
+
                       console.log('🎵 Processing final audio, buffer size:', bytes.length);
-                      
+
                       // For final audio, play immediately without timestamp synchronization
                       const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
                       const audioUrl = URL.createObjectURL(audioBlob);
                       const audio = new Audio(audioUrl);
-                      
+
                       audio.onplay = () => {
                         setIsPlaying(true);
                         setIsGeneratingAudio(false);
                         console.log('🔊 Final audio started playing');
                       };
-                      
+
                       audio.onended = () => {
                         console.log('✅ [FINAL AUDIO] Final audio finished playing');
                         URL.revokeObjectURL(audioUrl);
@@ -486,33 +493,33 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                         if (currentAudioUrlRef.current === audioUrl) {
                           currentAudioUrlRef.current = null;
                         }
-                        
+
                         // ENHANCED TIMING: Apply same timing logic as synchronized audio chunks for consistency
                         if (allowAudioPlaybackRef.current && isLiveConversationActiveRef.current) {
                           console.log('🎤 [FINAL AUDIO] Preparing to restart live conversation after final audio');
-                          
+
                           // Use same enhanced timing as other audio completion paths
                           setTimeout(() => {
                             if (!liveConversationTimeoutRef.current &&
-                                isLiveConversationActiveRef.current &&
-                                !audioQueueProcessing.current &&
-                                !isPlaying &&
-                                !isGeneratingAudio) {
+                              isLiveConversationActiveRef.current &&
+                              !audioQueueProcessing.current &&
+                              !isPlaying &&
+                              !isGeneratingAudio) {
                               console.log('🎤 [FINAL AUDIO] All conditions met, restarting live recording after final audio');
-                              
+
                               liveConversationTimeoutRef.current = setTimeout(() => {
                                 const isConversationStillActive = isLiveConversationActiveRef.current;
                                 const isNotCurrentlyProcessing = !audioQueueProcessing.current;
                                 const isNotCurrentlyPlaying = !isPlaying;
                                 const isNotGenerating = !isGeneratingAudio;
-                                
+
                                 console.log('🎤 [FINAL AUDIO VALIDATION] State check after final audio:', {
-                                  isConversationStillActive, 
+                                  isConversationStillActive,
                                   isNotCurrentlyProcessing,
                                   isNotCurrentlyPlaying,
                                   isNotGenerating
                                 });
-                                
+
                                 if (isConversationStillActive && isNotCurrentlyProcessing && isNotCurrentlyPlaying && isNotGenerating) {
                                   console.log('🎤 [FINAL AUDIO] Starting new recording cycle after final audio');
                                   liveConversationTimeoutRef.current = null;
@@ -526,7 +533,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                           }, 500); // Same 500ms delay as synchronized audio
                         }
                       };
-                      
+
                       audio.onerror = (error) => {
                         console.error('❌ [FINAL AUDIO ERROR] Final audio error:', error);
                         URL.revokeObjectURL(audioUrl);
@@ -535,32 +542,32 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                         if (currentAudioUrlRef.current === audioUrl) {
                           currentAudioUrlRef.current = null;
                         }
-                        
+
                         // ENHANCED ERROR RECOVERY: Apply same error recovery timing as synchronized audio
                         if (allowAudioPlaybackRef.current && isLiveConversationActiveRef.current) {
                           console.log('🎤 [FINAL AUDIO ERROR] Preparing error recovery after final audio failure');
-                          
+
                           setTimeout(() => {
                             if (!liveConversationTimeoutRef.current &&
-                                isLiveConversationActiveRef.current &&
-                                !audioQueueProcessing.current &&
-                                !isPlaying &&
-                                !isGeneratingAudio) {
+                              isLiveConversationActiveRef.current &&
+                              !audioQueueProcessing.current &&
+                              !isPlaying &&
+                              !isGeneratingAudio) {
                               console.log('🎤 [FINAL AUDIO ERROR] Starting recovery after final audio error');
-                              
+
                               liveConversationTimeoutRef.current = setTimeout(() => {
                                 const isConversationStillActive = isLiveConversationActiveRef.current;
                                 const isNotCurrentlyProcessing = !audioQueueProcessing.current;
                                 const isNotCurrentlyPlaying = !isPlaying;
                                 const isNotGenerating = !isGeneratingAudio;
-                                
+
                                 console.log('🎤 [FINAL AUDIO ERROR VALIDATION] State check after final audio error:', {
-                                  isConversationStillActive, 
+                                  isConversationStillActive,
                                   isNotCurrentlyProcessing,
                                   isNotCurrentlyPlaying,
                                   isNotGenerating
                                 });
-                                
+
                                 if (isConversationStillActive && isNotCurrentlyProcessing && isNotCurrentlyPlaying && isNotGenerating) {
                                   console.log('🎤 [FINAL AUDIO ERROR] Starting new recording cycle after final audio error');
                                   liveConversationTimeoutRef.current = null;
@@ -574,7 +581,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                           }, 500); // Same 500ms delay as synchronized audio error recovery
                         }
                       };
-                      
+
                       // Stop any currently playing audio
                       if (currentAudio) {
                         currentAudio.pause();
@@ -582,10 +589,10 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                           URL.revokeObjectURL(currentAudioUrlRef.current);
                         }
                       }
-                      
+
                       setCurrentAudio(audio);
                       currentAudioUrlRef.current = audioUrl;
-                      
+
                       // Play the final audio
                       audio.play().catch(error => {
                         console.error('⚠️ Final audio play failed:', error);
@@ -596,7 +603,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                           currentAudioUrlRef.current = null;
                         }
                       });
-                      
+
                     } catch (error) {
                       console.error('Error processing final audio:', error);
                     }
@@ -631,11 +638,11 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           variant: "destructive",
         });
       }
-      
+
       setIsAIResponding(false);
       setStreamingMessage('');
       setIsGeneratingAudio(false);
-      
+
       // Clean up audio queue and current audio
       synchronizedAudioQueue.current = [];
       if (currentAudio) {
@@ -643,7 +650,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         setCurrentAudio(null);
         setIsPlaying(false);
       }
-      
+
       // Clean up current audio URL in error case
       if (currentAudioUrlRef.current) {
         URL.revokeObjectURL(currentAudioUrlRef.current);
@@ -657,9 +664,9 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
   const sendStreamingMessage = async (messageText: string) => {
     setIsAIResponding(true);
     setStreamingMessage("");
-    
+
     let isVoiceRequest = messageText.includes('Hangos magyarázat kérése');
-    
+
     if (isVoiceRequest && (isGeneratingAudio || isPlaying)) {
       toast({
         title: "Hangos felolvasás már folyamatban",
@@ -669,7 +676,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
       setIsAIResponding(false);
       return;
     }
-    
+
     if (currentAudio) {
       currentAudio.pause();
       setCurrentAudio(null);
@@ -717,7 +724,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              
+
               switch (data.type) {
                 case 'user_message':
                   queryClient.invalidateQueries({ queryKey: ['/api/chat/messages'] });
@@ -753,11 +760,11 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           variant: "destructive",
         });
       }
-      
+
       setIsAIResponding(false);
       setStreamingMessage('');
       setIsGeneratingAudio(false);
-      
+
       // Clean up current audio if playing
       if (currentAudio) {
         currentAudio.pause();
@@ -771,9 +778,9 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
   const formatTime = (timestamp: Date | string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('hu-HU', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString('hu-HU', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -781,21 +788,21 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
-      
+
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           setAudioChunks(prev => [...prev, event.data]);
         }
       };
-      
+
       recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         await sendVoiceMessage(audioBlob);
         setAudioChunks([]);
-        
+
         stream.getTracks().forEach(track => track.stop());
       };
-      
+
       setMediaRecorder(recorder);
       recorder.start();
       setIsRecording(true);
@@ -819,7 +826,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
   const sendVoiceMessage = async (audioBlob: Blob) => {
     setIsAIResponding(true);
-    
+
     try {
       // STEP 1: First transcribe the audio using the correct endpoint
       const formData = new FormData();
@@ -838,16 +845,16 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
       const transcriptionResult = await transcribeResponse.json();
       const transcribedText = transcriptionResult.text;
-      
+
       if (!transcribedText || transcribedText.trim().length === 0) {
         throw new Error('No speech detected in audio');
       }
 
       console.log('🎤 Transcription successful:', transcribedText);
-      
+
       // STEP 2: Send the transcribed text as a regular streaming message
       await sendStreamingMessage(transcribedText);
-      
+
       toast({
         title: "Hangüzenet feldolgozva",
         description: `Felismert szöveg: "${transcribedText}"`,
@@ -866,14 +873,14 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
   const handleSendMessage = () => {
     if (!message.trim() || isAIResponding) return;
-    
+
     // Trigger auto-scroll for new message submission
     setTimeout(() => {
       if (isNearBottom()) {
         scrollToBottom();
       }
     }, 100);
-    
+
     sendStreamingMessage(message);
     setMessage("");
   };
@@ -887,7 +894,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
   const toggleAudioPlayback = () => {
     if (!currentAudio) return;
-    
+
     if (isPlaying) {
       currentAudio.pause();
       setIsPlaying(false);
@@ -907,16 +914,16 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         timestamp: Date.now(),
         conversationActive: isLiveConversationActiveRef.current
       });
-      
+
       if (audioBlob.size === 0) {
         console.error('🎤 [LIVE ERROR] Empty audio blob detected in live conversation!');
         throw new Error('Empty audio blob - recording may have failed');
       }
-      
+
       if (audioBlob.size < 500) { // Very small threshold for live conversation
         console.warn('🎤 [LIVE WARNING] Suspiciously small audio blob:', audioBlob.size, 'bytes');
       }
-      
+
       const formData = new FormData();
       formData.append('audio', audioBlob, 'live_voice.webm');
 
@@ -940,7 +947,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
       const result = await response.json();
       const transcribedText = result.text || '';
-      
+
       console.log('🎤 [LIVE TRANSCRIPTION RESULT] Detailed result:', {
         originalText: transcribedText,
         textLength: transcribedText.length,
@@ -948,7 +955,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         blobSize: audioBlob.size,
         wordsDetected: transcribedText.split(' ').length
       });
-      
+
       return transcribedText;
     } catch (error) {
       console.error('🎤 [LIVE TRANSCRIPTION ERROR] Detailed error:', {
@@ -965,14 +972,14 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
   const generateWelcomeAudio = async (text: string, onFinished?: () => void) => {
     try {
       console.log('🔊 Welcome message:', text);
-      
+
       // Show visual toast AND play welcome audio
       toast({
         title: "🎤 Beszélj bátran!",
         description: text,
         duration: 3000,
       });
-      
+
       // Generate and play welcome audio using direct TTS
       try {
         const response = await fetch('/api/chat/tts-direct', {
@@ -981,26 +988,26 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           credentials: 'include',
           body: JSON.stringify({ text }),
         });
-        
+
         if (response.ok) {
           const audioBuffer = await response.arrayBuffer();
           const audioBlob = new Blob([audioBuffer], { type: 'audio/mp3' });
           const audioUrl = URL.createObjectURL(audioBlob);
-          
+
           const audio = new Audio(audioUrl);
           audio.volume = 0.8;
-          
+
           // CRITICAL FIX: Wait for audio to finish before starting microphone
           audio.onended = () => {
             URL.revokeObjectURL(audioUrl);
             console.log('🔊 Welcome audio finished, now starting microphone...');
-            
+
             // Start microphone only AFTER welcome audio finishes
             if (onFinished) {
               onFinished();
             }
           };
-          
+
           // Handle autoplay blocked case
           audio.onerror = () => {
             console.log('🔊 Welcome audio error, starting microphone anyway');
@@ -1009,7 +1016,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               onFinished();
             }
           };
-          
+
           try {
             await audio.play();
           } catch (err) {
@@ -1031,7 +1038,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           onFinished();
         }
       }
-      
+
     } catch (error) {
       console.error('Welcome message error:', error);
       // Always call the callback even on error
@@ -1046,11 +1053,11 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
     console.log(`🔄 [STATE] Syncing live conversation state to ${active} - Reason: ${reason}`);
     setIsLiveConversationActive(active);
     isLiveConversationActiveRef.current = active;
-    
+
     if (active) {
       recordingCycleCountRef.current = 0;
     }
-    
+
     console.log(`🔄 [STATE] State synchronized: isLiveConversationActive=${active}, ref=${isLiveConversationActiveRef.current}`);
   };
 
@@ -1063,15 +1070,15 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
     }
 
     console.log('🔄 [STATE] Starting live conversation with enhanced state management');
-    
+
     // Enable audio playback deterministically
     allowAudioPlaybackRef.current = true;
-    
+
     // Clear any stale queue/state before starting
     synchronizedAudioQueue.current = [];
     firstChunkTimestamp.current = null; // Reset timestamp baseline
     recordingCycleCountRef.current = 0;
-    
+
     // Clear any existing timeouts to prevent conflicts
     if (liveConversationTimeoutRef.current) {
       clearTimeout(liveConversationTimeoutRef.current);
@@ -1086,24 +1093,24 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
       title: "Élő beszélgetés elindítva",
       description: "Várj, amíg befejezem az üdvözlést...",
     });
-    
+
     try {
       // FIXED: Wait for welcome audio to finish before starting microphone
       console.log('🔊 Starting welcome audio...');
-      
+
       const startMicrophoneAfterWelcome = () => {
         console.log('🎤 Welcome audio completed, now starting microphone recording cycle...');
-        
+
         // Double-check state is still active before starting microphone
         if (!isLiveConversationActiveRef.current) {
           console.log('🎤 [WARNING] Live conversation was stopped during welcome audio, aborting microphone start');
           return;
         }
-        
+
         setIsWaitingForUserSpeech(true);
         lastRecordingStartTime.current = Date.now();
         startLiveRecordingCycle(true);
-        
+
         // Update toast to show that user can now speak
         toast({
           title: "🎤 Most már beszélhetsz!",
@@ -1111,15 +1118,15 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           duration: 2000,
         });
       };
-      
+
       // Play welcome audio and wait for it to finish
       await generateWelcomeAudio("Szia! Élő beszélgetés aktív. Várd meg amíg befejezem, aztán beszélj!", startMicrophoneAfterWelcome);
-      
+
     } catch (error) {
       console.error('🔄 [ERROR] Error starting live conversation:', error);
       syncLiveConversationState(false, "Error during startup");
       setIsWaitingForUserSpeech(false);
-      
+
       toast({
         title: "Hiba",
         description: "Nem sikerült elindítani az élő beszélgetést. Próbáld újra!",
@@ -1131,18 +1138,18 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
   // Stop live conversation mode - ENHANCED
   const stopLiveConversation = () => {
     console.log('🔄 [STATE] Stopping live conversation with enhanced cleanup');
-    
+
     // ENHANCED: Use synchronized state setter
     syncLiveConversationState(false, "User stopped or system cleanup");
     setIsWaitingForUserSpeech(false);
-    
+
     // Disable audio playback to prevent queued audio from playing
     allowAudioPlaybackRef.current = false;
-    
+
     // Clear audio queue and revoke any pending object URLs
     synchronizedAudioQueue.current = [];
     audioQueueProcessing.current = false;
-    
+
     // ENHANCED: More thorough timeout cleanup
     if (liveConversationTimeoutRef.current) {
       console.log('🔄 [CLEANUP] Clearing live conversation timeout');
@@ -1169,7 +1176,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
       setIsPlaying(false);
-      
+
       // Revoke current audio URL to prevent memory leak
       if (currentAudioUrlRef.current) {
         URL.revokeObjectURL(currentAudioUrlRef.current);
@@ -1187,7 +1194,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
     setIsAIResponding(false);
     setStreamingMessage('');
     setIsGeneratingAudio(false);
-    
+
     // Reset recording cycle counter
     recordingCycleCountRef.current = 0;
     lastRecordingStartTime.current = null;
@@ -1236,7 +1243,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           audioQueueProcessing: audioQueueProcessing.current,
           queueLength: synchronizedAudioQueue.current.length
         });
-        
+
         // ENHANCED TIMING: Schedule retry with much longer delay to ensure audio system is fully idle
         liveConversationTimeoutRef.current = setTimeout(() => {
           console.log('🎤 [TIMING FIX] Retrying recording start after audio system idle period');
@@ -1248,9 +1255,9 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
 
       console.log('🎤 Starting live recording cycle...');
       setIsWaitingForUserSpeech(true);
-      
+
       // Start recording for user input with enhanced audio processing
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -1259,12 +1266,12 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         }
       });
       console.log('🎤 Media stream acquired');
-      
+
       // ENHANCED: Use let instead of const to prevent closure issues
       let recorder: MediaRecorder | null = null;
       let recordedChunks: Blob[] = [];
       let recordingCompleted = false;
-      
+
       try {
         recorder = new MediaRecorder(stream, {
           mimeType: 'audio/webm;codecs=opus'
@@ -1274,7 +1281,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         console.warn('🎤 Opus codec not supported, falling back to default');
         recorder = new MediaRecorder(stream);
       }
-      
+
       recorder.ondataavailable = (event) => {
         console.log('🎤 [ENHANCED] Data available:', {
           size: event.data.size,
@@ -1283,13 +1290,13 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           recordingCompleted,
           conversationActive: isLiveConversationActiveRef.current
         });
-        
+
         if (event.data.size > 0 && !recordingCompleted) {
           recordedChunks.push(event.data);
           console.log('🎤 [ENHANCED] Chunk added, total chunks:', recordedChunks.length);
         }
       };
-      
+
       recorder.onstop = async () => {
         recordingCompleted = true;
         console.log('🎤 [ENHANCED] Recording stopped. State:', {
@@ -1298,29 +1305,29 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           conversationActive: isLiveConversationActiveRef.current,
           isActive: isActive
         });
-        
+
         setIsWaitingForUserSpeech(false);
         setIsRecording(false);
         setMediaRecorder(null);
-        
+
         // Clean up stream immediately
         stream.getTracks().forEach(track => {
           track.stop();
           console.log('🎤 Track stopped:', track.kind, track.label);
         });
-        
+
         // ENHANCED: More detailed validation with specific error logging
         const hasChunks = recordedChunks.length > 0;
         const totalSize = recordedChunks.reduce((acc, chunk) => acc + chunk.size, 0);
         const conversationStillActive = isLiveConversationActiveRef.current;
-        
+
         console.log('🎤 [VALIDATION] Checking conditions:', {
           hasChunks,
           totalSize,
           conversationStillActive,
           shouldProceed: hasChunks && totalSize > 0 && conversationStillActive
         });
-        
+
         if (!hasChunks || totalSize === 0) {
           console.error('🎤 [ERROR] No audio data captured!');
           if (conversationStillActive) {
@@ -1330,7 +1337,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           }
           return;
         }
-        
+
         if (!conversationStillActive) {
           console.log('🎤 [INFO] Conversation no longer active, stopping');
           return;
@@ -1342,7 +1349,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           type: audioBlob.type,
           chunksUsed: recordedChunks.length
         });
-        
+
         // SAFETY: Double-check blob size
         if (audioBlob.size === 0) {
           console.error('🎤 [ERROR] Created blob is empty despite having chunks!');
@@ -1353,16 +1360,16 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           }
           return;
         }
-        
+
         try {
           // Transcribe the audio
           console.log('🎤 Starting transcription with blob size:', audioBlob.size);
           const transcribedText = await transcribeAudioForLiveChat(audioBlob);
           console.log('🎤 Transcription result:', transcribedText);
-          
+
           // ENHANCED echo/noise filtering with better empty audio detection
           const lowerText = transcribedText.toLowerCase().trim();
-          const isValidTranscription = transcribedText && 
+          const isValidTranscription = transcribedText &&
             transcribedText.trim().length > 3 && // Minimum 3 characters (reduced for short questions)
             !lowerText.includes('amara.org') &&
             !lowerText.includes('köszönöm') &&
@@ -1386,20 +1393,20 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
             !lowerText.includes('thanks for watching') &&
             !lowerText.includes('bye') &&
             !lowerText.includes('see you later') &&
-            lowerText !== 'you' && 
+            lowerText !== 'you' &&
             lowerText !== 'thank' &&
             lowerText !== 'thanks' &&
             lowerText !== '';
-          
+
           if (isValidTranscription && isLiveConversationActiveRef.current) {
             console.log('🎤 [SUCCESS] Valid transcription, sending to AI:', transcribedText);
-            
+
             // ENHANCED STATE MANAGEMENT: Disable audio playback ref during AI processing to prevent interference
             allowAudioPlaybackRef.current = true; // Ensure audio playback is allowed for response
-            
+
             // Send the transcribed text to AI and get voice response with prefix for audio
             await sendSynchronizedStreamingMessage(`Hangos magyarázat kérése: ${transcribedText}`);
-            
+
             // Audio playback processing is now handled in enhanced timing within processAudioQueue
             console.log('🎤 [ENHANCED] AI response sent, audio timing management is handled by enhanced queue processing');
           } else if (isLiveConversationActiveRef.current) {
@@ -1410,7 +1417,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               isValid: isValidTranscription,
               transcriptionPreview: transcribedText.substring(0, 50)
             });
-            
+
             // ENHANCED TIMING: Longer delay for invalid transcriptions to avoid rapid retries
             liveConversationTimeoutRef.current = setTimeout(() => {
               liveConversationTimeoutRef.current = null;
@@ -1432,13 +1439,13 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           }
         }
       };
-      
+
       setMediaRecorder(recorder);
       recorder.start(1000); // Collect data every 1 second for better chunk management
       setIsRecording(true);
-      
+
       console.log('🎤 [ENHANCED] Recording started with improved chunk collection');
-      
+
       // Auto-stop recording after 8 seconds to get user input (shorter time)
       setTimeout(() => {
         if (recorder && recorder.state === 'recording') {
@@ -1446,7 +1453,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           recorder.stop();
         }
       }, 8000);
-      
+
     } catch (error) {
       console.error('🎤 [ERROR] Error starting live recording cycle:', error);
       setIsWaitingForUserSpeech(false);
@@ -1472,6 +1479,35 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         <CardContent>
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // AI Chat Disabled State
+  if (aiChatEnabled === false && user?.role !== 'admin') {
+    return (
+      <Card className="h-full flex flex-col justify-center items-center text-center p-6 bg-slate-50 dark:bg-slate-900 border-dashed">
+        <div className="rounded-full bg-slate-200 dark:bg-slate-800 p-6 mb-4">
+          <Bot className="h-12 w-12 text-slate-400" />
+        </div>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">AI Tanár Szolgáltatás Szünetel</CardTitle>
+        </CardHeader>
+        <CardContent className="max-w-md">
+          <p className="text-muted-foreground mb-6">
+            Az AI iskolai asszisztens szolgáltatás jelenleg kikapcsolt állapotban van az adminisztrátor által.
+          </p>
+          <div className="flex flex-col gap-2 text-sm text-slate-500 bg-white dark:bg-slate-800 p-4 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+              <span>Karbantartás vagy beállítási szünet</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+              <span>Kérjük, próbálja meg később</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1505,13 +1541,12 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           AI funkciók
         </h4>
         <div className="space-y-2">
-          <Button 
-            variant={isLiveConversationActive ? "destructive" : "default"} 
-            className={`w-full justify-start ${
-              isLiveConversationActive 
-                ? "bg-red-500 hover:bg-red-600 text-white" 
-                : "bg-green-500 hover:bg-green-600 text-white"
-            }`}
+          <Button
+            variant={isLiveConversationActive ? "destructive" : "default"}
+            className={`w-full justify-start ${isLiveConversationActive
+              ? "bg-red-500 hover:bg-red-600 text-white"
+              : "bg-green-500 hover:bg-green-600 text-white"
+              }`}
             onClick={startLiveConversation}
             disabled={isAIResponding || isGeneratingAudio || isPlaying}
           >
@@ -1520,13 +1555,13 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
             {(isWaitingForUserSpeech || isRecording) && (
               <div className="ml-2 flex items-center gap-1">
                 <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce"></div>
-                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             )}
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50"
             onClick={() => {
               sendSynchronizedStreamingMessage(`Hangos magyarázat kérése erről a modulról`);
@@ -1538,13 +1573,13 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
             {(isGeneratingAudio || isPlaying) && (
               <div className="ml-2 flex items-center gap-1">
                 <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             )}
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-start border-pink-300 text-pink-700 hover:bg-pink-50"
             onClick={onQuizStart}
             disabled={isAIResponding}
@@ -1563,50 +1598,47 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               className={`flex gap-3 ${msg.senderRole === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div className={`flex gap-3 max-w-[80%] ${msg.senderRole === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  msg.senderRole === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-neutral-200 text-neutral-600'
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.senderRole === 'user'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-neutral-200 text-neutral-600'
+                  }`}>
                   {msg.senderRole === 'user' ? <User size={16} /> : <Bot size={16} />}
                 </div>
-                <div className={`rounded-lg p-3 ${
-                  msg.senderRole === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-neutral-100 text-neutral-800'
-                }`}>
+                <div className={`rounded-lg p-3 ${msg.senderRole === 'user'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-neutral-100 text-neutral-800'
+                  }`}>
                   {msg.senderRole === 'user' ? (
                     <div className="whitespace-pre-wrap break-words">{msg.message}</div>
                   ) : (
                     <div className="prose prose-sm max-w-none dark:prose-invert prose-neutral">
-                      <ReactMarkdown 
+                      <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
-                          h2: ({children}) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
-                          h3: ({children}) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
-                          p: ({children}) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
-                          ul: ({children}) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
-                          ol: ({children}) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
-                          li: ({children}) => <li className="text-neutral-800">{children}</li>,
-                          blockquote: ({children}) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
-                          code: ({children}) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
-                          pre: ({children}) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
-                          strong: ({children}) => <strong className="font-semibold text-neutral-900">{children}</strong>,
-                          em: ({children}) => <em className="italic text-neutral-700">{children}</em>,
-                          table: ({children}) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
-                          th: ({children}) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
-                          td: ({children}) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
-                          a: ({href, children}) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                          h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
+                          p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
+                          li: ({ children }) => <li className="text-neutral-800">{children}</li>,
+                          blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
+                          code: ({ children }) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
+                          pre: ({ children }) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
+                          strong: ({ children }) => <strong className="font-semibold text-neutral-900">{children}</strong>,
+                          em: ({ children }) => <em className="italic text-neutral-700">{children}</em>,
+                          table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
+                          th: ({ children }) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
+                          td: ({ children }) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
+                          a: ({ href, children }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
                         }}
                       >
                         {msg.message}
                       </ReactMarkdown>
                     </div>
                   )}
-                  <div className={`text-xs mt-1 ${
-                    msg.senderRole === 'user' ? 'text-blue-100' : 'text-neutral-500'
-                  }`}>
+                  <div className={`text-xs mt-1 ${msg.senderRole === 'user' ? 'text-blue-100' : 'text-neutral-500'
+                    }`}>
                     {formatTime(msg.timestamp || new Date())}
                   </div>
                 </div>
@@ -1625,25 +1657,25 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                   {streamingMessage ? (
                     <div>
                       <div className="prose prose-sm max-w-none dark:prose-invert prose-neutral">
-                        <ReactMarkdown 
+                        <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
-                            h2: ({children}) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
-                            h3: ({children}) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
-                            p: ({children}) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
-                            ul: ({children}) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
-                            ol: ({children}) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
-                            li: ({children}) => <li className="text-neutral-800">{children}</li>,
-                            blockquote: ({children}) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
-                            code: ({children}) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
-                            pre: ({children}) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
-                            strong: ({children}) => <strong className="font-semibold text-neutral-900">{children}</strong>,
-                            em: ({children}) => <em className="italic text-neutral-700">{children}</em>,
-                            table: ({children}) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
-                            th: ({children}) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
-                            td: ({children}) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
-                            a: ({href, children}) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                            h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
+                            p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
+                            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
+                            li: ({ children }) => <li className="text-neutral-800">{children}</li>,
+                            blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
+                            code: ({ children }) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
+                            pre: ({ children }) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
+                            strong: ({ children }) => <strong className="font-semibold text-neutral-900">{children}</strong>,
+                            em: ({ children }) => <em className="italic text-neutral-700">{children}</em>,
+                            table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
+                            th: ({ children }) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
+                            td: ({ children }) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
+                            a: ({ href, children }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
                           }}
                         >
                           {streamingMessage}
@@ -1653,8 +1685,8 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                       <div className="flex items-center gap-2 mt-2">
                         <div className="animate-pulse flex space-x-1">
                           <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                         </div>
                         <span className="text-xs text-neutral-500">AI válaszol...</span>
                         {isGeneratingAudio && (
@@ -1669,8 +1701,8 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                     <div className="flex items-center gap-2">
                       <div className="animate-pulse flex space-x-1">
                         <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
-                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       </div>
                       <span className="text-neutral-600">Válasz készítése...</span>
                     </div>
@@ -1694,7 +1726,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               disabled={isAIResponding || isRecording}
               className="flex-1"
             />
-            
+
             {/* Voice Recording Button */}
             <Button
               onClick={isRecording ? stopRecording : startRecording}
@@ -1728,12 +1760,12 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                     setCurrentAudio(null);
                     setIsPlaying(false);
                   }
-                  
+
                   if (abortController) {
                     abortController.abort();
                     setAbortController(null);
                   }
-                  
+
                   setIsAIResponding(false);
                 }}
                 variant="destructive"
@@ -1757,7 +1789,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
               )}
             </Button>
           </div>
-          
+
           {/* Recording Status */}
           {isRecording && (
             <div className="mt-2 text-sm text-red-600 flex items-center gap-2">

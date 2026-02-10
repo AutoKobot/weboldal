@@ -994,6 +994,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Chat Enable/Disable Setting
+  app.get('/api/settings/ai-chat-enabled', combinedAuth, async (req: any, res) => {
+    try {
+      const setting = await storage.getSystemSetting('ai_chat_enabled');
+      // Default to true if not set
+      const enabled = setting ? setting.value === 'true' : true;
+      res.json({ enabled });
+    } catch (error) {
+      console.error("Error fetching ai-chat-enabled setting:", error);
+      res.status(500).json({ message: "Failed to fetch setting" });
+    }
+  });
+
+  app.post('/api/admin/settings/ai-chat-enabled', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: "Value must be a boolean" });
+      }
+
+      await storage.setSystemSetting('ai_chat_enabled', String(enabled), userId);
+      console.log('AI chat enabled setting updated by admin:', userId, 'to:', enabled);
+
+      res.json({ message: "Setting updated successfully", enabled });
+    } catch (error) {
+      console.error("Error updating ai-chat-enabled setting:", error);
+      res.status(500).json({ message: "Failed to update setting" });
+    }
+  });
+
   // Iskolai admin regisztrálás
   app.post('/api/admin/create-school-admin', combinedAuth, async (req: any, res) => {
     try {
@@ -2288,6 +2325,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Message is required" });
       }
 
+      // Check if AI chat is enabled
+      const chatEnabledSetting = await storage.getSystemSetting('ai_chat_enabled');
+      const isChatEnabled = chatEnabledSetting ? chatEnabledSetting.value === 'true' : true;
+
+      // Allow admins to bypass this check
+      const user = await storage.getUser(userId);
+      if (!isChatEnabled && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Az AI chat funkció jelenleg ki van kapcsolva." });
+      }
+
       // Generate sitemap for better navigation context
       const sitemap = await generateSitemap(userId);
       console.log('Voice chat - Sitemap generated:', sitemap ? 'SUCCESS' : 'FAILED');
@@ -2376,6 +2423,19 @@ FONTOS: Használd a fenti weboldal térképet a navigációs kérések megválas
       });
 
       const isVoiceRequest = messageData.message.includes('Hangos magyarázat kérése');
+
+      // Check if AI chat is enabled
+      const chatEnabledSetting = await storage.getSystemSetting('ai_chat_enabled');
+      const isChatEnabled = chatEnabledSetting ? chatEnabledSetting.value === 'true' : true;
+
+      // Allow admins to bypass this check
+      const user = await storage.getUser(userId);
+      if (!isChatEnabled && user?.role !== 'admin') {
+        // Send error as SSE event because the connection is already established/expected to be SSE
+        // However, we haven't sent headers yet, so we can return JSON error if we do it before writeHead
+        // Logic below sends headers at line 2418. So we must do this BEFORE line 2418.
+        return res.status(403).json({ message: "Az AI chat funkció jelenleg ki van kapcsolva." });
+      }
 
       // Set up Server-Sent Events
       res.writeHead(200, {
@@ -2769,7 +2829,20 @@ Platform funkciók és navigáció:
         isSystemMessage: isSystemMessage || false,
       });
 
-      const isVoiceRequest = messageData.message.includes('Hangos magyarázat kérése');
+      const isVoiceRequest = messageData.message.includes('Hangos magyarázat kérése') || true; // Always treat as voice request for synchronized stream
+
+      // Check if AI chat is enabled
+      const chatEnabledSetting = await storage.getSystemSetting('ai_chat_enabled');
+      const isChatEnabled = chatEnabledSetting ? chatEnabledSetting.value === 'true' : true;
+
+      // Allow admins to bypass this check
+      const user = await storage.getUser(userId);
+      if (!isChatEnabled && user?.role !== 'admin') {
+        // Send error as SSE event because the connection is already established
+        // But again, we haven't sent headers yet, so return JSON error
+        return res.status(403).json({ message: "Az AI chat funkció jelenleg ki van kapcsolva." });
+      }
+
       console.log('🔍 Synchronized request - Voice:', isVoiceRequest, 'ModuleId:', messageData.relatedModuleId, 'Message:', messageData.message.substring(0, 100));
 
       // Set up Server-Sent Events with immediate header flush
