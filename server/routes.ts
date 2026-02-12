@@ -673,6 +673,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==========================================
+  // SCHOOL ADMIN ROUTES (New)
+  // ==========================================
+
+  const checkSchoolAdmin = (req: any, res: any, next: any) => {
+    // req.user should be populated by combinedAuth
+    if (req.user && (req.user.role === 'school_admin' || req.user.role === 'admin')) {
+      return next();
+    }
+    return res.status(403).json({ message: "Access denied. School Admin role required." });
+  };
+
+  app.get('/api/school-admin/students', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      if (req.user.role === 'admin') {
+        const students = await storage.getAllStudents();
+        return res.json(students);
+      }
+      const students = await storage.getStudentsBySchoolAdmin(req.user.id);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.get('/api/school-admin/teachers', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      if (req.user.role === 'admin') {
+        const teachers = await storage.getAllTeachers();
+        return res.json(teachers);
+      }
+      const teachers = await storage.getTeachersBySchoolAdmin(req.user.id);
+      res.json(teachers);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      res.status(500).json({ message: "Failed to fetch teachers" });
+    }
+  });
+
+  app.get('/api/school-admin/classes', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classes = await storage.getClassesBySchoolAdmin(req.user.id);
+      res.json(classes);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+      res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+
+  app.post('/api/school-admin/classes', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { name, description, professionId } = req.body;
+      const newClass = await storage.createClass({
+        name,
+        description,
+        professionId: professionId ? parseInt(professionId) : undefined,
+        schoolAdminId: req.user.id,
+      });
+      res.status(201).json(newClass);
+    } catch (error) {
+      console.error("Error creating class:", error);
+      res.status(500).json({ message: "Failed to create class" });
+    }
+  });
+
+  app.post('/api/school-admin/assign-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { studentId, teacherId } = req.body;
+      await storage.assignStudentToTeacher(studentId, teacherId);
+      res.json({ message: "Assigned successfully" });
+    } catch (e) { res.status(500).json({ message: "Assignment failed" }); }
+  });
+
+  app.post('/api/school-admin/remove-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { studentId } = req.body;
+      await storage.removeStudentFromTeacher(studentId);
+      res.json({ message: "Removed successfully" });
+    } catch (e) { res.status(500).json({ message: "Removal failed" }); }
+  });
+
+  app.post('/api/school-admin/classes/:id/assign-profession', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { professionId } = req.body;
+      await storage.assignProfessionToClass(classId, professionId);
+      res.json({ message: "Profession assigned" });
+    } catch (e) { res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.post('/api/school-admin/classes/:id/assign-teacher', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { teacherId } = req.body;
+      await storage.assignTeacherToClass(teacherId, classId);
+      res.json({ message: "Teacher assigned" });
+    } catch (e) { res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.get('/api/school-admin/logout', (req: any, res) => {
+    req.logout((err: any) => {
+      if (err) return res.status(500).json({ message: "Error" });
+      res.json({ message: "Logged out" });
+    });
+  });
+
+  app.post('/api/school-admin/register-teacher', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { username, password, firstName, lastName, email } = req.body;
+      const newUser = await storage.createUser({
+        username, password, firstName, lastName, email,
+        role: 'teacher',
+        schoolAdminId: req.user.id
+      });
+      res.status(201).json(newUser);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post('/api/school-admin/register-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { username, password, firstName, lastName, email } = req.body;
+      const newUser = await storage.createUser({
+        username, password, firstName, lastName, email,
+        role: 'student',
+        schoolAdminId: req.user.id
+      });
+      res.status(201).json(newUser);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
   // Update user assigned professions
   app.put('/api/users/:id/assigned-professions', combinedAuth, async (req: any, res) => {
     try {
