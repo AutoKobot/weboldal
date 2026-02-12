@@ -604,6 +604,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Profession management routes
+  app.get('/api/professions', combinedAuth, async (req: any, res) => {
+    try {
+      const professions = await storage.getProfessions();
+      res.json(professions);
+    } catch (error) {
+      console.error("Error fetching professions:", error);
+      res.status(500).json({ message: "Failed to fetch professions" });
+    }
+  });
+
+  app.post('/api/professions', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can create professions" });
+      }
+
+      const professionData = insertProfessionSchema.parse(req.body);
+      const profession = await storage.createProfession(professionData);
+      res.status(201).json(profession);
+    } catch (error) {
+      console.error("Error creating profession:", error);
+      res.status(400).json({ message: "Invalid profession data" });
+    }
+  });
+
+  app.put('/api/professions/:id', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can update professions" });
+      }
+
+      const id = parseInt(req.params.id);
+      const professionData = insertProfessionSchema.partial().parse(req.body);
+      const updatedProfession = await storage.updateProfession(id, professionData);
+      res.json(updatedProfession);
+    } catch (error) {
+      console.error("Error updating profession:", error);
+      res.status(400).json({ message: "Invalid update data" });
+    }
+  });
+
+  app.delete('/api/professions/:id', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can delete professions" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteProfession(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting profession:", error);
+      res.status(500).json({ message: "Failed to delete profession" });
+    }
+  });
+
   // Update user assigned professions
   app.put('/api/users/:id/assigned-professions', combinedAuth, async (req: any, res) => {
     try {
