@@ -924,6 +924,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==========================================
+  // TEACHER ROUTES
+  // ==========================================
+
+  const checkTeacher = (req: any, res: any, next: any) => {
+    if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin' || req.user.role === 'school_admin')) {
+      return next();
+    }
+    return res.status(403).json({ message: "Access denied. Teacher role required." });
+  };
+
+  app.get('/api/teacher/classes', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classes = await storage.getClassesByTeacher(req.user.id);
+      res.json(classes);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+
+  app.get('/api/teacher/students', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const students = await storage.getStudentsByTeacher(req.user.id);
+      res.json(students);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.get('/api/teacher/classes/:id/grades', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { startDate, endDate } = req.query;
+
+      // Ensure class exists
+      const classData = await storage.getClassById(classId);
+      if (!classData) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      // Teacher access check (admins can see everything)
+      if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+        return res.status(403).json({ message: "You are not assigned to this class" });
+      }
+
+      // Fetch results
+      const results = await storage.getTestResultsByClass(classId, startDate as string, endDate as string);
+
+      // Calculate grade (1-5) for each result
+      const resultsWithGrades = results.map(r => {
+        let grade = 1;
+        if (r.score >= 95) grade = 5;
+        else if (r.score >= 80) grade = 4;
+        else if (r.score >= 70) grade = 3;
+        else if (r.score >= 60) grade = 2;
+
+        return {
+          ...r,
+          grade
+        };
+      });
+
+      res.json(resultsWithGrades);
+    } catch (error) {
+      console.error("Error fetching class grades:", error);
+      res.status(500).json({ message: "Failed to fetch grades" });
+    }
+  });
+
   // Public API endpoints (for authenticated users with profession-based access control)
   app.get('/api/public/professions', combinedAuth, async (req: any, res) => {
     try {

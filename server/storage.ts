@@ -197,6 +197,8 @@ export interface IStorage {
   createTestResult(result: InsertTestResult): Promise<TestResult>;
   getTestResultsByUser(userId: string): Promise<TestResult[]>;
   getTestResultsByModule(moduleId: number): Promise<TestResult[]>;
+  getTestResultsByClass(classId: number, startDate?: string, endDate?: string): Promise<any[]>;
+  getClassesByTeacher(teacherId: string): Promise<Class[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1045,10 +1047,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignTeacherToClass(teacherId: string, classId: number): Promise<void> {
+    // Update class with assigned teacher
+    await db
+      .update(classes)
+      .set({ assignedTeacherId: teacherId, updatedAt: new Date() })
+      .where(eq(classes.id, classId));
+
+    // Update students in that class to have this teacher assigned
     await db
       .update(users)
       .set({ assignedTeacherId: teacherId, updatedAt: new Date() })
-      .where(eq(users.id, teacherId));
+      .where(eq(users.classId, classId));
   }
 
   async assignProfessionToClass(classId: number, professionId: number): Promise<void> {
@@ -1544,6 +1553,45 @@ export class DatabaseStorage implements IStorage {
       .from(testResults)
       .where(eq(testResults.moduleId, moduleId))
       .orderBy(desc(testResults.createdAt));
+  }
+
+  async getTestResultsByClass(classId: number, startDate?: string, endDate?: string): Promise<any[]> {
+    const conditions = [eq(users.classId, classId)];
+
+    if (startDate) {
+      conditions.push(sql`${testResults.createdAt} >= ${startDate}`);
+    }
+
+    if (endDate) {
+      // Add 1 day to include the end date fully if it's just a date string
+      conditions.push(sql`${testResults.createdAt} <= ${endDate}::date + interval '1 day'`);
+    }
+
+    return await db
+      .select({
+        id: testResults.id,
+        score: testResults.score,
+        maxScore: testResults.maxScore,
+        passed: testResults.passed,
+        createdAt: testResults.createdAt,
+        studentId: users.id,
+        studentName: sql<string>`concat(${users.lastName}, ' ', ${users.firstName})`,
+        moduleTitle: modules.title,
+        moduleId: modules.id
+      })
+      .from(testResults)
+      .innerJoin(users, eq(testResults.userId, users.id))
+      .innerJoin(modules, eq(testResults.moduleId, modules.id))
+      .where(and(...conditions))
+      .orderBy(desc(testResults.createdAt));
+  }
+
+  async getClassesByTeacher(teacherId: string): Promise<Class[]> {
+    return await db
+      .select()
+      .from(classes)
+      .where(eq(classes.assignedTeacherId, teacherId))
+      .orderBy(classes.name);
   }
 }
 

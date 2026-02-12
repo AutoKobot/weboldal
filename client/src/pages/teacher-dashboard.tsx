@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,9 @@ import {
   CheckCircle,
   ArrowLeft,
   XCircle,
-  FileText
+  FileText,
+  Calendar,
+  BarChart3
 } from "lucide-react";
 
 interface TestResult {
@@ -45,6 +48,7 @@ interface TestResult {
   maxScore: number;
   passed: boolean;
   createdAt: string;
+  grade?: number;
 }
 
 interface Student {
@@ -72,9 +76,26 @@ interface Profession {
   description: string;
 }
 
+interface ClassData {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface GradeResult extends TestResult {
+  studentName: string;
+  moduleTitle: string;
+  grade: number;
+}
+
 export default function TeacherDashboard() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("students");
+
+  // Class Stats State
+  const [selectedClassId, setSelectedClassId] = useState<string>("all");
+  const [timeFilter, setTimeFilter] = useState("week"); // week, month, all
 
   // Fetch students
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
@@ -89,6 +110,31 @@ export default function TeacherDashboard() {
   // Fetch professions
   const { data: professions = [], isLoading: professionsLoading } = useQuery({
     queryKey: ["/api/public/professions"],
+  });
+
+  // Fetch teacher classes
+  const { data: teacherClasses = [], isLoading: classesLoading } = useQuery<ClassData[]>({
+    queryKey: ["/api/teacher/classes"],
+  });
+
+  // Fetch class grades for statistics
+  const now = new Date();
+  let startDateStr = "";
+  if (timeFilter === "week") {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    startDateStr = d.toISOString();
+  } else if (timeFilter === "month") {
+    const d = new Date(); d.setMonth(d.getMonth() - 1);
+    startDateStr = d.toISOString();
+  }
+
+  const gradesQueryKey = selectedClassId && selectedClassId !== "all"
+    ? `/api/teacher/classes/${selectedClassId}/grades?startDate=${startDateStr}`
+    : null;
+
+  const { data: classGrades = [], isLoading: gradesLoading } = useQuery<GradeResult[]>({
+    queryKey: [gradesQueryKey],
+    enabled: !!gradesQueryKey
   });
 
   const filteredStudents = students.filter((student: Student) => {
@@ -115,13 +161,34 @@ export default function TeacherDashboard() {
     return module?.title || `Modul ${moduleId}`;
   };
 
+  const getGrade = (score: number) => {
+    if (score >= 95) return 5;
+    if (score >= 80) return 4;
+    if (score >= 70) return 3;
+    if (score >= 60) return 2;
+    return 1;
+  };
+
+  const getGradeColor = (grade: number) => {
+    if (grade === 5) return "text-green-700 font-bold";
+    if (grade === 4) return "text-green-600 font-bold";
+    if (grade === 3) return "text-yellow-600 font-bold";
+    if (grade === 2) return "text-orange-500 font-bold";
+    return "text-red-600 font-bold";
+  };
+
   const totalStudents = students.length;
   const activeStudents = students.filter((s: Student) => s.completedModules?.length > 0).length;
   const averageProgress = students.length > 0
     ? Math.round(students.reduce((sum: number, s: Student) => sum + getStudentProgress(s), 0) / students.length)
     : 0;
 
-  if (studentsLoading || modulesLoading || professionsLoading) {
+  // Calculate Average Grade from fetched stats
+  const averageClassGrade = classGrades.length > 0
+    ? (classGrades.reduce((sum, g) => sum + g.grade, 0) / classGrades.length).toFixed(2)
+    : "N/A";
+
+  if (studentsLoading || modulesLoading || professionsLoading || classesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -161,7 +228,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Global Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
@@ -206,192 +273,315 @@ export default function TeacherDashboard() {
           </Card>
         </div>
 
-        {/* Search and Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Keresés név vagy felhasználónév alapján..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="students" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="students" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Tanulók listája
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Osztály Statisztika
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Students List */}
-        <div className="grid gap-6">
-          {filteredStudents.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchTerm ? "Nincs találat" : "Nincsenek tanulók"}
-                </h3>
-                <p className="text-gray-500">
-                  {searchTerm
-                    ? "Próbáljon meg más keresési feltételekkel."
-                    : "Még nincsenek regisztrált tanulók a rendszerben."
-                  }
-                </p>
+          <TabsContent value="students">
+            {/* Search and Filters */}
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Keresés név vagy felhasználónév alapján..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            filteredStudents.map((student: Student) => {
-              const progress = getStudentProgress(student);
-              const completedCount = student.completedModules?.length || 0;
-              const recentModules = student.completedModules?.slice(-3) || [];
 
-              return (
-                <Card key={student.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4 flex-1">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.firstName} ${student.lastName}`} />
-                          <AvatarFallback>
-                            {(student.firstName?.[0] || '') + (student.lastName?.[0] || student.username?.[0] || 'T')}
-                          </AvatarFallback>
-                        </Avatar>
+            {/* Students List */}
+            <div className="grid gap-6">
+              {filteredStudents.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {searchTerm ? "Nincs találat" : "Nincsenek tanulók"}
+                    </h3>
+                    <p className="text-gray-500">
+                      {searchTerm
+                        ? "Próbáljon meg más keresési feltételekkel."
+                        : "Még nincsenek regisztrált tanulók a rendszerben."
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredStudents.map((student: Student) => {
+                  const progress = getStudentProgress(student);
+                  const completedCount = student.completedModules?.length || 0;
+                  const recentModules = student.completedModules?.slice(-3) || [];
 
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {student.firstName && student.lastName
-                                  ? `${student.firstName} ${student.lastName}`
-                                  : student.username
-                                }
-                              </h3>
-                              <p className="text-sm text-gray-500">@{student.username}</p>
-                            </div>
-                            <div className="text-right">
-                              <Badge variant={progress > 50 ? "default" : "secondary"}>
-                                {progress}% kész
-                              </Badge>
-                            </div>
-                          </div>
+                  return (
+                    <Card key={student.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-4 flex-1">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.firstName} ${student.lastName}`} />
+                              <AvatarFallback>
+                                {(student.firstName?.[0] || '') + (student.lastName?.[0] || student.username?.[0] || 'T')}
+                              </AvatarFallback>
+                            </Avatar>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <p className="text-sm font-medium text-gray-600 mb-1">Szakma</p>
-                              <p className="text-sm text-gray-900">
-                                {getProfessionName(student.selectedProfessionId)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-600 mb-1">Teljesített modulok</p>
-                              <p className="text-sm text-gray-900">
-                                {completedCount} / {modules.length}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-sm font-medium text-gray-600">Haladás</p>
-                              <p className="text-sm text-gray-500">{progress}%</p>
-                            </div>
-                            <Progress value={progress} className="h-2" />
-                          </div>
-
-                          <div className="flex justify-between items-center mt-4">
-                            <div className="flex flex-wrap gap-2">
-                              {recentModules.length > 0 && recentModules.map((moduleId: number) => (
-                                <Badge key={moduleId} variant="outline" className="text-xs">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  {getModuleName(moduleId)}
-                                </Badge>
-                              ))}
-                            </div>
-
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  Részletek
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-900">
                                     {student.firstName && student.lastName
                                       ? `${student.firstName} ${student.lastName}`
                                       : student.username
-                                    } tanulmányi eredményei
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    Részletes áttekintés a modulok teljesítéséről és a teszt eredményekről.
-                                  </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="mt-4">
-                                  <h4 className="text-sm font-medium mb-3">Teszt eredmények</h4>
-                                  {student.testResults && student.testResults.length > 0 ? (
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Modul</TableHead>
-                                          <TableHead>Dátum</TableHead>
-                                          <TableHead>Pontszám</TableHead>
-                                          <TableHead>Eredmény</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {student.testResults.map((result) => (
-                                          <TableRow key={result.id}>
-                                            <TableCell className="font-medium">
-                                              {getModuleName(result.moduleId)}
-                                            </TableCell>
-                                            <TableCell>
-                                              {new Date(result.createdAt).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell>
-                                              <span className={
-                                                result.score >= 80 ? "text-green-600 font-bold" :
-                                                  result.score >= 60 ? "text-yellow-600 font-bold" :
-                                                    "text-red-600 font-bold"
-                                              }>
-                                                {result.score}%
-                                              </span>
-                                            </TableCell>
-                                            <TableCell>
-                                              {result.passed ? (
-                                                <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                                                  Sikeres
-                                                </Badge>
-                                              ) : (
-                                                <Badge variant="destructive">
-                                                  Sikertelen
-                                                </Badge>
-                                              )}
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  ) : (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                      Nincsenek elérhető teszt eredmények.
-                                    </p>
-                                  )}
+                                    }
+                                  </h3>
+                                  <p className="text-sm text-gray-500">@{student.username}</p>
                                 </div>
-                              </DialogContent>
-                            </Dialog>
+                                <div className="text-right">
+                                  <Badge variant={progress > 50 ? "default" : "secondary"}>
+                                    {progress}% kész
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-600 mb-1">Szakma</p>
+                                  <p className="text-sm text-gray-900">
+                                    {getProfessionName(student.selectedProfessionId)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-600 mb-1">Teljesített modulok</p>
+                                  <p className="text-sm text-gray-900">
+                                    {completedCount} / {modules.length}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-sm font-medium text-gray-600">Haladás</p>
+                                  <p className="text-sm text-gray-500">{progress}%</p>
+                                </div>
+                                <Progress value={progress} className="h-2" />
+                              </div>
+
+                              <div className="flex justify-between items-center mt-4">
+                                <div className="flex flex-wrap gap-2">
+                                  {recentModules.length > 0 && recentModules.map((moduleId: number) => (
+                                    <Badge key={moduleId} variant="outline" className="text-xs">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      {getModuleName(moduleId)}
+                                    </Badge>
+                                  ))}
+                                </div>
+
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Részletek
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        {student.firstName && student.lastName
+                                          ? `${student.firstName} ${student.lastName}`
+                                          : student.username
+                                        } tanulmányi eredményei
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Részletes áttekintés a modulok teljesítéséről és a teszt eredményekről.
+                                      </DialogDescription>
+                                    </DialogHeader>
+
+                                    <div className="mt-4">
+                                      <h4 className="text-sm font-medium mb-3">Teszt eredmények</h4>
+                                      {student.testResults && student.testResults.length > 0 ? (
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Modul</TableHead>
+                                              <TableHead>Dátum</TableHead>
+                                              <TableHead>Pontszám</TableHead>
+                                              <TableHead>Osztályzat</TableHead>
+                                              <TableHead>Eredmény</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {student.testResults.map((result) => {
+                                              const grade = getGrade(result.score);
+                                              return (
+                                                <TableRow key={result.id}>
+                                                  <TableCell className="font-medium">
+                                                    {getModuleName(result.moduleId)}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {new Date(result.createdAt).toLocaleDateString()}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {result.score}%
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    <span className={getGradeColor(grade)}>
+                                                      {grade}
+                                                    </span>
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {result.passed ? (
+                                                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                                                        Sikeres
+                                                      </Badge>
+                                                    ) : (
+                                                      <Badge variant="destructive">
+                                                        Sikertelen
+                                                      </Badge>
+                                                    )}
+                                                  </TableCell>
+                                                </TableRow>
+                                              );
+                                            })}
+                                          </TableBody>
+                                        </Table>
+                                      ) : (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                          Nincsenek elérhető teszt eredmények.
+                                        </p>
+                                      )}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </div>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="stats">
+            <Card>
+              <CardHeader>
+                <CardTitle>Osztály Statisztikák</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium mb-2 block">Válasszon osztályt</label>
+                    <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válasszon osztályt..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teacherClasses.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id.toString()}>
+                            {cls.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex-1">
+                    <label className="text-sm font-medium mb-2 block">Időszak</label>
+                    <Select value={timeFilter} onValueChange={setTimeFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válasszon időszakot..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="week">Elmúlt 7 nap (Heti)</SelectItem>
+                        <SelectItem value="month">Elmúlt 30 nap (Havi)</SelectItem>
+                        <SelectItem value="all">Mindenkori</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {selectedClassId && selectedClassId !== "all" ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Átlagos Osztályzat</p>
+                          <p className="text-2xl font-bold text-blue-700">{averageClassGrade}</p>
+                        </div>
+                        <Award className="h-8 w-8 text-blue-500" />
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Kitöltött tesztek száma</p>
+                          <p className="text-2xl font-bold text-green-700">{classGrades.length}</p>
+                        </div>
+                        <FileText className="h-8 w-8 text-green-500" />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
+
+                    <h4 className="text-md font-semibold mb-4 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Részletes Eredmények
+                    </h4>
+
+                    {classGrades.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tanuló</TableHead>
+                            <TableHead>Modul</TableHead>
+                            <TableHead>Dátum</TableHead>
+                            <TableHead>Pontszám</TableHead>
+                            <TableHead>Jegy</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {classGrades.map((grade) => (
+                            <TableRow key={grade.id}>
+                              <TableCell className="font-medium">{grade.studentName}</TableCell>
+                              <TableCell>{grade.moduleTitle}</TableCell>
+                              <TableCell>{new Date(grade.createdAt).toLocaleDateString()}</TableCell>
+                              <TableCell>{grade.score}%</TableCell>
+                              <TableCell>
+                                <Badge variant={grade.grade >= 2 ? "default" : "destructive"} className={grade.grade >= 4 ? "bg-green-600" : ""}>
+                                  {grade.grade}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-center text-gray-500 py-8">
+                        Ebben az időszakban nem születtek eredmények.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-gray-500 border-2 border-dashed rounded-lg">
+                    <Users className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p>Kérem válasszon osztályt a statisztikák megtekintéséhez.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
