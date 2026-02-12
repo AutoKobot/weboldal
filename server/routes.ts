@@ -607,8 +607,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Profession management routes
   app.get('/api/professions', combinedAuth, async (req: any, res) => {
+    console.log("➡️ GET /api/professions called by user:", req.user?.id, "Role:", req.user?.role);
     try {
       const professions = await storage.getProfessions();
+      console.log(`✅ sending ${professions.length} professions to client`);
       res.json(professions);
     } catch (error) {
       console.error("Error fetching professions:", error);
