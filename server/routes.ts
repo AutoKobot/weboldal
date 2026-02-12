@@ -773,6 +773,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (e) { res.status(500).json({ message: "Failed" }); }
   });
 
+  app.post('/api/school-admin/classes/:id/add-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { studentId } = req.body;
+      await storage.addStudentToClass(studentId, classId);
+      res.json({ message: "Student added to class" });
+    } catch (e) {
+      console.error("Add student error:", e);
+      res.status(500).json({ message: "Failed" });
+    }
+  });
+
+  app.post('/api/school-admin/classes/:id/remove-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { studentId } = req.body;
+      await storage.removeStudentFromClass(studentId);
+      res.json({ message: "Student removed from class" });
+    } catch (e) {
+      console.error("Remove student error:", e);
+      res.status(500).json({ message: "Failed" });
+    }
+  });
+
   app.get('/api/school-admin/logout', (req: any, res) => {
     req.logout((err: any) => {
       if (err) return res.status(500).json({ message: "Error" });
