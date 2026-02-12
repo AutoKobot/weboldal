@@ -85,6 +85,7 @@ export const modules = pgTable("modules", {
   youtubeUrl: varchar("youtube_url"), // YouTube videó URL
   podcastUrl: varchar("podcast_url"), // Külső podcast URL
   isPublished: boolean("is_published").default(false),
+  generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -392,6 +393,7 @@ export const insertModuleSchema = createInsertSchema(modules).omit({
   youtubeUrl: z.string().optional().nullable(),
   podcastUrl: z.string().optional().nullable(),
   keyConceptsData: keyConceptsDataSchema.optional().nullable(),
+  generatedQuizzes: z.array(z.any()).optional().nullable(),
 });
 
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({

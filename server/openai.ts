@@ -108,7 +108,7 @@ let cachedSystemMessage: string | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Get OpenAI client with API key from database
+// Get OpenAI client with API key from environment or database
 async function getOpenAIClient(): Promise<OpenAI> {
   const now = Date.now();
 
@@ -117,11 +117,11 @@ async function getOpenAIClient(): Promise<OpenAI> {
     return cachedOpenAIClient;
   }
 
-  const apiKeySetting = await storage.getSystemSetting('openai_api_key');
-  const currentApiKey = apiKeySetting?.value || process.env.OPENAI_API_KEY;
+  // Environment variable takes priority over database
+  const currentApiKey = process.env.OPENAI_API_KEY || (await storage.getSystemSetting('openai_api_key'))?.value;
 
   if (!currentApiKey) {
-    throw new Error('OpenAI API key not configured. Please set it in admin settings.');
+    throw new Error('OpenAI API key not configured. Please set it in admin settings or .env file.');
   }
 
   // Create new client and cache it
@@ -132,7 +132,7 @@ async function getOpenAIClient(): Promise<OpenAI> {
   return cachedOpenAIClient;
 }
 
-// Get Gemini client with API key from database
+// Get Gemini client with API key from environment or database
 async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   const now = Date.now();
 
@@ -141,11 +141,11 @@ async function getGeminiClient(): Promise<GoogleGenerativeAI> {
     return cachedGeminiClient;
   }
 
-  const apiKeySetting = await storage.getSystemSetting('gemini_api_key');
-  const currentApiKey = apiKeySetting?.value || process.env.GEMINI_API_KEY;
+  // Environment variable takes priority over database
+  const currentApiKey = process.env.GEMINI_API_KEY || (await storage.getSystemSetting('gemini_api_key'))?.value;
 
   if (!currentApiKey) {
-    throw new Error('Gemini API key not configured. Please set it in admin settings.');
+    throw new Error('Gemini API key not configured. Please set it in admin settings or .env file.');
   }
 
   // Create new client and cache it
@@ -254,7 +254,7 @@ async function generateOpenAIChatResponse(
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-3.5-turbo",
       messages,
       max_tokens: 2000,
       temperature: 0.7,
@@ -353,7 +353,7 @@ async function generateGeminiChatResponse(
     try {
       const openai = await getOpenAIClient();
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // Upgraded to gpt-4o for better quality
+        model: "gpt-3.5-turbo", // Fallback to gpt-3.5-turbo for reliability
         messages: [{ role: "user", content: fullPrompt }],
         temperature: 0.7,
         max_tokens: 4000,
@@ -459,7 +459,7 @@ export async function generateChatResponse(
     messages.push({ role: "user", content: userMessage });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo", // Upgraded to GPT-4 Turbo for better performance
+      model: "gpt-3.5-turbo", // Upgraded to GPT-4o Mini for better performance and cost
       messages,
       max_tokens: 1500, // Increased for more comprehensive responses
       temperature: 0.7, // Better for educational explanations
@@ -483,41 +483,7 @@ export async function generateChatResponse(
   }
 }
 
-export async function generateQuizQuestions(
-  moduleContent: string,
-  numQuestions: number = 10
-): Promise<QuizQuestion[]> {
-  try {
-    const openai = await getOpenAIClient();
 
-    const prompt = `Based on the following module content, create ${numQuestions} multiple choice quiz questions to test understanding. Each question should have 4 options with only one correct answer.
-
-Module content:
-${moduleContent}
-
-Please respond with a JSON array of questions in this exact format:
-[
-  {
-    "question": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswer": 0,
-    "explanation": "Brief explanation of why this answer is correct"
-  }
-]`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    });
-
-    const result = JSON.parse(response.choices[0].message.content || "[]");
-    return Array.isArray(result) ? result : result.questions || [];
-  } catch (error) {
-    console.error("Quiz generation error:", error);
-    throw new Error("Failed to generate quiz questions");
-  }
-}
 
 export async function explainConcept(
   concept: string,
@@ -605,7 +571,7 @@ export async function generateSynchronizedStreamingResponse(
     messages.push({ role: "user", content: userMessage });
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-3.5-turbo",
       messages,
       max_tokens: 800, // Rövidebb válaszok = gyorsabb
       temperature: 0.5, // Kevesebb kreativitás = gyorsabb
@@ -765,7 +731,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
     }
 
     // Create a File object from the processed buffer
-    const audioFile = new File([processedBuffer], processedFilename, { type: mimeType });
+    const audioFile = new File([new Uint8Array(processedBuffer)], processedFilename, { type: mimeType });
 
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
@@ -779,6 +745,10 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
     console.error("OpenAI Whisper API error:", error);
     throw new Error("Failed to transcribe audio");
   }
+}
+
+export async function generateQuizQuestions(moduleContent: string, title?: string): Promise<QuizQuestion[]> {
+  return generateQuizFromModule(moduleContent);
 }
 
 export async function generateQuizFromModule(moduleContent: string): Promise<QuizQuestion[]> {
@@ -805,7 +775,7 @@ export async function generateQuizFromModule(moduleContent: string): Promise<Qui
     }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",

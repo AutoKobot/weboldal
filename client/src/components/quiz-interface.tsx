@@ -42,6 +42,10 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   const generateQuizMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('POST', `/api/modules/${moduleId}/quiz`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Ismeretlen hiba történt' }));
+        throw new Error(errorData.message || 'Nem sikerült a kvíz betöltése');
+      }
       return await response.json();
     },
     onSuccess: (data) => {
@@ -50,13 +54,13 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       setEvaluations(new Array(data.questions.length).fill(null));
       setIsQuizStarted(true);
       toast({
-        title: "Teszt generálva",
+        title: "Teszt betöltve",
         description: `${data.questions.length} kérdés készen áll!`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Hiba",
+        title: "Kvíz nem elérhető",
         description: error.message,
         variant: "destructive",
       });

@@ -3259,19 +3259,30 @@ Platform funkciók és navigáció:
         return res.status(404).json({ message: "Module not found" });
       }
 
-      const { generateQuizFromModule } = await import('./openai');
-      const moduleContent = module.content || '';
-      const questions = await generateQuizFromModule(moduleContent);
+      // Only serve pre-generated quizzes - NO on-the-fly API calls
+      if (module.generatedQuizzes && Array.isArray(module.generatedQuizzes) && module.generatedQuizzes.length > 0) {
+        console.log(`Using pre-generated quiz for module ${moduleId}. Total sets available: ${module.generatedQuizzes.length}`);
 
-      // Record API cost for quiz generation
-      const quizTokens = Math.ceil((moduleContent.length + 500) / 4); // Content + prompt tokens
-      const quizCost = quizTokens * 0.00015; // GPT-4o-mini pricing
-      await storage.recordSimpleApiCall('OpenAI', 'Quiz', quizCost);
+        // Randomly select one quiz set from the available sets
+        const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
+        const selectedQuizSet = module.generatedQuizzes[randomIndex];
 
-      res.json({ questions });
+        // Ensure the selected set is valid
+        if (selectedQuizSet && Array.isArray(selectedQuizSet) && selectedQuizSet.length > 0) {
+          console.log(`Selected quiz set index: ${randomIndex} with ${selectedQuizSet.length} questions`);
+          return res.json({ questions: selectedQuizSet });
+        }
+      }
+
+      // No pre-generated quizzes available - return error instead of making API calls
+      console.log(`No pre-generated quizzes found for module ${moduleId}. Module needs regeneration.`);
+      return res.status(404).json({
+        message: "Ehhez a modulhoz még nem készültek tesztkérdések. Kérem az adminisztrátort, hogy generálja újra a modult a 'Varázspálca' funkcióval.",
+        needsRegeneration: true
+      });
     } catch (error) {
-      console.error("Error generating quiz:", error);
-      res.status(500).json({ message: "Failed to generate quiz" });
+      console.error("Error serving quiz:", error);
+      res.status(500).json({ message: "Failed to load quiz" });
     }
   });
 

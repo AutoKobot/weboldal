@@ -1,6 +1,7 @@
 import { storage } from './storage';
 import { multiApiService } from './multiApiService';
 import { generateChatResponse } from './openai';
+import OpenAI from 'openai';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -22,6 +23,12 @@ export interface EnhancedModuleContent {
       description?: string;
     }>;
   }>;
+  generatedQuizzes?: Array<Array<{
+    question: string;
+    options: string[];
+    correctAnswer: number;
+    explanation: string;
+  }>>;
 }
 
 export class EnhancedModuleGenerator {
@@ -199,15 +206,17 @@ Válasz:`;
       console.log(`🔗 DEBUG: First bold link in detailed: ${boldLinkedDetailed.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/)?.[0]}`);
     }
 
-    // Step 3: Parallel YouTube and Mermaid processing
-    console.log('🔥 STEP 3: Parallel YouTube search and Mermaid conversion...');
-    const [youtubeSearchTerms, conciseWithSVG, detailedWithSVG] = await Promise.all([
+    // Step 3: Parallel YouTube, Mermaid and Quiz processing
+    console.log('🔥 STEP 3: Parallel YouTube search, Mermaid conversion and Quiz generation...');
+    const [youtubeSearchTerms, conciseWithSVG, detailedWithSVG, quizSets] = await Promise.all([
       this.generateYouTubeSearchTerms(title, boldLinkedDetailed, prompts.youtubePrompt, subjectName, professionName),
       this.convertMermaidToSVGImages(boldLinkedConcise),
-      this.convertMermaidToSVGImages(boldLinkedDetailed)
+      this.convertMermaidToSVGImages(boldLinkedDetailed),
+      this.generateMultipleQuizSets(title, boldLinkedDetailed)  // Fixed: Use boldLinkedDetailed
     ]);
 
     console.log('🔍 YouTube search terms generated:', youtubeSearchTerms);
+    console.log('📝 Quiz sets generated:', quizSets.length);
 
     // Step 4: Find YouTube videos (sequential due to API limits)
     console.log('🔥 STEP 4: Finding YouTube videos...');
@@ -230,7 +239,8 @@ Válasz:`;
     return {
       conciseVersion: conciseWithSVG,
       detailedVersion: detailedWithSVG,
-      keyConceptsWithVideos
+      keyConceptsWithVideos,
+      generatedQuizzes: quizSets
     };
   }
 
@@ -1781,6 +1791,51 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
   /**
    * Convert Mermaid diagrams in content to SVG images (DISABLED)
    */
+
+  /**
+   * Automatikusan generál 5 különböző tesztsort a modulhoz (50 kérdéssel összesen, 10 kérdés/szett).
+  /**
+   * Generates 5 different quiz sets (10 questions each) for a module.
+   * Makes 5 separate API calls (1 set per call) for reliability.
+   * Only called once during module creation/regeneration.
+   */
+  async generateMultipleQuizSets(title: string, content: string): Promise<Array<Array<{ question: string; options: string[]; correctAnswer: number; explanation: string; }>>> {
+    try {
+      console.log('📝 Generating 5 quiz sets of 10 questions each...');
+      const apiKey = process.env.OPENAI_API_KEY || (await storage.getSystemSetting('openai_api_key'))?.value;
+      if (!apiKey) { console.error('❌ No OpenAI API key'); return []; }
+
+      const openai = new OpenAI({ apiKey });
+      const snippet = content.substring(0, 3000);
+      const allSets: Array<Array<{ question: string; options: string[]; correctAnswer: number; explanation: string; }>> = [];
+
+      for (let i = 0; i < 5; i++) {
+        try {
+          const resp = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              { role: 'system', content: 'Te egy szakértő oktató vagy. Válaszolj KIZÁRÓLAG érvényes JSON formátumban.' },
+              { role: 'user', content: `Generálj PONTOSAN 10 feleletválasztós tesztkérdést magyar nyelven a következő tananyagból.\n\nModulcím: "${title}"\nTananyag: ${snippet}\n\nEz a(z) ${i + 1}. tesztsor. Minden kérdéshez 4 opció, 1 helyes (correctAnswer: 0-3), és magyarázat kell.\nVálasz JSON: {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"explanation":"..."}]}` }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.8,
+            max_tokens: 3000,
+          });
+          let text = (resp.choices[0]?.message?.content || '').replace(/```json\n?|```/g, '').trim();
+          const parsed = JSON.parse(text);
+          const qs = parsed.questions || (Array.isArray(parsed) ? parsed : null);
+          if (qs && Array.isArray(qs) && qs.length >= 5) {
+            allSets.push(qs);
+            console.log(`  ✅ Set ${i + 1}/5: ${qs.length} questions`);
+          } else { console.warn(`  ⚠️ Set ${i + 1}/5: invalid`); }
+        } catch (err: any) { console.error(`  ❌ Set ${i + 1}/5:`, err.message?.substring(0, 80)); }
+        if (i < 4) await new Promise(r => setTimeout(r, 1500));
+      }
+      console.log(`${allSets.length > 0 ? '✅' : '⚠️'} Generated ${allSets.length}/5 quiz sets.`);
+      return allSets;
+    } catch (error) { console.error("❌ Quiz generation failed:", error); return []; }
+  }
+
   async convertMermaidToSVGImages(content: string): Promise<string> {
     // Mermaid conversion completely disabled - return content unchanged
     console.log('Mermaid diagram conversion is disabled');
