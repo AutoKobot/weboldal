@@ -277,6 +277,9 @@ export default function SchoolAdminDashboard() {
         setTeachers(teachersData);
         setClasses(classesData);
         setProfessions(professionsData);
+
+        // Console log for debugging
+        console.log("Loaded classes:", classesData);
       } else {
         toast({
           title: "Hiba",
@@ -530,7 +533,7 @@ export default function SchoolAdminDashboard() {
       console.error("Logout error:", error);
     } finally {
       // Always navigate regardless of response status
-      navigate("/school-admin-auth");
+      window.location.href = "/";
     }
   };
 

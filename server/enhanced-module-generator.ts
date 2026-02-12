@@ -28,12 +28,12 @@ export class EnhancedModuleGenerator {
   private youtubeCache: Map<string, any[]> = new Map();
   private lastYouTubeCall: number = 0;
   private readonly YOUTUBE_RATE_LIMIT = 1000; // 1 second between calls
-  
+
   // Performance optimization settings
   private async getOptimizationSettings() {
     const setting = await storage.getSystemSetting('ai-generation-mode');
     const mode = setting?.value || 'balanced';
-    
+
     switch (mode) {
       case 'fast':
         return {
@@ -81,11 +81,11 @@ export class EnhancedModuleGenerator {
     return {
       youtubePrompt: youtubePromptSetting?.value || 'Generálj 1-2 konkrét YouTube keresési kifejezést a modul legfontosabb fogalmaihoz. Fókuszálj praktikus, oktatási tartalmakra és kerüld az ismétlődő kereséseket. Modulcím: {title}, Tartalom: {content}',
       wikipediaPrompt: wikipediaPromptSetting?.value || 'Azonosítsd a modul legfontosabb szakmai kifejezéseit és fogalmait, amelyekhez Wikipedia linkeket kell hozzáadni. Csak azokat a kifejezéseket válaszd ki, amelyek valóban fontosak a témához. Modulcím: {title}, Tartalom: {content}',
-      internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével. Használj aktuális információkat, gyakorlati példákat és strukturált felépítést. Modulcím: {title}, Eredeti tartalom: {content}',
+      internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével. Használj aktuális információkat, gyakorlati példákat és strukturált felépítést. KÖTELEZŐ: Illessz be legalább egy Mermaid diagramot (folyamatábra, pl. graph TD formátumban) a folyamatok szemléltetésére! Modulcím: {title}, Eredeti tartalom: {content}',
       conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör, lényegre törő tananyagot a következő címhez: {title}. Alapanyag: {content}. Követelmények: Maximum 300-400 szó, csak a legfontosabb információk, egyszerű nyelvezet, markdown formázás.'
     };
   }
-  
+
   async generateEnhancedModule(
     title: string,
     basicContent: string,
@@ -95,15 +95,15 @@ export class EnhancedModuleGenerator {
     professionName?: string
   ): Promise<EnhancedModuleContent> {
     const timeout = 300000; // 5 minute timeout
-    
+
     return Promise.race([
       this.performEnhancement(title, basicContent, subjectContext, customSystemMessage, subjectName, professionName),
-      new Promise<EnhancedModuleContent>((_, reject) => 
+      new Promise<EnhancedModuleContent>((_, reject) =>
         setTimeout(() => reject(new Error('Generation timeout after 5 minutes')), timeout)
       )
     ]).catch(error => {
       console.error('Enhanced module generation error:', error);
-      
+
       // Return fallback with original content
       return {
         conciseVersion: basicContent,
@@ -123,18 +123,18 @@ export class EnhancedModuleGenerator {
   ): Promise<EnhancedModuleContent> {
     // Load specialized prompts from database
     const prompts = await this.loadPrompts();
-    
+
     // SEQUENTIAL PROCESSING - Each step builds on the previous result
-    
+
     // Step 1: Generate internet-enhanced detailed content using original content
     console.log('🔥 SEQUENTIAL AI STEP 1: Generating internet-enhanced detailed content...');
     console.log('📝 Original content length:', basicContent.length);
     const internetEnhancedDetailed = await this.generateInternetEnhancedContent(title, basicContent, 'detailed', prompts.internetContentPrompt);
     console.log('✅ STEP 1 COMPLETED - Enhanced detailed content length:', internetEnhancedDetailed.length);
-    
+
     // Step 1B: Generate concise version using original content and dedicated prompt
     console.log('🔥 SEQUENTIAL AI STEP 1B: Generating concise version with dedicated prompt...');
-    
+
     // Force concise generation with strict length limits
     const strictConcisePrompt = `
 Készíts tömör, lényegre törő tananyagot maximum 250-300 szóban:
@@ -151,54 +151,54 @@ KÖVETELMÉNYEK:
 - NE ismételd meg a részletes verziót
 
 Válasz:`;
-    
+
     console.log('📝 Strict concise generation started');
     const conciseResponse = await generateChatResponse(strictConcisePrompt, 'chat');
     const internetEnhancedConcise = conciseResponse.message.trim();
     console.log('✅ STEP 1B COMPLETED - Concise content length:', internetEnhancedConcise.length);
-    
+
     // Use the full concise content without truncation
     let finalConciseContent = internetEnhancedConcise;
     console.log('📝 Using full concise content without character limits');
-    
+
     // Step 2: Add relevant web search results to the internet-enhanced content
     console.log('🔥 SEQUENTIAL AI STEP 2: Adding relevant web search results to enhanced content...');
-    
+
     // Detect professional field once and use consistently
     const detectedField = this.detectProfessionalField(title, internetEnhancedDetailed, subjectName, professionName);
     console.log(`🎯 Detected field for web search: ${detectedField}`);
-    
+
     // Step 2A: Add web search content first
     console.log('🔗 STEP 2A: Adding web search content...');
     const webEnhancedConcise = await this.addWebSearchContent(finalConciseContent, title, detectedField);
     const webEnhancedDetailed = await this.addWebSearchContent(internetEnhancedDetailed, title, detectedField);
-    
+
     console.log('✅ STEP 2A COMPLETED - Web search content integrated');
-    
+
     // Step 2B: Link bold keywords AFTER web content integration
     console.log('🔗 STEP 2B: Linking bold keywords with web sources...');
     console.log('🔍 STEP 2B DEBUG: About to process concise content for bold linking...');
     const boldLinkedConcise = await this.linkBoldKeywordsSimplified(webEnhancedConcise, title);
     console.log('🔍 STEP 2B DEBUG: About to process detailed content for bold linking...');
     const boldLinkedDetailed = await this.linkBoldKeywordsSimplified(webEnhancedDetailed, title);
-    
+
     console.log('✅ STEP 2B COMPLETED - Bold keywords linked');
     console.log('📋 Concise content after bold linking:', boldLinkedConcise.substring(0, 200) + '...');
     console.log('📋 Detailed content after bold linking:', boldLinkedDetailed.substring(0, 200) + '...');
-    
+
     // DEBUG: Check if bold links are actually present
     const conciseLinkCount = (boldLinkedConcise.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
     const detailedLinkCount = (boldLinkedDetailed.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
     console.log(`🔗 DEBUG: Concise content has ${conciseLinkCount} bold links`);
     console.log(`🔗 DEBUG: Detailed content has ${detailedLinkCount} bold links`);
-    
+
     if (conciseLinkCount > 0) {
       console.log(`🔗 DEBUG: First bold link in concise: ${boldLinkedConcise.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/)?.[0]}`);
     }
     if (detailedLinkCount > 0) {
       console.log(`🔗 DEBUG: First bold link in detailed: ${boldLinkedDetailed.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/)?.[0]}`);
     }
-    
+
     // Step 3: Parallel YouTube and Mermaid processing
     console.log('🔥 STEP 3: Parallel YouTube search and Mermaid conversion...');
     const [youtubeSearchTerms, conciseWithSVG, detailedWithSVG] = await Promise.all([
@@ -206,20 +206,20 @@ Válasz:`;
       this.convertMermaidToSVGImages(boldLinkedConcise),
       this.convertMermaidToSVGImages(boldLinkedDetailed)
     ]);
-    
+
     console.log('🔍 YouTube search terms generated:', youtubeSearchTerms);
-    
+
     // Step 4: Find YouTube videos (sequential due to API limits)
     console.log('🔥 STEP 4: Finding YouTube videos...');
     const keyConceptsWithVideos = await this.enrichWithYouTubeVideos(youtubeSearchTerms);
     console.log('✅ STEP 4 COMPLETED - YouTube videos found:', keyConceptsWithVideos.length);
-    
+
     // DEBUG: Final content check before return
     const finalConciseLinkCount = (conciseWithSVG.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
     const finalDetailedLinkCount = (detailedWithSVG.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
     console.log(`🔗 FINAL DEBUG: Concise version has ${finalConciseLinkCount} bold links`);
     console.log(`🔗 FINAL DEBUG: Detailed version has ${finalDetailedLinkCount} bold links`);
-    
+
     if (finalConciseLinkCount > 0) {
       console.log(`🔗 FINAL DEBUG: Sample link in concise: ${conciseWithSVG.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/)?.[0]}`);
     }
@@ -235,8 +235,8 @@ Válasz:`;
   }
 
   private async extractKeyConcepts(
-    title: string, 
-    content: string, 
+    title: string,
+    content: string,
     subjectContext?: string
   ): Promise<string[]> {
     const prompt = `
@@ -283,7 +283,7 @@ Maximum 8 kulcsfogalom, beleértve az alapanyagokat és technikai elemeket.
     // Load concise-specific prompt from database
     const prompts = await this.loadPrompts();
     const concisePrompt = prompts.conciseContentPrompt || `Készíts tömör, szakmai összefoglalót az alábbi tananyagból. Maximum 200 szó, csak a lényeget tartalmazza. Használj markdown formázást és emeld ki **vastagon** a kulcsfogalmakat.`;
-    
+
     const prompt = `
 ${concisePrompt}
 
@@ -305,13 +305,13 @@ Válasz csak a tömör tartalommal:`;
     try {
       const { generateChatResponse } = await import('./openai');
       const response = await generateChatResponse(prompt, 'basic_ai_only', undefined, customSystemMessage);
-      
+
       let generatedContent = response.message;
-      
+
       // Apply Mermaid syntax fixes but NO Wikipedia links for concise version
       const { fixMermaidSyntax } = await import('./openai');
       generatedContent = fixMermaidSyntax(generatedContent);
-      
+
       return generatedContent;
     } catch (error) {
       console.error('Concise version generation error:', error);
@@ -328,17 +328,17 @@ Válasz csak a tömör tartalommal:`;
       const enhancedPrompt = prompt
         .replace('{title}', title)
         .replace('{content}', detailedContent.substring(0, 1000));
-      
+
       console.log('📝 Concise prompt being used:', enhancedPrompt.substring(0, 200) + '...');
       const response = await generateChatResponse(enhancedPrompt, 'chat');
-      
+
       const generatedContent = response.message.trim();
       console.log('✅ Concise content generated, length:', generatedContent.length);
-      
+
       // Apply Mermaid syntax fixes
       const { fixMermaidSyntax } = await import('./openai');
       return fixMermaidSyntax(generatedContent);
-      
+
     } catch (error) {
       console.error('Concise content generation error:', error);
       return `# ${title}\n\n*Hiba történt a tömör tartalom generálása során.*`;
@@ -368,6 +368,7 @@ Követelmények:
 - Wikipedia linkek releváns fogalmakhoz: [fogalom](https://hu.wikipedia.org/wiki/Fogalom)
 - 500-800 szó
 - Magyar nyelv
+- **KÖTELEZŐ: Legalább egy Mermaid diagram (folyamatábra vagy elmetérkép)**
 
 Válasz csak a formázott tartalommal:
 
@@ -393,7 +394,7 @@ Példa struktúra és elemek:
 - [ ] 2. Végrehajtás  
 - [ ] 3. Ellenőrzés
 
-### Folyamatábra (ha alkalmazható):
+### Folyamatábra (KÖTELEZŐ):
 \`\`\`mermaid
 graph TD
     A[Kezdés] --> B{Döntés};
@@ -424,14 +425,14 @@ flowchart TD
       // First try to get relevant internet information for detailed content
       const { multiApiService } = await import('./multiApiService');
       let enrichedPrompt = prompt;
-      
+
       try {
         // Use intelligent search query optimization for detailed content
         const { searchOptimizer } = await import('./search-optimizer');
         const detailedSearchQueries = searchOptimizer.generateDetailedQueries(title, content, subjectContext);
-        
+
         let allDetailedResults: any[] = [];
-        
+
         // Search with optimized detailed queries
         for (const searchQuery of detailedSearchQueries) {
           try {
@@ -443,31 +444,31 @@ flowchart TD
             console.log(`Detailed search failed for "${searchQuery}":`, error.message);
           }
         }
-        
+
         const searchResults = allDetailedResults;
-        
+
         if (searchResults.length > 0) {
-          const relevantInfo = searchResults.slice(0, 5).map((result: any) => 
+          const relevantInfo = searchResults.slice(0, 5).map((result: any) =>
             `**${result.title}**: ${result.snippet}`
           ).join('\n\n');
-          
+
           enrichedPrompt += `\n\nAktuális szakmai információk az internetről:\n${relevantInfo}\n\nHasználd fel ezeket az információkat a részletes magyarázathoz.`;
         }
       } catch (searchError: any) {
         console.log('Internet search failed, using AI-only approach:', searchError.message);
       }
-      
+
       const { generateChatResponse } = await import('./openai');
       const response = await generateChatResponse(enrichedPrompt, 'basic_ai_only', undefined, customSystemMessage);
-      
+
       // Add Wikipedia links to key concepts
       let detailedContent = response.message;
       detailedContent = this.addWikipediaLinks(detailedContent);
-      
+
       // Apply Mermaid syntax fixes
       const { fixMermaidSyntax } = await import('./openai');
       detailedContent = fixMermaidSyntax(detailedContent);
-      
+
       return detailedContent;
     } catch (error) {
       console.error('Detailed version generation error:', error);
@@ -513,7 +514,7 @@ Válasz formátum: 2-3 mondatos, precíz magyarázat magyar nyelven, amely tarta
           const searchQueries = await this.extractYouTubeSearchTerms(concept, definition, subjectContext);
 
           const allVideoResults = [];
-          
+
           for (const searchQuery of searchQueries) {
             try {
               console.log(`Searching YouTube for: ${searchQuery}`);
@@ -527,8 +528,8 @@ Válasz formátum: 2-3 mondatos, precíz magyarázat magyar nyelven, amely tarta
           }
 
           // Remove duplicates based on videoId and take best 3
-          const uniqueVideos = allVideoResults.filter((video, index, self) => 
-            index === self.findIndex(v => 
+          const uniqueVideos = allVideoResults.filter((video, index, self) =>
+            index === self.findIndex(v =>
               (v.id?.videoId || v.videoId) === (video.id?.videoId || video.videoId)
             )
           );
@@ -539,7 +540,7 @@ Válasz formátum: 2-3 mondatos, precíz magyarázat magyar nyelven, amely tarta
               const videoId = video.id?.videoId || video.videoId || '';
               const title = video.snippet?.title || video.title || 'YouTube videó';
               const description = video.snippet?.description || video.description || 'Szakmai tartalom';
-              
+
               return {
                 title: title.substring(0, 100), // Limit title length
                 videoId,
@@ -585,7 +586,7 @@ Válasz formátum: 2-3 mondatos, precíz magyarázat magyar nyelven, amely tarta
     }>;
   }>> {
     const enrichedConcepts = [];
-    
+
     // OPTIMIZATION: Limit to max 3 concepts to reduce API quota usage
     const limitedConcepts = concepts.slice(0, 3);
     console.log(`Processing ${limitedConcepts.length} concepts (limited from ${concepts.length} to conserve YouTube API quota)`);
@@ -648,7 +649,7 @@ Válasz csak a definícióval:`;
    */
   private detectProfessionalField(title: string, content: string, subjectName?: string, professionName?: string): string {
     const combined = (title + ' ' + content + ' ' + (subjectName || '') + ' ' + (professionName || '')).toLowerCase();
-    
+
     // Define professional field patterns - order matters, most specific first
     const fieldPatterns = {
       // Robotics and automation first - highest priority
@@ -671,14 +672,14 @@ Válasz csak a definícióval:`;
       agriculture: ['mezőgazd', 'növény', 'termeszt', 'vetés', 'aratás', 'talaj'],
       textiles: ['textil', 'szövet', 'varr', 'fonál', 'ruha', 'anyag']
     };
-    
+
     // Find matching field
     for (const [field, keywords] of Object.entries(fieldPatterns)) {
       if (keywords.some(keyword => combined.includes(keyword))) {
         return field;
       }
     }
-    
+
     return 'general';
   }
 
@@ -699,7 +700,7 @@ Válasz csak a definícióval:`;
       textiles: ["textilipar", "varrás", "szövés", "ruházat"],
       general: ["technológia", "műszaki alapok", "szakmai ismeretek", "alkalmazások"]
     };
-    
+
     return fieldExamples[field] || fieldExamples.general;
   }
 
@@ -711,24 +712,24 @@ Válasz csak a definícióval:`;
       console.log(`🌐 Adding web search content for field: ${detectedField}`);
       console.log(`📄 Original content length: ${content.length}`);
       console.log(`🔍 Content preview: ${content.substring(0, 150)}...`);
-      
+
       // Generate search query based on content and field
       const searchQuery = await this.generateWebSearchQuery(title, content, detectedField);
       console.log(`🔍 Generated search query: ${searchQuery}`);
-      
+
       // Perform web search using multiApiService
       console.log('🌐 Starting web search...');
       const searchResults = await multiApiService.searchInternet(searchQuery);
       console.log(`📊 Search results count: ${searchResults ? searchResults.length : 0}`);
-      
+
       if (searchResults && searchResults.length > 0) {
         console.log('🔍 Sample search result:', searchResults[0]);
-        
+
         // Extract relevant information from search results
         const relevantInfo = this.extractRelevantWebInfo(searchResults, detectedField);
         console.log(`📋 Extracted relevant info pieces: ${relevantInfo.length}`);
         console.log('📋 Relevant info sample:', relevantInfo[0]);
-        
+
         if (relevantInfo && relevantInfo.length > 0) {
           // Integrate search results into content
           console.log('🔗 Starting content integration with bold linking...');
@@ -739,7 +740,7 @@ Válasz csak a definícióval:`;
           return enhancedContent;
         }
       }
-      
+
       console.log('📝 No relevant web content found, returning original content');
       return content;
     } catch (error) {
@@ -753,7 +754,7 @@ Válasz csak a definícióval:`;
    */
   private async generateWebSearchQuery(title: string, content: string, field: string): Promise<string> {
     const fieldExamples = this.getFieldSpecificExamples(field);
-    
+
     const prompt = `
 Készíts egy precíz keresési kifejezést internetkereséshez a következő tananyag bővítéséhez:
 
@@ -776,18 +777,18 @@ Adj vissza EGYETLEN keresési kifejezést, ami a leginkább releváns informáci
   /**
    * Extract relevant information from web search results
    */
-  private extractRelevantWebInfo(searchResults: any[], field: string): Array<{text: string, source: string}> {
-    const relevantInfo: Array<{text: string, source: string}> = [];
-    
+  private extractRelevantWebInfo(searchResults: any[], field: string): Array<{ text: string, source: string }> {
+    const relevantInfo: Array<{ text: string, source: string }> = [];
+
     try {
       // Process first 3 search results
       const resultsToProcess = searchResults.slice(0, 3);
-      
+
       for (const result of resultsToProcess) {
         if (result.snippet && result.title && result.url) {
           const snippet = result.snippet.trim();
           const title = result.title.trim();
-          
+
           // Filter for relevant, substantial content
           if (snippet.length > 50 && snippet.length < 500) {
             relevantInfo.push({
@@ -797,7 +798,7 @@ Adj vissza EGYETLEN keresési kifejezést, ami a leginkább releváns informáci
           }
         }
       }
-      
+
       return relevantInfo.slice(0, 3); // Limit to top 3 relevant pieces
     } catch (error) {
       console.error('Error extracting web info:', error);
@@ -808,49 +809,49 @@ Adj vissza EGYETLEN keresési kifejezést, ami a leginkább releváns informáci
   /**
    * Integrate web content into module content (simplified version - only adds web section)
    */
-  private integrateWebContent(originalContent: string, webInfo: Array<{text: string, source: string}>): string {
+  private integrateWebContent(originalContent: string, webInfo: Array<{ text: string, source: string }>): string {
     if (webInfo.length === 0) {
       console.log('❌ No web info provided, returning original content');
       return originalContent;
     }
-    
+
     console.log(`📋 Adding web search results section with ${webInfo.length} pieces`);
-    
+
     // Add web content as additional information section only
     const webSection = `
 
 ## További információk
 
 ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
-    
+
     const finalContent = originalContent + webSection;
     console.log(`📄 Final content with web section length: ${finalContent.length}`);
-    
+
     return finalContent;
   }
 
   /**
    * Extract keywords from web search information
    */
-  private extractKeywordsFromWebInfo(webInfo: Array<{text: string, source: string}>): string[] {
+  private extractKeywordsFromWebInfo(webInfo: Array<{ text: string, source: string }>): string[] {
     const keywords = new Set<string>();
-    
+
     // Add common technical terms that are likely to appear in bold
     const commonTechnicalTerms = [
       'robot', 'robotok', 'robotika', 'automatizálás', 'programozás', 'karbantartás',
       'biztonsági', 'biztonság', 'szoftver', 'gépészet', 'technológia', 'vezérlés',
       'kód', 'algoritmus', 'fejlesztés', 'tervezés', 'rendszer', 'folyamat'
     ];
-    
+
     commonTechnicalTerms.forEach(term => keywords.add(term));
-    
+
     webInfo.forEach(info => {
       console.log(`🔍 Processing web info: "${info.text.substring(0, 100)}..."`);
-      
+
       // Extract words from titles and snippets
       const text = info.text.toLowerCase();
       const words = text.match(/\b[a-záéíóöőúüű]{4,}\b/g) || [];
-      
+
       words.forEach(word => {
         // Add significant technical terms
         if (word.length >= 4 && !this.isCommonWord(word)) {
@@ -858,10 +859,10 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
         }
       });
     });
-    
+
     const finalKeywords = Array.from(keywords).slice(0, 15); // Increase limit
     console.log(`📋 Final extracted keywords: ${finalKeywords.join(', ')}`);
-    
+
     return finalKeywords;
   }
 
@@ -876,51 +877,51 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
       'lehet', 'kell', 'lesz', 'volt', 'van', 'nincs', 'igen', 'nem',
       'csak', 'még', 'már', 'most', 'akkor', 'itt', 'ott', 'ahol'
     ];
-    
+
     return commonWords.includes(word.toLowerCase());
   }
 
   /**
    * Link bold keywords in content to relevant web sources
    */
-  private linkBoldKeywordsToWebSources(content: string, keywords: string[], webInfo: Array<{text: string, source: string}>): string {
+  private linkBoldKeywordsToWebSources(content: string, keywords: string[], webInfo: Array<{ text: string, source: string }>): string {
     let linkedContent = content;
-    
+
     // Find all bold text patterns **word** in the content
     const boldPattern = /\*\*([^*]+)\*\*/g;
     const boldMatches = content.match(boldPattern);
-    
+
     console.log(`🔍 Found ${boldMatches ? boldMatches.length : 0} bold patterns in content`);
     if (boldMatches) {
       console.log('🔍 Bold patterns found:', boldMatches.slice(0, 5));
     }
-    
+
     let linkingCount = 0;
-    
+
     linkedContent = linkedContent.replace(boldPattern, (match, boldText) => {
       const lowerBoldText = boldText.toLowerCase();
       console.log(`🔍 Processing bold text: "${boldText}"`);
-      
+
       // Check if this bold text matches any of our search keywords
       // Use more flexible matching - check if bold text contains keyword or vice versa
       const matchingKeyword = keywords.find(keyword => {
         const keywordLower = keyword.toLowerCase();
-        return lowerBoldText.includes(keywordLower) || 
-               keywordLower.includes(lowerBoldText) ||
-               lowerBoldText === keywordLower ||
-               // Also check for partial matches for compound words
-               (lowerBoldText.length > 4 && keywordLower.includes(lowerBoldText)) ||
-               (keywordLower.length > 4 && lowerBoldText.includes(keywordLower));
+        return lowerBoldText.includes(keywordLower) ||
+          keywordLower.includes(lowerBoldText) ||
+          lowerBoldText === keywordLower ||
+          // Also check for partial matches for compound words
+          (lowerBoldText.length > 4 && keywordLower.includes(lowerBoldText)) ||
+          (keywordLower.length > 4 && lowerBoldText.includes(keywordLower));
       });
-      
+
       if (matchingKeyword) {
         console.log(`✅ Found matching keyword "${matchingKeyword}" for bold text "${boldText}"`);
-        
+
         // Find the most relevant web source for this keyword
-        const relevantSource = webInfo.find(info => 
+        const relevantSource = webInfo.find(info =>
           info.text.toLowerCase().includes(matchingKeyword)
         );
-        
+
         if (relevantSource) {
           console.log(`🔗 Linking "${boldText}" to source: ${relevantSource.source}`);
           linkingCount++;
@@ -933,13 +934,13 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
         console.log(`❌ No matching keyword found for bold text "${boldText}"`);
         console.log(`Available keywords: ${keywords.join(', ')}`);
       }
-      
+
       // If no match found, keep original bold formatting
       return match;
     });
-    
+
     console.log(`🔗 Successfully linked ${linkingCount} bold keywords`);
-    
+
     return linkedContent;
   }
 
@@ -948,40 +949,40 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
    */
   private async linkBoldKeywordsDirectly(content: string, title: string, detectedField: string): Promise<string> {
     console.log('🔗 Starting direct bold keyword linking...');
-    
+
     // Find all bold patterns in content
     const boldPattern = /\*\*([^*]+)\*\*/g;
     const boldMatches = content.match(boldPattern);
-    
+
     if (!boldMatches || boldMatches.length === 0) {
       console.log('❌ No bold patterns found in content');
       return content;
     }
-    
+
     console.log(`🔍 Found ${boldMatches.length} bold patterns to process`);
-    
+
     let linkedContent = content;
     const processedKeywords = new Set<string>();
-    
+
     // Process each bold keyword individually
     for (const boldMatch of boldMatches) {
       const boldText = boldMatch.replace(/\*\*/g, '');
-      
+
       if (processedKeywords.has(boldText.toLowerCase())) {
         continue; // Skip already processed keywords
       }
-      
+
       processedKeywords.add(boldText.toLowerCase());
-      
+
       try {
         console.log(`🔍 Processing bold keyword: "${boldText}"`);
-        
+
         // Generate specific search query for this keyword based on context
         let searchQuery = `${boldText}`;
-        
+
         // Get combined content for additional context checks
         const combinedContent = (title + ' ' + content).toLowerCase();
-        
+
         // Add relevant context based on detected field and content analysis
         if (detectedField === 'robotics' || combinedContent.includes('robot')) {
           searchQuery += ' robotika automatizálás ipari robot';
@@ -997,41 +998,41 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
           // For robotics/safety content, default to technical context
           searchQuery += ' ipari technológia';
         }
-        
+
         searchQuery += ' magyarország';
         console.log(`🌐 Searching for: ${searchQuery}`);
-        
+
         // Perform targeted web search
         const searchResults = await multiApiService.searchInternet(searchQuery);
-        
+
         if (searchResults && searchResults.length > 0) {
           // Find the most relevant result
-          const relevantResult = searchResults.find((result: any) => 
-            result.title && result.url && 
+          const relevantResult = searchResults.find((result: any) =>
+            result.title && result.url &&
             (result.title.toLowerCase().includes(boldText.toLowerCase()) ||
-             result.snippet?.toLowerCase().includes(boldText.toLowerCase()))
+              result.snippet?.toLowerCase().includes(boldText.toLowerCase()))
           ) || searchResults[0];
-          
+
           if (relevantResult && relevantResult.url) {
             console.log(`✅ Linking "${boldText}" to: ${relevantResult.url}`);
-            
+
             // Replace all instances of this bold keyword with linked version
             const boldRegex = new RegExp(`\\*\\*${boldText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*`, 'gi');
             linkedContent = linkedContent.replace(boldRegex, `**[${boldText}](${relevantResult.url})**`);
           }
         }
-        
+
         // Add small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
       } catch (error) {
         console.error(`❌ Failed to link keyword "${boldText}":`, error);
       }
     }
-    
+
     const linkCount = (linkedContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
     console.log(`🔗 Successfully linked ${linkCount} bold keywords`);
-    
+
     return linkedContent;
   }
 
@@ -1040,46 +1041,46 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
    */
   private async linkBoldKeywordsSimplified(content: string, title: string): Promise<string> {
     const settings = await this.getOptimizationSettings();
-    
+
     if (!settings.enableBoldLinking) {
       console.log('🔗 Bold keyword linking disabled in optimization settings');
       return content;
     }
-    
+
     console.log(`🔗 Starting optimized bold keyword linking (max: ${settings.maxBoldKeywords})...`);
-    
+
     // Find all bold patterns in content
     const boldPattern = /\*\*([^*]+)\*\*/g;
     const boldMatches = content.match(boldPattern);
-    
+
     if (!boldMatches || boldMatches.length === 0) {
       console.log('❌ No bold patterns found in content');
       return content;
     }
-    
+
     console.log(`🔍 Found ${boldMatches.length} bold patterns to process`);
-    
+
     let linkedContent = content;
     const processedKeywords = new Set<string>();
-    
+
     // Use configurable limit for bold keywords
     const limitedMatches = boldMatches.slice(0, settings.maxBoldKeywords);
-    
+
     for (const boldMatch of limitedMatches) {
       const boldText = boldMatch.replace(/\*\*/g, '');
-      
+
       if (processedKeywords.has(boldText.toLowerCase()) || boldText.length < 3) {
         continue; // Skip already processed or too short keywords
       }
-      
+
       processedKeywords.add(boldText.toLowerCase());
-      
+
       try {
         console.log(`🔍 Processing bold keyword: "${boldText}"`);
-        
+
         // Generate context-aware search query based on title content
         let searchQuery = `${boldText}`;
-        
+
         // Add context based on title and content analysis
         const titleLower = title.toLowerCase();
         if (titleLower.includes('robot') || titleLower.includes('automatiz')) {
@@ -1091,31 +1092,31 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
         } else {
           searchQuery += ' ipari technológia';
         }
-        
+
         searchQuery += ' magyarország';
         console.log(`🌐 Searching for: ${searchQuery}`);
-        
+
         // Create Wikipedia link directly (restored working method)
         const encodedKeyword = encodeURIComponent(boldText.replace(/\s+/g, '_'));
         const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodedKeyword}`;
-        
+
         console.log(`✅ Linking "${boldText}" to Wikipedia: ${wikipediaUrl}`);
-        
+
         // Replace all instances of this bold keyword with Wikipedia link
         const boldRegex = new RegExp(`\\*\\*${boldText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*`, 'gi');
         linkedContent = linkedContent.replace(boldRegex, `**[${boldText}](${wikipediaUrl})**`);
-        
+
         // Use configurable delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, settings.boldKeywordDelay));
-        
+
       } catch (error) {
         console.error(`❌ Failed to link keyword "${boldText}":`, error);
       }
     }
-    
+
     const linkCount = (linkedContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
     console.log(`🔗 Successfully linked ${linkCount} bold keywords out of ${limitedMatches.length} processed`);
-    
+
     return linkedContent;
   }
 
@@ -1125,13 +1126,13 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
   private async generateYouTubeSearchTerms(title: string, content: string, prompt: string, subjectName?: string, professionName?: string): Promise<string[]> {
     try {
       console.log('🔥 SEQUENTIAL AI STEP 3A: Generating YouTube search terms with admin prompt');
-      
+
       // Detect professional field and get appropriate examples
       const field = this.detectProfessionalField(title, content, subjectName, professionName);
       const examples = this.getFieldSpecificExamples(field);
-      
+
       console.log(`🎯 Detected field: ${field}, using examples:`, examples);
-      
+
       // Create a structured prompt for YouTube search terms
       const structuredPrompt = `
 Készíts 2-3 átfogó YouTube keresési kifejezést ehhez a tananyaghoz JSON array formátumban. Használj gyűjtőfogalmakat, szakmai területeket, nem pedig konkrét elemeket.
@@ -1145,17 +1146,17 @@ Jó példák ehhez a területhez: ${JSON.stringify(examples)}
 Kerülendő: ["konkrét elem nevek", "részletes műszaki paraméterek", "márkanevek"]
 
 Válasz csak JSON array formátumban:`;
-      
+
       console.log('📝 YouTube search terms generation started');
       const response = await generateChatResponse(structuredPrompt, 'chat');
-      
+
       // Extract search terms from response
       const cleanResponse = response.message.trim();
       console.log('🔍 YouTube AI response:', cleanResponse.substring(0, 200) + '...');
-      
+
       // Try to extract JSON array
       const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
-      
+
       if (jsonMatch) {
         try {
           const searchTerms = JSON.parse(jsonMatch[0]);
@@ -1171,13 +1172,13 @@ Válasz csak JSON array formátumban:`;
           console.log('JSON parse failed for YouTube terms');
         }
       }
-      
+
       // Fallback: Use AI to analyze content and generate appropriate search terms
       try {
         const field = this.detectProfessionalField(title, content, subjectName, professionName);
         const examples = this.getFieldSpecificExamples(field);
         const contextExamples = `Ha ${field} területről szól -> ${JSON.stringify(examples)}`;
-          
+
         const analysisPrompt = `Elemezd a következő tartalmat és határozd meg a PONTOS szakmai területet YouTube kereséshez:
 
 Cím: ${title}
@@ -1193,7 +1194,7 @@ JSON válasz (2-3 kifejezés):`;
 
         console.log('🤖 AI-powered YouTube category analysis started');
         const analysisResponse = await generateChatResponse(analysisPrompt, 'chat');
-        
+
         // Try to extract JSON from AI response
         const jsonMatch = analysisResponse.message.match(/\[[\s\S]*?\]/);
         if (jsonMatch) {
@@ -1213,31 +1214,31 @@ JSON válasz (2-3 kifejezés):`;
       } catch (aiError) {
         console.log('AI category analysis failed, using content-based fallback');
       }
-      
+
       // Smart content-based fallback
       const lowerTitle = title.toLowerCase();
       const lowerContent = content.toLowerCase();
-      
+
       if (lowerTitle.includes('robot') || lowerContent.includes('robot') || lowerContent.includes('elfin')) {
         console.log('🤖 Detected robotics content');
         return ['robotika', 'robot programozás', 'automatizálás'];
       }
-      
+
       if (lowerTitle.includes('hegesztés') || lowerContent.includes('hegesztés') || lowerContent.includes('mig') || lowerContent.includes('mag')) {
         console.log('🔥 Detected welding content');
         return ['hegesztés', 'fémfeldolgozás', 'hegesztéstechnika'];
       }
-      
+
       if (lowerTitle.includes('főzés') || lowerContent.includes('lecsó') || lowerContent.includes('főzés')) {
         console.log('👨‍🍳 Detected cooking content');
         return ['főzés', 'szakácsképzés', 'gasztronómia'];
       }
-      
+
       if (lowerTitle.includes('acél') || lowerContent.includes('acél') || lowerContent.includes('metallurg')) {
         console.log('⚙️ Detected materials science content');
         return ['metallurgia', 'anyagtudomány', 'acél'];
       }
-      
+
       console.log('📝 Using title-based fallback for YouTube search');
       return [title.toLowerCase().split(' ')[0]];
     } catch (error) {
@@ -1253,7 +1254,7 @@ JSON válasz (2-3 kifejezés):`;
     try {
       console.log('🔥 SEQUENTIAL AI STEP 2A: Generating Wikipedia keywords with pre-detected field');
       console.log(`🎯 Using fixed field: ${detectedField} with examples:`, fieldExamples);
-      
+
       const structuredPrompt = `
 Elemezd ezt a tartalmat és adj vissza 15-25 magyar kulcsszót JSON array formátumban, amelyekhez Wikipedia linkeket kell készíteni.
 
@@ -1271,22 +1272,22 @@ KÖVETELMÉNYEK:
 - Például ehhez a területhez: ${JSON.stringify(fieldExamples)}
 
 Válasz csak JSON array formátumban:`;
-      
+
       console.log('📝 Wikipedia prompt being used for keywords');
       const response = await generateChatResponse(structuredPrompt, 'chat');
-      
+
       // Extract keywords from response
       const cleanResponse = response.message.trim();
       console.log('🔍 Wikipedia AI response:', cleanResponse.substring(0, 200) + '...');
-      
+
       // Try to extract JSON array
       const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
-      
+
       if (jsonMatch) {
         try {
           const keywords = JSON.parse(jsonMatch[0]);
           let filteredKeywords: string[] = [];
-          
+
           if (Array.isArray(keywords)) {
             // Handle array of objects format: [{kulcsszó: "...", wikipedia: "..."}, ...]
             filteredKeywords = keywords
@@ -1300,14 +1301,14 @@ Válasz csak JSON array formátumban:`;
               .filter(term => typeof term === 'string' && term.length > 2 && term.length < 50)
               .map(term => term.trim().toLowerCase());
           }
-          
+
           console.log('✅ Wikipedia keywords extracted from JSON:', filteredKeywords);
           return filteredKeywords;
         } catch (parseError) {
           console.log('JSON parse failed for Wikipedia keywords, trying manual extraction');
         }
       }
-      
+
       // Fallback: return field-specific keywords
       console.log('📝 Using field-specific fallback keywords');
       return fieldExamples.slice(0, 5);
@@ -1323,13 +1324,13 @@ Válasz csak JSON array formátumban:`;
   private async generateWikipediaKeywords(title: string, content: string, prompt: string, subjectName?: string, professionName?: string): Promise<string[]> {
     try {
       console.log('🔥 SEQUENTIAL AI STEP 2A: Generating Wikipedia keywords with admin prompt');
-      
+
       // Detect professional field and get appropriate examples
       const field = this.detectProfessionalField(title, content, subjectName, professionName);
       const examples = this.getFieldSpecificExamples(field);
-      
+
       console.log(`🎯 Detected field for Wikipedia: ${field}, using examples:`, examples);
-      
+
       const structuredPrompt = `
 Elemezd ezt a tartalmat és adj vissza 15-25 magyar kulcsszót JSON array formátumban, amelyekhez Wikipedia linkeket kell készíteni.
 
@@ -1346,22 +1347,22 @@ KÖVETELMÉNYEK:
 - Például ehhez a területhez: ${JSON.stringify(examples)}
 
 Válasz csak JSON array formátumban:`;
-      
+
       console.log('📝 Wikipedia prompt being used for keywords');
       const response = await generateChatResponse(structuredPrompt, 'chat');
-      
+
       // Extract keywords from response
       const cleanResponse = response.message.trim();
       console.log('🔍 Wikipedia AI response:', cleanResponse.substring(0, 200) + '...');
-      
+
       // Try to extract JSON array
       const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
-      
+
       if (jsonMatch) {
         try {
           const keywords = JSON.parse(jsonMatch[0]);
           let filteredKeywords: string[] = [];
-          
+
           if (Array.isArray(keywords)) {
             // Handle array of objects format: [{kulcsszó: "...", wikipedia: "..."}, ...]
             filteredKeywords = keywords
@@ -1375,20 +1376,20 @@ Válasz csak JSON array formátumban:`;
               .filter(term => typeof term === 'string' && term.length > 2 && term.length < 50)
               .map(term => term.trim().toLowerCase());
           }
-          
+
           console.log('✅ Wikipedia keywords extracted from JSON:', filteredKeywords);
           return filteredKeywords;
         } catch (parseError) {
           console.log('JSON parse failed for Wikipedia keywords, trying manual extraction');
         }
       }
-      
+
       // Use AI to intelligently extract Wikipedia-relevant keywords from content with context awareness
       try {
         const field = this.detectProfessionalField(title, content, subjectName, professionName);
         const examples = this.getFieldSpecificExamples(field);
         const contextualPrompt = `${field.toUpperCase()} TARTALOM: ${examples.join(', ')} témakörben keress fogalmakat.`;
-        
+
         const keywordPrompt = `${contextualPrompt}
 
 Elemezd a következő tananyag tartalmát és találd meg a legfontosabb szakmai fogalmakat Wikipedia linkekhez:
@@ -1402,7 +1403,7 @@ JSON válasz:`;
 
         console.log('🔍 AI-powered Wikipedia keyword extraction started');
         const keywordResponse = await generateChatResponse(keywordPrompt, 'chat');
-        
+
         // Try to extract JSON from AI response
         const jsonMatch = keywordResponse.message.match(/\[[\s\S]*?\]/);
         if (jsonMatch) {
@@ -1425,7 +1426,7 @@ JSON válasz:`;
 
       // Fallback: extract basic terms from content
       const fallbackKeywords = new Set<string>();
-      
+
       // Extract bold terms
       const boldTerms = content.match(/\*\*([^*]+)\*\*/g);
       if (boldTerms) {
@@ -1436,11 +1437,11 @@ JSON válasz:`;
           }
         });
       }
-      
+
       // Extract from title
       const titleWords = title.toLowerCase().split(' ').filter(word => word.length > 3);
       titleWords.forEach(word => fallbackKeywords.add(word));
-      
+
       const finalKeywords = Array.from(fallbackKeywords);
       console.log('⚡ Fallback Wikipedia keywords extracted:', finalKeywords);
       return finalKeywords.length > 0 ? finalKeywords : [title.toLowerCase().split(' ')[0]];
@@ -1454,9 +1455,9 @@ JSON válasz:`;
    * Generate internet-enhanced content using dedicated prompt
    */
   private async generateInternetEnhancedContent(
-    title: string, 
-    content: string, 
-    type: 'concise' | 'detailed', 
+    title: string,
+    content: string,
+    type: 'concise' | 'detailed',
     prompt: string
   ): Promise<string> {
     try {
@@ -1479,13 +1480,13 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
    */
   private async searchYouTubeWithCache(searchQuery: string): Promise<any[]> {
     const cacheKey = searchQuery.toLowerCase().replace(/\s+/g, '_');
-    
+
     // Check cache first
     if (this.youtubeCache.has(cacheKey)) {
       console.log(`📦 Using cached YouTube results for: ${searchQuery}`);
       return this.youtubeCache.get(cacheKey) || [];
     }
-    
+
     // Rate limiting
     const now = Date.now();
     const timeSinceLastCall = now - this.lastYouTubeCall;
@@ -1494,13 +1495,13 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
       console.log(`⏳ Rate limiting: waiting ${waitTime}ms before YouTube API call`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-    
+
     try {
       console.log(`🎥 YouTube API call: "${searchQuery}"`);
       this.lastYouTubeCall = Date.now();
-      
+
       const videoResults = await multiApiService.searchYoutube(searchQuery);
-      
+
       if (Array.isArray(videoResults) && videoResults.length > 0) {
         const processedVideos = videoResults
           .filter(video => video.id?.videoId || video.videoId)
@@ -1511,7 +1512,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
             description: (video.snippet?.description || 'Tartalom').substring(0, 120),
             url: `https://www.youtube.com/watch?v=${video.id?.videoId || video.videoId}`
           }));
-        
+
         this.youtubeCache.set(cacheKey, processedVideos);
         console.log(`✅ Found and cached ${processedVideos.length} videos for: ${searchQuery}`);
         return processedVideos;
@@ -1540,14 +1541,14 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
     }>;
   }>> {
     const enrichedConcepts = [];
-    
+
     console.log(`🔥 SEQUENTIAL AI STEP 3B: Starting optimized YouTube search for ${searchTerms.length} terms`);
-    
+
     // Process only 2 most important terms to reduce API calls
     for (const searchTerm of searchTerms.slice(0, 2)) {
       try {
         console.log(`🎥 YouTube API call for: "${searchTerm}"`);
-        
+
         // Use optimized cached search
         const educationalQuery = `${searchTerm} oktatás magyar`;
         const youtubeVideos = await this.searchYouTubeWithCache(educationalQuery);
@@ -1555,7 +1556,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
         // Generate AI definition for the concept
         const definitionPrompt = `Adj egy rövid szakmai definíciót erre a fogalomra: "${searchTerm}". Csak 1-2 mondat, magyar nyelven.`;
         let definition = `Szakmai fogalom: ${searchTerm}`;
-        
+
         try {
           const { generateChatResponse } = await import('./openai');
           const defResponse = await generateChatResponse(definitionPrompt, 'chat');
@@ -1569,7 +1570,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
           definition,
           youtubeVideos
         });
-        
+
       } catch (error) {
         console.error(`❌ Error processing YouTube search for "${searchTerm}":`, error);
         enrichedConcepts.push({
@@ -1588,12 +1589,12 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
   /**
    * Extract Wikipedia links from content for a specific concept
    */
-  private extractWikipediaLinksFromContent(concept: string): Array<{text: string, url: string, description?: string}> {
+  private extractWikipediaLinksFromContent(concept: string): Array<{ text: string, url: string, description?: string }> {
     const conceptLower = concept.toLowerCase();
-    
+
     // Generate common Wikipedia URL variations for this concept
     const wikipediaLinks = [];
-    
+
     // Basic Wikipedia link
     const encodedConcept = encodeURIComponent(concept.replace(/\s+/g, '_'));
     wikipediaLinks.push({
@@ -1601,7 +1602,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
       url: `https://hu.wikipedia.org/wiki/${encodedConcept}`,
       description: `Wikipedia cikk: ${concept}`
     });
-    
+
     return wikipediaLinks;
   }
 
@@ -1610,7 +1611,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
    */
   private addWikipediaLinksToContent(content: string, keywords: string[]): string {
     let linkedContent = content;
-    
+
     keywords.forEach(keyword => {
       // Escape special regex characters in keyword
       const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1618,7 +1619,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
       const wikiUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(keyword)}`;
       linkedContent = linkedContent.replace(regex, `[${keyword}](${wikiUrl})`);
     });
-    
+
     return linkedContent;
   }
 
@@ -1635,7 +1636,7 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
     ];
 
     let linkedContent = content;
-    
+
     technicalTerms.forEach(term => {
       const regex = new RegExp(`\\b${term}\\b(?![\\]\\)])`, 'gi');
       linkedContent = linkedContent.replace(regex, (match) => {
@@ -1654,8 +1655,8 @@ Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
    * Extract YouTube search terms using AI based on module content and admin system message
    */
   private async extractYouTubeSearchTerms(
-    concept: string, 
-    definition: string, 
+    concept: string,
+    definition: string,
     subjectContext?: string,
     customSystemMessage?: string
   ): Promise<string[]> {
@@ -1671,10 +1672,10 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
 ["legjobb keresési kifejezés"]`;
 
       const response = await generateChatResponse(prompt, 'basic_ai_only', undefined, customSystemMessage);
-      
+
       // More robust JSON extraction
       let cleanResponse = response.message.trim();
-      
+
       // Extract JSON array from response
       const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
       if (jsonMatch) {
@@ -1687,7 +1688,7 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
           console.log('JSON parse failed, trying line extraction');
         }
       }
-      
+
       // Fallback: extract quoted strings
       const quotedTerms = cleanResponse.match(/"([^"]+)"/g);
       if (quotedTerms && quotedTerms.length > 0) {
@@ -1696,11 +1697,11 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
           .filter(term => term.length > 2)
           .slice(0, 1);
       }
-      
+
     } catch (error) {
       console.error('AI search term extraction failed:', error);
     }
-    
+
     // Context-aware fallback based on subject
     const contextLower = (subjectContext || '').toLowerCase();
     if (contextLower.includes('robot') || contextLower.includes('automatizál') || contextLower.includes('elfin')) {
@@ -1728,7 +1729,7 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
         `${concept} hegesztő oktatás`
       ];
     }
-    
+
     // Generic fallback
     return [
       `${concept} tutorial`,
@@ -1758,10 +1759,10 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
     keyConceptsWithVideos.forEach(({ concept, youtubeVideos }) => {
       if (youtubeVideos.length > 0) {
         const primaryVideo = youtubeVideos[0];
-        
+
         // Create a regex to find the concept in the content (case insensitive)
         const conceptRegex = new RegExp(`\\b${concept}\\b`, 'gi');
-        
+
         // Replace first occurrence with a link
         let replaced = false;
         linkedContent = linkedContent.replace(conceptRegex, (match) => {

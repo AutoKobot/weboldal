@@ -4016,22 +4016,31 @@ Platform funkciók és navigáció:
   // Új osztály létrehozása
   app.post('/api/school-admin/classes', schoolAdminAuth, async (req: any, res) => {
     try {
-      const { name, description, professionId } = req.body;
       const schoolAdminId = req.session.schoolAdminUser.id;
+
+      // Use schema validation if available, otherwise manual validation with strict types
+      const { name, description, professionId } = req.body;
 
       if (!name) {
         return res.status(400).json({ message: "Az osztály neve kötelező" });
       }
 
+      // Convert professionId to number or null explicitly
+      const parsedProfessionId = professionId ? parseInt(professionId) : null;
+
       const classData = {
         name,
         description: description || null,
         schoolAdminId,
-        professionId: professionId || null
+        professionId: parsedProfessionId
       };
 
       const newClass = await storage.createClass(classData);
-      res.json({ message: "Osztály sikeresen létrehozva", class: newClass });
+
+      // If profession was selected, we might want to fetch profession details to return complete object
+      const classWithProfession = await storage.getClassWithProfession(newClass.id);
+
+      res.json({ message: "Osztály sikeresen létrehozva", class: classWithProfession || newClass });
     } catch (error) {
       console.error("Error creating class:", error);
       res.status(500).json({ message: "Hiba történt az osztály létrehozása során" });
