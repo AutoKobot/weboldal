@@ -113,7 +113,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
           title: "Gratulálunk!",
           description: "Sikeresen teljesítetted a modult! 🎉",
         });
-        onModuleComplete?.();
+        // onModuleComplete will be called manually by user
       }
     },
     onError: (error: Error) => {
@@ -332,18 +332,29 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
             ))}
           </div>
 
-          <Button
-            onClick={() => {
-              setIsQuizStarted(false);
-              setIsQuizCompleted(false);
-              setCurrentQuestionIndex(0);
-              setQuestions([]);
-              setSelectedAnswers([]);
-              setEvaluations([]);
-            }}
-          >
-            Új teszt indítása
-          </Button>
+          <div className="flex gap-4 justify-center w-full mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsQuizStarted(false);
+                setIsQuizCompleted(false);
+                setCurrentQuestionIndex(0);
+                setQuestions([]);
+                setSelectedAnswers([]);
+                setEvaluations([]);
+              }}
+              className="flex-1"
+            >
+              Új teszt indítása
+            </Button>
+
+            <Button
+              onClick={() => onModuleComplete?.()}
+              className="flex-1"
+            >
+              Befejezés
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
