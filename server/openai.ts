@@ -254,9 +254,9 @@ async function generateOpenAIChatResponse(
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o",
       messages,
-      max_tokens: 2000,
+      max_tokens: 4000,
       temperature: 0.7,
       stream: true,
       presence_penalty: 0,
@@ -459,9 +459,9 @@ export async function generateChatResponse(
     messages.push({ role: "user", content: userMessage });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Upgraded to GPT-4o Mini for better performance and cost
+      model: "gpt-4o", // Upgraded to GPT-4o for better performance and reasoning
       messages,
-      max_tokens: 1500, // Increased for more comprehensive responses
+      max_tokens: 4000, // Increased for more comprehensive responses
       temperature: 0.7, // Better for educational explanations
       stream: false,
       presence_penalty: 0,
@@ -571,9 +571,9 @@ export async function generateSynchronizedStreamingResponse(
     messages.push({ role: "user", content: userMessage });
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o",
       messages,
-      max_tokens: 800, // Rövidebb válaszok = gyorsabb
+      max_tokens: 1000, // Rövidebb válaszok = gyorsabb
       temperature: 0.5, // Kevesebb kreativitás = gyorsabb
       stream: true,
       presence_penalty: 0,
