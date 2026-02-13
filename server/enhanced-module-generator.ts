@@ -166,9 +166,13 @@ export class EnhancedModuleGenerator {
     console.log(`🎯 Detected field for web search: ${detectedField}`);
 
     // Step 2A: Add web search content first
-    console.log('🔗 STEP 2A: Adding web search content...');
-    const webEnhancedConcise = await this.addWebSearchContent(finalConciseContent, title, detectedField);
-    const webEnhancedDetailed = await this.addWebSearchContent(internetEnhancedDetailed, title, detectedField);
+    console.log('🔗 STEP 2A: Adding web search content... (DISABLED due to DataForSEO unavailability)');
+    // const webEnhancedConcise = await this.addWebSearchContent(finalConciseContent, title, detectedField);
+    // const webEnhancedDetailed = await this.addWebSearchContent(internetEnhancedDetailed, title, detectedField);
+
+    // Bypass web search
+    const webEnhancedConcise = finalConciseContent;
+    const webEnhancedDetailed = internetEnhancedDetailed;
 
     console.log('✅ STEP 2A COMPLETED - Web search content integrated');
 
