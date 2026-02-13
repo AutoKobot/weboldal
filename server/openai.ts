@@ -87,7 +87,7 @@ export function fixMermaidSyntax(content: string): string {
     fixedCode = cleanedLines.join('\n');
 
     // Remove quotes around node IDs
-    fixedCode = fixedCode.replace(/["'`]/g, '');
+    // fixedCode = fixedCode.replace(/["'`]/g, '');
 
     // Fix arrow spacing
     fixedCode = fixedCode.replace(/-->/g, ' --> ');

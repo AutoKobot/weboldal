@@ -47,7 +47,7 @@ export default function ModuleViewer() {
   // Initialize mermaid
   useEffect(() => {
     mermaid.initialize({
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'default',
       securityLevel: 'loose',
     });
