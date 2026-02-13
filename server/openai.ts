@@ -382,8 +382,8 @@ export async function generateChatResponse(
     // Skip external API routing for basic AI-only mode or simple chat
     if (moduleContent === 'basic_ai_only' || moduleContent === 'standalone' || moduleContent === 'chat') {
       // Use the provided customSystemMessage if available, otherwise use a directive system prompt
-      // that instructs the AI to follow the complex user prompt coming from enhanced-module-generator
-      const systemMessage = customSystemMessage || cachedSystemMessage || "Kövesd pontosan a kapott utasításokat a tananyag létrehozásához. A bemenet tartalmazza a témát, a tartalom típusát, a szakmai kontextust és a formázási követelményeket (pl. Mermaid diagram).";
+      // that instructs the AI to treat input as base material for course creation
+      const systemMessage = customSystemMessage || cachedSystemMessage || "Te egy professzionális tananyag-fejlesztő AI vagy. A feladatod: a kapott bemeneti szöveget ALAPANYAGKÉNT kezelve készíts belőle részletes, strukturált, oktatási célú tananyagot. NE másold le egyszerűen a szöveget! Bővítsd ki magyarázatokkal, példákkal, és tagold logikusan. A cél a tanuló tudásának mélyítése.";
 
       if (provider === 'openai') {
         const openai = await getOpenAIClient();
