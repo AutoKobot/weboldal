@@ -136,7 +136,7 @@ export class EnhancedModuleGenerator {
     // Step 1: Generate internet-enhanced detailed content using original content
     console.log('🔥 SEQUENTIAL AI STEP 1: Generating internet-enhanced detailed content...');
     console.log('📝 Original content length:', basicContent.length);
-    const internetEnhancedDetailed = await this.generateInternetEnhancedContent(title, basicContent, 'detailed', prompts.internetContentPrompt);
+    const internetEnhancedDetailed = await this.generateInternetEnhancedContent(title, basicContent, 'detailed', prompts.internetContentPrompt, subjectName, professionName);
     console.log('✅ STEP 1 COMPLETED - Enhanced detailed content length:', internetEnhancedDetailed.length);
 
     // Step 1B: Generate concise version using original content and dedicated prompt
@@ -148,6 +148,8 @@ Készíts tömör, lényegre törő tananyagot maximum 250-300 szóban:
 
 Cím: ${title}
 Eredeti tartalom: ${basicContent}
+Szakma: ${professionName || 'Általános'}
+Tantárgy: ${subjectName || 'Általános'}
 
 KÖVETELMÉNYEK:
 - MAXIMUM 250-300 szó
@@ -1470,12 +1472,20 @@ JSON válasz:`;
     title: string,
     content: string,
     type: 'concise' | 'detailed',
-    prompt: string
+    prompt: string,
+    subjectName?: string,
+    professionName?: string
   ): Promise<string> {
     try {
+      const contextInfo = `
+Szakma: ${professionName || 'Általános'}
+Tantárgy: ${subjectName || 'Általános'}`;
+
       const enhancedPrompt = `${prompt
         .replace('{title}', title)
         .replace('{content}', content)}
+        
+${contextInfo}
         
 Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
 
