@@ -86,10 +86,10 @@ export class EnhancedModuleGenerator {
     ]);
 
     return {
-      youtubePrompt: youtubePromptSetting?.value || 'Generálj 1-2 konkrét YouTube keresési kifejezést a modul legfontosabb fogalmaihoz. Fókuszálj praktikus, oktatási tartalmakra és kerüld az ismétlődő kereséseket. Modulcím: {title}, Tartalom: {content}',
+      youtubePrompt: youtubePromptSetting?.value || 'Készíts 2-3 átfogó YouTube keresési kifejezést ehhez a tananyaghoz JSON array formátumban. Használj gyűjtőfogalmakat, szakmai területeket, nem pedig konkrét elemeket.\n\nCím: {title}\nTartalom: {content}',
       wikipediaPrompt: wikipediaPromptSetting?.value || 'Azonosítsd a modul legfontosabb szakmai kifejezéseit és fogalmait, amelyekhez Wikipedia linkeket kell hozzáadni. Csak azokat a kifejezéseket válaszd ki, amelyek valóban fontosak a témához. Modulcím: {title}, Tartalom: {content}',
       internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével using actual information. KÖTELEZŐ: A magyarázatot vizuálisan is támaszd alá legalább egy Mermaid diagrammal (pl. folyamatábra, graph TD vagy elmetérkép)! A diagram segítse a megértést. Modulcím: {title}, Eredeti tartalom: {content}',
-      conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör, lényegre törő tananyagot a következő címhez: {title}. Alapanyag: {content}. Követelmények: Maximum 300-400 szó, csak a legfontosabb információk, egyszerű nyelvezet, markdown formázás.'
+      conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör, lényegre törő tananyagot maximum 250-300 szóban:\n\nCím: {title}\nEredeti tartalom: {content}\nSzakma: {profession}\nTantárgy: {subject}\n\nKÖVETELMÉNYEK:\n- MAXIMUM 250-300 szó\n- Csak a legfontosabb információk\n- Egyszerű, érthető nyelvezet\n- Markdown formázás\n- Gyakorlati fókusz\n- NE ismételd meg a részletes verziót\n- HA a téma engedi (pl. folyamat, hierarchia), illessz be egy EGYSZERŰ Mermaid diagramot (graph TD) a vizuális szemléltetéshez!\n\nVálasz:'
     };
   }
 
@@ -142,27 +142,14 @@ export class EnhancedModuleGenerator {
     // Step 1B: Generate concise version using original content and dedicated prompt
     console.log('🔥 SEQUENTIAL AI STEP 1B: Generating concise version with dedicated prompt...');
 
-    // Force concise generation with strict length limits
-    const strictConcisePrompt = `
-Készíts tömör, lényegre törő tananyagot maximum 250-300 szóban:
+    // Use admin-configured prompt for concise content
+    const strictConcisePrompt = prompts.conciseContentPrompt
+      .replace('{title}', title)
+      .replace('{content}', basicContent)
+      .replace('{profession}', professionName || 'Általános')
+      .replace('{subject}', subjectName || 'Általános');
 
-Cím: ${title}
-Eredeti tartalom: ${basicContent}
-Szakma: ${professionName || 'Általános'}
-Tantárgy: ${subjectName || 'Általános'}
-
-KÖVETELMÉNYEK:
-- MAXIMUM 250-300 szó
-- Csak a legfontosabb információk
-- Egyszerű, érthető nyelvezet
-- Markdown formázás
-- Gyakorlati fókusz
-- NE ismételd meg a részletes verziót
-- HA a téma engedi (pl. folyamat, hierarchia), illessz be egy EGYSZERŰ Mermaid diagramot (graph TD) a vizuális szemléltetéshez!
-
-Válasz:`;
-
-    console.log('📝 Strict concise generation started');
+    console.log('📝 Concise generation started with admin prompt');
     const conciseResponse = await generateChatResponse(strictConcisePrompt, 'chat');
     const internetEnhancedConcise = conciseResponse.message.trim();
     console.log('✅ STEP 1B COMPLETED - Concise content length:', internetEnhancedConcise.length);
@@ -1147,12 +1134,11 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
 
       console.log(`🎯 Detected field: ${field}, using examples:`, examples);
 
-      // Create a structured prompt for YouTube search terms
-      const structuredPrompt = `
-Készíts 2-3 átfogó YouTube keresési kifejezést ehhez a tananyaghoz JSON array formátumban. Használj gyűjtőfogalmakat, szakmai területeket, nem pedig konkrét elemeket.
+      // Use admin-configured prompt for YouTube search terms
+      const structuredPrompt = `${prompt
+        .replace('{title}', title)
+        .replace('{content}', content.substring(0, 800))}
 
-Cím: ${title}
-Tartalom: ${content.substring(0, 800)}
 Szakma: ${professionName || 'Általános'}
 Tantárgy: ${subjectName || 'Általános'}
 
