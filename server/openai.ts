@@ -381,7 +381,9 @@ export async function generateChatResponse(
 
     // Skip external API routing for basic AI-only mode or simple chat
     if (moduleContent === 'basic_ai_only' || moduleContent === 'standalone' || moduleContent === 'chat') {
-      const systemMessage = customSystemMessage || cachedSystemMessage || "Te egy szakértő oktatási AI asszisztens vagy, aki magyar nyelven segít a tanulásban.";
+      // Use the provided customSystemMessage if available, otherwise use a directive system prompt
+      // that instructs the AI to follow the complex user prompt coming from enhanced-module-generator
+      const systemMessage = customSystemMessage || cachedSystemMessage || "Kövesd pontosan a kapott utasításokat a tananyag létrehozásához. A bemenet tartalmazza a témát, a tartalom típusát, a szakmai kontextust és a formázási követelményeket (pl. Mermaid diagram).";
 
       if (provider === 'openai') {
         const openai = await getOpenAIClient();
