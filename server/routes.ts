@@ -7,6 +7,7 @@ import { setupLocalAuth } from "./localAuth";
 import { multiApiService } from "./multiApiService";
 import { aiQueueManager } from "./ai-queue-manager";
 import { mermaidService } from "./mermaid-service";
+import { enhancedModuleGenerator } from "./enhanced-module-generator";
 
 
 // Combined authentication middleware for both Replit and local auth
@@ -958,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/teacher/classes/:id/grades', combinedAuth, checkTeacher, async (req: any, res) => {
     try {
       const classId = parseInt(req.params.id);
-      const { startDate, endDate } = req.query;
+      const { startDate, endDate, studentId } = req.query;
 
       // Ensure class exists
       const classData = await storage.getClassById(classId);
@@ -972,7 +973,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Fetch results
-      const results = await storage.getTestResultsByClass(classId, startDate as string, endDate as string);
+      const results = await storage.getTestResultsByClass(
+        classId,
+        startDate as string,
+        endDate as string,
+        studentId as string
+      );
 
       // Calculate grade (1-5) for each result
       const resultsWithGrades = results.map(r => {
@@ -2298,6 +2304,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating module:", error);
       res.status(500).json({ message: "Failed to update module" });
+    }
+  });
+
+  // AI Regenerate Module Content
+  app.post('/api/modules/:id/ai-regenerate', combinedAuth, async (req: any, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      // Only allow teachers and admins to regenerate content
+      if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const module = await storage.getModule(moduleId);
+      if (!module) {
+        return res.status(404).json({ message: "Module not found" });
+      }
+
+      const { title, content } = req.body;
+      const baseContent = content || module.content;
+      const moduleTitle = title || module.title;
+
+      console.log(`Regenerating AI content for module ${moduleId}: "${moduleTitle}"`);
+
+      // Get subject context if available
+      let subjectContext = '';
+      let subjectName = '';
+      let professionName = '';
+
+      if (module.subjectId) {
+        const subject = await storage.getSubject(module.subjectId);
+        if (subject) {
+          subjectName = subject.name;
+          subjectContext = `Tantárgy: ${subject.name}`;
+
+          if (subject.professionId) {
+            const professions = await storage.getProfessions();
+            const profession = professions.find(p => p.id === subject.professionId);
+            if (profession) {
+              professionName = profession.name;
+              subjectContext += `, Szakma: ${profession.name}`;
+            }
+          }
+        }
+      }
+
+      // Generate enhanced content with Mermaid diagrams
+      const enhancedContent = await enhancedModuleGenerator.generateEnhancedModule(
+        moduleTitle,
+        baseContent,
+        subjectContext,
+        undefined, // customSystemMessage
+        subjectName,
+        professionName
+      );
+
+      // Update the module with new content
+      const updatedModule = await storage.updateModule(moduleId, {
+        conciseContent: enhancedContent.conciseVersion,
+        detailedContent: enhancedContent.detailedVersion,
+        keyConceptsData: enhancedContent.keyConceptsWithVideos
+      });
+
+      console.log(`Module ${moduleId} successfully regenerated with visual aids.`);
+      res.json(updatedModule);
+
+    } catch (error) {
+      console.error("Error regenerating module:", error);
+      res.status(500).json({ message: "Failed to regenerate module content" });
     }
   });
 

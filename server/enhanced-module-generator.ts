@@ -88,7 +88,7 @@ export class EnhancedModuleGenerator {
     return {
       youtubePrompt: youtubePromptSetting?.value || 'Generálj 1-2 konkrét YouTube keresési kifejezést a modul legfontosabb fogalmaihoz. Fókuszálj praktikus, oktatási tartalmakra és kerüld az ismétlődő kereséseket. Modulcím: {title}, Tartalom: {content}',
       wikipediaPrompt: wikipediaPromptSetting?.value || 'Azonosítsd a modul legfontosabb szakmai kifejezéseit és fogalmait, amelyekhez Wikipedia linkeket kell hozzáadni. Csak azokat a kifejezéseket válaszd ki, amelyek valóban fontosak a témához. Modulcím: {title}, Tartalom: {content}',
-      internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével. Használj aktuális információkat, gyakorlati példákat és strukturált felépítést. KÖTELEZŐ: Illessz be legalább egy Mermaid diagramot (folyamatábra, pl. graph TD formátumban) a folyamatok szemléltetésére! Modulcím: {title}, Eredeti tartalom: {content}',
+      internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével using actual information. KÖTELEZŐ: A magyarázatot vizuálisan is támaszd alá legalább egy Mermaid diagrammal (pl. folyamatábra, graph TD vagy elmetérkép)! A diagram segítse a megértést. Modulcím: {title}, Eredeti tartalom: {content}',
       conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör, lényegre törő tananyagot a következő címhez: {title}. Alapanyag: {content}. Követelmények: Maximum 300-400 szó, csak a legfontosabb információk, egyszerű nyelvezet, markdown formázás.'
     };
   }
@@ -156,6 +156,7 @@ KÖVETELMÉNYEK:
 - Markdown formázás
 - Gyakorlati fókusz
 - NE ismételd meg a részletes verziót
+- HA a téma engedi (pl. folyamat, hierarchia), illessz be egy EGYSZERŰ Mermaid diagramot (graph TD) a vizuális szemléltetéshez!
 
 Válasz:`;
 
@@ -378,7 +379,8 @@ Követelmények:
 - Wikipedia linkek releváns fogalmakhoz: [fogalom](https://hu.wikipedia.org/wiki/Fogalom)
 - 500-800 szó
 - Magyar nyelv
-- **KÖTELEZŐ: Legalább egy Mermaid diagram (folyamatábra vagy elmetérkép)**
+- **KÖTELEZŐ: Legalább egy Mermaid diagram (folyamatábra vagy elmetérkép) a vizuális szemléltetéshez!**
+- A diagram legyen helyes szintaxisú és a tartalomhoz kapcsolódó.
 
 Válasz csak a formázott tartalommal:
 

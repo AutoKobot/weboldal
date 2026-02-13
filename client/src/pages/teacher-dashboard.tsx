@@ -61,6 +61,7 @@ interface Student {
   completedModules: number[];
   createdAt: string;
   testResults?: TestResult[];
+  classId?: number;
 }
 
 interface Module {
@@ -95,6 +96,7 @@ export default function TeacherDashboard() {
 
   // Class Stats State
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState("week"); // week, month, all
 
   // Fetch students
@@ -129,7 +131,7 @@ export default function TeacherDashboard() {
   }
 
   const gradesQueryKey = selectedClassId && selectedClassId !== "all"
-    ? `/api/teacher/classes/${selectedClassId}/grades?startDate=${startDateStr}`
+    ? `/api/teacher/classes/${selectedClassId}/grades?startDate=${startDateStr}${selectedStudentId !== "all" ? `&studentId=${selectedStudentId}` : ""}`
     : null;
 
   const { data: classGrades = [], isLoading: gradesLoading } = useQuery<GradeResult[]>({
@@ -486,7 +488,10 @@ export default function TeacherDashboard() {
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <label className="text-sm font-medium mb-2 block">Válasszon osztályt</label>
-                    <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <Select value={selectedClassId} onValueChange={(val) => {
+                      setSelectedClassId(val);
+                      setSelectedStudentId("all"); // Reset student selection when changing class
+                    }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Válasszon osztályt..." />
                       </SelectTrigger>
@@ -499,6 +504,30 @@ export default function TeacherDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {selectedClassId !== "all" && (
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">Tanuló szűrése</label>
+                      <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Minden tanuló" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Minden tanuló</SelectItem>
+                          {students
+                            .filter(s => s.classId === parseInt(selectedClassId))
+                            .map((student) => (
+                              <SelectItem key={student.id} value={student.id}>
+                                {student.firstName && student.lastName
+                                  ? `${student.firstName} ${student.lastName}`
+                                  : student.username
+                                }
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div className="flex-1">
                     <label className="text-sm font-medium mb-2 block">Időszak</label>

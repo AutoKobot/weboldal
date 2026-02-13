@@ -65,7 +65,7 @@ import {
   type InsertTestResult,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -1555,16 +1555,27 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(testResults.createdAt));
   }
 
-  async getTestResultsByClass(classId: number, startDate?: string, endDate?: string): Promise<any[]> {
+  async getTestResultsByClass(
+    classId: number,
+    startDate?: string,
+    endDate?: string,
+    studentId?: string
+  ): Promise<any[]> {
     const conditions = [eq(users.classId, classId)];
 
     if (startDate) {
-      conditions.push(sql`${testResults.createdAt} >= ${startDate}`);
+      conditions.push(gte(testResults.createdAt, new Date(startDate)));
     }
 
     if (endDate) {
       // Add 1 day to include the end date fully if it's just a date string
-      conditions.push(sql`${testResults.createdAt} <= ${endDate}::date + interval '1 day'`);
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1);
+      conditions.push(lte(testResults.createdAt, end));
+    }
+
+    if (studentId) {
+      conditions.push(eq(testResults.userId, studentId));
     }
 
     return await db
@@ -1577,7 +1588,16 @@ export class DatabaseStorage implements IStorage {
         studentId: users.id,
         studentName: sql<string>`concat(${users.lastName}, ' ', ${users.firstName})`,
         moduleTitle: modules.title,
-        moduleId: modules.id
+        moduleId: modules.id,
+        grade: sql<number>`
+          CASE
+            WHEN ${testResults.score} >= 95 THEN 5
+            WHEN ${testResults.score} >= 80 THEN 4
+            WHEN ${testResults.score} >= 70 THEN 3
+            WHEN ${testResults.score} >= 60 THEN 2
+            ELSE 1
+          END
+        `.as('grade')
       })
       .from(testResults)
       .innerJoin(users, eq(testResults.userId, users.id))
