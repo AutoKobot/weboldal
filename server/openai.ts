@@ -305,7 +305,7 @@ async function generateGeminiChatResponse(
       systemPrompt += `\n\nJelenlegi modul: ${moduleContent.substring(0, 500)}`;
     }
   } else {
-    systemPrompt = `Tapasztalt magyar oktatóként segíts a diákoknak részletesen és érthetően. Adj strukturált, praktikus magyarázatokat példákkal. ${moduleContent ? `\n\nTananyag: ${moduleContent.substring(0, 400)}` : ''}`;
+    systemPrompt = `Te egy professzionális tananyag-fejlesztő AI vagy. A feladatod: a kapott bemeneti szöveget ALAPANYAGKÉNT kezelve készíts belőle részletes, strukturált, oktatási célú tananyagot. NE másold le egyszerűen a szöveget! Bővítsd ki magyarázatokkal, példákkal, és tagold logikusan. ${moduleContent ? `\n\nTananyag: ${moduleContent.substring(0, 400)}` : ''}`;
   }
 
   // Build conversation history for Gemini
@@ -324,7 +324,8 @@ async function generateGeminiChatResponse(
   fullPrompt += `Felhasználó: ${userMessage}\nAsszisztens: `;
 
   try {
-    const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Start with a stable model
+    const model = gemini.getGenerativeModel({ model: "gemini-pro" });
 
     const result = await model.generateContentStream(fullPrompt);
 
@@ -353,8 +354,11 @@ async function generateGeminiChatResponse(
     try {
       const openai = await getOpenAIClient();
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo", // Fallback to gpt-3.5-turbo for reliability
-        messages: [{ role: "user", content: fullPrompt }],
+        model: "gpt-4o", // Fallback to GPT-4o for high quality
+        messages: [
+          { role: "system", content: "Te egy professzionális tananyag-fejlesztő AI vagy. Kezeld a bemenetet ALAPANYAGKÉNT." },
+          { role: "user", content: fullPrompt }
+        ],
         temperature: 0.7,
         max_tokens: 4000,
       });
