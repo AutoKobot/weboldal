@@ -1477,7 +1477,9 @@ Tantárgy: ${subjectName || 'Általános'}`;
         
 ${contextInfo}
         
-A fenti bemenetet CSAK kiindulópontnak használd, a kimenet legyen egy teljes értékű, kifejtett, ${type === 'concise' ? 'tömör, de lényegre törő' : 'részletes és alapos'} oktatási anyag! Ne másold le, hanem FEJLESZD TOVÁBB magyarázatokkal és példákkal!`;
+A fenti bemenetet CSAK kiindulópontnak használd, a kimenet legyen egy teljes értékű, kifejtett, ${type === 'concise' ? 'tömör, de lényegre törő' : 'részletes és alapos'} oktatási anyag! Ne másold le, hanem FEJLESZD TOVÁBB magyarázatokkal és példákkal!
+
+KÖTELEZŐ ELEM: A válaszba illessz be egy Mermaid diagramot (pl. mermaid graph TD blokk), ami összefoglalja a tananyag struktúráját vagy folyamatát! Enélkül a válasz elfogadhatatlan.`;
 
       const response = await generateChatResponse(enhancedPrompt, 'basic_ai_only');
       return response.message;

@@ -324,26 +324,40 @@ async function generateGeminiChatResponse(
   fullPrompt += `Felhasználó: ${userMessage}\nAsszisztens: `;
 
   try {
-    // Start with a stable model
-    const model = gemini.getGenerativeModel({ model: "gemini-pro" });
+    // Try multiple Gemini models in order of preference
+    const modelsToTry = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"];
+    let lastError;
 
-    const result = await model.generateContentStream(fullPrompt);
+    for (const modelName of modelsToTry) {
+      try {
+        // console.log(`Trying Gemini model: ${modelName}`);
+        const model = gemini.getGenerativeModel({ model: modelName });
+        const result = await model.generateContentStream(fullPrompt);
 
-    let fullResponse = '';
-    const startTime = Date.now();
+        let fullResponse = '';
+        const startTime = Date.now();
 
-    for await (const chunk of result.stream) {
-      const content = chunk.text();
-      if (content) {
-        fullResponse += content;
-        if (onChunk) {
-          const timestamp = Date.now() - startTime;
-          onChunk(content, timestamp);
+        for await (const chunk of result.stream) {
+          const content = chunk.text();
+          if (content) {
+            fullResponse += content;
+            if (onChunk) {
+              const timestamp = Date.now() - startTime;
+              onChunk(content, timestamp);
+            }
+          }
         }
+
+        return fullResponse; // Success!
+      } catch (error: any) {
+        console.error(`Gemini model ${modelName} failed:`, error.message);
+        lastError = error;
+        // Continue to next model
       }
     }
 
-    return fullResponse;
+    // If all Gemini models failed
+    throw lastError || new Error("All Gemini models failed");
   } catch (error: any) {
     console.error("Gemini streaming API error:", error);
 
