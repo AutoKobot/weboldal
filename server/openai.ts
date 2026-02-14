@@ -406,11 +406,15 @@ export async function generateChatResponse(
       if (provider === 'openai') {
         const openai = await getOpenAIClient();
         const message = await generateOpenAIChatResponse(openai, userMessage, undefined, [], systemMessage);
-        return { message, suggestions: [] };
+        // Strip markdown code fences if the AI wrapped the entire response
+        const cleanMessage = message.replace(/^```(markdown|md)?\s*|\s*```$/gi, '');
+        return { message: cleanMessage, suggestions: [] };
       } else {
         const gemini = await getGeminiClient();
         const message = await generateGeminiChatResponse(userMessage, 'basic_ai_only');
-        return { message, suggestions: [] };
+        // Strip markdown code fences if the AI wrapped the entire response
+        const cleanMessage = message.replace(/^```(markdown|md)?\s*|\s*```$/gi, '');
+        return { message: cleanMessage, suggestions: [] };
       }
     }
 
