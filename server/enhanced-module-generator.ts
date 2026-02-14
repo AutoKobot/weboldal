@@ -1564,8 +1564,15 @@ KÖTELEZŐ ELEM: A válaszba illessz be egy Mermaid diagramot (pl. mermaid graph
         console.log(`🎥 YouTube API call for: "${searchTerm}"`);
 
         // Use optimized cached search
-        const educationalQuery = `${searchTerm} oktatás magyar`;
-        const youtubeVideos = await this.searchYouTubeWithCache(educationalQuery);
+        // Use optimized cached search with fallback
+        let educationalQuery = `${searchTerm} oktatás`;
+        let youtubeVideos = await this.searchYouTubeWithCache(educationalQuery);
+
+        // If no videos found with "oktatás" suffix, try broader search
+        if (!youtubeVideos || youtubeVideos.length === 0) {
+          console.log(`⚠️ No videos found for "${educationalQuery}", trying broader search: "${searchTerm}"`);
+          youtubeVideos = await this.searchYouTubeWithCache(searchTerm);
+        }
 
         // Generate AI definition for the concept
         const definitionPrompt = `Adj egy rövid szakmai definíciót erre a fogalomra: "${searchTerm}". Csak 1-2 mondat, magyar nyelven.`;
