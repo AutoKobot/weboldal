@@ -623,7 +623,7 @@ export default function ModuleViewer() {
 
                           if (language === 'mermaid') {
                             return (
-                              <div className="mermaid bg-white p-4 border rounded-lg my-4">
+                              <div className="mermaid bg-white p-6 border rounded-lg my-6 overflow-x-auto shadow-sm">
                                 {String(children).replace(/\n$/, '')}
                               </div>
                             );
