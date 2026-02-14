@@ -1473,11 +1473,11 @@ Tantárgy: ${subjectName || 'Általános'}`;
 
       const enhancedPrompt = `${prompt
         .replace('{title}', title)
-        .replace('{content}', content)}
+        .replace('{content}', `Kezdeti vázlat/bemenet:\n${content}`)}
         
 ${contextInfo}
         
-Generálj ${type === 'concise' ? 'tömör' : 'részletes'} tartalmat.`;
+A fenti bemenetet CSAK kiindulópontnak használd, a kimenet legyen egy teljes értékű, kifejtett, ${type === 'concise' ? 'tömör, de lényegre törő' : 'részletes és alapos'} oktatási anyag! Ne másold le, hanem FEJLESZD TOVÁBB magyarázatokkal és példákkal!`;
 
       const response = await generateChatResponse(enhancedPrompt, 'basic_ai_only');
       return response.message;
