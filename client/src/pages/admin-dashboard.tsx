@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { FlashcardImport } from "@/components/flashcard-import";
-import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp } from "lucide-react";
 import FileUpload, { UrlInput } from "@/components/file-upload";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
 import { LinkEditor } from "@/components/link-editor";
@@ -3640,6 +3640,20 @@ export default function AdminDashboard() {
                     )}
                   />
                 </div>
+
+                {/* Tanulókártyák kezelése (csak szerkesztéskor) */}
+                {editingModule && (
+                  <div className="space-y-4 border-t pt-4">
+                    <h4 className="font-medium text-sm text-green-700 flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4" />
+                      Tanulókártyák kezelése
+                    </h4>
+                    <FlashcardImport
+                      moduleId={editingModule.id}
+                      moduleTitle={editingModule.title}
+                    />
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}
