@@ -3,7 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupLocalAuth } from "./localAuth";
+import { setupLocalAuth, comparePasswords } from "./localAuth";
 import { multiApiService } from "./multiApiService";
 import { aiQueueManager } from "./ai-queue-manager";
 import { mermaidService } from "./mermaid-service";
@@ -737,6 +737,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating class:", error);
       res.status(500).json({ message: "Failed to create class" });
+    }
+  });
+
+  app.delete('/api/school-admin/classes/:id', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { password } = req.body;
+
+      // 1. Verify password
+      const user = await storage.getUser(req.user.id);
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "Hitelesítési hiba" });
+      }
+
+      const isPasswordValid = await comparePasswords(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Helytelen jelszó" });
+      }
+
+      // 2. Check if the class belongs to this school admin (security check)
+      const classData = await storage.getClassById(classId);
+      if (!classData) {
+        return res.status(404).json({ message: "Osztály nem található" });
+      }
+
+      if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id) {
+        return res.status(403).json({ message: "Nincs jogosultsága törölni ezt az osztályt" });
+      }
+
+      // 3. Delete the class
+      await storage.deleteClass(classId);
+      res.json({ message: "Osztály sikeresen törölve" });
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      res.status(500).json({ message: "Nem sikerült törölni az osztályt" });
     }
   });
 

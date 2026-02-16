@@ -6,9 +6,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { School, Users, UserCheck, Search, LogOut, UserPlus, GraduationCap, Plus, Info, Edit, Save, X } from "lucide-react";
+import { School, Users, UserCheck, Search, LogOut, UserPlus, GraduationCap, Plus, Info, Edit, Save, X, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 // CreateClassForm komponens az osztályok létrehozásához
@@ -219,6 +230,94 @@ function BulkImportDialog({ classId, className, onSuccess, onCancel }: { classId
         </Button>
       </div>
     </div>
+  );
+}
+
+function DeleteClassDialog({ classId, className, onSuccess }: { classId: number, className: string, onSuccess: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+
+  const handleDelete = async () => {
+    if (!password) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/school-admin/classes/${classId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: 'include',
+        body: JSON.stringify({ password }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Siker",
+          description: "Osztály sikeresen törölve",
+        });
+        setIsOpen(false);
+        setPassword("");
+        onSuccess();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Hiba",
+          description: error.message || "Nem sikerült törölni az osztályt",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Hiba",
+        description: "Hálózati hiba történt",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive" size="sm">
+          <Trash2 size={16} />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Osztály törlése</AlertDialogTitle>
+          <AlertDialogDescription>
+            Biztosan törölni szeretné a(z) <strong>{className}</strong> osztályt?
+            Ez a művelet nem vonható vissza, és az osztályhoz tartozó diákok osztály nélkül maradnak.
+            A törléshez adja meg a jelszavát.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="py-4">
+          <Label htmlFor="password-confirm">Jelszó megerősítés</Label>
+          <Input
+            id="password-confirm"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Adja meg a jelszavát"
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPassword("")}>Mégse</AlertDialogCancel>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isDeleting || !password}
+          >
+            {isDeleting ? "Törlés..." : "Törlés"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -863,6 +962,11 @@ export default function SchoolAdminDashboard() {
                                   >
                                     <Users size={16} />
                                   </Button>
+                                  <DeleteClassDialog
+                                    classId={classItem.id}
+                                    className={classItem.name}
+                                    onSuccess={fetchData}
+                                  />
                                 </div>
                               )}
                             </div>
@@ -1063,6 +1167,37 @@ export default function SchoolAdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Regisztrált tanárok ({teachers.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {teachers.map((teacher) => (
+                    <div
+                      key={teacher.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {teacher.firstName} {teacher.lastName}
+                        </h3>
+                        <p className="text-sm text-gray-500">@{teacher.username}</p>
+                        {teacher.email && (
+                          <p className="text-sm text-gray-500">{teacher.email}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {teachers.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      Még nincsenek tanárok regisztrálva.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Diák regisztráció tab */}
@@ -1138,6 +1273,42 @@ export default function SchoolAdminDashboard() {
                     <UserPlus size={16} />
                     <span>Diák regisztrálása</span>
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Regisztrált diákok ({students.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {students.map((student) => (
+                    <div
+                      key={student.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {`${student.firstName || ""} ${student.lastName || ""}`.trim() || student.username}
+                        </h3>
+                        <p className="text-sm text-gray-500">@{student.username}</p>
+                        {student.email && (
+                          <p className="text-sm text-gray-500">{student.email}</p>
+                        )}
+                        {student.classId && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Osztály: {classes.find(c => c.id === student.classId)?.name || 'Ismeretlen'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {students.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      Még nincsenek diákok regisztrálva.
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
