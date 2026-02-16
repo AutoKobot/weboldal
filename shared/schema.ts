@@ -90,6 +90,15 @@ export const modules = pgTable("modules", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Flashcards table for learning cards
+export const flashcards = pgTable("flashcards", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  front: text("front").notNull(),
+  back: text("back").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Chat messages table
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
@@ -133,6 +142,11 @@ export const subjectsRelations = relations(subjects, ({ one, many }) => ({
 export const modulesRelations = relations(modules, ({ one, many }) => ({
   subject: one(subjects, { fields: [modules.subjectId], references: [subjects.id] }),
   chatMessages: many(chatMessages),
+  flashcards: many(flashcards),
+}));
+
+export const flashcardsRelations = relations(flashcards, ({ one }) => ({
+  module: one(modules, { fields: [flashcards.moduleId], references: [modules.id] }),
 }));
 
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
@@ -515,6 +529,14 @@ export type YoutubeVideo = z.infer<typeof youtubeVideoSchema>;
 export type WikipediaLink = z.infer<typeof wikipediaLinkSchema>;
 export type KeyConcept = z.infer<typeof keyConceptSchema>;
 export type KeyConceptsData = z.infer<typeof keyConceptsDataSchema>;
+
+// Flashcard types
+export const insertFlashcardSchema = createInsertSchema(flashcards).omit({
+  id: true,
+  createdAt: true,
+});
+export type Flashcard = typeof flashcards.$inferSelect;
+export type InsertFlashcard = z.infer<typeof insertFlashcardSchema>;
 
 // Community types
 export type CommunityGroup = typeof communityGroups.$inferSelect;

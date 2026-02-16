@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { FlashcardImport } from "@/components/flashcard-import";
 import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink } from "lucide-react";
 import FileUpload, { UrlInput } from "@/components/file-upload";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
@@ -2110,6 +2111,24 @@ export default function AdminDashboard() {
                                 <Wand2 className="h-4 w-4" />
                               )}
                             </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-green-600"
+                                  title="Tanulókártyák importálása"
+                                >
+                                  <FileUp className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <FlashcardImport
+                                  moduleId={module.id}
+                                  moduleTitle={module.title}
+                                />
+                              </DialogContent>
+                            </Dialog>
                             <Button
                               variant="ghost"
                               size="sm"

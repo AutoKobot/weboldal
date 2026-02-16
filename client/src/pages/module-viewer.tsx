@@ -11,10 +11,11 @@ import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { Module } from "@shared/schema";
+import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
+import { FlashcardQuiz } from "@/components/flashcard-quiz";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';
@@ -32,15 +33,16 @@ export default function ModuleViewer() {
   const [chatInterfaceKey, setChatInterfaceKey] = useState(0);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  
+
   // Multimédia modal state-ek
   const [showImageModal, setShowImageModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showPodcastModal, setShowPodcastModal] = useState(false);
-  const [selectedYoutubeVideo, setSelectedYoutubeVideo] = useState<{title: string, videoId: string} | null>(null);
+  const [selectedYoutubeVideo, setSelectedYoutubeVideo] = useState<{ title: string, videoId: string } | null>(null);
   const [contentVersion, setContentVersion] = useState<'concise' | 'detailed'>('concise');
+  const [showFlashcards, setShowFlashcards] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const mermaidRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +57,7 @@ export default function ModuleViewer() {
 
   // Wikipedia popup state
   const [showWikipediaModal, setShowWikipediaModal] = useState(false);
-  const [wikipediaContent, setWikipediaContent] = useState<{title: string, content: string, url: string} | null>(null);
+  const [wikipediaContent, setWikipediaContent] = useState<{ title: string, content: string, url: string } | null>(null);
   const [isLoadingWikipedia, setIsLoadingWikipedia] = useState(false);
 
   // Universal DOM change observer for Mermaid re-rendering
@@ -64,7 +66,7 @@ export default function ModuleViewer() {
       const mermaidElements = document.querySelectorAll('code.language-mermaid, .mermaid');
       if (mermaidElements.length > 0) {
         console.log(`DOM changed: Re-rendering ${mermaidElements.length} Mermaid diagrams`);
-        
+
         // Convert code blocks to mermaid divs if needed
         mermaidElements.forEach((element, index) => {
           if (element.tagName === 'CODE' && element.textContent) {
@@ -78,7 +80,7 @@ export default function ModuleViewer() {
             }
           }
         });
-        
+
         // Re-run mermaid
         setTimeout(async () => {
           const mermaidDivs = document.querySelectorAll('.mermaid');
@@ -102,7 +104,7 @@ export default function ModuleViewer() {
     let lastRenderTime = 0;
     const observer = new MutationObserver((mutations) => {
       let shouldRerender = false;
-      
+
       mutations.forEach((mutation) => {
         // Only trigger on significant content changes
         if (mutation.type === 'childList') {
@@ -110,16 +112,16 @@ export default function ModuleViewer() {
           mutation.addedNodes.forEach(node => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
-              if (element.classList?.contains('prose') || 
-                  element.querySelector?.('code.language-mermaid, .mermaid') ||
-                  element.textContent?.includes('mermaid')) {
+              if (element.classList?.contains('prose') ||
+                element.querySelector?.('code.language-mermaid, .mermaid') ||
+                element.textContent?.includes('mermaid')) {
                 shouldRerender = true;
               }
             }
           });
         }
       });
-      
+
       if (shouldRerender) {
         const now = Date.now();
         // Prevent excessive rendering (max once per 1000ms)
@@ -152,27 +154,27 @@ export default function ModuleViewer() {
       // Extract article title from URL
       const urlParts = wikipediaUrl.split('/');
       let articleTitle = decodeURIComponent(urlParts[urlParts.length - 1]);
-      
+
       console.log(`Fetching Wikipedia content for: "${articleTitle}"`);
-      
+
       // Use backend proxy with improved search capabilities
       const response = await fetch(`/api/wikipedia/${encodeURIComponent(articleTitle)}`);
-      
+
       if (response.ok) {
         const data = await response.json();
-        
+
         setWikipediaContent({
           title: data.title || articleTitle,
           content: data.content || 'Nincs elérhető tartalom',
           url: data.url || wikipediaUrl
         });
         setShowWikipediaModal(true);
-        
+
         console.log(`Successfully loaded Wikipedia content for: "${data.title}"`);
       } else {
         const errorData = await response.json();
         console.log(`Wikipedia fetch failed: ${errorData.error} for "${articleTitle}"`);
-        
+
         // Show user-friendly error with suggestions
         setWikipediaContent({
           title: articleTitle,
@@ -180,17 +182,17 @@ export default function ModuleViewer() {
           url: wikipediaUrl
         });
         setShowWikipediaModal(true);
-        
+
         toast({
           title: "Wikipedia tartalom nem található",
           description: "A keresett kifejezéshez nincs elérhető Wikipedia cikk",
           variant: "destructive",
         });
       }
-      
+
     } catch (error) {
       console.error('Wikipedia fetch error:', error);
-      
+
       // Show error content in modal instead of just toast
       setWikipediaContent({
         title: "Hiba történt",
@@ -198,7 +200,7 @@ export default function ModuleViewer() {
         url: wikipediaUrl
       });
       setShowWikipediaModal(true);
-      
+
       toast({
         title: "Hálózati hiba",
         description: "Nem sikerült kapcsolódni a Wikipedia-hoz",
@@ -244,12 +246,12 @@ export default function ModuleViewer() {
     const renderMermaidDiagrams = async () => {
       try {
         // Initialize mermaid if not already done
-        mermaid.initialize({ 
+        mermaid.initialize({
           startOnLoad: false, // We'll handle rendering manually
           theme: 'default',
           securityLevel: 'loose',
         });
-        
+
         // Find all possible mermaid selectors
         const possibleSelectors = [
           '.language-mermaid',
@@ -258,20 +260,20 @@ export default function ModuleViewer() {
           '.mermaid',
           'code.mermaid'
         ];
-        
+
         let mermaidElements: Element[] = [];
-        
+
         for (const selector of possibleSelectors) {
           const elements = document.querySelectorAll(selector);
           mermaidElements = mermaidElements.concat(Array.from(elements));
         }
-        
+
         // Remove duplicates
         mermaidElements = Array.from(new Set(mermaidElements));
-        
+
         console.log(`Found ${mermaidElements.length} potential Mermaid diagrams`);
         console.log('Mermaid elements:', mermaidElements);
-        
+
         if (mermaidElements.length > 0) {
           // Convert code blocks to mermaid divs if needed
           mermaidElements.forEach((element, index) => {
@@ -286,11 +288,11 @@ export default function ModuleViewer() {
               }
             }
           });
-          
+
           // Now run mermaid on the converted elements
           const mermaidDivs = document.querySelectorAll('.mermaid');
           console.log(`Processing ${mermaidDivs.length} Mermaid divs`);
-          
+
           if (mermaidDivs.length > 0) {
             try {
               await mermaid.run({
@@ -310,7 +312,7 @@ export default function ModuleViewer() {
         console.warn('Mermaid rendering failed:', error);
       }
     };
-    
+
     // Wait for DOM to be updated with content
     const timer = setTimeout(renderMermaidDiagrams, 500);
     return () => clearTimeout(timer);
@@ -329,6 +331,11 @@ export default function ModuleViewer() {
     retry: false,
   });
 
+  const { data: flashcards = [] } = useQuery<Flashcard[]>({
+    queryKey: [`/api/modules/${moduleId}/flashcards`],
+    enabled: !!module,
+  });
+
   const completeModuleMutation = useMutation({
     mutationFn: async () => {
       await apiRequest('POST', `/api/modules/${moduleId}/complete`);
@@ -336,16 +343,16 @@ export default function ModuleViewer() {
     onSuccess: async () => {
       // Clear all cache and force fresh data fetch
       queryClient.clear();
-      
+
       // Force immediate refresh of user data to get updated completed_modules
       await queryClient.refetchQueries({ queryKey: ['/api/auth/user'] });
-      
+
       // Show success message
       toast({
         title: "Gratulálunk!",
         description: "Sikeresen befejezted ezt a modult! A következő modul most már elérhető.",
       });
-      
+
       // Force page refresh after a short delay to ensure data sync
       setTimeout(() => {
         window.location.reload();
@@ -383,23 +390,23 @@ export default function ModuleViewer() {
     onSuccess: async () => {
       // Clear all cache immediately
       queryClient.clear();
-      
+
       // Force refetch of the current module
-      await queryClient.refetchQueries({ 
+      await queryClient.refetchQueries({
         queryKey: [`/api/modules/${moduleId}`],
         type: 'active'
       });
-      
+
       // Also invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
       queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
-      
+
       toast({
         title: "AI Újragenerálás sikeres!",
         description: "A modul tartalmát sikeresen frissítette az AI - Wikipedia linkekkel és videókkal bővítve.",
       });
       setIsRegenerating(false);
-      
+
       // Force component re-render by updating key
       setChatInterfaceKey(prev => prev + 1);
     },
@@ -490,8 +497,8 @@ export default function ModuleViewer() {
       </div>
 
       {/* Mobile Navigation */}
-      <MobileNav 
-        isOpen={isMobileNavOpen} 
+      <MobileNav
+        isOpen={isMobileNavOpen}
         onClose={() => setIsMobileNavOpen(false)}
         user={user}
       />
@@ -501,7 +508,7 @@ export default function ModuleViewer() {
         {/* Mobile Header */}
         <header className="bg-student-warm shadow-sm border-b border-neutral-100 lg:hidden">
           <div className="flex items-center justify-between p-4">
-            <button 
+            <button
               onClick={() => setIsMobileNavOpen(true)}
               className="text-neutral-700"
             >
@@ -517,8 +524,8 @@ export default function ModuleViewer() {
           {/* Module Content */}
           <main className="flex-1 p-4 lg:p-8 relative">
             {/* Back Button */}
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={handleBackNavigation}
               className="mb-6"
             >
@@ -540,7 +547,7 @@ export default function ModuleViewer() {
                     <ImageIcon size={18} className="text-neutral-600" />
                   </Button>
                 )}
-                
+
                 {module.youtubeUrl && (
                   <Button
                     variant="outline"
@@ -552,7 +559,7 @@ export default function ModuleViewer() {
                     <Youtube size={18} className="text-red-600" />
                   </Button>
                 )}
-                
+
                 {module.videoUrl && (
                   <Button
                     variant="outline"
@@ -564,7 +571,7 @@ export default function ModuleViewer() {
                     <Play size={18} className="text-purple-600" />
                   </Button>
                 )}
-                
+
                 {module.audioUrl && (
                   <Button
                     variant="outline"
@@ -576,7 +583,7 @@ export default function ModuleViewer() {
                     <Volume2 size={18} className="text-green-600" />
                   </Button>
                 )}
-                
+
                 {module.podcastUrl && (
                   <Button
                     variant="outline"
@@ -621,9 +628,12 @@ export default function ModuleViewer() {
                     {(module.conciseContent || module.detailedContent) && (
                       <>
                         <Button
-                          variant={contentVersion === 'concise' ? 'default' : 'outline'}
+                          variant={(!showFlashcards && contentVersion === 'concise') ? 'default' : 'outline'}
                           size="sm"
-                          onClick={() => setContentVersion('concise')}
+                          onClick={() => {
+                            setShowFlashcards(false);
+                            setContentVersion('concise');
+                          }}
                           disabled={!module.conciseContent}
                           className="text-xs"
                         >
@@ -631,9 +641,12 @@ export default function ModuleViewer() {
                           Tömör
                         </Button>
                         <Button
-                          variant={contentVersion === 'detailed' ? 'default' : 'outline'}
+                          variant={(!showFlashcards && contentVersion === 'detailed') ? 'default' : 'outline'}
                           size="sm"
-                          onClick={() => setContentVersion('detailed')}
+                          onClick={() => {
+                            setShowFlashcards(false);
+                            setContentVersion('detailed');
+                          }}
                           disabled={!module.detailedContent}
                           className="text-xs"
                         >
@@ -641,6 +654,17 @@ export default function ModuleViewer() {
                           Részletes
                         </Button>
                       </>
+                    )}
+                    {flashcards.length > 0 && (
+                      <Button
+                        variant={showFlashcards ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowFlashcards(!showFlashcards)}
+                        className="text-xs"
+                      >
+                        <GraduationCap className="w-3 h-3 mr-1" />
+                        Tanulókártyák
+                      </Button>
                     )}
                     {/* AI Regenerate button for admins */}
                     {user?.role === 'admin' && (
@@ -668,188 +692,194 @@ export default function ModuleViewer() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div ref={mermaidRef} className="prose prose-neutral max-w-none dark:prose-invert">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      // Custom styling for markdown elements
-                      h1: ({children}) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
-                      p: ({children}) => <p className="mb-3 leading-relaxed">{children}</p>,
-                      ul: ({children}) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
-                      ol: ({children}) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
-                      li: ({children}) => <li className="mb-1">{children}</li>,
-                      blockquote: ({children}) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
-                      pre: ({children}) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
-                      strong: ({children}) => {
-                        // Convert strong text to Wikipedia links for key concepts
-                        const text = String(children);
-                        
-                        // Common cooking ingredients and technical terms that should get Wikipedia links
-                        const importantTerms = [
-                          'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
-                          'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
-                          'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt'
-                        ];
-                        
-                        // Check if this text is an important term
-                        const isImportantTerm = importantTerms.some(term => 
-                          text.toLowerCase().includes(term.toLowerCase())
-                        );
-                        
-                        // Also check against key concepts data
-                        let keyConceptsData = [];
-                        try {
-                          keyConceptsData = module.keyConceptsData ? 
-                            (typeof module.keyConceptsData === 'string' ? 
-                              JSON.parse(module.keyConceptsData) : 
-                              module.keyConceptsData) : [];
-                        } catch (e) {
-                          // If parsing fails, just use empty array
-                        }
-                        
-                        const matchingConcept = keyConceptsData.find((concept: any) => 
-                          concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
-                        );
-                        
-                        if (isImportantTerm || matchingConcept) {
-                          const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
+                {showFlashcards ? (
+                  <div className="py-8">
+                    <FlashcardQuiz flashcards={flashcards} />
+                  </div>
+                ) : (
+                  <div ref={mermaidRef} className="prose prose-neutral max-w-none dark:prose-invert">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        // Custom styling for markdown elements
+                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
+                        p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                        blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
+                        pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+                        strong: ({ children }) => {
+                          // Convert strong text to Wikipedia links for key concepts
+                          const text = String(children);
+
+                          // Common cooking ingredients and technical terms that should get Wikipedia links
+                          const importantTerms = [
+                            'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
+                            'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
+                            'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt'
+                          ];
+
+                          // Check if this text is an important term
+                          const isImportantTerm = importantTerms.some(term =>
+                            text.toLowerCase().includes(term.toLowerCase())
+                          );
+
+                          // Also check against key concepts data
+                          let keyConceptsData = [];
+                          try {
+                            keyConceptsData = module.keyConceptsData ?
+                              (typeof module.keyConceptsData === 'string' ?
+                                JSON.parse(module.keyConceptsData) :
+                                module.keyConceptsData) : [];
+                          } catch (e) {
+                            // If parsing fails, just use empty array
+                          }
+
+                          const matchingConcept = keyConceptsData.find((concept: any) =>
+                            concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
+                          );
+
+                          if (isImportantTerm || matchingConcept) {
+                            const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
+                            return (
+                              <a
+                                href={wikipediaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
+                                title={`Wikipedia: ${text}`}
+                              >
+                                {children}
+                                <span className="text-xs">🔗</span>
+                              </a>
+                            );
+                          }
+
+                          return <strong className="font-semibold text-primary">{children}</strong>;
+                        },
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
+                        th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
+                        td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
+                        a: ({ href, children }) => {
+                          // Check if this is a Wikipedia link
+                          if (href && href.includes('hu.wikipedia.org/wiki/')) {
+                            return (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  fetchWikipediaContent(href);
+                                }}
+                                className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
+                              >
+                                {children}
+                                <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
+                              </button>
+                            );
+                          }
+                          // Regular external links
+                          return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
+                        },
+                        code: ({ className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || '');
+                          const language = match ? match[1] : '';
+
+                          if (language === 'mermaid') {
+                            return (
+                              <div className="mermaid bg-student-warm p-4 border rounded-lg my-4">
+                                {String(children).replace(/\n$/, '')}
+                              </div>
+                            );
+                          }
+
                           return (
-                            <a 
-                              href={wikipediaUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
-                              title={`Wikipedia: ${text}`}
-                            >
+                            <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
                               {children}
-                              <span className="text-xs">🔗</span>
-                            </a>
+                            </code>
                           );
                         }
-                        
-                        return <strong className="font-semibold text-primary">{children}</strong>;
-                      },
-                      em: ({children}) => <em className="italic">{children}</em>,
-                      table: ({children}) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
-                      th: ({children}) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
-                      td: ({children}) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
-                      a: ({href, children}) => {
-                        // Check if this is a Wikipedia link
-                        if (href && href.includes('hu.wikipedia.org/wiki/')) {
-                          return (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                fetchWikipediaContent(href);
-                              }}
-                              className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
-                            >
-                              {children}
-                              <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
-                            </button>
-                          );
+                      }}
+                    >
+                      {(() => {
+                        // AI enhanced modules: use selected version
+                        if (module.conciseContent || module.detailedContent) {
+                          if (contentVersion === 'concise' && module.conciseContent) {
+                            return module.conciseContent;
+                          }
+                          if (contentVersion === 'detailed' && module.detailedContent) {
+                            return module.detailedContent;
+                          }
+                          // Fallback to available content
+                          return module.detailedContent || module.conciseContent;
                         }
-                        // Regular external links
-                        return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
-                      },
-                      code: ({className, children, ...props}) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const language = match ? match[1] : '';
-                        
-                        if (language === 'mermaid') {
-                          return (
-                            <div className="mermaid bg-student-warm p-4 border rounded-lg my-4">
-                              {String(children).replace(/\n$/, '')}
-                            </div>
-                          );
-                        }
-                        
-                        return (
-                          <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
+                        // Regular modules: use original content
+                        return module.content;
+                      })()}
+                    </ReactMarkdown>
+
+                    {/* Key Concepts with YouTube Videos */}
                     {(() => {
-                      // AI enhanced modules: use selected version
-                      if (module.conciseContent || module.detailedContent) {
-                        if (contentVersion === 'concise' && module.conciseContent) {
-                          return module.conciseContent;
+                      try {
+                        const keyConceptsData = typeof module.keyConceptsData === 'string'
+                          ? JSON.parse(module.keyConceptsData)
+                          : module.keyConceptsData;
+
+                        if (!keyConceptsData || !Array.isArray(keyConceptsData) || keyConceptsData.length === 0) {
+                          return null;
                         }
-                        if (contentVersion === 'detailed' && module.detailedContent) {
-                          return module.detailedContent;
-                        }
-                        // Fallback to available content
-                        return module.detailedContent || module.conciseContent;
-                      }
-                      // Regular modules: use original content
-                      return module.content;
-                    })()}
-                  </ReactMarkdown>
-                  
-                  {/* Key Concepts with YouTube Videos */}
-                  {(() => {
-                    try {
-                      const keyConceptsData = typeof module.keyConceptsData === 'string' 
-                        ? JSON.parse(module.keyConceptsData) 
-                        : module.keyConceptsData;
-                      
-                      if (!keyConceptsData || !Array.isArray(keyConceptsData) || keyConceptsData.length === 0) {
+
+                        return (
+                          <div className="mt-8 border-t pt-6">
+                            <h3 className="text-lg font-semibold mb-4 text-primary flex items-center">
+                              <Youtube className="w-5 h-5 mr-2" />
+                              Kulcsfogalmak videókkal
+                            </h3>
+                            {keyConceptsData.map((concept: any, index: number) => (
+                              <div key={index} className="mb-6 p-4 bg-student-warm rounded-lg">
+                                <h4 className="font-semibold text-neutral-800 mb-2">{concept.concept}</h4>
+                                <p className="text-neutral-700 mb-3">{concept.definition}</p>
+                                {concept.youtubeVideos && concept.youtubeVideos.length > 0 && (
+                                  <div className="space-y-2">
+                                    <h5 className="text-sm font-medium text-neutral-600">Kapcsolódó videók:</h5>
+                                    {concept.youtubeVideos.map((video: any, videoIndex: number) => (
+                                      <button
+                                        key={videoIndex}
+                                        onClick={() => {
+                                          setSelectedYoutubeVideo({
+                                            title: video.title,
+                                            videoId: video.videoId
+                                          });
+                                          setShowYoutubeModal(true);
+                                        }}
+                                        className="flex items-center gap-3 p-3 bg-student-warm rounded border hover:border-red-300 hover:bg-red-50 transition-colors w-full text-left"
+                                      >
+                                        <Youtube className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-sm font-medium text-neutral-900 truncate">
+                                            {video.title}
+                                          </div>
+                                          <div className="text-xs text-neutral-600 line-clamp-2">
+                                            {video.description}
+                                          </div>
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      } catch (error) {
+                        console.error('Error parsing key concepts data:', error);
                         return null;
                       }
-                      
-                      return (
-                        <div className="mt-8 border-t pt-6">
-                          <h3 className="text-lg font-semibold mb-4 text-primary flex items-center">
-                            <Youtube className="w-5 h-5 mr-2" />
-                            Kulcsfogalmak videókkal
-                          </h3>
-                          {keyConceptsData.map((concept: any, index: number) => (
-                            <div key={index} className="mb-6 p-4 bg-student-warm rounded-lg">
-                              <h4 className="font-semibold text-neutral-800 mb-2">{concept.concept}</h4>
-                              <p className="text-neutral-700 mb-3">{concept.definition}</p>
-                              {concept.youtubeVideos && concept.youtubeVideos.length > 0 && (
-                                <div className="space-y-2">
-                                  <h5 className="text-sm font-medium text-neutral-600">Kapcsolódó videók:</h5>
-                                  {concept.youtubeVideos.map((video: any, videoIndex: number) => (
-                                    <button
-                                      key={videoIndex}
-                                      onClick={() => {
-                                        setSelectedYoutubeVideo({
-                                          title: video.title,
-                                          videoId: video.videoId
-                                        });
-                                        setShowYoutubeModal(true);
-                                      }}
-                                      className="flex items-center gap-3 p-3 bg-student-warm rounded border hover:border-red-300 hover:bg-red-50 transition-colors w-full text-left"
-                                    >
-                                      <Youtube className="w-5 h-5 text-red-600 flex-shrink-0" />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-medium text-neutral-900 truncate">
-                                          {video.title}
-                                        </div>
-                                        <div className="text-xs text-neutral-600 line-clamp-2">
-                                          {video.description}
-                                        </div>
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    } catch (error) {
-                      console.error('Error parsing key concepts data:', error);
-                      return null;
-                    }
-                  })()}
-                </div>
+                    })()}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -857,11 +887,11 @@ export default function ModuleViewer() {
             {(() => {
               const currentModule = allModules.find(m => m.id === moduleId);
               if (!currentModule) return null;
-              
+
               const subjectModules = allModules
                 .filter(m => m.subjectId === currentModule.subjectId)
                 .sort((a, b) => a.moduleNumber - b.moduleNumber);
-              
+
               const currentIndex = subjectModules.findIndex(m => m.id === moduleId);
               const previousModule = subjectModules[currentIndex - 1];
               const nextModule = subjectModules[currentIndex + 1];
@@ -870,7 +900,7 @@ export default function ModuleViewer() {
               // A következő modul akkor nyílik ki, ha az aktuális modul befejezett
               // De első esetben (nincs előző modul) mindig nyitott
               const isNextUnlocked = !nextModule || isCurrentCompleted;
-              
+
               // Debug logging
               console.log('Progressive unlocking debug:', {
                 moduleId,
@@ -879,7 +909,7 @@ export default function ModuleViewer() {
                 isCurrentCompleted,
                 isNextUnlocked
               });
-              
+
               return (
                 <div className="flex justify-between items-center mb-6 p-4 bg-student-warm rounded-lg">
                   <div>
@@ -896,13 +926,13 @@ export default function ModuleViewer() {
                       <div></div>
                     )}
                   </div>
-                  
+
                   <div className="text-center">
                     <span className="text-sm text-neutral-500">
                       {currentIndex + 1} / {subjectModules.length} modul
                     </span>
                   </div>
-                  
+
                   <div>
                     {nextModule ? (
                       <Button
@@ -947,10 +977,10 @@ export default function ModuleViewer() {
             </div>
             <div className="p-4">
               <div className="max-w-4xl mx-auto">
-                <ChatInterface 
-                  key={chatInterfaceKey} 
-                  userId={user.id} 
-                  moduleId={moduleId} 
+                <ChatInterface
+                  key={chatInterfaceKey}
+                  userId={user.id}
+                  moduleId={moduleId}
                   onQuizStart={() => setShowQuiz(true)}
                 />
               </div>
@@ -962,7 +992,7 @@ export default function ModuleViewer() {
       </div>
 
       {/* Multimédia Modal ablakok */}
-      
+
       {/* Kép Modal */}
       <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
         <DialogContent className="max-w-4xl">
@@ -970,8 +1000,8 @@ export default function ModuleViewer() {
             <DialogTitle>Illusztráció</DialogTitle>
           </DialogHeader>
           <div className="flex justify-center">
-            <img 
-              src={module?.imageUrl || ''} 
+            <img
+              src={module?.imageUrl || ''}
               alt="Modul illusztráció"
               className="max-w-full max-h-[70vh] object-contain rounded-lg"
             />
@@ -1006,7 +1036,7 @@ export default function ModuleViewer() {
           </DialogHeader>
           <div className="aspect-video">
             {module?.videoUrl && (
-              <video 
+              <video
                 src={module.videoUrl}
                 controls
                 className="w-full h-full rounded-lg"
@@ -1027,7 +1057,7 @@ export default function ModuleViewer() {
           </DialogHeader>
           <div className="flex flex-col gap-4">
             {module?.audioUrl && (
-              <audio 
+              <audio
                 src={module.audioUrl}
                 controls
                 className="w-full"
@@ -1050,7 +1080,7 @@ export default function ModuleViewer() {
             {module?.podcastUrl && (
               <div>
                 <p className="text-sm text-neutral-600 mb-3">Podcast link:</p>
-                <a 
+                <a
                   href={module.podcastUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1058,7 +1088,7 @@ export default function ModuleViewer() {
                 >
                   {module.podcastUrl}
                 </a>
-                <Button 
+                <Button
                   onClick={() => module.podcastUrl && window.open(module.podcastUrl, '_blank')}
                   className="mt-3 w-full"
                 >
@@ -1097,7 +1127,7 @@ export default function ModuleViewer() {
                   ))}
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t">
-                  <a 
+                  <a
                     href={wikipediaContent.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1105,8 +1135,8 @@ export default function ModuleViewer() {
                   >
                     Teljes cikk megtekintése →
                   </a>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => setShowWikipediaModal(false)}
                   >
@@ -1130,9 +1160,9 @@ export default function ModuleViewer() {
             <DialogTitle>Tudáspróba - {module?.title}</DialogTitle>
           </DialogHeader>
           <div className="mt-4">
-            <QuizInterface 
-              moduleId={moduleId} 
-              moduleTitle={module?.title || ''} 
+            <QuizInterface
+              moduleId={moduleId}
+              moduleTitle={module?.title || ''}
               onModuleComplete={() => {
                 // Refresh user data and module data to show completion status
                 queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });

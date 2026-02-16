@@ -63,6 +63,9 @@ import {
   testResults,
   type TestResult,
   type InsertTestResult,
+  flashcards,
+  type Flashcard,
+  type InsertFlashcard,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte } from "drizzle-orm";
@@ -140,6 +143,12 @@ export interface IStorage {
   createModule(module: InsertModule): Promise<Module>;
   updateModule(id: number, module: Partial<InsertModule>): Promise<Module>;
   deleteModule(id: number): Promise<void>;
+
+  // Flashcard operations
+  getFlashcards(moduleId: number): Promise<Flashcard[]>;
+  createFlashcard(flashcard: InsertFlashcard): Promise<Flashcard>;
+  deleteFlashcardsByModule(moduleId: number): Promise<void>;
+  bulkCreateFlashcards(flashcards: InsertFlashcard[]): Promise<Flashcard[]>;
 
   // Chat operations
   getChatMessages(userId: string, moduleId?: number): Promise<ChatMessage[]>;
@@ -684,6 +693,28 @@ export class DatabaseStorage implements IStorage {
     // 6. Finally delete the module
     await db.delete(modules).where(eq(modules.id, id));
     console.log(`✅ Module ${id} deleted`);
+  }
+
+  // Flashcard operations
+  async getFlashcards(moduleId: number): Promise<Flashcard[]> {
+    return await db.select().from(flashcards).where(eq(flashcards.moduleId, moduleId));
+  }
+
+  async createFlashcard(flashcard: InsertFlashcard): Promise<Flashcard> {
+    const [newFlashcard] = await db
+      .insert(flashcards)
+      .values(flashcard)
+      .returning();
+    return newFlashcard;
+  }
+
+  async deleteFlashcardsByModule(moduleId: number): Promise<void> {
+    await db.delete(flashcards).where(eq(flashcards.moduleId, moduleId));
+  }
+
+  async bulkCreateFlashcards(flashcardsList: InsertFlashcard[]): Promise<Flashcard[]> {
+    if (flashcardsList.length === 0) return [];
+    return await db.insert(flashcards).values(flashcardsList).returning();
   }
 
   // Chat operations

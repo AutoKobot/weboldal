@@ -98,6 +98,30 @@ const upload = multer({
   }
 });
 
+// Configure multer for CSV uploads
+const csvUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'csv-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv') || file.mimetype === 'application/vnd.ms-excel') {
+      cb(null, true);
+    } else {
+      cb(new Error('Csak .csv fájlok engedélyezettek.'));
+    }
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -2289,6 +2313,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching module:", error);
       res.status(500).json({ message: "Failed to fetch module" });
+    }
+  });
+
+  app.get('/api/modules/:id/flashcards', combinedAuth, async (req: any, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      const flashcards = await storage.getFlashcards(moduleId);
+      res.json(flashcards);
+    } catch (error) {
+      console.error("Error fetching flashcards:", error);
+      res.status(500).json({ message: "Failed to fetch flashcards" });
+    }
+  });
+
+  app.post('/api/modules/:id/flashcards/import', combinedAuth, csvUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'Nincs fájl feltöltve' });
+      }
+
+      const moduleId = parseInt(req.params.id);
+      const csvData = fs.readFileSync(req.file.path, 'utf-8');
+
+      const records = parse(csvData, {
+        columns: true,
+        skip_empty_lines: true
+      });
+
+      console.log('Importing flashcards from CSV. Records found:', records.length);
+
+      const flashcardsToInsert = records.map((record: any) => {
+        // Try to find Front/Back or Question/Answer or just use first two columns
+        const keys = Object.keys(record);
+        const front = record.Front || record.Question || record[keys[0]];
+        const back = record.Back || record.Answer || record[keys[1]];
+
+        return {
+          moduleId,
+          front: String(front || '').trim(),
+          back: String(back || '').trim(),
+        };
+      }).filter((f: any) => f.front && f.back);
+
+      if (flashcardsToInsert.length === 0) {
+        return res.status(400).json({ message: 'A CSV fájl nem tartalmaz érvényes tanulókártyákat. Ellenőrizd a fejlécet (Front, Back vagy Question, Answer)!' });
+      }
+
+      const inserted = await storage.bulkCreateFlashcards(flashcardsToInsert);
+
+      // Delete temporary file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.error('Error deleting temp CSV file:', e);
+      }
+
+      res.status(201).json({
+        message: `${inserted.length} tanulókártya sikeresen importálva`,
+        count: inserted.length
+      });
+    } catch (error) {
+      console.error("Error importing flashcards:", error);
+      res.status(500).json({ message: "Failed to import flashcards: " + (error as Error).message });
     }
   });
 
