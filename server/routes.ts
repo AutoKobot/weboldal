@@ -8,6 +8,7 @@ import { multiApiService } from "./multiApiService";
 import { aiQueueManager } from "./ai-queue-manager";
 import { mermaidService } from "./mermaid-service";
 import { enhancedModuleGenerator } from "./enhanced-module-generator";
+import { parse } from 'csv-parse/sync';
 
 
 // Combined authentication middleware for both Replit and local auth
