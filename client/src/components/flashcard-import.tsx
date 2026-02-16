@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { FileUp, Loader2, Download } from "lucide-react";
+import { FileUp, Loader2, Download, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FlashcardImportProps {
     moduleId: number;
@@ -14,8 +15,23 @@ interface FlashcardImportProps {
 
 export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardImportProps) {
     const [file, setFile] = useState<File | null>(null);
+    const [overwrite, setOverwrite] = useState(false);
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    const deleteMutation = useMutation({
+        mutationFn: async () => {
+            const response = await fetch(`/api/modules/${moduleId}/flashcards`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Törlés sikertelen');
+            return response.json();
+        },
+        onSuccess: () => {
+            toast({ title: "Sikeres törlés", description: "Minden kártya eltávolítva." });
+            queryClient.invalidateQueries({ queryKey: [`/api/modules/${moduleId}/flashcards`] });
+        }
+    });
 
     const importMutation = useMutation({
         mutationFn: async (fd: FormData) => {
@@ -54,8 +70,17 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
         }
     };
 
-    const handleImport = () => {
+    const handleImport = async () => {
         if (!file) return;
+
+        if (overwrite) {
+            try {
+                await deleteMutation.mutateAsync();
+            } catch (e) {
+                // Continue anyway or stop? Let's stop and show error
+                return;
+            }
+        }
 
         const formData = new FormData();
         formData.append('file', file);
@@ -97,6 +122,17 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                     </div>
                 </div>
 
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="overwrite"
+                        checked={overwrite}
+                        onCheckedChange={(checked) => setOverwrite(checked as boolean)}
+                    />
+                    <Label htmlFor="overwrite" className="text-sm cursor-pointer">
+                        Meglévő kártyák törlése importálás előtt (Felülírás)
+                    </Label>
+                </div>
+
                 <div className="flex flex-col gap-2">
                     <Button
                         variant="outline"
@@ -119,6 +155,21 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                             <FileUp className="h-4 w-4" />
                         )}
                         Importálás indítása
+                    </Button>
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            if (confirm("Biztosan törölni szeretnéd az összes tanulókártyát ehhez a modulhoz?")) {
+                                deleteMutation.mutate();
+                            }
+                        }}
+                        disabled={deleteMutation.isPending}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 w-fit mt-2"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        Minden kártya törlése
                     </Button>
                 </div>
             </div>

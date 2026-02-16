@@ -2380,6 +2380,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/modules/:id/flashcards', combinedAuth, async (req: any, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      await storage.deleteFlashcardsByModule(moduleId);
+      res.json({ message: "Minden tanulókártya törölve a modulhoz" });
+    } catch (error) {
+      console.error("Error deleting flashcards:", error);
+      res.status(500).json({ message: "Failed to delete flashcards" });
+    }
+  });
+
   app.post('/api/modules', customAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
