@@ -628,10 +628,10 @@ export default function ModuleViewer() {
                   variant="outline"
                   size="sm"
                   onClick={handleReadAloud}
-                  className={`${isReadingAloud ? "bg-amber-100 text-amber-700 border-amber-300 animate-pulse" : ""}`}
+                  className={`${isReadingAloud ? "bg-amber-100 text-amber-700 border-amber-300 animate-pulse" : "hidden sm:flex"}`}
                 >
                   {isReadingAloud ? <Pause className="h-4 w-4 mr-2" /> : <Volume2 className="h-4 w-4 mr-2" />}
-                  {isReadingAloud ? "Felolvasás leállítása" : "Tananyag felolvasása"}
+                  {isReadingAloud ? "Stop" : "Felolvasás"}
                 </Button>
 
                 <Button
