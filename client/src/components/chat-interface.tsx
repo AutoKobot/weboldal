@@ -1485,34 +1485,7 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
     );
   }
 
-  // AI Chat Disabled State
-  if (aiChatEnabled === false && user?.role !== 'admin') {
-    return (
-      <Card className="h-full flex flex-col justify-center items-center text-center p-6 bg-slate-50 dark:bg-slate-900 border-dashed">
-        <div className="rounded-full bg-slate-200 dark:bg-slate-800 p-6 mb-4">
-          <Bot className="h-12 w-12 text-slate-400" />
-        </div>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl">AI Tanár Szolgáltatás Szünetel</CardTitle>
-        </CardHeader>
-        <CardContent className="max-w-md">
-          <p className="text-muted-foreground mb-6">
-            Az AI iskolai asszisztens szolgáltatás jelenleg kikapcsolt állapotban van az adminisztrátor által.
-          </p>
-          <div className="flex flex-col gap-2 text-sm text-slate-500 bg-white dark:bg-slate-800 p-4 rounded-lg border">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-              <span>Karbantartás vagy beállítási szünet</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-slate-300"></div>
-              <span>Kérjük, próbálja meg később</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // AI Chat Disabled logic moved inside main return
 
   return (
     <Card className="h-full flex flex-col">
@@ -1541,43 +1514,47 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
           AI funkciók
         </h4>
         <div className="space-y-2">
-          <Button
-            variant={isLiveConversationActive ? "destructive" : "default"}
-            className={`w-full justify-start ${isLiveConversationActive
-              ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-green-500 hover:bg-green-600 text-white"
-              }`}
-            onClick={startLiveConversation}
-            disabled={isAIResponding || isGeneratingAudio || isPlaying}
-          >
-            <Mic className="h-4 w-4 mr-2" />
-            {isLiveConversationActive ? "Élő beszélgetés leállítása" : "Élő beszélgetés indítása"}
-            {(isWaitingForUserSpeech || isRecording) && (
-              <div className="ml-2 flex items-center gap-1">
-                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce"></div>
-                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50"
-            onClick={() => {
-              sendSynchronizedStreamingMessage(`Hangos magyarázat kérése erről a modulról`);
-            }}
-            disabled={isAIResponding || isGeneratingAudio || isPlaying}
-          >
-            <Volume2 className="h-4 w-4 mr-2" />
-            Hangos magyarázat (Szinkronizált)
-            {(isGeneratingAudio || isPlaying) && (
-              <div className="ml-2 flex items-center gap-1">
-                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-            )}
-          </Button>
+          {aiChatEnabled && (
+            <>
+              <Button
+                variant={isLiveConversationActive ? "destructive" : "default"}
+                className={`w-full justify-start ${isLiveConversationActive
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-green-500 hover:bg-green-600 text-white"
+                  }`}
+                onClick={startLiveConversation}
+                disabled={isAIResponding || isGeneratingAudio || isPlaying}
+              >
+                <Mic className="h-4 w-4 mr-2" />
+                {isLiveConversationActive ? "Élő beszélgetés leállítása" : "Élő beszélgetés indítása"}
+                {(isWaitingForUserSpeech || isRecording) && (
+                  <div className="ml-2 flex items-center gap-1">
+                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce"></div>
+                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50"
+                onClick={() => {
+                  sendSynchronizedStreamingMessage(`Hangos magyarázat kérése erről a modulról`);
+                }}
+                disabled={isAIResponding || isGeneratingAudio || isPlaying}
+              >
+                <Volume2 className="h-4 w-4 mr-2" />
+                Hangos magyarázat (Szinkronizált)
+                {(isGeneratingAudio || isPlaying) && (
+                  <div className="ml-2 flex items-center gap-1">
+                    <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                )}
+              </Button>
+            </>
+          )}
           <Button
             variant="outline"
             className="w-full justify-start border-pink-300 text-pink-700 hover:bg-pink-50"
@@ -1590,214 +1567,238 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
         </div>
       </div>
       <CardContent className="flex-1 flex flex-col p-4 bg-[#9c8e8e4f]">
-        <div ref={containerRef} className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-96 scroll-smooth">
-          {/* Messages */}
-          {(messages as ChatMessage[]).filter((msg: ChatMessage) => !msg.isSystemMessage).map((msg: ChatMessage) => (
-            <div
-              key={msg.id}
-              className={`flex gap-3 ${msg.senderRole === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`flex gap-3 max-w-[80%] ${msg.senderRole === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.senderRole === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-neutral-200 text-neutral-600'
-                  }`}>
-                  {msg.senderRole === 'user' ? <User size={16} /> : <Bot size={16} />}
-                </div>
-                <div className={`rounded-lg p-3 ${msg.senderRole === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-neutral-100 text-neutral-800'
-                  }`}>
-                  {msg.senderRole === 'user' ? (
-                    <div className="whitespace-pre-wrap break-words">{msg.message}</div>
-                  ) : (
-                    <div className="prose prose-sm max-w-none dark:prose-invert prose-neutral">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
-                          p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
-                          li: ({ children }) => <li className="text-neutral-800">{children}</li>,
-                          blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
-                          code: ({ children }) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
-                          pre: ({ children }) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
-                          strong: ({ children }) => <strong className="font-semibold text-neutral-900">{children}</strong>,
-                          em: ({ children }) => <em className="italic text-neutral-700">{children}</em>,
-                          table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
-                          th: ({ children }) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
-                          td: ({ children }) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
-                          a: ({ href, children }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
-                        }}
-                      >
-                        {msg.message}
-                      </ReactMarkdown>
+        {!aiChatEnabled && user?.role !== 'admin' ? (
+          <div className="h-full flex flex-col justify-center items-center text-center p-6 bg-slate-50/80 rounded-lg">
+            <div className="rounded-full bg-slate-200 p-6 mb-4">
+              <Bot className="h-12 w-12 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">AI Tanár Szolgáltatás Szünetel</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm">
+              Az AI iskolai asszisztens szolgáltatás jelenleg kikapcsolt állapotban van az adminisztrátor által.
+            </p>
+            <div className="flex flex-col gap-2 text-sm text-slate-500 bg-white p-4 rounded-lg border w-full max-w-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                <span>Karbantartás vagy beállítási szünet</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                <span>Kérjük, próbálja meg később</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div ref={containerRef} className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-96 scroll-smooth">
+              {/* Messages */}
+              {(messages as ChatMessage[]).filter((msg: ChatMessage) => !msg.isSystemMessage).map((msg: ChatMessage) => (
+                <div
+                  key={msg.id}
+                  className={`flex gap-3 ${msg.senderRole === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex gap-3 max-w-[80%] ${msg.senderRole === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.senderRole === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-neutral-200 text-neutral-600'
+                      }`}>
+                      {msg.senderRole === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
-                  )}
-                  <div className={`text-xs mt-1 ${msg.senderRole === 'user' ? 'text-blue-100' : 'text-neutral-500'
-                    }`}>
-                    {formatTime(msg.timestamp || new Date())}
+                    <div className={`rounded-lg p-3 ${msg.senderRole === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-neutral-100 text-neutral-800'
+                      }`}>
+                      {msg.senderRole === 'user' ? (
+                        <div className="whitespace-pre-wrap break-words">{msg.message}</div>
+                      ) : (
+                        <div className="prose prose-sm max-w-none dark:prose-invert prose-neutral">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
+                              p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
+                              ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
+                              li: ({ children }) => <li className="text-neutral-800">{children}</li>,
+                              blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
+                              code: ({ children }) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
+                              pre: ({ children }) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
+                              strong: ({ children }) => <strong className="font-semibold text-neutral-900">{children}</strong>,
+                              em: ({ children }) => <em className="italic text-neutral-700">{children}</em>,
+                              table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
+                              th: ({ children }) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
+                              td: ({ children }) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
+                              a: ({ href, children }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                            }}
+                          >
+                            {msg.message}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                      <div className={`text-xs mt-1 ${msg.senderRole === 'user' ? 'text-blue-100' : 'text-neutral-500'
+                        }`}>
+                        {formatTime(msg.timestamp || new Date())}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              ))}
 
-          {/* AI Response Streaming State */}
-          {isAIResponding && (
-            <div className="flex gap-3 justify-start">
-              <div className="flex gap-3 max-w-[80%]">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-neutral-200 text-neutral-600">
-                  <Bot size={16} />
-                </div>
-                <div className="rounded-lg p-3 bg-neutral-100 text-neutral-800">
-                  {streamingMessage ? (
-                    <div>
-                      <div className="prose prose-sm max-w-none dark:prose-invert prose-neutral">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
-                            h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
-                            h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
-                            p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
-                            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
-                            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
-                            li: ({ children }) => <li className="text-neutral-800">{children}</li>,
-                            blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
-                            code: ({ children }) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
-                            pre: ({ children }) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
-                            strong: ({ children }) => <strong className="font-semibold text-neutral-900">{children}</strong>,
-                            em: ({ children }) => <em className="italic text-neutral-700">{children}</em>,
-                            table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
-                            th: ({ children }) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
-                            td: ({ children }) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
-                            a: ({ href, children }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
-                          }}
-                        >
-                          {streamingMessage}
-                        </ReactMarkdown>
-                        <span className="inline-block w-2 h-5 bg-neutral-400 ml-1 animate-pulse"></span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="animate-pulse flex space-x-1">
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              {/* AI Response Streaming State */}
+              {isAIResponding && (
+                <div className="flex gap-3 justify-start">
+                  <div className="flex gap-3 max-w-[80%]">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-neutral-200 text-neutral-600">
+                      <Bot size={16} />
+                    </div>
+                    <div className="rounded-lg p-3 bg-neutral-100 text-neutral-800">
+                      {streamingMessage ? (
+                        <div>
+                          <div className="prose prose-sm max-w-none dark:prose-invert prose-neutral">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
+                                p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
+                                li: ({ children }) => <li className="text-neutral-800">{children}</li>,
+                                blockquote: ({ children }) => <blockquote className="border-l-2 border-neutral-400 pl-2 italic mb-2 bg-neutral-50 py-1 text-neutral-700">{children}</blockquote>,
+                                code: ({ children }) => <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs font-mono text-neutral-900">{children}</code>,
+                                pre: ({ children }) => <pre className="bg-neutral-200 p-2 rounded-md overflow-x-auto mb-2 text-xs">{children}</pre>,
+                                strong: ({ children }) => <strong className="font-semibold text-neutral-900">{children}</strong>,
+                                em: ({ children }) => <em className="italic text-neutral-700">{children}</em>,
+                                table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-2 text-xs">{children}</table>,
+                                th: ({ children }) => <th className="border border-neutral-300 px-2 py-1 bg-neutral-200 font-semibold text-neutral-900">{children}</th>,
+                                td: ({ children }) => <td className="border border-neutral-300 px-2 py-1 text-neutral-800">{children}</td>,
+                                a: ({ href, children }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                              }}
+                            >
+                              {streamingMessage}
+                            </ReactMarkdown>
+                            <span className="inline-block w-2 h-5 bg-neutral-400 ml-1 animate-pulse"></span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="animate-pulse flex space-x-1">
+                              <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
+                              <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                            <span className="text-xs text-neutral-500">AI válaszol...</span>
+                            {isGeneratingAudio && (
+                              <span className="text-xs text-blue-600 flex items-center gap-1">
+                                <Volume2 size={12} />
+                                Hang generálása...
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs text-neutral-500">AI válaszol...</span>
-                        {isGeneratingAudio && (
-                          <span className="text-xs text-blue-600 flex items-center gap-1">
-                            <Volume2 size={12} />
-                            Hang generálása...
-                          </span>
-                        )}
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-pulse flex space-x-1">
+                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
+                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                          <span className="text-neutral-600">Válasz készítése...</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-pulse flex space-x-1">
-                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
-                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                      <span className="text-neutral-600">Válasz készítése...</span>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input area */}
-        <div className="border-t pt-4">
-          <div className="flex gap-2 items-end">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Írj üzenetet az AI tanárnak..."
-              disabled={isAIResponding || isRecording}
-              className="flex-1"
-            />
-
-            {/* Voice Recording Button */}
-            <Button
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isAIResponding}
-              variant={isRecording ? "destructive" : "outline"}
-              className={isRecording ? "animate-pulse" : ""}
-            >
-              {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
-            </Button>
-
-            {/* Audio Control Button */}
-            <Button
-              onClick={toggleAudioPlayback}
-              variant="outline"
-              className="flex items-center gap-1"
-              disabled={!currentAudio}
-              title={currentAudio ? (isPlaying ? "Pause" : "Play") : "No audio"}
-            >
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              <span className="text-xs ml-1">
-                {isPlaying ? "Pause" : "Play"}
-              </span>
-            </Button>
-
-            {/* Stop Button */}
-            {(isAIResponding || isPlaying) && (
-              <Button
-                onClick={() => {
-                  if (currentAudio) {
-                    currentAudio.pause();
-                    setCurrentAudio(null);
-                    setIsPlaying(false);
-                  }
-
-                  if (abortController) {
-                    abortController.abort();
-                    setAbortController(null);
-                  }
-
-                  setIsAIResponding(false);
-                }}
-                variant="destructive"
-                className="flex items-center gap-1"
-              >
-                <Square size={16} />
-                Leállítás
-              </Button>
-            )}
-
-            {/* Send Button */}
-            <Button
-              onClick={handleSendMessage}
-              disabled={!message.trim() || isAIResponding || isRecording}
-              className="bg-primary hover:bg-blue-700"
-            >
-              {isAIResponding ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Send size={16} />
               )}
-            </Button>
-          </div>
 
-          {/* Recording Status */}
-          {isRecording && (
-            <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              Felvétel folyamatban... Kattints a mikrofon gombra a leállításhoz.
+              <div ref={messagesEndRef} />
             </div>
-          )}
-        </div>
+
+            {/* Input area */}
+            <div className="border-t pt-4">
+              <div className="flex gap-2 items-end">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Írj üzenetet az AI tanárnak..."
+                  disabled={isAIResponding || isRecording}
+                  className="flex-1"
+                />
+
+                {/* Voice Recording Button */}
+                <Button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={isAIResponding}
+                  variant={isRecording ? "destructive" : "outline"}
+                  className={isRecording ? "animate-pulse" : ""}
+                >
+                  {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
+                </Button>
+
+                {/* Audio Control Button */}
+                <Button
+                  onClick={toggleAudioPlayback}
+                  variant="outline"
+                  className="flex items-center gap-1"
+                  disabled={!currentAudio}
+                  title={currentAudio ? (isPlaying ? "Pause" : "Play") : "No audio"}
+                >
+                  {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                  <span className="text-xs ml-1">
+                    {isPlaying ? "Pause" : "Play"}
+                  </span>
+                </Button>
+
+                {/* Stop Button */}
+                {(isAIResponding || isPlaying) && (
+                  <Button
+                    onClick={() => {
+                      if (currentAudio) {
+                        currentAudio.pause();
+                        setCurrentAudio(null);
+                        setIsPlaying(false);
+                      }
+
+                      if (abortController) {
+                        abortController.abort();
+                        setAbortController(null);
+                      }
+
+                      setIsAIResponding(false);
+                    }}
+                    variant="destructive"
+                    className="flex items-center gap-1"
+                  >
+                    <Square size={16} />
+                    Leállítás
+                  </Button>
+                )}
+
+                {/* Send Button */}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || isAIResponding || isRecording}
+                  className="bg-primary hover:bg-blue-700"
+                >
+                  {isAIResponding ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Send size={16} />
+                  )}
+                </Button>
+              </div>
+
+              {/* Recording Status */}
+              {isRecording && (
+                <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  Felvétel folyamatban... Kattints a mikrofon gombra a leállításhoz.
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
