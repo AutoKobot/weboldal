@@ -110,7 +110,7 @@ export default function TeacherDashboard() {
   });
 
   // Fetch professions
-  const { data: professions = [], isLoading: professionsLoading } = useQuery({
+  const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
     queryKey: ["/api/public/professions"],
   });
 
@@ -131,7 +131,7 @@ export default function TeacherDashboard() {
   }
 
   const gradesQueryKey = selectedClassId && selectedClassId !== "all"
-    ? `/api/teacher/classes/${selectedClassId}/grades?startDate=${startDateStr}${selectedStudentId !== "all" ? `&studentId=${selectedStudentId}` : ""}`
+    ? `/api/teacher/classes/${selectedClassId}/grades?startDate=${encodeURIComponent(startDateStr)}${selectedStudentId !== "all" ? `&studentId=${encodeURIComponent(selectedStudentId)}` : ""}`
     : null;
 
   const { data: classGrades = [], isLoading: gradesLoading } = useQuery<GradeResult[]>({

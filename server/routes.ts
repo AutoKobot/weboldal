@@ -1079,6 +1079,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const classId = parseInt(req.params.id);
       const { startDate, endDate, studentId } = req.query;
 
+      const safeStartDate = typeof startDate === 'string' ? startDate : undefined;
+      const safeEndDate = typeof endDate === 'string' ? endDate : undefined;
+      const safeStudentId = typeof studentId === 'string' ? studentId : undefined;
+
       // Ensure class exists
       const classData = await storage.getClassById(classId);
       if (!classData) {
@@ -1093,9 +1097,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch results
       const results = await storage.getTestResultsByClass(
         classId,
-        startDate as string,
-        endDate as string,
-        studentId as string
+        safeStartDate,
+        safeEndDate,
+        safeStudentId
       );
 
       // Calculate grade (1-5) for each result
@@ -3861,6 +3865,32 @@ Platform funkciók és navigáció:
 
       if (!question || !correctAnswer || !userAnswer) {
         return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check for exact match (case-insensitive) to avoid API call
+      const normalizedUser = userAnswer.trim().toLowerCase();
+      const normalizedCorrect = correctAnswer.trim().toLowerCase();
+
+      if (normalizedUser === normalizedCorrect) {
+        return res.json({
+          score: 100,
+          feedback: "Helyes válasz! Pontosan megegyezik a megoldással.",
+          isCorrect: true
+        });
+      }
+
+      // Check if AI chat is enabled
+      const aiChatSetting = await storage.getSystemSetting('ai_chat_enabled');
+      const aiEnabled = aiChatSetting ? aiChatSetting.value === 'true' : true;
+
+      if (!aiEnabled) {
+        // If AI is disabled and it wasn't an exact match, mark as incorrect
+        // This ensures quizzes still work (are usable) even without AI, just less forgiving for typos
+        return res.json({
+          score: 0,
+          feedback: "A válasz nem egyezik meg a helyes megoldással. (AI értékelés kikapcsolva)",
+          isCorrect: false
+        });
       }
 
       const { evaluateAnswer } = await import('./openai');
