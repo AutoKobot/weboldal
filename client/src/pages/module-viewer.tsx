@@ -689,15 +689,6 @@ export default function ModuleViewer() {
                     <Headphones size={18} className="text-orange-600" />
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReadAloud}
-                  className={`w-12 h-12 rounded-full shadow-lg hover:shadow-xl border-2 hover:border-amber-300 ${isReadingAloud ? "bg-amber-100 border-amber-300 animate-pulse text-amber-700" : "bg-student-warm border-neutral-200"}`}
-                  title={isReadingAloud ? "Felolvasás leállítása" : "Tananyag felolvasása"}
-                >
-                  {isReadingAloud ? <Pause size={18} className="text-amber-600" /> : <Volume2 size={18} className="text-amber-600" />}
-                </Button>
               </div>
             )}
 
@@ -769,6 +760,15 @@ export default function ModuleViewer() {
                         Tanulókártyák
                       </Button>
                     )}
+                    <Button
+                      variant={isReadingAloud ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={handleReadAloud}
+                      className={`text-xs ${isReadingAloud ? "bg-amber-100 text-amber-700 border-amber-300 animate-pulse hover:bg-amber-200" : ""}`}
+                    >
+                      {isReadingAloud ? <Pause className="w-3 h-3 mr-1" /> : <Volume2 className="w-3 h-3 mr-1" />}
+                      {isReadingAloud ? "Stop" : "Felolvasás"}
+                    </Button>
                     {/* AI Regenerate button for admins */}
                     {user?.role === 'admin' && (
                       <Button
