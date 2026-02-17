@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { extractTextFromMarkdown } from "@/lib/utils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
 import ChatInterface from "@/components/chat-interface";
@@ -44,6 +45,8 @@ export default function ModuleViewer() {
   const [contentVersion, setContentVersion] = useState<'concise' | 'detailed'>('concise');
   const [showFlashcards, setShowFlashcards] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isReadingAloud, setIsReadingAloud] = useState(false);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
 
   // Initialize mermaid
@@ -439,6 +442,97 @@ export default function ModuleViewer() {
     }
   };
 
+  const stopReadAloud = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsReadingAloud(false);
+  };
+
+  const handleReadAloud = () => {
+    if (isReadingAloud) {
+      stopReadAloud();
+      return;
+    }
+
+    if (!window.speechSynthesis) {
+      toast({
+        title: "A böngésző nem támogatja a felolvasást",
+        description: "Próbáld meg egy modernebb böngészőben (pl. Chrome, Edge, Safari).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine content to read - prioritize enhanced content locally if available, but fallback to base content
+    // We use the currently displayed content or base content
+    let contentToRead = module?.content || "";
+    if (contentVersion === 'concise' && module?.conciseContent) {
+      contentToRead = module.conciseContent;
+    } else if (contentVersion === 'detailed' && module?.detailedContent) {
+      contentToRead = module.detailedContent;
+    }
+
+    const textToRead = extractTextFromMarkdown(contentToRead);
+    const titleToRead = module?.title || "";
+    const completeText = `${titleToRead}. \n\n ${textToRead}`;
+
+    // Cancel any current speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(completeText);
+    utterance.lang = 'hu-HU'; // Hungarian
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+
+    // Try to find a Hungarian voice
+    const voices = window.speechSynthesis.getVoices();
+    const hungarianVoice = voices.find(v => v.lang.includes('hu') || v.name.includes('Szabolcs') || v.name.includes('Eszter'));
+
+    if (hungarianVoice) {
+      utterance.voice = hungarianVoice;
+    }
+
+    utterance.onend = () => {
+      setIsReadingAloud(false);
+    };
+
+    utterance.onerror = (e) => {
+      console.error("Speech synthesis error:", e);
+      setIsReadingAloud(false);
+      // Don't show toast for 'canceled' or 'interrupted' error
+      if (e.error !== 'canceled' && e.error !== 'interrupted') {
+        toast({
+          title: "Felolvasási hiba",
+          description: "Hiba történt a felolvasás közben.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setIsReadingAloud(true);
+  };
+
+  // Stop reading when leaving the page
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Initialize voices
+  useEffect(() => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        // Voices loaded
+      };
+    }
+  }, []);
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -595,6 +689,15 @@ export default function ModuleViewer() {
                     <Headphones size={18} className="text-orange-600" />
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReadAloud}
+                  className={`w-12 h-12 rounded-full shadow-lg hover:shadow-xl border-2 hover:border-amber-300 ${isReadingAloud ? "bg-amber-100 border-amber-300 animate-pulse text-amber-700" : "bg-student-warm border-neutral-200"}`}
+                  title={isReadingAloud ? "Felolvasás leállítása" : "Tananyag felolvasása"}
+                >
+                  {isReadingAloud ? <Pause size={18} className="text-amber-600" /> : <Volume2 size={18} className="text-amber-600" />}
+                </Button>
               </div>
             )}
 
