@@ -877,30 +877,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/school-admin/register-teacher', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
       const { username, password, firstName, lastName, email } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Felhasználónév és jelszó megadása kötelező" });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Ez a felhasználónév már foglalt" });
+      }
+
+      // Handle empty email and check if it exists
+      const normalizedEmail = email && email.trim() !== "" ? email.trim() : null;
+      if (normalizedEmail) {
+        const existingEmail = await storage.getUserByEmail(normalizedEmail);
+        if (existingEmail) {
+          return res.status(400).json({ message: "Ez az email cím már használatban van" });
+        }
+      }
+
       const newUser = await storage.createUser({
-        username, password, firstName, lastName, email,
+        username,
+        password,
+        firstName,
+        lastName,
+        email: normalizedEmail,
         role: 'teacher',
         schoolAdminId: req.user.id
       });
       res.status(201).json(newUser);
     } catch (e) {
-      console.error(e);
-      res.status(500).json({ message: "Registration failed" });
+      console.error("Register teacher error:", e);
+      res.status(500).json({ message: "Sikertelen regisztráció" });
     }
   });
 
   app.post('/api/school-admin/register-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
       const { username, password, firstName, lastName, email } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Felhasználónév és jelszó megadása kötelező" });
+      }
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Ez a felhasználónév már foglalt" });
+      }
+
+      // Handle empty email and check if it exists
+      const normalizedEmail = email && email.trim() !== "" ? email.trim() : null;
+      if (normalizedEmail) {
+        const existingEmail = await storage.getUserByEmail(normalizedEmail);
+        if (existingEmail) {
+          return res.status(400).json({ message: "Ez az email cím már használatban van" });
+        }
+      }
+
       const newUser = await storage.createUser({
-        username, password, firstName, lastName, email,
+        username,
+        password,
+        firstName,
+        lastName,
+        email: normalizedEmail,
         role: 'student',
         schoolAdminId: req.user.id
       });
       res.status(201).json(newUser);
     } catch (e) {
-      console.error(e);
-      res.status(500).json({ message: "Registration failed" });
+      console.error("Register student error:", e);
+      res.status(500).json({ message: "Sikertelen regisztráció" });
     }
   });
 
