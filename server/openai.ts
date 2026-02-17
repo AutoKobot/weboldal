@@ -829,6 +829,34 @@ export async function evaluateAnswer(
   explanation: string
 ): Promise<QuizEvaluation> {
   try {
+    // 1. OPTIMIZATION: Local check for exact matches (avoids API call)
+    // If the user's answer matches the correct answer exactly (normalized), 
+    // we can skip the AI evaluation entirely.
+    const normalizedUser = userAnswer.trim().toLowerCase();
+    const normalizedCorrect = correctAnswer.trim().toLowerCase();
+
+    // Check for exact match or single letter choice match (e.g. user selected "A" and correct is "A")
+    if (normalizedUser === normalizedCorrect) {
+      console.log('⚡ Local evaluation: Exact match found, skipping AI call.');
+      return {
+        score: 100,
+        feedback: "Helyes válasz! Pontosan eltaláltad.",
+        isCorrect: true
+      };
+    }
+
+    // Check if user answer is contained in correct answer (common for multiple choice text)
+    // but only if the user answer is substantial enough (>3 chars) to avoid false positives
+    if (normalizedUser.length > 3 && normalizedCorrect.includes(normalizedUser)) {
+      console.log('⚡ Local evaluation: Substring match found, skipping AI call.');
+      return {
+        score: 100,
+        feedback: "Helyes válasz!",
+        isCorrect: true
+      };
+    }
+
+    // 2. Only if local check fails, use AI for fuzzy evaluation
     const openai = await getOpenAIClient();
 
     const prompt = `Értékeld a tanuló válaszát a következő kérdésre magyar nyelven:
@@ -877,6 +905,11 @@ Válaszolj JSON formátumban:
     };
   } catch (error) {
     console.error("Error evaluating answer:", error);
-    throw new Error("Failed to evaluate answer");
+    // Fallback for error cases - assume incorrect rather than crashing
+    return {
+      score: 0,
+      feedback: "Nem sikerült kiértékelni a választ. Kérlek próbáld újra.",
+      isCorrect: false
+    };
   }
 }
