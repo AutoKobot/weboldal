@@ -42,8 +42,8 @@ export class AIQueueManager {
           // Restore queue items but create new promises
           this.queue = savedQueue.map((item: any) => ({
             ...item,
-            resolve: () => {}, // Will be handled when reprocessed
-            reject: () => {}   // Will be handled when reprocessed
+            resolve: () => { }, // Will be handled when reprocessed
+            reject: () => { }   // Will be handled when reprocessed
           }));
           console.log(`Restored ${this.queue.length} items from queue backup`);
           // Clean up the backup file
@@ -126,7 +126,7 @@ export class AIQueueManager {
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const id = `ai-regen-${moduleId}-${Date.now()}`;
-      
+
       const queueItem: QueueItem = {
         id,
         moduleId,
@@ -211,11 +211,11 @@ export class AIQueueManager {
    */
   private async performAIGeneration(item: QueueItem): Promise<any> {
     const { storage } = await import('./storage');
-    
+
     try {
       // Build comprehensive context with all available information
       let fullContext = '';
-      
+
       if (item.professionName && item.subjectName) {
         // Use already provided context from queue
         fullContext = `Szakma: ${item.professionName} | Tantárgy: ${item.subjectName}`;
@@ -230,18 +230,18 @@ export class AIQueueManager {
           fullContext = `Szakma: ${profession?.name || 'Ismeretlen'} | Tantárgy: ${subject.name}`;
         }
       }
-      
+
       // Enhanced context message that includes module metadata
-      const contextualSystemMessage = item.customSystemMessage ? 
-        `${item.customSystemMessage}\n\nKONTEXTUS: ${fullContext}` : 
+      const contextualSystemMessage = item.customSystemMessage ?
+        `${item.customSystemMessage}\n\nKONTEXTUS: ${fullContext}` :
         `Frissítsd a következő tananyag modult. KONTEXTUS: ${fullContext}`;
-      
+
       // Generate enhanced content with full context and custom system message
       const { enhancedModuleGenerator } = await import('./enhanced-module-generator');
-      
+
       // Record AI generation start for cost tracking
       await this.recordAIGenerationCost('openai', 'module_generation', 0.05);
-      
+
       const enhancedContent = await enhancedModuleGenerator.generateEnhancedModule(
         item.title,
         item.content,
@@ -250,7 +250,7 @@ export class AIQueueManager {
         item.subjectName,
         item.professionName
       );
-      
+
       // Record additional costs for web search and YouTube API calls
       await this.recordAIGenerationCost('dataseo', 'web_search', 0.02);
       await this.recordAIGenerationCost('youtube', 'video_search', 0.01);
@@ -258,21 +258,21 @@ export class AIQueueManager {
       // Apply automatic Mermaid SVG conversion to all content versions
       const enhancedModuleGeneratorModule = await import('./enhanced-module-generator');
       const moduleGenerator = enhancedModuleGeneratorModule.enhancedModuleGenerator;
-      
+
       let finalContent = enhancedContent.detailedVersion || enhancedContent.conciseVersion || item.content;
       let finalConciseContent = enhancedContent.conciseVersion || null;
       let finalDetailedContent = enhancedContent.detailedVersion || null;
-      
+
       // Convert Mermaid diagrams to SVG images in all content versions
       if (finalContent.includes('```mermaid')) {
         console.log('Converting Mermaid diagrams to SVG images...');
         finalContent = await moduleGenerator.convertMermaidToSVGImages(finalContent);
       }
-      
+
       if (finalConciseContent && finalConciseContent.includes('```mermaid')) {
         finalConciseContent = await moduleGenerator.convertMermaidToSVGImages(finalConciseContent);
       }
-      
+
       if (finalDetailedContent && finalDetailedContent.includes('```mermaid')) {
         finalDetailedContent = await moduleGenerator.convertMermaidToSVGImages(finalDetailedContent);
       }
@@ -281,7 +281,7 @@ export class AIQueueManager {
       const contentLinkCount = (finalContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
       const conciseLinkCount = finalConciseContent ? (finalConciseContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length : 0;
       const detailedLinkCount = finalDetailedContent ? (finalDetailedContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length : 0;
-      
+
       console.log(`🔗 QUEUE DEBUG: Before DB update - Content has ${contentLinkCount} bold links`);
       console.log(`🔗 QUEUE DEBUG: Before DB update - Concise has ${conciseLinkCount} bold links`);
       console.log(`🔗 QUEUE DEBUG: Before DB update - Detailed has ${detailedLinkCount} bold links`);
@@ -292,22 +292,23 @@ export class AIQueueManager {
         conciseContent: finalConciseContent,
         detailedContent: finalDetailedContent,
         keyConceptsData: enhancedContent.keyConceptsWithVideos || null,
+        generatedQuizzes: enhancedContent.generatedQuizzes,
         isPublished: true
       };
 
       const updatedModule = await storage.updateModule(item.moduleId, updateData);
-      
+
       // DEBUG: Check if links survived database update
       const dbContentLinkCount = updatedModule.content ? (updatedModule.content.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length : 0;
       const dbConciseLinkCount = updatedModule.conciseContent ? (updatedModule.conciseContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length : 0;
       const dbDetailedLinkCount = updatedModule.detailedContent ? (updatedModule.detailedContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length : 0;
-      
+
       console.log(`🔗 QUEUE DEBUG: After DB update - Content has ${dbContentLinkCount} bold links`);
       console.log(`🔗 QUEUE DEBUG: After DB update - Concise has ${dbConciseLinkCount} bold links`);
       console.log(`🔗 QUEUE DEBUG: After DB update - Detailed has ${dbDetailedLinkCount} bold links`);
-      
+
       console.log(`Successfully completed AI generation for module ${item.moduleId}`);
-      
+
       return {
         success: true,
         module: updatedModule,
@@ -316,11 +317,11 @@ export class AIQueueManager {
 
     } catch (enhancementError) {
       console.error(`Enhancement error for module ${item.moduleId}:`, enhancementError);
-      
+
       // Fallback: just mark as published without enhancement
       const fallbackUpdate = { isPublished: true };
       const updatedModule = await storage.updateModule(item.moduleId, fallbackUpdate);
-      
+
       return {
         success: true,
         module: updatedModule,
@@ -352,12 +353,12 @@ export class AIQueueManager {
       clearInterval(this.processingInterval);
       this.processingInterval = null;
     }
-    
+
     // Reject all pending items
     this.queue.forEach(item => {
       item.reject(new Error('Queue shutdown'));
     });
-    
+
     this.queue = [];
     this.processing.clear();
   }
