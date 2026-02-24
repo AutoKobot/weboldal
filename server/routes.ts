@@ -2562,7 +2562,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedModule = await storage.updateModule(moduleId, {
         conciseContent: enhancedContent.conciseVersion,
         detailedContent: enhancedContent.detailedVersion,
-        keyConceptsData: enhancedContent.keyConceptsWithVideos
+        keyConceptsData: enhancedContent.keyConceptsWithVideos,
+        generatedQuizzes: enhancedContent.generatedQuizzes
       });
 
       console.log(`Module ${moduleId} successfully regenerated with visual aids.`);
@@ -4938,35 +4939,57 @@ Platform funkciók és navigáció:
 
       for (const student of students) {
         try {
-          // Ha nincs email, generálunk egy kamut vagy null-t? A createUser elfogad null-t.
-          // Ha a bemenet "Név Listából", akkor szét kell szedni vezetéknév/keresztnévre.
-          // Feltételezzük, hogy a frontend már struktúráltan küldi, vagy itt szedjük szét.
-          // A legegyszerűbb, ha a frontend küldi: { name: "Kiss János", email: "..." }
+          if (!student.name || student.name.trim() === "") {
+            results.failed++;
+            results.errors.push("Érvénytelen vagy hiányzó név");
+            continue;
+          }
 
           const nameParts = student.name.trim().split(" ");
           const lastName = nameParts[0] || "";
           const firstName = nameParts.slice(1).join(" ") || "";
 
-          // Generáljunk felhasználónevet: vezeteknev.keresztnev + random szám
-          const baseUsername = `${lastName.toLowerCase()}.${firstName.toLowerCase()}`.replace(/[^a-z0-9]/g, "");
-          const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4 digit
-          const username = `${baseUsername}${randomSuffix}`;
+          // Hungarian name normalization for username
+          const normalizeForUsername = (str: string) => {
+            return str.toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "") // Remove most accents
+              .replace(/ö/g, "o").replace(/ő/g, "o")
+              .replace(/ü/g, "u").replace(/ű/g, "u")
+              .replace(/[^a-z0-9]/g, ""); // Final safety check
+          };
 
-          // Jelszó generálás: Diak + random szám
-          const password = `Diak${randomSuffix}`;
+          const cleanLastName = normalizeForUsername(lastName);
+          const cleanFirstName = normalizeForUsername(firstName);
+
+          let username = "";
+          let password = "";
+          let isUnique = false;
+          let retries = 0;
+
+          while (!isUnique && retries < 10) {
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            username = `${cleanLastName}.${cleanFirstName}${randomSuffix}`;
+
+            // Check uniqueness
+            const existing = await storage.getUserByUsername(username);
+            if (!existing) {
+              isUnique = true;
+              password = `Diak${randomSuffix}`;
+            }
+            retries++;
+          }
+
+          if (!isUnique) {
+            throw new Error("Nem sikerült egyedi felhasználónevet generálni");
+          }
 
           const userData = {
             firstName,
             lastName,
             username,
-            email: student.email || null, // Ha nincs email, az nem baj (schema: text, nullable?) - Check schema: email varchar, unique?
-            // users table schema: email varchar usually unique. If null is allowed, unique constraint might ignore nulls in Postgres?
-            // Let's verify schema. If email is unique and not null, we have a problem.
-            // Let's check shared/schema.ts again. 
-            // Warning: I need to be sure about email constraints.
-            // If email is unique and we pass null, it might fail if column is not nullable.
-            // Assuming we check this. For now, generate a fake unique email if missing? "username@school.local"
-            role: "student" as const, // Cast to specific string literal type
+            email: student.email || null,
+            role: "student" as const,
             password,
             schoolAdminId
           };
