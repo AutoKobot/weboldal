@@ -114,6 +114,7 @@ function Router() {
               <Route path="/modules/:subjectId" component={ModulesPage} />
               <Route path="/tanulóim" component={TeacherDashboard} />
               <Route path="/teacher-dashboard" component={TeacherDashboard} />
+              <Route path="/teacher/content" component={AdminDashboard} />
               <Route path="/settings" component={SettingsPage} />
               <Route path="/community" component={CommunityLearning} />
               <Route path="/community-learning" component={CommunityLearning} />

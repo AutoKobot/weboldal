@@ -54,6 +54,7 @@ export const professions = pgTable("professions", {
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name (pl. "wrench", "hammer", "cpu")
   iconUrl: varchar("icon_url"), // Feltöltött kép URL
+  schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik (null = admin által globális)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -65,6 +66,7 @@ export const subjects = pgTable("subjects", {
   name: varchar("name").notNull(),
   description: text("description"),
   orderIndex: integer("order_index").notNull().default(0),
+  schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -86,6 +88,7 @@ export const modules = pgTable("modules", {
   podcastUrl: varchar("podcast_url"), // Külső podcast URL
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
+  schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

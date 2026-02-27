@@ -649,11 +649,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims?.sub || req.user.id;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Only administrators can create professions" });
       }
 
       const professionData = insertProfessionSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const profession = await storage.createProfession(professionData);
       res.status(201).json(profession);
     } catch (error) {
@@ -667,12 +673,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims?.sub || req.user.id;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Only administrators can update professions" });
       }
 
       const id = parseInt(req.params.id);
       const professionData = insertProfessionSchema.partial().parse(req.body);
+      if (user.role !== 'admin') {
+        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const updatedProfession = await storage.updateProfession(id, professionData);
       res.json(updatedProfession);
     } catch (error) {
@@ -686,7 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims?.sub || req.user.id;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Only administrators can delete professions" });
       }
 
@@ -1959,7 +1971,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public/Student routes for reading data
   app.get('/api/public/professions', combinedAuth, async (req: any, res) => {
     try {
-      const professions = await storage.getProfessions();
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const user = await storage.getUser(userId);
+      const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+      const professions = await storage.getProfessions(schoolAdminId);
       res.json(professions);
     } catch (error) {
       console.error("Error fetching professions:", error);
@@ -1973,11 +1988,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const subjectData = insertSubjectSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const subject = await storage.createSubject(subjectData);
       res.json(subject);
     } catch (error) {
@@ -1991,12 +2012,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const subjectId = parseInt(req.params.id);
       const subjectData = insertSubjectSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const subject = await storage.updateSubject(subjectId, subjectData);
       res.json(subject);
     } catch (error) {
@@ -2010,7 +2037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -2029,11 +2056,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const moduleData = insertModuleSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const module = await storage.createModule(moduleData);
       res.json(module);
     } catch (error) {
@@ -2047,12 +2080,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const moduleId = parseInt(req.params.id);
       const moduleData = insertModuleSchema.partial().parse(req.body);
+      if (user.role !== 'admin') {
+        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const module = await storage.updateModule(moduleId, moduleData);
       res.json(module);
     } catch (error) {
@@ -2089,7 +2128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role === 'teacher' || user.role === 'admin') {
         // If subjectId is provided, use it directly
         if (subjectId) {
-          const modules = await storage.getModules(subjectId);
+          const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const modules = await storage.getModules(subjectId, schoolAdminId);
           res.json(cleanModules(modules));
           return;
         }
@@ -2099,7 +2139,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let allModules = [];
 
         for (const subject of allSubjects) {
-          const modules = await storage.getModules(subject.id);
+          const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const modules = await storage.getModules(subject.id, schoolAdminId);
           allModules.push(...modules);
         }
 
@@ -2107,7 +2148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Regular students - only published modules
         if (subjectId) {
-          const modules = await storage.getPublishedModules(subjectId);
+          const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const modules = await storage.getPublishedModules(subjectId, schoolAdminId);
           res.json(cleanModules(modules));
           return;
         }
@@ -2118,7 +2160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let allModules = [];
 
           for (const subject of subjects) {
-            const modules = await storage.getPublishedModules(subject.id);
+            const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+            const modules = await storage.getPublishedModules(subject.id, schoolAdminId);
             allModules.push(...modules);
           }
 
@@ -2139,11 +2182,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const professionData = insertProfessionSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const profession = await storage.createProfession(professionData);
       res.json(profession);
     } catch (error) {
@@ -2157,12 +2206,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const professionId = parseInt(req.params.id);
       const professionData = insertProfessionSchema.partial().parse(req.body);
+      if (user.role !== 'admin') {
+        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const profession = await storage.updateProfession(professionId, professionData);
       res.json(profession);
     } catch (error) {
@@ -2176,12 +2231,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const professionId = parseInt(req.params.id);
       const professionData = insertProfessionSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const profession = await storage.updateProfession(professionId, professionData);
       res.json(profession);
     } catch (error) {
@@ -2197,7 +2258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -2225,11 +2286,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const subjectData = insertSubjectSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const subject = await storage.createSubject(subjectData);
       res.json(subject);
     } catch (error) {
@@ -2243,12 +2310,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const subjectId = parseInt(req.params.id);
       const subjectData = insertSubjectSchema.partial().parse(req.body);
+      if (user.role !== 'admin') {
+        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const subject = await storage.updateSubject(subjectId, subjectData);
       res.json(subject);
     } catch (error) {
@@ -2262,12 +2335,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const subjectId = parseInt(req.params.id);
       const subjectData = insertSubjectSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const subject = await storage.updateSubject(subjectId, subjectData);
       res.json(subject);
     } catch (error) {
@@ -2281,14 +2360,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const subjectId = parseInt(req.params.id);
 
       // Check if subject has modules
-      const modules = await storage.getModules(subjectId);
+      const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const modules = await storage.getModules(subjectId, schoolAdminId);
       if (modules.length > 0) {
         return res.status(400).json({
           message: "Nem törölhető a tantárgy, mert tartoznak hozzá modulok"
@@ -2448,11 +2528,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       const moduleData = insertModuleSchema.parse(req.body);
+      if (user.role !== 'admin') {
+        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
       const module = await storage.createModule(moduleData);
       res.json(module);
     } catch (error) {
@@ -2466,7 +2552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims?.sub || req.user.id;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -2475,6 +2561,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('PATCH /api/modules/:id - Raw request body:', JSON.stringify(req.body, null, 2));
 
       const moduleData = insertModuleSchema.partial().parse(req.body);
+      if (user.role !== 'admin') {
+        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
 
       console.log(`Admin ${userId} updating module ${moduleId}:`, {
         title: moduleData.title,
@@ -2580,7 +2672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -5111,6 +5203,12 @@ Platform funkciók és navigáció:
         imageUrl: imageUrl || null,
         isPublished: false
       };
+      if (user.role !== 'admin') {
+        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+      }
+      
+      
+      
 
       const module = await storage.createModule(moduleData);
 

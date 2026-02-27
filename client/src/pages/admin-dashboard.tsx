@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -717,6 +718,8 @@ type SubjectFormData = z.infer<typeof subjectFormSchema>;
 type SchoolAdminFormData = z.infer<typeof schoolAdminFormSchema>;
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -1651,13 +1654,13 @@ export default function AdminDashboard() {
               <Wand2 className="h-4 w-4 mr-1" />
               AI Modulok
             </TabsTrigger>
-            <TabsTrigger value="users">Felhasználók</TabsTrigger>
+            {isAdmin && ( <TabsTrigger value="users">Felhasználók</TabsTrigger> )}
             <TabsTrigger value="school-admins">Iskolai Adminok</TabsTrigger>
-            <TabsTrigger value="costs" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+            {isAdmin && ( <TabsTrigger value="costs" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
               <BarChart3 className="h-4 w-4 mr-1" />
               Költségek
-            </TabsTrigger>
-            <TabsTrigger value="settings">Beállítások</TabsTrigger>
+            </TabsTrigger> )}
+            {isAdmin && ( <TabsTrigger value="settings">Beállítások</TabsTrigger> )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">

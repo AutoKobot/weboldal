@@ -169,6 +169,7 @@ export default function Sidebar({ user }: SidebarProps) {
   ] : user.role === 'teacher' ? [
     { icon: Home, label: "Home", href: "/" },
     { icon: BookOpen, label: "Szakmák", href: "/tananyagok" },
+    { icon: Settings, label: "Tartalomkezelő", href: "/teacher/content" },
     { icon: Users, label: "Közösségi Tanulás", href: "/community" },
     { icon: TrendingUp, label: "Tanulóim", href: "/teacher" },
     { icon: Settings, label: "Beállítások", href: "/settings" },

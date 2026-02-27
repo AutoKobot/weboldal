@@ -68,7 +68,7 @@ import {
   type InsertFlashcard,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, sql, gte, lte } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, gte, lte, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -123,22 +123,22 @@ export interface IStorage {
   getClassWithProfession(classId: number): Promise<Class & { profession?: any } | undefined>;
 
   // Profession operations
-  getProfessions(): Promise<Profession[]>;
+  getProfessions(schoolAdminId?: string | null): Promise<Profession[]>;
   getProfession(id: number): Promise<Profession | undefined>;
   createProfession(profession: InsertProfession): Promise<Profession>;
   updateProfession(id: number, profession: Partial<InsertProfession>): Promise<Profession>;
   deleteProfession(id: number): Promise<void>;
 
   // Subject operations
-  getSubjects(professionId?: number): Promise<Subject[]>;
+  getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<Subject[]>;
   getSubject(id: number): Promise<Subject | undefined>;
   createSubject(subject: InsertSubject): Promise<Subject>;
   updateSubject(id: number, subject: Partial<InsertSubject>): Promise<Subject>;
   deleteSubject(id: number): Promise<void>;
 
   // Module operations
-  getModules(subjectId?: number): Promise<Module[]>;
-  getPublishedModules(subjectId?: number): Promise<Module[]>;
+  getModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]>;
+  getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]>;
   getModule(id: number): Promise<Module | undefined>;
   createModule(module: InsertModule): Promise<Module>;
   updateModule(id: number, module: Partial<InsertModule>): Promise<Module>;
@@ -516,7 +516,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Profession operations
-  async getProfessions(): Promise<Profession[]> {
+  async getProfessions(schoolAdminId?: string | null): Promise<Profession[]> {
+    if (schoolAdminId === null) {
+      return await db.select().from(professions).where(isNull(professions.schoolAdminId)).orderBy(professions.name);
+    } else if (schoolAdminId) {
+      return await db.select().from(professions)
+        .where(
+          or(
+            isNull(professions.schoolAdminId),
+            eq(professions.schoolAdminId, schoolAdminId)
+          )
+        )
+        .orderBy(professions.name);
+    }
     return await db.select().from(professions).orderBy(professions.name);
   }
 
@@ -575,11 +587,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Subject operations
-  async getSubjects(professionId?: number): Promise<Subject[]> {
-    if (professionId) {
-      return await db.select().from(subjects)
-        .where(eq(subjects.professionId, professionId))
-        .orderBy(subjects.name);
+  async getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<Subject[]> {
+    const conditions = [];
+    if (professionId) conditions.push(eq(subjects.professionId, professionId));
+
+    if (schoolAdminId === null) {
+      conditions.push(isNull(subjects.schoolAdminId));
+    } else if (schoolAdminId) {
+      conditions.push(or(
+        isNull(subjects.schoolAdminId),
+        eq(subjects.schoolAdminId, schoolAdminId)
+      ));
+    }
+
+    if (conditions.length > 0) {
+      return await db.select().from(subjects).where(and(...conditions)).orderBy(subjects.name);
     }
     return await db.select().from(subjects).orderBy(subjects.name);
   }
@@ -623,27 +645,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Module operations
-  async getModules(subjectId?: number): Promise<Module[]> {
-    if (subjectId) {
-      return await db.select().from(modules)
-        .where(eq(modules.subjectId, subjectId))
-        .orderBy(modules.moduleNumber, modules.title);
+  async getModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
+    const conditions = [];
+    if (subjectId) conditions.push(eq(modules.subjectId, subjectId));
+
+    if (schoolAdminId === null) {
+      conditions.push(isNull(modules.schoolAdminId));
+    } else if (schoolAdminId) {
+      conditions.push(or(
+        isNull(modules.schoolAdminId),
+        eq(modules.schoolAdminId, schoolAdminId)
+      ));
+    }
+
+    if (conditions.length > 0) {
+      return await db.select().from(modules).where(and(...conditions)).orderBy(modules.moduleNumber, modules.title);
     }
     return await db.select().from(modules).orderBy(modules.moduleNumber, modules.title);
   }
 
-  async getPublishedModules(subjectId?: number): Promise<Module[]> {
-    if (subjectId) {
-      return await db
-        .select()
-        .from(modules)
-        .where(and(eq(modules.subjectId, subjectId), eq(modules.isPublished, true)))
-        .orderBy(modules.moduleNumber, modules.title);
+  async getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
+    const conditions = [eq(modules.isPublished, true)];
+    if (subjectId) conditions.push(eq(modules.subjectId, subjectId));
+
+    if (schoolAdminId === null) {
+      conditions.push(isNull(modules.schoolAdminId));
+    } else if (schoolAdminId) {
+      conditions.push(or(
+        isNull(modules.schoolAdminId),
+        eq(modules.schoolAdminId, schoolAdminId)
+      ));
     }
+
     return await db
       .select()
       .from(modules)
-      .where(eq(modules.isPublished, true))
+      .where(and(...conditions))
       .orderBy(modules.moduleNumber, modules.title);
   }
 

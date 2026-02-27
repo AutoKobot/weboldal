@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Link, useLocation } from "wouter";
-import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, X } from "lucide-react";
+import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, X, Users } from "lucide-react";
 import type { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +44,9 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : user.role === 'teacher' ? [
     { icon: Home, label: "Home", href: "/" },
-    { icon: BookOpen, label: "Tananyagok", href: "/tananyagok" },
+    { icon: BookOpen, label: "Szakmák", href: "/tananyagok" },
+    { icon: Settings, label: "Tartalomkezelő", href: "/teacher/content" },
+    { icon: Users, label: "Közösségi Tanulás", href: "/community" },
     { icon: TrendingUp, label: "Tanulóim", href: "/tanulóim" },
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : [
