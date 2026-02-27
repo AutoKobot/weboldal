@@ -1654,13 +1654,13 @@ export default function AdminDashboard() {
               <Wand2 className="h-4 w-4 mr-1" />
               AI Modulok
             </TabsTrigger>
-            {isAdmin && ( <TabsTrigger value="users">Felhasználók</TabsTrigger> )}
-            <TabsTrigger value="school-admins">Iskolai Adminok</TabsTrigger>
-            {isAdmin && ( <TabsTrigger value="costs" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+            {isAdmin && (<TabsTrigger value="users">Felhasználók</TabsTrigger>)}
+            {isAdmin && (<TabsTrigger value="school-admins">Iskolai Adminok</TabsTrigger>)}
+            {isAdmin && (<TabsTrigger value="costs" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
               <BarChart3 className="h-4 w-4 mr-1" />
               Költségek
-            </TabsTrigger> )}
-            {isAdmin && ( <TabsTrigger value="settings">Beállítások</TabsTrigger> )}
+            </TabsTrigger>)}
+            {isAdmin && (<TabsTrigger value="settings">Beállítások</TabsTrigger>)}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -3241,180 +3241,181 @@ export default function AdminDashboard() {
               </Card>
             </div>
           </TabsContent>
-
-          <TabsContent value="school-admins" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Iskolai adminisztrátorok kezelése</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Iskolai adminisztrátorok létrehozása és kezelése
-                  </p>
-                </div>
-                <Dialog open={isSchoolAdminDialogOpen} onOpenChange={setIsSchoolAdminDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Új iskolai admin
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Új iskolai admin regisztrálása</DialogTitle>
-                    </DialogHeader>
-                    <Form {...schoolAdminForm}>
-                      <form onSubmit={schoolAdminForm.handleSubmit(onSchoolAdminSubmit)} className="space-y-4">
-                        <FormField
-                          control={schoolAdminForm.control}
-                          name="firstName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Keresztnév</FormLabel>
-                              <FormControl>
-                                <Input placeholder="pl. János" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={schoolAdminForm.control}
-                          name="lastName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Vezetéknév</FormLabel>
-                              <FormControl>
-                                <Input placeholder="pl. Nagy" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={schoolAdminForm.control}
-                          name="schoolName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Iskola neve</FormLabel>
-                              <FormControl>
-                                <Input placeholder="pl. Váci Szakképzési Centrum" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={schoolAdminForm.control}
-                          name="username"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Felhasználónév</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Bejelentkezési felhasználónév" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={schoolAdminForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Jelszó</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="Minimum 6 karakter" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={schoolAdminForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email (opcionális)</FormLabel>
-                              <FormControl>
-                                <Input type="email" placeholder="pl. admin@iskola.hu" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsSchoolAdminDialogOpen(false)}
-                          >
-                            Mégse
-                          </Button>
-                          <Button
-                            type="submit"
-                            disabled={createSchoolAdminMutation.isPending}
-                          >
-                            {createSchoolAdminMutation.isPending ? "Létrehozás..." : "Létrehozás"}
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-sm text-muted-foreground">
-                    Az iskolai adminisztrátorok külön bejelentkezéssel rendelkeznek és kezelhetik a diák-tanár hozzárendeléseket.
+          {isAdmin && (
+            <TabsContent value="school-admins" className="space-y-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Iskolai adminisztrátorok kezelése</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Iskolai adminisztrátorok létrehozása és kezelése
+                    </p>
                   </div>
-
-                  {users?.filter((u: User) => u.role === 'school_admin').length > 0 ? (
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Regisztrált iskolai adminok:</h4>
-                      {users?.filter((u: User) => u.role === 'school_admin').map((admin: User) => (
-                        <div key={admin.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">
-                              {admin.firstName && admin.lastName
-                                ? `${admin.firstName} ${admin.lastName}`
-                                : admin.username}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Felhasználónév: {admin.username}
-                              {admin.email && ` • ${admin.email}`}
-                            </p>
-                            {admin.schoolName && (
-                              <p className="text-sm text-blue-600 font-medium">
-                                Iskola: {admin.schoolName}
-                              </p>
+                  <Dialog open={isSchoolAdminDialogOpen} onOpenChange={setIsSchoolAdminDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Új iskolai admin
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Új iskolai admin regisztrálása</DialogTitle>
+                      </DialogHeader>
+                      <Form {...schoolAdminForm}>
+                        <form onSubmit={schoolAdminForm.handleSubmit(onSchoolAdminSubmit)} className="space-y-4">
+                          <FormField
+                            control={schoolAdminForm.control}
+                            name="firstName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Keresztnév</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="pl. János" {...field} />
+                                </FormControl>
+                              </FormItem>
                             )}
-                          </div>
-                          <div className="flex space-x-2">
+                          />
+                          <FormField
+                            control={schoolAdminForm.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vezetéknév</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="pl. Nagy" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={schoolAdminForm.control}
+                            name="schoolName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Iskola neve</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="pl. Váci Szakképzési Centrum" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={schoolAdminForm.control}
+                            name="username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Felhasználónév</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Bejelentkezési felhasználónév" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={schoolAdminForm.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Jelszó</FormLabel>
+                                <FormControl>
+                                  <Input type="password" placeholder="Minimum 6 karakter" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={schoolAdminForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email (opcionális)</FormLabel>
+                                <FormControl>
+                                  <Input type="email" placeholder="pl. admin@iskola.hu" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex justify-end space-x-2">
                             <Button
+                              type="button"
                               variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setResetPasswordUserId(admin.id);
-                                setIsPasswordResetDialogOpen(true);
-                              }}
+                              onClick={() => setIsSchoolAdminDialogOpen(false)}
                             >
-                              <Key className="h-4 w-4 mr-1" />
-                              Jelszó visszaállítás
+                              Mégse
                             </Button>
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteUserMutation.mutate(admin.id)}
+                              type="submit"
+                              disabled={createSchoolAdminMutation.isPending}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {createSchoolAdminMutation.isPending ? "Létrehozás..." : "Létrehozás"}
                             </Button>
                           </div>
-                        </div>
-                      ))}
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                      Az iskolai adminisztrátorok külön bejelentkezéssel rendelkeznek és kezelhetik a diák-tanár hozzárendeléseket.
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Még nincsenek regisztrált iskolai adminisztrátorok.
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
+                    {users?.filter((u: User) => u.role === 'school_admin').length > 0 ? (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Regisztrált iskolai adminok:</h4>
+                        {users?.filter((u: User) => u.role === 'school_admin').map((admin: User) => (
+                          <div key={admin.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-medium">
+                                {admin.firstName && admin.lastName
+                                  ? `${admin.firstName} ${admin.lastName}`
+                                  : admin.username}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Felhasználónév: {admin.username}
+                                {admin.email && ` • ${admin.email}`}
+                              </p>
+                              {admin.schoolName && (
+                                <p className="text-sm text-blue-600 font-medium">
+                                  Iskola: {admin.schoolName}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setResetPasswordUserId(admin.id);
+                                  setIsPasswordResetDialogOpen(true);
+                                }}
+                              >
+                                <Key className="h-4 w-4 mr-1" />
+                                Jelszó visszaállítás
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteUserMutation.mutate(admin.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Még nincsenek regisztrált iskolai adminisztrátorok.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Module Dialog */}
