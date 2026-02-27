@@ -719,13 +719,11 @@ export class DatabaseStorage implements IStorage {
     // We set the module_id to NULL rather than deleting the project to preserve student work
     await db.execute(sql`UPDATE community_projects SET module_id = NULL WHERE module_id = ${id}`);
 
-    // 4. Remove this module from users' completed_modules list
-    // This is a JSONB array operation - simpler to just leave it, but for correctness:
-    // This requires complex SQL or fetching all users. For performance, we might skip this 
-    // or implement a cleanup job. Leaving it for now as it doesn't violate FK constraints (JSONB doesn't enforce FK).
+    // 4. Delete flashcards related to this module
+    await db.delete(flashcards).where(eq(flashcards.moduleId, id));
 
-    // 5. Delete module progress (if table exists - not in schema provided but good practice)
-    // await db.execute(sql`DELETE FROM module_progress WHERE module_id = ${id}`);
+    // 5. Delete test results related to this module
+    await db.delete(testResults).where(eq(testResults.moduleId, id));
 
     // 6. Finally delete the module
     await db.delete(modules).where(eq(modules.id, id));
