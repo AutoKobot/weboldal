@@ -141,6 +141,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
             {/* Mód váltó */}
             <div className="flex gap-2">
                 <Button
+                    type="button"
                     variant={importMode === 'file' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setImportMode('file')}
@@ -150,6 +151,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                     Fájl feltöltés
                 </Button>
                 <Button
+                    type="button"
                     variant={importMode === 'url' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setImportMode('url')}
@@ -179,11 +181,12 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                         <Label htmlFor="csv-url" className="text-blue-700 font-medium">🔗 CSV fájl URL-je</Label>
                         <Input
                             id="csv-url"
-                            type="url"
+                            type="text"
                             value={csvUrl}
                             onChange={(e) => setCsvUrl(e.target.value)}
                             placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
                             className="border-blue-200 focus:border-blue-400"
+                            onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                         />
                         <p className="text-xs text-gray-500">
                             Google Sheets esetén: <em>Fájl → Letöltés → CSV</em> menüből másold ki a letöltési linket,
@@ -205,6 +208,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
 
                 <div className="flex flex-col gap-2">
                     <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={downloadTemplate}
@@ -215,6 +219,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                     </Button>
 
                     <Button
+                        type="button"
                         onClick={handleImport}
                         disabled={!canImport || isLoading}
                         className="gap-2"
@@ -228,6 +233,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                     </Button>
 
                     <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => {
