@@ -154,6 +154,10 @@ export default function TeacherDashboard() {
     const username = student.username?.toLowerCase() || '';
     const search = searchTerm.toLowerCase();
     return fullName.includes(search) || username.includes(search);
+  }).sort((a: Student, b: Student) => {
+    const nameA = `${a.lastName || ''} ${a.firstName || ''}`.toLowerCase().trim() || a.username?.toLowerCase() || '';
+    const nameB = `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase().trim() || b.username?.toLowerCase() || '';
+    return nameA.localeCompare(nameB, 'hu');
   });
 
   const getStudentProgress = (student: Student) => {
