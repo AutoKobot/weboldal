@@ -35,6 +35,44 @@ export default function ModuleViewer() {
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Google Drive / Slides / Sheets URL átalakítók
+  const toDirectImageUrl = (url: string): string => {
+    if (!url) return url;
+    // Google Drive: /file/d/ID/ → direct view link
+    const driveMatch = url.match(/\/file\/d\/([^/]+)/);
+    if (driveMatch) return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+    return url;
+  };
+
+  const toDirectVideoUrl = (url: string): string => {
+    if (!url) return url;
+    // Google Drive videó: ugyanaz mint kép
+    const driveMatch = url.match(/\/file\/d\/([^/]+)/);
+    if (driveMatch) return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+    return url;
+  };
+
+  const toPresentationEmbedUrl = (url: string): string => {
+    if (!url) return '';
+    // Google Slides: /presentation/d/ID/ → embed URL
+    const slidesMatch = url.match(/\/presentation\/d\/([^/]+)/);
+    if (slidesMatch) {
+      return `https://docs.google.com/presentation/d/${slidesMatch[1]}/embed?start=false&loop=false&delayms=3000`;
+    }
+    // PDF → direkt megnyitás
+    if (url.toLowerCase().endsWith('.pdf')) return url;
+    // Google Drive PPTX fájl → Office Online nézegető
+    const driveMatch = url.match(/\/file\/d\/([^/]+)/);
+    if (driveMatch) {
+      return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    }
+    // Egyéb PPTX → Office Online embed
+    if (url.toLowerCase().includes('.pptx') || url.toLowerCase().includes('.ppt')) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
   // Multimédia modal state-ek
   const [showImageModal, setShowImageModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -1117,9 +1155,15 @@ export default function ModuleViewer() {
           </DialogHeader>
           <div className="flex justify-center">
             <img
-              src={module?.imageUrl || ''}
+              src={toDirectImageUrl(module?.imageUrl || '')}
               alt="Modul illusztráció"
               className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              onError={(e) => {
+                const t = e.currentTarget;
+                t.onerror = null;
+                t.src = '';
+                t.alt = 'A kép nem tölthető be. Ellenőrizd, hogy a Google Drive fájl nyilvánosan megosztott-e.';
+              }}
             />
           </div>
         </DialogContent>
@@ -1152,14 +1196,26 @@ export default function ModuleViewer() {
           </DialogHeader>
           <div className="aspect-video">
             {module?.videoUrl && (
-              <video
-                src={module.videoUrl}
-                controls
-                className="w-full h-full rounded-lg"
-                preload="metadata"
-              >
-                A böngésződ nem támogatja a videó lejátszást.
-              </video>
+              <>
+                {module.videoUrl.includes('drive.google.com') ? (
+                  // Google Drive videó → iframe embed
+                  <iframe
+                    src={toPresentationEmbedUrl(module.videoUrl).replace('/embed?', '/preview?') || `https://drive.google.com/file/d/${module.videoUrl.match(/\/file\/d\/([^/]+)/)?.[1]}/preview`}
+                    className="w-full h-full rounded-lg border-0"
+                    allow="autoplay"
+                    title="Videó"
+                  />
+                ) : (
+                  <video
+                    src={toDirectVideoUrl(module.videoUrl)}
+                    controls
+                    className="w-full h-full rounded-lg"
+                    preload="metadata"
+                  >
+                    A böngésződ nem támogatja a videó lejátszást.
+                  </video>
+                )}
+              </>
             )}
           </div>
         </DialogContent>
@@ -1238,28 +1294,28 @@ export default function ModuleViewer() {
 
           {/* Az iframe a teljes remaining space-t foglalja el */}
           <div className="flex-1 w-full relative bg-neutral-100 overflow-hidden" style={{ minHeight: 0 }}>
-            {module?.presentationUrl ? (
-              module.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+            {module?.presentationUrl ? (() => {
+              const embedUrl = toPresentationEmbedUrl(module.presentationUrl);
+              const isGoogleSlides = module.presentationUrl.includes('/presentation/d/');
+              const isPdf = module.presentationUrl.toLowerCase().endsWith('.pdf');
+              return (
                 <iframe
-                  src={module.presentationUrl}
+                  src={embedUrl}
                   className="absolute inset-0 w-full h-full border-0"
-                  title="PDF Megtekintő"
+                  title={isGoogleSlides ? "Google Slides" : isPdf ? "PDF Megtekintő" : "Prezentáció Megtekintő"}
+                  allow="autoplay"
                 />
-              ) : (
-                <iframe
-                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + module.presentationUrl)}`}
-                  className="absolute inset-0 w-full h-full border-0"
-                  title="PPTX Megtekintő"
-                />
-              )
-            ) : (
+              );
+            })() : (
               <div className="flex items-center justify-center h-full">
                 <p className="text-neutral-500">Nem található prezentáció.</p>
               </div>
             )}
           </div>
+          {/* Típus felirat a headerben */}
         </DialogContent>
       </Dialog>
+
 
       {/* Wikipedia Modal */}
       <Dialog open={showWikipediaModal} onOpenChange={setShowWikipediaModal}>
