@@ -3652,32 +3652,64 @@ export default function AdminDashboard() {
                   {/* Prezentáció (PPTX) feltöltés vagy URL */}
                   <div className="space-y-3">
                     <h5 className="text-sm font-medium">Prezentáció (PPTX/PDF)</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm text-gray-600 mb-2 block">Fájl feltöltése</label>
-                        <FileUpload
-                          acceptedTypes=".pptx,.ppt,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf"
-                          maxSize={50 * 1024 * 1024} // 50MB
-                          onFileUploaded={(file) => {
-                            const url = `/uploads/${file.filename}`;
-                            form.setValue('presentationUrl', url);
-                            form.trigger('presentationUrl');
-                          }}
-                        />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="presentationUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Vagy prezentáció URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} value={field.value || ""} placeholder="https://example.com/presentation.pptx" />
-                            </FormControl>
-                          </FormItem>
-                        )}
+
+                    {/* URL bevitel – elsőként, kiemelten */}
+                    <FormField
+                      control={form.control}
+                      name="presentationUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-medium text-blue-700">🔗 Prezentáció URL (Google Drive, OneDrive, stb.)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="https://drive.google.com/file/d/.../view vagy https://example.com/slides.pdf"
+                              className="border-blue-200 focus:border-blue-400"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Pl.: Google Drive megosztott link, OneDrive link, vagy bármilyen publikus PDF/PPTX URL
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* VAGY elválasztó */}
+                    <div className="flex items-center gap-3 my-2">
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-xs text-gray-400 font-medium">— VAGY fájl feltöltés (csak tartós tárhelyű szerveren) —</span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+
+                    {/* Fájl feltöltés */}
+                    <div>
+                      <label className="text-sm text-gray-500 mb-2 block">Fájl feltöltése a szerverre (Render-en nem tartós!)</label>
+                      <FileUpload
+                        acceptedTypes=".pptx,.ppt,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf"
+                        maxSize={50 * 1024 * 1024}
+                        onFileUploaded={(file) => {
+                          const url = `/uploads/${file.filename}`;
+                          form.setValue('presentationUrl', url);
+                          form.trigger('presentationUrl');
+                        }}
                       />
                     </div>
+
+                    {/* Aktuális URL megjelenítése */}
+                    {form.watch('presentationUrl') && (
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100 text-xs text-blue-700">
+                        <span>✅ Beállított URL:</span>
+                        <span className="truncate font-mono">{form.watch('presentationUrl')}</span>
+                        <button
+                          type="button"
+                          onClick={() => form.setValue('presentationUrl', '')}
+                          className="ml-auto text-red-400 hover:text-red-600 flex-shrink-0"
+                        >
+                          ✕ Törlés
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <FormField
