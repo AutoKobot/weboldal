@@ -998,7 +998,14 @@ export default function AdminDashboard() {
 
   const updateModuleMutation = useMutation({
     mutationFn: async (data: ModuleFormData) => {
-      const res = await apiRequest("PATCH", `/api/modules/${editingModule!.id}`, data);
+      // FONTOS: Az isPublished értékét mindig az adatbázisban lévő aktuális
+      // értékkel adjuk felül, hogy a form mentése ne törölje a publikálást.
+      // A közzétételhez a külön togglePublishMutation-t kell használni.
+      const dataWithPublishPreserved = {
+        ...data,
+        isPublished: editingModule?.isPublished ?? data.isPublished,
+      };
+      const res = await apiRequest("PATCH", `/api/modules/${editingModule!.id}`, dataWithPublishPreserved);
       return await res.json();
     },
     onSuccess: () => {
