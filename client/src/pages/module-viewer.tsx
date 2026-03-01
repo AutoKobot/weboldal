@@ -12,7 +12,7 @@ import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap } from "lucide-react";
+import { ArrowLeft, CheckCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
@@ -688,6 +688,19 @@ export default function ModuleViewer() {
                   >
                     <Headphones size={18} className="text-orange-600" />
                   </Button>
+                )}
+
+                {module.presentationUrl && (
+                  <a href={module.presentationUrl} target="_blank" rel="noopener noreferrer">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-12 h-12 rounded-full bg-student-warm shadow-lg hover:shadow-xl border-2 border-neutral-200 hover:border-blue-500"
+                      title="Prezentáció (PPTX/PDF) letöltése megtekintése"
+                    >
+                      <Presentation size={18} className="text-blue-500" />
+                    </Button>
+                  </a>
                 )}
               </div>
             )}

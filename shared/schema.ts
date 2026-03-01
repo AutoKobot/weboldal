@@ -86,6 +86,7 @@ export const modules = pgTable("modules", {
   imageUrl: varchar("image_url"), // Modul borítókép
   youtubeUrl: varchar("youtube_url"), // YouTube videó URL
   podcastUrl: varchar("podcast_url"), // Külső podcast URL
+  presentationUrl: varchar("presentation_url"), // Feltöltött prezentáció URL (pl. pptx)
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
   schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik

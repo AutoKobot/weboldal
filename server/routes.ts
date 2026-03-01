@@ -84,17 +84,21 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Allow images, videos, and audio files
+    // Allow images, videos, audio files, and presentations
     const allowedMimes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
       'video/mp4', 'video/webm', 'video/quicktime',
-      'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/webm'
+      'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/webm',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/pdf', // .pdf
+      'application/octet-stream' // Sometimes PowerPoint uses octet-stream
     ];
 
-    if (allowedMimes.includes(file.mimetype)) {
+    if (allowedMimes.includes(file.mimetype) || file.originalname.match(/\.(pptx|ppt|pdf)$/i)) {
       cb(null, true);
     } else {
-      cb(new Error('Nem támogatott fájltípus. Csak kép, videó és hang fájlok engedélyezettek.'));
+      cb(new Error('Nem támogatott fájltípus. Csak kép, videó, hang és prezentáció (PPTX/PDF) fájlok engedélyezettek.'));
     }
   }
 });
@@ -657,9 +661,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const profession = await storage.createProfession(professionData);
       res.status(201).json(profession);
     } catch (error) {
@@ -682,9 +686,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const updatedProfession = await storage.updateProfession(id, professionData);
       res.json(updatedProfession);
     } catch (error) {
@@ -1996,9 +2000,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const subject = await storage.createSubject(subjectData);
       res.json(subject);
     } catch (error) {
@@ -2021,9 +2025,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const subject = await storage.updateSubject(subjectId, subjectData);
       res.json(subject);
     } catch (error) {
@@ -2064,9 +2068,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const module = await storage.createModule(moduleData);
       res.json(module);
     } catch (error) {
@@ -2089,9 +2093,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const module = await storage.updateModule(moduleId, moduleData);
       res.json(module);
     } catch (error) {
@@ -2190,9 +2194,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const profession = await storage.createProfession(professionData);
       res.json(profession);
     } catch (error) {
@@ -2215,9 +2219,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const profession = await storage.updateProfession(professionId, professionData);
       res.json(profession);
     } catch (error) {
@@ -2240,9 +2244,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const profession = await storage.updateProfession(professionId, professionData);
       res.json(profession);
     } catch (error) {
@@ -2294,9 +2298,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const subject = await storage.createSubject(subjectData);
       res.json(subject);
     } catch (error) {
@@ -2319,9 +2323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const subject = await storage.updateSubject(subjectId, subjectData);
       res.json(subject);
     } catch (error) {
@@ -2344,9 +2348,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const subject = await storage.updateSubject(subjectId, subjectData);
       res.json(subject);
     } catch (error) {
@@ -2368,7 +2372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if subject has modules
       const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
-          const modules = await storage.getModules(subjectId, schoolAdminId);
+      const modules = await storage.getModules(subjectId, schoolAdminId);
       if (modules.length > 0) {
         return res.status(400).json({
           message: "Nem törölhető a tantárgy, mert tartoznak hozzá modulok"
@@ -2536,9 +2540,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
       const module = await storage.createModule(moduleData);
       res.json(module);
     } catch (error) {
@@ -2564,9 +2568,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'admin') {
         moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
 
       console.log(`Admin ${userId} updating module ${moduleId}:`, {
         title: moduleData.title,
@@ -5206,9 +5210,9 @@ Platform funkciók és navigáció:
       if (user.role !== 'admin') {
         moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
-      
-      
-      
+
+
+
 
       const module = await storage.createModule(moduleData);
 

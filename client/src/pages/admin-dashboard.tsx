@@ -903,6 +903,7 @@ export default function AdminDashboard() {
       imageUrl: "",
       youtubeUrl: "",
       podcastUrl: "",
+      presentationUrl: "",
       isPublished: false,
     },
   });
@@ -969,6 +970,7 @@ export default function AdminDashboard() {
       form.setValue("imageUrl", editingModule.imageUrl || "");
       form.setValue("youtubeUrl", editingModule.youtubeUrl || "");
       form.setValue("podcastUrl", editingModule.podcastUrl || "");
+      form.setValue("presentationUrl", editingModule.presentationUrl || "");
       form.setValue("isPublished", editingModule.isPublished || false);
 
       form.trigger();
@@ -3640,6 +3642,37 @@ export default function AdminDashboard() {
                             <FormLabel>Vagy kép URL</FormLabel>
                             <FormControl>
                               <Input {...field} value={field.value || ""} placeholder="https://example.com/image.jpg" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Prezentáció (PPTX) feltöltés vagy URL */}
+                  <div className="space-y-3">
+                    <h5 className="text-sm font-medium">Prezentáció (PPTX/PDF)</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600 mb-2 block">Fájl feltöltése</label>
+                        <FileUpload
+                          acceptedTypes=".pptx,.ppt,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf"
+                          maxSize={50 * 1024 * 1024} // 50MB
+                          onFileUploaded={(file) => {
+                            const url = `/uploads/${file.filename}`;
+                            form.setValue('presentationUrl', url);
+                            form.trigger('presentationUrl');
+                          }}
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="presentationUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vagy prezentáció URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} value={field.value || ""} placeholder="https://example.com/presentation.pptx" />
                             </FormControl>
                           </FormItem>
                         )}
