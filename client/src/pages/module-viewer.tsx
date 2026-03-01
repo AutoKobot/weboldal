@@ -41,6 +41,7 @@ export default function ModuleViewer() {
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showPodcastModal, setShowPodcastModal] = useState(false);
+  const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [selectedYoutubeVideo, setSelectedYoutubeVideo] = useState<{ title: string, videoId: string } | null>(null);
   const [contentVersion, setContentVersion] = useState<'concise' | 'detailed'>('concise');
   const [showFlashcards, setShowFlashcards] = useState(false);
@@ -691,16 +692,15 @@ export default function ModuleViewer() {
                 )}
 
                 {module.presentationUrl && (
-                  <a href={module.presentationUrl} target="_blank" rel="noopener noreferrer">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-12 h-12 rounded-full bg-student-warm shadow-lg hover:shadow-xl border-2 border-neutral-200 hover:border-blue-500"
-                      title="Prezentáció (PPTX/PDF) letöltése megtekintése"
-                    >
-                      <Presentation size={18} className="text-blue-500" />
-                    </Button>
-                  </a>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPresentationModal(true)}
+                    className="w-12 h-12 rounded-full bg-student-warm shadow-lg hover:shadow-xl border-2 border-neutral-200 hover:border-blue-500"
+                    title="Prezentáció (PPTX/PDF) megtekintése"
+                  >
+                    <Presentation size={18} className="text-blue-500" />
+                  </Button>
                 )}
               </div>
             )}
@@ -1212,6 +1212,49 @@ export default function ModuleViewer() {
                 </Button>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Prezentáció (PPTX/PDF) Modal */}
+      <Dialog open={showPresentationModal} onOpenChange={setShowPresentationModal}>
+        <DialogContent className="max-w-6xl w-[90vw] h-[90vh]">
+          <DialogHeader className="mb-2">
+            <DialogTitle>Prezentáció megtekintése</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 w-full h-full relative bg-neutral-100 rounded-lg overflow-hidden flex flex-col items-center justify-center">
+            {module?.presentationUrl && (
+              <>
+                {module.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+                  <iframe
+                    src={module.presentationUrl}
+                    className="w-full h-full border-0 absolute inset-0"
+                    title="PDF Megtekintő"
+                  ></iframe>
+                ) : (
+                  <iframe
+                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${window.location.origin}${module.presentationUrl}`}
+                    className="w-full h-full border-0 absolute inset-0"
+                    title="PPTX Megtekintő"
+                  ></iframe>
+                )}
+              </>
+            )}
+            {!module?.presentationUrl && (
+              <p className="text-neutral-500">Nem található prezentáció.</p>
+            )}
+          </div>
+          <div className="flex justify-between items-center mt-2 p-2">
+            <p className="text-xs text-neutral-500">
+              {module?.presentationUrl?.toLowerCase().endsWith('.pdf')
+                ? "PDF olvasó (natív böngésző támogatás)"
+                : "PPTX olvasó (Office Online technológiával, működéséhez publikus weblap szükséges)"}
+            </p>
+            <a href={module?.presentationUrl || '#'} download target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="gap-2">
+                Fájl letöltése
+              </Button>
+            </a>
           </div>
         </DialogContent>
       </Dialog>
