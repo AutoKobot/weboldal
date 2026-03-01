@@ -1218,43 +1218,45 @@ export default function ModuleViewer() {
 
       {/* Prezentáció (PPTX/PDF) Modal */}
       <Dialog open={showPresentationModal} onOpenChange={setShowPresentationModal}>
-        <DialogContent className="max-w-6xl w-[90vw] h-[90vh]">
-          <DialogHeader className="mb-2">
-            <DialogTitle>Prezentáció megtekintése</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 w-full h-full relative bg-neutral-100 rounded-lg overflow-hidden flex flex-col items-center justify-center">
-            {module?.presentationUrl && (
-              <>
-                {module.presentationUrl.toLowerCase().endsWith('.pdf') ? (
-                  <iframe
-                    src={module.presentationUrl}
-                    className="w-full h-full border-0 absolute inset-0"
-                    title="PDF Megtekintő"
-                  ></iframe>
-                ) : (
-                  <iframe
-                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + module.presentationUrl)}`}
-                    className="w-full h-full border-0 absolute inset-0"
-                    title="PPTX Megtekintő"
-                  ></iframe>
-                )}
-              </>
-            )}
-            {!module?.presentationUrl && (
-              <p className="text-neutral-500">Nem található prezentáció.</p>
-            )}
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 flex flex-col gap-0 overflow-hidden">
+          {/* Header sáv */}
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-white flex-shrink-0">
+            <DialogTitle className="text-base font-semibold">Prezentáció megtekintése</DialogTitle>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-neutral-400 hidden sm:block">
+                {module?.presentationUrl?.toLowerCase().endsWith('.pdf')
+                  ? "PDF – natív böngésző megjelenítő"
+                  : "PPTX – Office Online (publikus elérés szükséges)"}
+              </p>
+              <a href={module?.presentationUrl || '#'} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline" className="h-7 text-xs">
+                  Letöltés
+                </Button>
+              </a>
+            </div>
           </div>
-          <div className="flex justify-between items-center mt-2 p-2">
-            <p className="text-xs text-neutral-500">
-              {module?.presentationUrl?.toLowerCase().endsWith('.pdf')
-                ? "PDF olvasó (natív böngésző támogatás)"
-                : "PPTX olvasó (Office Online technológiával, működéséhez publikus weblap szükséges)"}
-            </p>
-            <a href={module?.presentationUrl || '#'} download target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="outline" className="gap-2">
-                Fájl letöltése
-              </Button>
-            </a>
+
+          {/* Az iframe a teljes remaining space-t foglalja el */}
+          <div className="flex-1 w-full relative bg-neutral-100 overflow-hidden" style={{ minHeight: 0 }}>
+            {module?.presentationUrl ? (
+              module.presentationUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={module.presentationUrl}
+                  className="absolute inset-0 w-full h-full border-0"
+                  title="PDF Megtekintő"
+                />
+              ) : (
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + module.presentationUrl)}`}
+                  className="absolute inset-0 w-full h-full border-0"
+                  title="PPTX Megtekintő"
+                />
+              )
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-neutral-500">Nem található prezentáció.</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
