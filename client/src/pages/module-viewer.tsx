@@ -1233,7 +1233,7 @@ export default function ModuleViewer() {
                   ></iframe>
                 ) : (
                   <iframe
-                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${window.location.origin}${module.presentationUrl}`}
+                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + module.presentationUrl)}`}
                     className="w-full h-full border-0 absolute inset-0"
                     title="PPTX Megtekintő"
                   ></iframe>
