@@ -50,11 +50,12 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
     { icon: TrendingUp, label: "Tanulóim", href: "/tanulóim" },
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : [
-    { icon: Home, label: "Home", href: "/" },
-    { icon: BookOpen, label: "Tananyagok", href: "/tananyagok" },
-    { icon: TrendingUp, label: "Haladásom", href: "/progress" },
-    { icon: Bot, label: "AI Chat", href: "/chat" },
-    { icon: Settings, label: "Beállítások", href: "/settings" },
+    { icon: Home, label: "Főoldal", href: "/", description: "Kezdőlap és műszerfal" },
+    { icon: BookOpen, label: "Szakmák", href: "/tananyagok", description: "Válassz és tanulj" },
+    { icon: Users, label: "Közösségi Tanulás", href: "/community", description: "Tanulj másokkal" },
+    { icon: TrendingUp, label: "Haladásom", href: "/progress", description: "Jegyek, célok" },
+    { icon: Bot, label: "AI Chat", href: "/chat", description: "Kérdezz az AI-tól" },
+    { icon: Settings, label: "Beállítások", href: "/settings", description: "Profilod" },
   ];
 
   return (
@@ -89,8 +90,13 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
                     : "text-neutral-700 hover:bg-neutral-50"
                     }`}
                 >
-                  <item.icon size={20} />
-                  <span className="font-medium">{item.label}</span>
+                  <item.icon size={20} className="flex-shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium truncate">{item.label}</span>
+                    {'description' in item && item.description && (
+                      <span className={`text-xs font-normal truncate opacity-90 ${location === item.href ? 'text-white/80' : 'text-neutral-500'}`}>{item.description}</span>
+                    )}
+                  </div>
                 </Link>
               </li>
             ))}

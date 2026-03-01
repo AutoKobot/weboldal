@@ -120,19 +120,29 @@ export default function TeacherDashboard() {
   });
 
   // Fetch class grades for statistics
-  const now = new Date();
   let startDateStr = "";
   if (timeFilter === "week") {
-    const d = new Date(); d.setDate(d.getDate() - 7);
+    const d = new Date();
+    d.setHours(0, 0, 0, 0); // Biztosítja, hogy nem változik a string milliszekundumonként (végtelen ciklus megállítása)
+    d.setDate(d.getDate() - 7);
     startDateStr = d.toISOString();
   } else if (timeFilter === "month") {
-    const d = new Date(); d.setMonth(d.getMonth() - 1);
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setMonth(d.getMonth() - 1);
     startDateStr = d.toISOString();
   }
 
-  const gradesQueryKey = selectedClassId && selectedClassId !== "all"
-    ? `/api/teacher/classes/${selectedClassId}/grades?startDate=${encodeURIComponent(startDateStr)}${selectedStudentId !== "all" ? `&studentId=${encodeURIComponent(selectedStudentId)}` : ""}`
-    : null;
+  let gradesQueryKey = null;
+  if (selectedClassId && selectedClassId !== "all") {
+    const params = new URLSearchParams();
+    if (startDateStr) params.append('startDate', startDateStr);
+    if (selectedStudentId !== "all") params.append('studentId', selectedStudentId);
+
+    // Csak ha felesleges paraméterek vannak, akkor fűzzük hozzá (bár a toString() önmagában is üres ha nincs paraméter)
+    const queryString = params.toString();
+    gradesQueryKey = `/api/teacher/classes/${selectedClassId}/grades${queryString ? `?${queryString}` : ''}`;
+  }
 
   const { data: classGrades = [], isLoading: gradesLoading } = useQuery<GradeResult[]>({
     queryKey: [gradesQueryKey],

@@ -174,11 +174,11 @@ export default function Sidebar({ user }: SidebarProps) {
     { icon: TrendingUp, label: "Tanulóim", href: "/teacher" },
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : [
-    { icon: Home, label: "Home", href: "/" },
-    { icon: BookOpen, label: "Szakmák", href: "/tananyagok" },
-    { icon: Users, label: "Közösségi Tanulás", href: "/community" },
-    { icon: TrendingUp, label: "Haladásom", href: "/progress" },
-    { icon: Settings, label: "Beállítások", href: "/settings" },
+    { icon: Home, label: "Főoldal", href: "/", description: "Kezdőlap és műszerfal" },
+    { icon: BookOpen, label: "Szakmák", href: "/tananyagok", description: "Válaszd ki a szakmád és tanulj" },
+    { icon: Users, label: "Közösségi Tanulás", href: "/community", description: "Tanulj és fejlődj másokkal" },
+    { icon: TrendingUp, label: "Haladásom", href: "/progress", description: "Jegyek, kész modulok, célok" },
+    { icon: Settings, label: "Beállítások", href: "/settings", description: "Profil és fiókkezelés" },
   ];
 
   return (
@@ -278,8 +278,13 @@ export default function Sidebar({ user }: SidebarProps) {
                 href={item.href}
                 className="flex items-center space-x-3 p-3 rounded-lg transition-colors text-neutral-700 hover:bg-neutral-50 bg-[#8ad14b]"
               >
-                <item.icon size={20} />
-                <span className="font-medium">{item.label}</span>
+                <item.icon size={20} className="flex-shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="font-medium truncate">{item.label}</span>
+                  {'description' in item && item.description && (
+                    <span className="text-xs text-neutral-600 font-normal truncate opacity-90">{item.description}</span>
+                  )}
+                </div>
               </Link>
             </li>
           ))}
