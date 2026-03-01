@@ -85,21 +85,25 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
         }
 
         if (importMode === 'url') {
-            // URL mód: lekérjük a CSV-t a böngészőből, majd FormData-ként elküldjük
+            // URL mód: a SZERVER tölti le (nincs CORS probléma)
             try {
-                toast({ title: "Letöltés...", description: "CSV letöltése az URL-ről..." });
-                const resp = await fetch(csvUrl);
-                if (!resp.ok) throw new Error(`Nem sikerült letölteni: ${resp.status}`);
-                const text = await resp.text();
-                const blob = new Blob([text], { type: 'text/csv' });
-                const urlFile = new File([blob], 'import_url.csv', { type: 'text/csv' });
-                const formData = new FormData();
-                formData.append('file', urlFile);
-                importMutation.mutate(formData);
+                const response = await fetch(`/api/modules/${moduleId}/flashcards/import-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: csvUrl }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Importálás sikertelen');
+                toast({
+                    title: "Sikeres importálás",
+                    description: data.message,
+                });
+                queryClient.invalidateQueries({ queryKey: [`/api/modules/${moduleId}/flashcards`] });
+                if (onSuccess) onSuccess();
             } catch (e: any) {
                 toast({
-                    title: "URL letöltési hiba",
-                    description: e.message || "Nem sikerült a CSV letöltése az URL-ről.",
+                    title: "URL importálási hiba",
+                    description: e.message || "Nem sikerült a CSV importálása az URL-ről.",
                     variant: "destructive",
                 });
             }

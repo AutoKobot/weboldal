@@ -2527,6 +2527,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // URL-alapú flashcard import – a szerver tölti le, nincs CORS gond
+  app.post('/api/modules/:id/flashcards/import-url', combinedAuth, async (req: any, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      const { url } = req.body;
+
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ message: 'Hiányzó CSV URL' });
+      }
+
+      // Google Drive megosztási link → közvetlen letöltési linkké alakítás
+      let downloadUrl = url;
+      const gdriveMatcher = url.match(/\/file\/d\/([^/]+)\//);
+      if (gdriveMatcher) {
+        downloadUrl = `https://drive.google.com/uc?export=download&id=${gdriveMatcher[1]}`;
+      }
+      // Google Sheets → CSV export
+      const sheetsMatcher = url.match(/\/spreadsheets\/d\/([^/]+)/);
+      if (sheetsMatcher) {
+        downloadUrl = `https://docs.google.com/spreadsheets/d/${sheetsMatcher[1]}/export?format=csv`;
+      }
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        return res.status(400).json({ message: `Nem sikerült letölteni a CSV-t: HTTP ${response.status}` });
+      }
+      const csvData = await response.text();
+
+      const records = parse(csvData, {
+        columns: true,
+        skip_empty_lines: true,
+        relax_quotes: true,
+        relax_column_count: true,
+      });
+
+      const flashcardsToInsert = records.map((record: any) => {
+        const keys = Object.keys(record);
+        const front = record.Front || record.front || record.Question || record.question || record[keys[0]];
+        const back = record.Back || record.back || record.Answer || record.answer || record[keys[1]];
+        return {
+          moduleId,
+          front: String(front || '').trim(),
+          back: String(back || '').trim(),
+        };
+      }).filter((f: any) => f.front && f.back);
+
+      if (flashcardsToInsert.length === 0) {
+        return res.status(400).json({ message: 'A CSV nem tartalmaz érvényes tanulókártyákat (Front/Back fejléc szükséges).' });
+      }
+
+      const inserted = await storage.bulkCreateFlashcards(flashcardsToInsert);
+      res.status(201).json({
+        message: `${inserted.length} tanulókártya sikeresen importálva`,
+        count: inserted.length
+      });
+    } catch (error) {
+      console.error("Error importing flashcards from URL:", error);
+      res.status(500).json({ message: "Importálás sikertelen: " + (error as Error).message });
+    }
+  });
+
+
   app.post('/api/modules', customAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
