@@ -30,5 +30,30 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     target: "es2020",
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core – ritkán változik, jól cache-elhető
+          "vendor-react": ["react", "react-dom"],
+          // UI könyvtár
+          "vendor-ui": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-label",
+            "@radix-ui/react-progress",
+            "@radix-ui/react-checkbox",
+            "@radix-ui/react-switch",
+            "lucide-react",
+          ],
+          // Adatkezelés
+          "vendor-query": ["@tanstack/react-query"],
+          // Markdown / diagram renderelés
+          "vendor-markdown": ["react-markdown", "remark-gfm", "mermaid"],
+        },
+      },
+    },
   },
 });
