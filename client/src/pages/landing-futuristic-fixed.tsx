@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Brain, 
-  Cpu, 
-  Sparkles, 
+import {
+  Brain,
+  Cpu,
+  Sparkles,
   Zap,
   ArrowRight,
   Play,
@@ -33,10 +33,10 @@ export default function FuturisticLanding() {
     <div className="min-h-screen overflow-hidden relative bg-optimized-gradient">
       {/* Instant dark background for immediate display */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 opacity-95"></div>
-      
+
       {/* Animated AI Background - Loads progressively */}
       <AnimatedAIBackground />
-      
+
       {/* Content overlay with optimized performance */}
       <div className="relative z-10 min-h-screen bg-black/20 animate-slide-up">
         {/* Navigation */}
@@ -47,7 +47,7 @@ export default function FuturisticLanding() {
             </div>
             <span className="text-xl font-bold text-white">Global Learning System</span>
           </div>
-          
+
           <div className="flex space-x-4">
             <Link href="/student-auth">
               <Button variant="outline" className="border-green-400/30 text-green-300 hover:bg-green-400/10 hover:border-green-400/50">
@@ -92,15 +92,15 @@ export default function FuturisticLanding() {
 
             {/* Subtitle */}
             <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-              Fedezd fel a mesterséges intelligencia erejét a tanulásban. 
+              Fedezd fel a mesterséges intelligencia erejét a tanulásban.
               Személyre szabott modulok, interaktív AI asszisztens és professzionális közösségek.
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="bg-gradient-to-r from-purple-600/40 to-violet-700/40 border-purple-400/60 text-white hover:from-purple-600/60 hover:to-violet-700/60 hover:border-purple-400/80 px-8 py-4 text-lg backdrop-blur-sm shadow-lg shadow-purple-500/20"
                 onClick={scrollToFeatures}
               >
@@ -134,21 +134,20 @@ export default function FuturisticLanding() {
               <Sparkles className="w-4 h-4 mr-2" />
               Platform Bemutató
             </Badge>
-            
+
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Fedezze fel az 
+              Fedezze fel az
               <span className="bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">
                 {" "}AI Platform{" "}
               </span>
               lehetőségeit
             </h2>
-            
+
             <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
               Interaktív bemutató a Global Learning System főbb funkcióiról és innovatív megoldásairól
             </p>
-            
             <div className="max-w-5xl mx-auto">
-              <PresentationSlideshow />
+              <PresentationSlideshow variant="dark" />
             </div>
           </div>
         </section>
@@ -158,7 +157,7 @@ export default function FuturisticLanding() {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Miért válaszd a 
+                Miért válaszd a
                 <span className="bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">
                   {" "}Global Learning{" "}
                 </span>

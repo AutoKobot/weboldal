@@ -1630,14 +1630,16 @@ export class DatabaseStorage implements IStorage {
     const conditions = [eq(users.classId, classId)];
 
     if (startDate) {
-      conditions.push(gte(testResults.createdAt, new Date(startDate)));
+      const parsedStartDate = new Date(startDate);
+      // Use SQL template literals with ISO string to avoid pg date timezone issues
+      conditions.push(sql`${testResults.createdAt} >= ${parsedStartDate.toISOString()}`);
     }
 
     if (endDate) {
       // Add 1 day to include the end date fully if it's just a date string
       const end = new Date(endDate);
       end.setDate(end.getDate() + 1);
-      conditions.push(lte(testResults.createdAt, end));
+      conditions.push(sql`${testResults.createdAt} <= ${end.toISOString()}`);
     }
 
     if (studentId) {

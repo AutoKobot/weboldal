@@ -1,151 +1,97 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
-import { presentationImages } from '@/assets/presentation-images';
+import React from 'react';
+import { Brain, Target, TrendingUp, Shield } from 'lucide-react';
 
-interface Slide {
-  background: string;
-  image: string;
+interface PresentationSlideshowProps {
+  variant?: 'light' | 'dark';
 }
 
-const slides: Slide[] = [
-  {
-    background: "linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%)",
-    image: presentationImages.slide1
-  },
-  {
-    background: "linear-gradient(135deg, #5a67d8 0%, #667eea 100%)",
-    image: presentationImages.slide2
-  },
-  {
-    background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-    image: presentationImages.slide3
-  },
-  {
-    background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-    image: presentationImages.slide4
-  },
-  {
-    background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-    image: presentationImages.slide5
-  },
-  {
-    background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
-    image: presentationImages.slide6
-  },
-  {
-    background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
-    image: presentationImages.slide7
-  },
-  {
-    background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
-    image: presentationImages.slide8
-  },
-  {
-    background: "linear-gradient(135deg, #e0c3fc 0%, #9bb5ff 100%)",
-    image: presentationImages.slide9
-  }
-];
+export default function PresentationSlideshow({ variant = 'light' }: PresentationSlideshowProps) {
+  const blocks = [
+    {
+      icon: Brain,
+      title: "AI asszisztens",
+      description: "Minden tanuló saját személyes korrepetitorral rendelkezik.",
+      example: "Pl. ha elakadsz egy programozási feladatban vagy nehezen ismersz fel egy villanyszerelési hibát, az AI lépésről lépésre elmagyarázza a megoldást.",
+      color: "from-blue-500 to-cyan-500",
+      shadow: "shadow-cyan-500/20"
+    },
+    {
+      icon: Target,
+      title: "Adaptív tanulási útvonal",
+      description: "A rendszer felméri a tudásszintedet, és dinamikusan hozzád igazodik.",
+      example: "Pl. a rendszer felismeri, ha a matek egy része nehezen megy, és extra gyakorló feladatokat ad, míg a már biztosan elsajátított anyagokat gyorsabban átveszi.",
+      color: "from-purple-500 to-pink-500",
+      shadow: "shadow-purple-500/20"
+    },
+    {
+      icon: TrendingUp,
+      title: "Tanári analitika",
+      description: "Átfogó rálátás a diákok fejlődésére és az osztály előrehaladására.",
+      example: "Pl. a tanár valós időben látja a műszerfalon (dashboard), hogy melyik diáknak hány százalékon áll a modulja, és hol akadt el legtöbbet.",
+      color: "from-orange-500 to-red-500",
+      shadow: "shadow-orange-500/20"
+    },
+    {
+      icon: Shield,
+      title: "Iskolai admin eszközök",
+      description: "Teljes intézményi menedzsment egy helyen az igazgatónak.",
+      example: "Pl. az igazgató egy kattintással átlátja az összes osztály előrehaladását, és automatizált riportokat generálhat a fenntartó felé.",
+      color: "from-green-500 to-emerald-500",
+      shadow: "shadow-green-500/20"
+    }
+  ];
 
-function PresentationSlideshow() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    if (!isPlaying || isHovered) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, isHovered]);
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
+  const isDark = variant === 'dark';
 
   return (
-    <div 
-      className="relative w-full max-w-3xl h-[32rem] rounded-xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mx-auto"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Slide Content */}
-      <div
-        className="w-full h-full flex items-center justify-center text-white relative transition-all duration-500 ease-in-out"
-        style={{ background: slides[currentSlide].background }}
-      >
-        {/* Background Image */}
-        <div className="absolute inset-0 opacity-95 overflow-hidden">
-          <img 
-            src={slides[currentSlide].image}
-            alt={`Slide ${currentSlide + 1}`}
-            className="w-full h-full object-contain"
-          />
+    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 text-left">
+      {blocks.map((block, index) => (
+        <div
+          key={index}
+          className={`
+            border rounded-2xl p-6 sm:p-8 transition-all duration-300 relative group overflow-hidden
+            ${isDark
+              ? 'bg-black/40 border-white/10 hover:bg-black/60 shadow-lg'
+              : 'bg-white border-gray-100 shadow-sm hover:shadow-md'}
+          `}
+        >
+          {/* Subtle background glow effect on hover */}
+          <div className={`
+            absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${block.color} 
+            rounded-full -mr-10 -mt-10 blur-3xl transition-opacity duration-300
+            ${isDark ? 'opacity-10 group-hover:opacity-20' : 'opacity-[0.05] group-hover:opacity-10'}
+          `}></div>
+
+          <div className={`
+            w-14 h-14 rounded-xl flex items-center justify-center mb-6 text-white shadow-lg
+            bg-gradient-to-br ${block.color} ${isDark ? block.shadow : 'shadow-black/5'}
+          `}>
+            <block.icon size={28} />
+          </div>
+
+          <h3 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {block.title}
+          </h3>
+
+          <p className={`mb-5 font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            {block.description}
+          </p>
+
+          <div className={`
+            rounded-xl p-4 sm:p-5 border
+            ${isDark
+              ? 'bg-white/5 border-white/10 text-gray-300 block'
+              : 'bg-gray-50 border-gray-100 text-gray-700 block'}
+          `}>
+            <p className="text-sm leading-relaxed">
+              <strong className={`block mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Konkrét példa:
+              </strong>
+              {block.example}
+            </p>
+          </div>
         </div>
-
-        {/* Slide Number */}
-        <div className="absolute top-4 right-4 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm">
-          {currentSlide + 1} / {slides.length}
-        </div>
-      </div>
-
-      {/* Navigation Controls */}
-      <div className="absolute inset-0 flex items-center justify-between opacity-0 hover:opacity-100 transition-opacity duration-300">
-        <button
-          onClick={prevSlide}
-          className="ml-4 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-colors"
-          aria-label="Previous slide"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        
-        <button
-          onClick={nextSlide}
-          className="mr-4 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-colors"
-          aria-label="Next slide"
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
-      {/* Play/Pause Button */}
-      <div className="absolute bottom-4 left-4">
-        <button
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="p-2 rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-colors"
-          aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
-        >
-          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-        </button>
-      </div>
-
-      {/* Slide Indicators */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              index === currentSlide 
-                ? 'bg-white' 
-                : 'bg-white/50 hover:bg-white/75'
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
-
-export default PresentationSlideshow;
