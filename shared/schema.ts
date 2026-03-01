@@ -410,6 +410,7 @@ export const insertModuleSchema = createInsertSchema(modules).omit({
 }).extend({
   youtubeUrl: z.string().optional().nullable(),
   podcastUrl: z.string().optional().nullable(),
+  presentationUrl: z.string().optional().nullable(),
   keyConceptsData: keyConceptsDataSchema.optional().nullable(),
   generatedQuizzes: z.array(z.any()).optional().nullable(),
 });
