@@ -55,27 +55,35 @@ export default function StudentDashboard() {
     );
   }
 
-  // Calculate which modules are unlocked based on completed modules
   const getUnlockedModules = (modules: Module[], completedModules: number[]) => {
     if (!modules.length) return new Set<number>();
-    
-    // Sort modules by creation order (assuming ID order represents learning sequence)
-    const sortedModules = [...modules].sort((a, b) => a.id - b.id);
     const unlockedModules = new Set<number>();
-    
-    // First module is always unlocked
-    if (sortedModules.length > 0) {
-      unlockedModules.add(sortedModules[0].id);
-    }
-    
-    // Unlock subsequent modules if previous ones are completed
-    for (let i = 1; i < sortedModules.length; i++) {
-      const previousModule = sortedModules[i - 1];
-      if (completedModules.includes(previousModule.id)) {
-        unlockedModules.add(sortedModules[i].id);
+
+    // Group modules by subjectId to calculate sequence properly within each subject
+    const modulesBySubject = modules.reduce((acc, module) => {
+      if (!acc[module.subjectId]) acc[module.subjectId] = [];
+      acc[module.subjectId].push(module);
+      return acc;
+    }, {} as Record<number, Module[]>);
+
+    Object.values(modulesBySubject).forEach(subjectModules => {
+      // Sort modules by moduleNumber (represents learning sequence)
+      const sortedModules = [...subjectModules].sort((a, b) => a.moduleNumber - b.moduleNumber);
+
+      // First module of any subject is always unlocked
+      if (sortedModules.length > 0) {
+        unlockedModules.add(sortedModules[0].id);
       }
-    }
-    
+
+      // Unlock subsequent modules if previous ones within the same subject are completed
+      for (let i = 1; i < sortedModules.length; i++) {
+        const previousModule = sortedModules[i - 1];
+        if (completedModules.includes(previousModule.id)) {
+          unlockedModules.add(sortedModules[i].id);
+        }
+      }
+    });
+
     return unlockedModules;
   };
 
@@ -93,8 +101,8 @@ export default function StudentDashboard() {
       </div>
 
       {/* Mobile Navigation */}
-      <MobileNav 
-        isOpen={isMobileNavOpen} 
+      <MobileNav
+        isOpen={isMobileNavOpen}
         onClose={() => setIsMobileNavOpen(false)}
         user={user}
       />
@@ -104,7 +112,7 @@ export default function StudentDashboard() {
         {/* Mobile Header */}
         <header className="bg-white shadow-sm border-b border-neutral-100 lg:hidden">
           <div className="flex items-center justify-between p-4">
-            <button 
+            <button
               onClick={() => setIsMobileNavOpen(true)}
               className="text-neutral-700"
             >

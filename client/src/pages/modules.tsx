@@ -15,7 +15,7 @@ export default function ModulesPage() {
   const params = useParams();
   const [, navigate] = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  
+
   const subjectId = params.subjectId ? parseInt(params.subjectId) : undefined;
 
   const { data: modules = [], isLoading: modulesLoading } = useQuery({
@@ -53,24 +53,33 @@ export default function ModulesPage() {
   // Calculate which modules are unlocked based on completed modules
   const getUnlockedModules = (modules: Module[], completedModules: number[]) => {
     if (!modules.length) return new Set<number>();
-    
-    // Sort modules by creation order (assuming ID order represents learning sequence)
-    const sortedModules = [...modules].sort((a, b) => a.id - b.id);
     const unlockedModules = new Set<number>();
-    
-    // First module is always unlocked
-    if (sortedModules.length > 0) {
-      unlockedModules.add(sortedModules[0].id);
-    }
-    
-    // Unlock subsequent modules if previous ones are completed
-    for (let i = 1; i < sortedModules.length; i++) {
-      const previousModule = sortedModules[i - 1];
-      if (completedModules.includes(previousModule.id)) {
-        unlockedModules.add(sortedModules[i].id);
+
+    // Group modules by subjectId to calculate sequence properly within each subject
+    const modulesBySubject = modules.reduce((acc, module) => {
+      if (!acc[module.subjectId]) acc[module.subjectId] = [];
+      acc[module.subjectId].push(module);
+      return acc;
+    }, {} as Record<number, Module[]>);
+
+    Object.values(modulesBySubject).forEach(subjectModules => {
+      // Sort modules by moduleNumber (represents learning sequence)
+      const sortedModules = [...subjectModules].sort((a, b) => a.moduleNumber - b.moduleNumber);
+
+      // First module of any subject is always unlocked
+      if (sortedModules.length > 0) {
+        unlockedModules.add(sortedModules[0].id);
       }
-    }
-    
+
+      // Unlock subsequent modules if previous ones within the same subject are completed
+      for (let i = 1; i < sortedModules.length; i++) {
+        const previousModule = sortedModules[i - 1];
+        if (completedModules.includes(previousModule.id)) {
+          unlockedModules.add(sortedModules[i].id);
+        }
+      }
+    });
+
     return unlockedModules;
   };
 
@@ -86,16 +95,16 @@ export default function ModulesPage() {
           <Sidebar user={user} />
         </div>
       </div>
-      
-      <MobileNav 
-        isOpen={isMobileNavOpen} 
-        onClose={() => setIsMobileNavOpen(false)} 
+
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
         user={user}
       />
-      
+
       <main className="flex-1 overflow-auto">
         <header className="bg-student-warm shadow-sm p-4 lg:hidden">
-          <button 
+          <button
             onClick={() => setIsMobileNavOpen(true)}
             className="p-2 rounded-lg hover:bg-neutral-100"
           >
@@ -142,9 +151,9 @@ export default function ModulesPage() {
           ) : modules.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {modules.map((module: Module) => (
-                <ModuleCard 
-                  key={module.id} 
-                  module={module} 
+                <ModuleCard
+                  key={module.id}
+                  module={module}
                   isCompleted={user.completedModules?.includes(module.id) || false}
                   userRole={user.role || 'student'}
                   isUnlocked={user.role === 'admin' || unlockedModules.has(module.id)}
