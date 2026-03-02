@@ -812,6 +812,12 @@ export default function AdminDashboard() {
     queryKey: ["/api/users"],
   });
 
+  // Osztályok lekérdezése a csoportosításhoz
+  const { data: allClasses = [] } = useQuery<{ id: number; name: string; schoolAdminId: string }[]>({
+    queryKey: ["/api/admin/all-classes"],
+    retry: false,
+  });
+
   // System message and module update message queries
   const { data: systemMessageData } = useQuery<{ message: string }>({
     queryKey: ["/api/admin/settings/system-message"],
@@ -2531,131 +2537,202 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Felhasználók kezelése</CardTitle>
-                <div className="flex gap-4">
-                  <span className="text-sm text-muted-foreground">
-                    Összes: {users.length} | Admin: {adminUsers} | Tanár: {teacherUsers} | Hallgató: {studentUsers}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {usersLoading ? (
-                  <div className="text-center py-8">
-                    <p>Felhasználók betöltése...</p>
-                  </div>
-                ) : users.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p>Nincsenek felhasználók az adatbázisban.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {users.map((user: User) => (
-                      <div key={user.id} className="border rounded-lg p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {user.profileImageUrl && (
-                            <img
-                              src={user.profileImageUrl}
-                              alt="Profil kép"
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          )}
-                          <div>
-                            <h3 className="font-semibold">
-                              {user.firstName && user.lastName
-                                ? `${user.firstName} ${user.lastName}`
-                                : user.email || user.username || user.id}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {user.email || "Nincs email"} • {user.username || "Nincs felhasználónév"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              ID: {user.id} • Regisztráció: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('hu-HU') : "Ismeretlen"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <Select
-                            value={user.role}
-                            onValueChange={(newRole) => {
-                              updateUserRoleMutation.mutate({ userId: user.id, role: newRole });
-                            }}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="student">Hallgató</SelectItem>
-                              <SelectItem value="teacher">Tanár</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
+            {/* Fejléc */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Felhasználók kezelése</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Összes: {users.length} &nbsp;|&nbsp;
+                  <span className="text-red-600">● Admin: {adminUsers}</span> &nbsp;|&nbsp;
+                  <span className="text-green-600">● Tanár: {teacherUsers}</span> &nbsp;|&nbsp;
+                  <span className="text-purple-600">● Diák: {studentUsers}</span>
+                </p>
+              </div>
+            </div>
 
-                          {user.role === 'student' && (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Settings className="h-4 w-4 mr-1" />
-                                  Szakmák ({user.assignedProfessionIds?.length || 0})
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Szakmák hozzárendelése - {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || user.username}</DialogTitle>
-                                </DialogHeader>
-                                <ProfessionAssignmentForm userId={user.id} currentProfessions={user.assignedProfessionIds || []} />
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                          <div className="flex gap-2">
-                            {user.role === 'student' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  if (confirm(`Minden modul feloldása ${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || user.username} felhasználó számára?`)) {
-                                    unlockAllModulesMutation.mutate(user.id);
-                                  }
-                                }}
-                                title="Minden modul feloldása"
-                                disabled={unlockAllModulesMutation.isPending}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Minden modul feloldása
-                              </Button>
+            {usersLoading ? (
+              <div className="text-center py-12 text-muted-foreground">Felhasználók betöltése...</div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">Nincsenek felhasználók az adatbázisban.</div>
+            ) : (<>
+
+              {/* ── RENDSZERADMINOK ── */}
+              {users.filter((u: User) => u.role === 'admin').length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-red-500 inline-block" />
+                      Rendszer adminisztrátorok ({users.filter((u: User) => u.role === 'admin').length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {users.filter((u: User) => u.role === 'admin').map((user: User) => (
+                      <UserRow key={user.id} user={user}
+                        onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
+                        onResetPassword={() => { setResetPasswordUserId(user.id); setIsPasswordResetDialogOpen(true); }}
+                        onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
+                        onUnlockModules={() => { if (confirm('Minden modul feloldása?')) unlockAllModulesMutation.mutate(user.id); }}
+                        unlockPending={unlockAllModulesMutation.isPending}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ── ISKOLAI ADMIN ÉS TANÁROK – iskola szerint csoportosítva ── */}
+              {(() => {
+                const schoolAdmins = users.filter((u: User) => u.role === 'school_admin');
+                const teachers = users.filter((u: User) => u.role === 'teacher');
+                // Minden iskola azonosító (schoolAdminId) összegyűjtése
+                const schoolIds = Array.from(new Set([
+                  ...schoolAdmins.map((u: User) => u.id),
+                  ...teachers.map((u: User) => (u as any).schoolAdminId).filter(Boolean),
+                ]));
+                if (schoolAdmins.length === 0 && teachers.length === 0) return null;
+                return (
+                  <div className="space-y-4">
+                    {schoolAdmins.map((schoolAdmin: User) => {
+                      const schoolTeachers = teachers.filter((t: User) => (t as any).schoolAdminId === schoolAdmin.id);
+                      const schoolName = (schoolAdmin as any).schoolName || schoolAdmin.firstName || schoolAdmin.username || schoolAdmin.id;
+                      return (
+                        <Card key={schoolAdmin.id}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full bg-blue-500 inline-block" />
+                              🏫 {schoolName}
+                              <Badge variant="outline" className="ml-1 text-xs">Iskola admin</Badge>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            {/* Iskolai admin sora */}
+                            <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-1">
+                              <p className="text-xs font-medium text-blue-700 dark:text-blue-300 px-2 pt-1 mb-1">Iskolai adminisztrátor</p>
+                              <UserRow user={schoolAdmin}
+                                onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: schoolAdmin.id, role: r })}
+                                onResetPassword={() => { setResetPasswordUserId(schoolAdmin.id); setIsPasswordResetDialogOpen(true); }}
+                                onDelete={() => { if (confirm(`Töröljük: ${schoolAdmin.firstName || schoolAdmin.username}?`)) deleteUserMutation.mutate(schoolAdmin.id); }}
+                                onUnlockModules={() => { }}
+                                unlockPending={false}
+                              />
+                            </div>
+                            {/* Tanárok */}
+                            {schoolTeachers.length > 0 && (
+                              <div className="bg-green-50 dark:bg-green-950 rounded-lg p-1">
+                                <p className="text-xs font-medium text-green-700 dark:text-green-300 px-2 pt-1 mb-1">Tanárok ({schoolTeachers.length})</p>
+                                <div className="space-y-1">
+                                  {schoolTeachers.map((teacher: User) => (
+                                    <UserRow key={teacher.id} user={teacher}
+                                      onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: teacher.id, role: r })}
+                                      onResetPassword={() => { setResetPasswordUserId(teacher.id); setIsPasswordResetDialogOpen(true); }}
+                                      onDelete={() => { if (confirm(`Töröljük: ${teacher.firstName || teacher.username}?`)) deleteUserMutation.mutate(teacher.id); }}
+                                      onUnlockModules={() => { }}
+                                      unlockPending={false}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setResetPasswordUserId(user.id);
-                                setIsPasswordResetDialogOpen(true);
-                              }}
-                              title="Jelszó visszaállítása"
-                            >
-                              🔑
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => {
-                                if (confirm(`Biztosan törölni szeretnéd ${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email || user.username} felhasználót?`)) {
-                                  deleteUserMutation.mutate(user.id);
-                                }
-                              }}
-                              title="Felhasználó törlése"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    {/* Tanárok akiknek nincs schoolAdminId-jük */}
+                    {teachers.filter((t: User) => !(t as any).schoolAdminId).length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full bg-green-500 inline-block" />
+                            Tanárok (iskola nélkül)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-1">
+                          {teachers.filter((t: User) => !(t as any).schoolAdminId).map((teacher: User) => (
+                            <UserRow key={teacher.id} user={teacher}
+                              onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: teacher.id, role: r })}
+                              onResetPassword={() => { setResetPasswordUserId(teacher.id); setIsPasswordResetDialogOpen(true); }}
+                              onDelete={() => { if (confirm(`Töröljük: ${teacher.firstName || teacher.username}?`)) deleteUserMutation.mutate(teacher.id); }}
+                              onUnlockModules={() => { }}
+                              unlockPending={false}
+                            />
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ── DIÁKOK – iskola → osztály szerint csoportosítva ── */}
+              {users.filter((u: User) => u.role === 'student').length > 0 && (() => {
+                const students = users.filter((u: User) => u.role === 'student');
+                const schoolAdmins = users.filter((u: User) => u.role === 'school_admin');
+
+                // Csoportosítás: schoolAdminId → classId
+                type SchoolGroup = { schoolAdmin: User | null; schoolName: string; classes: { classId: number | null; className: string; students: User[] }[] };
+                const schoolMap = new Map<string, SchoolGroup>();
+
+                students.forEach((student: User) => {
+                  const saId = (student as any).schoolAdminId || '__no_school__';
+                  if (!schoolMap.has(saId)) {
+                    const sa = schoolAdmins.find((a: User) => a.id === saId) || null;
+                    schoolMap.set(saId, {
+                      schoolAdmin: sa,
+                      schoolName: (sa as any)?.schoolName || sa?.firstName || sa?.username || (saId === '__no_school__' ? 'Iskolához nem rendelt' : saId),
+                      classes: [],
+                    });
+                  }
+                  const school = schoolMap.get(saId)!;
+                  const classId = (student as any).classId ?? null;
+                  const className = classId
+                    ? (allClasses.find(c => c.id === classId)?.name || `Osztály #${classId}`)
+                    : 'Osztályba nem sorolt';
+                  let cls = school.classes.find(c => c.classId === classId);
+                  if (!cls) { cls = { classId, className, students: [] }; school.classes.push(cls); }
+                  cls.students.push(student);
+                });
+
+                return (
+                  <div className="space-y-4">
+                    {Array.from(schoolMap.values()).map((school) => (
+                      <Card key={school.schoolName}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full bg-purple-500 inline-block" />
+                            🎓 {school.schoolName}
+                            <Badge variant="secondary" className="ml-1 text-xs">
+                              {school.classes.reduce((n, c) => n + c.students.length, 0)} diák
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {school.classes.sort((a, b) => (a.className > b.className ? 1 : -1)).map((cls) => (
+                            <details key={String(cls.classId)} className="group">
+                              <summary className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 text-sm font-medium text-purple-800 dark:text-purple-200 list-none">
+                                <span className="transition-transform group-open:rotate-90">▶</span>
+                                📚 {cls.className}
+                                <Badge variant="outline" className="ml-auto text-xs">{cls.students.length} tanuló</Badge>
+                              </summary>
+                              <div className="mt-2 space-y-1 pl-2">
+                                {cls.students.map((student: User) => (
+                                  <UserRow key={student.id} user={student}
+                                    onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: student.id, role: r })}
+                                    onResetPassword={() => { setResetPasswordUserId(student.id); setIsPasswordResetDialogOpen(true); }}
+                                    onDelete={() => { if (confirm(`Töröljük: ${student.firstName || student.username}?`)) deleteUserMutation.mutate(student.id); }}
+                                    onUnlockModules={() => { if (confirm('Minden modul feloldása?')) unlockAllModulesMutation.mutate(student.id); }}
+                                    unlockPending={unlockAllModulesMutation.isPending}
+                                    professions={professions}
+                                  />
+                                ))}
+                              </div>
+                            </details>
+                          ))}
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                );
+              })()}
+            </>)}
           </TabsContent>
 
           <TabsContent value="costs" className="space-y-6">
@@ -4022,6 +4099,92 @@ export default function AdminDashboard() {
         />
       </main >
     </div >
+  );
+}
+
+// UserRow – újrafelhasználható felhasználó-sor komponens
+function UserRow({
+  user,
+  onRoleChange,
+  onResetPassword,
+  onDelete,
+  onUnlockModules,
+  unlockPending,
+  professions = [],
+}: {
+  user: User;
+  onRoleChange: (role: string) => void;
+  onResetPassword: () => void;
+  onDelete: () => void;
+  onUnlockModules: () => void;
+  unlockPending: boolean;
+  professions?: Profession[];
+}) {
+  const displayName = user.firstName && user.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user.email || user.username || user.id;
+
+  return (
+    <div className="border rounded-lg p-3 flex items-center justify-between gap-3 bg-white dark:bg-gray-900">
+      <div className="flex items-center gap-3 min-w-0">
+        {user.profileImageUrl && (
+          <img src={user.profileImageUrl} alt="Profil" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+        )}
+        <div className="min-w-0">
+          <p className="font-medium text-sm truncate">{displayName}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {user.email || user.username || "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Regisztráció: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('hu-HU') : "–"}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+        <Select value={user.role} onValueChange={onRoleChange}>
+          <SelectTrigger className="w-28 h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="student">Hallgató</SelectItem>
+            <SelectItem value="teacher">Tanár</SelectItem>
+            <SelectItem value="school_admin">Isk. Admin</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {user.role === 'student' && professions.length > 0 && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                Szakmák ({(user.assignedProfessionIds as number[] | undefined)?.length || 0})
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Szakmák – {displayName}</DialogTitle>
+              </DialogHeader>
+              <ProfessionAssignmentForm userId={user.id} currentProfessions={(user.assignedProfessionIds as number[] | undefined) || []} />
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {user.role === 'student' && (
+          <Button variant="outline" size="sm" className="h-8 text-xs"
+            onClick={onUnlockModules} disabled={unlockPending} title="Minden modul feloldása">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Modulok
+          </Button>
+        )}
+
+        <Button variant="outline" size="sm" className="h-8 px-2" onClick={onResetPassword} title="Jelszó visszaállítása">
+          🔑
+        </Button>
+        <Button variant="destructive" size="sm" className="h-8 px-2" onClick={onDelete} title="Törlés">
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

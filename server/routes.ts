@@ -1392,6 +1392,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: összes osztály lekérdezése (felhasználói csoportosításhoz)
+  app.get('/api/admin/all-classes', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      const { db } = await import('./db');
+      const { classes } = await import('@shared/schema');
+      const allClasses = await db.select({
+        id: classes.id,
+        name: classes.name,
+        schoolAdminId: classes.schoolAdminId,
+      }).from(classes);
+      res.json(allClasses);
+    } catch (error) {
+      console.error('Error fetching all classes:', error);
+      res.status(500).json({ message: 'Failed to fetch classes' });
+    }
+  });
+
   // AI System Message Management
   app.post('/api/admin/settings/system-message', customAuth, async (req: any, res) => {
     try {
