@@ -757,6 +757,12 @@ export default function AdminDashboard() {
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string>("");
   const [newPassword, setNewPassword] = useState("");
   const [aiChatEnabled, setAiChatEnabled] = useState(true);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [bulkImportText, setBulkImportText] = useState("");
+  const [bulkImportSubjectId, setBulkImportSubjectId] = useState<number>(0);
+  const [bulkImportParsed, setBulkImportParsed] = useState<{ number: number; title: string; content: string }[]>([]);
+  const [bulkImportLoading, setBulkImportLoading] = useState(false);
+  const [bulkImportProgress, setBulkImportProgress] = useState(0);
 
   // Queries
   const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
@@ -995,6 +1001,60 @@ export default function AdminDashboard() {
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
     },
   });
+
+  // Tömeges modul import logika
+  const parseBulkModules = (text: string): { number: number; title: string; content: string }[] => {
+    const results: { number: number; title: string; content: string }[] = [];
+    // Blokkok szétválasztása: sorszám + cím + leírás
+    const blocks = text.split(/(?=^\d+\.\s)/m).filter(b => b.trim());
+    for (const block of blocks) {
+      const match = block.match(/^(\d+)\.\s+(.+?)\n([\s\S]*)/);
+      if (match) {
+        const num = parseInt(match[1]);
+        const title = match[2].trim();
+        const content = match[3].trim();
+        if (title && content) {
+          results.push({ number: num, title, content });
+        }
+      }
+    }
+    return results;
+  };
+
+  const handleBulkImport = async () => {
+    if (!bulkImportSubjectId || bulkImportParsed.length === 0) return;
+    setBulkImportLoading(true);
+    setBulkImportProgress(0);
+    let successCount = 0;
+    for (let i = 0; i < bulkImportParsed.length; i++) {
+      const item = bulkImportParsed[i];
+      try {
+        await apiRequest("POST", "/api/modules", {
+          title: item.title,
+          content: item.content,
+          moduleNumber: item.number,
+          subjectId: bulkImportSubjectId,
+          isPublished: false,
+        });
+        successCount++;
+      } catch (e) {
+        console.error(`Hiba a(z) ${item.number}. modul létrehozásakor:`, e);
+      }
+      setBulkImportProgress(Math.round(((i + 1) / bulkImportParsed.length) * 100));
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+    setBulkImportLoading(false);
+    setIsBulkImportOpen(false);
+    setBulkImportText("");
+    setBulkImportParsed([]);
+    setBulkImportSubjectId(0);
+    setBulkImportProgress(0);
+    toast({
+      title: "Tömeges import kész",
+      description: `${successCount} modul sikeresen létrehozva`,
+    });
+  };
 
   const updateModuleMutation = useMutation({
     mutationFn: async (data: ModuleFormData) => {
@@ -2056,10 +2116,111 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-              <Button onClick={handleNewModule}>
-                <Plus className="h-4 w-4 mr-2" />
-                Új modul
-              </Button>
+              <div className="flex gap-2">
+                <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Tömeges import
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Modulok tömeges létrehozása</DialogTitle>
+                      <DialogDescription>
+                        Illessz be egy számozott listát. Minden elem: sorszám pont, cím (első sor), majd a leírás következő sorban.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                      <div className="space-y-2">
+                        <Label>Tantárgy kiválasztása</Label>
+                        <Select
+                          value={bulkImportSubjectId ? String(bulkImportSubjectId) : ""}
+                          onValueChange={(v) => setBulkImportSubjectId(Number(v))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válassz tantárgyat..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subjects.map((s: Subject) => (
+                              <SelectItem key={s.id} value={String(s.id)}>
+                                {s.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Lista beillesztése</Label>
+                        <Textarea
+                          placeholder={"1. Modul neve\nA modul leírása itt...\n\n2. Következő modul neve\nAnnak leírása..."}
+                          rows={12}
+                          className="font-mono text-sm"
+                          value={bulkImportText}
+                          onChange={(e) => {
+                            setBulkImportText(e.target.value);
+                            setBulkImportParsed(parseBulkModules(e.target.value));
+                          }}
+                        />
+                      </div>
+                      {bulkImportParsed.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-green-700">
+                            ✓ {bulkImportParsed.length} modul felismetve – Előnézet:
+                          </Label>
+                          <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+                            {bulkImportParsed.map((item) => (
+                              <div key={item.number} className="px-3 py-2">
+                                <span className="font-medium">{item.number}. {item.title}</span>
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {bulkImportLoading && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Modulok létrehozása...</span>
+                            <span>{bulkImportProgress}%</span>
+                          </div>
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                              style={{ width: `${bulkImportProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsBulkImportOpen(false)} disabled={bulkImportLoading}>
+                        Mégse
+                      </Button>
+                      <Button
+                        onClick={handleBulkImport}
+                        disabled={bulkImportLoading || bulkImportParsed.length === 0 || !bulkImportSubjectId}
+                      >
+                        {bulkImportLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                            Létrehozás... ({bulkImportProgress}%)
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-2" />
+                            {bulkImportParsed.length} modul létrehozása
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Button onClick={handleNewModule}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Új modul
+                </Button>
+              </div>
             </div>
 
             {modulesLoading ? (
