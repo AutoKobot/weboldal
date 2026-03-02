@@ -38,9 +38,19 @@ export default function ModuleViewer() {
   // Google Drive / Slides / Sheets URL átalakítók
   const toDirectImageUrl = (url: string): string => {
     if (!url) return url;
-    // Google Drive: /file/d/ID/ → direct view link
+    // Google Drive: /file/d/ID/ → lh3 CDN (megbízható, nem blokkolja a böngésző)
     const driveMatch = url.match(/\/file\/d\/([^/]+)/);
-    if (driveMatch) return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+    if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+    return url;
+  };
+
+  const isGoogleDriveUrl = (url: string): boolean => {
+    return url?.includes('drive.google.com') || url?.includes('docs.google.com');
+  };
+
+  const toGoogleDrivePreviewUrl = (url: string): string => {
+    const driveMatch = url.match(/\/file\/d\/([^/]+)/);
+    if (driveMatch) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
     return url;
   };
 
@@ -1153,18 +1163,30 @@ export default function ModuleViewer() {
           <DialogHeader>
             <DialogTitle>Illusztráció</DialogTitle>
           </DialogHeader>
-          <div className="flex justify-center">
-            <img
-              src={toDirectImageUrl(module?.imageUrl || '')}
-              alt="Modul illusztráció"
-              className="max-w-full max-h-[70vh] object-contain rounded-lg"
-              onError={(e) => {
-                const t = e.currentTarget;
-                t.onerror = null;
-                t.src = '';
-                t.alt = 'A kép nem tölthető be. Ellenőrizd, hogy a Google Drive fájl nyilvánosan megosztott-e.';
-              }}
-            />
+          <div className="flex justify-center items-center min-h-[300px]">
+            {module?.imageUrl && isGoogleDriveUrl(module.imageUrl) ? (
+              // Google Drive képek: iframe preview a legmegbízhatóbb módszer
+              <iframe
+                src={toGoogleDrivePreviewUrl(module.imageUrl)}
+                className="w-full rounded-lg border-0"
+                style={{ height: '70vh' }}
+                allow="autoplay"
+                title="Modul illusztráció"
+              />
+            ) : (
+              // Normál URL-ek: img tag
+              <img
+                src={toDirectImageUrl(module?.imageUrl || '')}
+                alt="Modul illusztráció"
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                onError={(e) => {
+                  const t = e.currentTarget;
+                  t.onerror = null;
+                  t.src = '';
+                  t.alt = 'A kép nem tölthető be.';
+                }}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
