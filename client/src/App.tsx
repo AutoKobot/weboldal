@@ -34,6 +34,7 @@ const MermaidTest = lazy(() => import("@/pages/mermaid-test"));
 const ChatPage = lazy(() => import("@/pages/chat"));
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const PrivacyRequests = lazy(() => import("@/pages/privacy-requests"));
+const TeacherContentGuard = lazy(() => import("@/pages/teacher-content-guard"));
 
 // Betöltési fallback – azonos stílusú spinner
 function PageLoader() {
@@ -127,7 +128,7 @@ function Router() {
               <Route path="/modules/:subjectId" component={ModulesPage} />
               <Route path="/tanulóim" component={TeacherDashboard} />
               <Route path="/teacher-dashboard" component={TeacherDashboard} />
-              <Route path="/teacher/content" component={AdminDashboard} />
+              <Route path="/teacher/content" component={TeacherContentGuard} />
               <Route path="/settings" component={SettingsPage} />
               <Route path="/community" component={CommunityLearning} />
               <Route path="/community-learning" component={CommunityLearning} />
