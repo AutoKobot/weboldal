@@ -1283,7 +1283,7 @@ export default function AdminDashboard() {
       title: "",
       content: "",
       moduleNumber: 1,
-      subjectId: 0,
+      subjectId: selectedSubjectForFilter ?? 0,
       isPublished: false,
     });
     setIsDialogOpen(true);
@@ -1964,7 +1964,15 @@ export default function AdminDashboard() {
               </div>
               <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button onClick={() => {
+                    if (!editingSubject) {
+                      subjectForm.reset({
+                        name: "",
+                        description: "",
+                        professionId: selectedProfessionForFilter ?? 0,
+                      });
+                    }
+                  }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Új tantárgy
                   </Button>
@@ -2007,20 +2015,30 @@ export default function AdminDashboard() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Szakma</FormLabel>
-                            <Select value={field.value.toString()} onValueChange={(value) => field.onChange(parseInt(value))}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Válassz szakmát" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {professions.map((profession: Profession) => (
-                                  <SelectItem key={profession.id} value={profession.id.toString()}>
-                                    {profession.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {selectedProfessionForFilter && !editingSubject ? (
+                              // Kontextuális mód: zárolt, előre kitöltve
+                              <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md text-sm border">
+                                <span className="text-muted-foreground">Rögzítve:</span>
+                                <span className="font-medium">
+                                  {professions.find(p => p.id === selectedProfessionForFilter)?.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <Select value={field.value.toString()} onValueChange={(value) => field.onChange(parseInt(value))}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Válassz szakmát" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {professions.map((profession: Profession) => (
+                                    <SelectItem key={profession.id} value={profession.id.toString()}>
+                                      {profession.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </FormItem>
                         )}
                       />
@@ -2119,7 +2137,11 @@ export default function AdminDashboard() {
               <div className="flex gap-2">
                 <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => {
+                      if (selectedSubjectForFilter) {
+                        setBulkImportSubjectId(selectedSubjectForFilter);
+                      }
+                    }}>
                       <Upload className="h-4 w-4 mr-2" />
                       Tömeges import
                     </Button>
@@ -2134,21 +2156,30 @@ export default function AdminDashboard() {
                     <div className="space-y-4 py-2">
                       <div className="space-y-2">
                         <Label>Tantárgy kiválasztása</Label>
-                        <Select
-                          value={bulkImportSubjectId ? String(bulkImportSubjectId) : ""}
-                          onValueChange={(v) => setBulkImportSubjectId(Number(v))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Válassz tantárgyat..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {subjects.map((s: Subject) => (
-                              <SelectItem key={s.id} value={String(s.id)}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {selectedSubjectForFilter ? (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md text-sm border">
+                            <span className="text-muted-foreground">Rögzítve:</span>
+                            <span className="font-medium">
+                              {subjects.find((s: Subject) => s.id === selectedSubjectForFilter)?.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <Select
+                            value={bulkImportSubjectId ? String(bulkImportSubjectId) : ""}
+                            onValueChange={(v) => setBulkImportSubjectId(Number(v))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Válassz tantárgyat..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subjects.map((s: Subject) => (
+                                <SelectItem key={s.id} value={String(s.id)}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label>Lista beillesztése</Label>
@@ -3926,20 +3957,30 @@ export default function AdminDashboard() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tantárgy</FormLabel>
-                      <Select value={field.value.toString()} onValueChange={(value) => field.onChange(parseInt(value))}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Válassz tantárgyat" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {subjects.map((subject: Subject) => (
-                            <SelectItem key={subject.id} value={subject.id.toString()}>
-                              {subject.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {selectedSubjectForFilter && !editingModule ? (
+                        // Kontextuális mód: zárolt, előre kitöltve
+                        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md text-sm border">
+                          <span className="text-muted-foreground">Rögzítve:</span>
+                          <span className="font-medium">
+                            {subjects.find((s: Subject) => s.id === selectedSubjectForFilter)?.name}
+                          </span>
+                        </div>
+                      ) : (
+                        <Select value={field.value.toString()} onValueChange={(value) => field.onChange(parseInt(value))}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Válassz tantárgyat" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {subjects.map((subject: Subject) => (
+                              <SelectItem key={subject.id} value={subject.id.toString()}>
+                                {subject.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </FormItem>
                   )}
                 />
