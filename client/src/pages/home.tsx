@@ -400,24 +400,32 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
   user: any; navigate: (path: string) => void;
   isMobileNavOpen: boolean; setIsMobileNavOpen: (v: boolean) => void;
 }) {
-  const { data: students = [] } = useQuery<TeacherStudent[]>({ queryKey: ["/api/teacher/students"] });
-  const { data: teacherClasses = [] } = useQuery<TeacherClass[]>({ queryKey: ["/api/teacher/classes"] });
-  const { data: modules = [] } = useQuery<Module[]>({ queryKey: ["/api/public/modules"] });
+  const { data: homeStats, isLoading } = useQuery<{
+    classes: TeacherClass[];
+    students: TeacherStudent[];
+  }>({
+    queryKey: ["/api/teacher/home-stats"],
+    retry: false,
+  });
+
+  const teacherClasses = homeStats?.classes ?? [];
+  const students = homeStats?.students ?? [];
 
   // ── Összesített statisztikák ────────────────────────────────────────────
   const totalStudents = students.length;
   const totalClasses = teacherClasses.length;
 
-  // Összes kitöltött teszt száma
+  // Összes kitöltött teszt száma (egyedi modul/diák kombinációk)
   const totalTests = students.reduce((sum, s) => sum + (s.testResults?.length || 0), 0);
 
-  // Átlagos osztályzat (minden teszt eredményből)
+  // Átlagos százalékos eredmény → átlagjegy
   const allScores = students.flatMap(s => s.testResults?.map(t => t.score) || []);
   const avgScore = allScores.length > 0
     ? allScores.reduce((a, b) => a + b, 0) / allScores.length
     : null;
   const scoreToGrade = (s: number) => s >= 95 ? 5 : s >= 80 ? 4 : s >= 70 ? 3 : s >= 60 ? 2 : 1;
   const avgGrade = avgScore !== null ? scoreToGrade(avgScore) : null;
+  const avgScorePct = avgScore !== null ? Math.round(avgScore) : null;
 
   // Tanulók akik NEM töltöttek ki egyetlen tesztet sem
   const noTestStudents = students.filter(s => !s.testResults || s.testResults.length === 0);
@@ -429,7 +437,17 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
     const clsAvg = clsScores.length > 0 ? clsScores.reduce((a, b) => a + b, 0) / clsScores.length : null;
     const clsTests = clsStudents.reduce((sum, s) => sum + (s.testResults?.length || 0), 0);
     const clsNoTest = clsStudents.filter(s => !s.testResults || s.testResults.length === 0);
-    return { cls, students: clsStudents, avgScore: clsAvg, avgGrade: clsAvg !== null ? scoreToGrade(clsAvg) : null, totalTests: clsTests, noTestCount: clsNoTest.length };
+    const clsModulesDone = clsStudents.reduce((sum, s) => sum + (s.completedModules?.length || 0), 0);
+    return {
+      cls,
+      students: clsStudents,
+      avgScore: clsAvg,
+      avgScorePct: clsAvg !== null ? Math.round(clsAvg) : null,
+      avgGrade: clsAvg !== null ? scoreToGrade(clsAvg) : null,
+      totalTests: clsTests,
+      noTestCount: clsNoTest.length,
+      totalModulesDone: clsModulesDone,
+    };
   });
 
   const gradeColor = (g: number | null) => {
@@ -440,6 +458,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
     if (g === 2) return "text-orange-500";
     return "text-red-600";
   };
+
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -472,147 +491,159 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
 
         <main className="p-6 max-w-7xl mx-auto space-y-8">
 
-          {/* ── Összesítő kártyák ── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "Osztályok", value: totalClasses, icon: <Users className="h-5 w-5 text-blue-500" />, bg: "bg-blue-50" },
-              { label: "Tanulók", value: totalStudents, icon: <GraduationCap className="h-5 w-5 text-purple-500" />, bg: "bg-purple-50" },
-              { label: "Kitöltött tesztek", value: totalTests, icon: <FileText className="h-5 w-5 text-green-500" />, bg: "bg-green-50" },
-              { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", icon: <Award className="h-5 w-5 text-yellow-500" />, bg: "bg-yellow-50" },
-            ].map(stat => (
-              <Card key={stat.label} className="shadow-sm border-0 ring-1 ring-gray-100">
-                <CardContent className="p-5">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center mb-3`}>
-                    {stat.icon}
-                  </div>
-                  <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* ── Osztályonkénti részletes statisztikák ── */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              Osztályok áttekintése
-            </h2>
-            {classStats.length === 0 ? (
-              <Card className="p-8 text-center text-gray-400">
-                <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p>Nincs hozzárendelt osztály. Az iskolai adminisztrátor rendelhet hozzá osztályokat.</p>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {classStats.map(({ cls, students: clsStudents, avgGrade: cg, totalTests: ct, noTestCount }) => (
-                  <Card key={cls.id} className="shadow-sm border-0 ring-1 ring-gray-100 hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                          {cls.name}
-                        </span>
-                        <UiBadge variant="secondary">{clsStudents.length} tanuló</UiBadge>
-                      </CardTitle>
-                      {cls.description && <p className="text-xs text-gray-400">{cls.description}</p>}
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Stat sor */}
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className={`text-2xl font-bold ${gradeColor(cg)}`}>{cg ?? "–"}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">Átlagjegy</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-2xl font-bold text-green-600">{ct}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">Kitöltött teszt</p>
-                        </div>
-                        <div className={`rounded-lg p-3 ${noTestCount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                          <p className={`text-2xl font-bold ${noTestCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{noTestCount}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">Teszt nélkül</p>
-                        </div>
-                      </div>
-
-                      {/* Progresz: hány % töltött ki legalább 1 tesztet */}
-                      {clsStudents.length > 0 && (() => {
-                        const testedCount = clsStudents.length - noTestCount;
-                        const pct = Math.round((testedCount / clsStudents.length) * 100);
-                        return (
-                          <div>
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
-                              <span>Részvételi arány</span>
-                              <span>{testedCount}/{clsStudents.length} tanuló</span>
-                            </div>
-                            <Progress value={pct} className="h-2" />
-                          </div>
-                        );
-                      })()}
-
-                      <Button variant="outline" size="sm" className="w-full text-xs"
-                        onClick={() => navigate('/teacher')}>
-                        Részletek <ChevronRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 text-gray-400">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-3" />
+                <p className="text-sm">Statisztikák betöltése...</p>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (<>
 
-          {/* ── Tanulók akik nem töltöttek ki tesztet ── */}
-          {noTestStudents.length > 0 && (
+            {/* ── Összesítő kártyák ── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Osztályok", value: totalClasses, sub: null, icon: <Users className="h-5 w-5 text-blue-500" />, bg: "bg-blue-50" },
+                { label: "Tanulók", value: totalStudents, sub: `${noTestStudents.length} teszt nélkül`, icon: <GraduationCap className="h-5 w-5 text-purple-500" />, bg: "bg-purple-50" },
+                { label: "Kitöltött tesztek", value: totalTests, sub: totalStudents > 0 ? `${Math.round(totalTests / totalStudents * 10) / 10} / tanuló` : null, icon: <FileText className="h-5 w-5 text-green-500" />, bg: "bg-green-50" },
+                { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", sub: avgScorePct !== null ? `${avgScorePct}% átlag` : "Nincs teszt még", icon: <Award className="h-5 w-5 text-yellow-500" />, bg: "bg-yellow-50" },
+              ].map(stat => (
+                <Card key={stat.label} className="shadow-sm border-0 ring-1 ring-gray-100">
+                  <CardContent className="p-5">
+                    <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center mb-3`}>
+                      {stat.icon}
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+                    {stat.sub && <p className="text-xs text-gray-400 mt-0.5">{stat.sub}</p>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* ── Osztályonkénti részletes statisztikák ── */}
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-500" />
-                Tesztet nem töltött ki ({noTestStudents.length} tanuló)
-                <UiBadge variant="destructive" className="ml-1">{noTestStudents.length}</UiBadge>
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                Osztályok áttekintése
               </h2>
-              <Card className="shadow-sm border-0 ring-1 ring-red-100">
-                <CardContent className="p-0">
-                  <div className="divide-y divide-gray-100">
-                    {noTestStudents.map(s => {
-                      const cls = teacherClasses.find(c => c.id === s.classId);
-                      const displayName = s.firstName && s.lastName ? `${s.firstName} ${s.lastName}` : s.username;
-                      return (
-                        <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-red-50/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-sm font-bold flex-shrink-0">
-                              {(s.firstName?.[0] || s.username?.[0] || '?').toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm text-gray-900">{displayName}</p>
-                              <p className="text-xs text-gray-400">@{s.username}</p>
-                            </div>
+              {classStats.length === 0 ? (
+                <Card className="p-8 text-center text-gray-400">
+                  <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p>Nincs hozzárendelt osztály. Az iskolai adminisztrátor rendelhet hozzá osztályokat.</p>
+                </Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {classStats.map(({ cls, students: clsStudents, avgGrade: cg, totalTests: ct, noTestCount }) => (
+                    <Card key={cls.id} className="shadow-sm border-0 ring-1 ring-gray-100 hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                            {cls.name}
+                          </span>
+                          <UiBadge variant="secondary">{clsStudents.length} tanuló</UiBadge>
+                        </CardTitle>
+                        {cls.description && <p className="text-xs text-gray-400">{cls.description}</p>}
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Stat sor */}
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div className="bg-gray-50 rounded-lg p-3">
+                            <p className={`text-2xl font-bold ${gradeColor(cg)}`}>{cg ?? "–"}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Átlagjegy</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {cls && <UiBadge variant="outline" className="text-xs">{cls.name}</UiBadge>}
-                            <UiBadge variant="secondary" className="text-xs">
-                              {s.completedModules?.length || 0} modul kész
-                            </UiBadge>
-                            <XCircle className="h-4 w-4 text-red-400" />
+                          <div className="bg-gray-50 rounded-lg p-3">
+                            <p className="text-2xl font-bold text-green-600">{ct}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Kitöltött teszt</p>
+                          </div>
+                          <div className={`rounded-lg p-3 ${noTestCount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                            <p className={`text-2xl font-bold ${noTestCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{noTestCount}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Teszt nélkül</p>
                           </div>
                         </div>
-                      );
-                    })}
+
+                        {/* Progresz: hány % töltött ki legalább 1 tesztet */}
+                        {clsStudents.length > 0 && (() => {
+                          const testedCount = clsStudents.length - noTestCount;
+                          const pct = Math.round((testedCount / clsStudents.length) * 100);
+                          return (
+                            <div>
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Részvételi arány</span>
+                                <span>{testedCount}/{clsStudents.length} tanuló</span>
+                              </div>
+                              <Progress value={pct} className="h-2" />
+                            </div>
+                          );
+                        })()}
+
+                        <Button variant="outline" size="sm" className="w-full text-xs"
+                          onClick={() => navigate('/teacher')}>
+                          Részletek <ChevronRight className="h-3 w-3 ml-1" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Tanulók akik nem töltöttek ki tesztet ── */}
+            {noTestStudents.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  Tesztet nem töltött ki ({noTestStudents.length} tanuló)
+                  <UiBadge variant="destructive" className="ml-1">{noTestStudents.length}</UiBadge>
+                </h2>
+                <Card className="shadow-sm border-0 ring-1 ring-red-100">
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-gray-100">
+                      {noTestStudents.map(s => {
+                        const cls = teacherClasses.find(c => c.id === s.classId);
+                        const displayName = s.firstName && s.lastName ? `${s.firstName} ${s.lastName}` : s.username;
+                        return (
+                          <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-red-50/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-sm font-bold flex-shrink-0">
+                                {(s.firstName?.[0] || s.username?.[0] || '?').toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-gray-900">{displayName}</p>
+                                <p className="text-xs text-gray-400">@{s.username}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {cls && <UiBadge variant="outline" className="text-xs">{cls.name}</UiBadge>}
+                              <UiBadge variant="secondary" className="text-xs">
+                                {s.completedModules?.length || 0} modul kész
+                              </UiBadge>
+                              <XCircle className="h-4 w-4 text-red-400" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* ── Ha mindenki töltött ki tesztet ── */}
+            {noTestStudents.length === 0 && totalStudents > 0 && (
+              <Card className="border-0 ring-1 ring-green-200 bg-green-50">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <CheckCircle2 className="h-8 w-8 text-green-500 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-green-800">Minden tanuló kitöltött legalább egy tesztet! 🎉</p>
+                    <p className="text-sm text-green-600">Kiválóan halad az osztály munkája.</p>
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          )}
+            )}
 
-          {/* ── Ha mindenki töltött ki tesztet ── */}
-          {noTestStudents.length === 0 && totalStudents > 0 && (
-            <Card className="border-0 ring-1 ring-green-200 bg-green-50">
-              <CardContent className="p-5 flex items-center gap-4">
-                <CheckCircle2 className="h-8 w-8 text-green-500 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-green-800">Minden tanuló kitöltött legalább egy tesztet! 🎉</p>
-                  <p className="text-sm text-green-600">Kiválóan halad az osztály munkája.</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          </>)}
 
         </main>
       </div>

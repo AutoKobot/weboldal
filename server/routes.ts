@@ -1090,6 +1090,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher home dashboard: classes + students with classId and testResults
+  app.get('/api/teacher/home-stats', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const teacherId = req.user.id;
+
+      // 1. Az osztályok amihez a tanár hozzá van rendelve
+      const teacherClasses = await storage.getClassesByTeacher(teacherId);
+
+      // 2. Diákok lekérése az osztályokból (classId alapján)
+      const { db } = await import('./db');
+      const { users: usersTable, testResults: testResultsTable } = await import('@shared/schema');
+      const { inArray, eq: eqDrizzle } = await import('drizzle-orm');
+
+      const classIds = teacherClasses.map((c: any) => c.id);
+
+      let studentsInClasses: any[] = [];
+      if (classIds.length > 0) {
+        studentsInClasses = await db
+          .select()
+          .from(usersTable)
+          .where(
+            inArray(usersTable.classId, classIds)
+          );
+      }
+
+      // Fallback: tanárhoz közvetlenül rendelt diákok is (ha nincs classId)
+      const directStudents = await storage.getStudentsByTeacher(teacherId);
+      const allStudentIds = new Set([
+        ...studentsInClasses.map((s: any) => s.id),
+        ...directStudents.map((s: any) => s.id),
+      ]);
+      const allStudents = [
+        ...studentsInClasses,
+        ...directStudents.filter((s: any) => !studentsInClasses.find((sc: any) => sc.id === s.id)),
+      ];
+
+      // 3. Teszt eredmények minden diákhoz
+      const studentsWithResults = await Promise.all(
+        allStudents.map(async (student: any) => {
+          const results = await db
+            .select({
+              id: testResultsTable.id,
+              moduleId: testResultsTable.moduleId,
+              score: testResultsTable.score,
+              passed: testResultsTable.passed,
+              createdAt: testResultsTable.createdAt,
+            })
+            .from(testResultsTable)
+            .where(eqDrizzle(testResultsTable.userId, student.id))
+            .orderBy(testResultsTable.createdAt);
+          return {
+            id: student.id,
+            username: student.username,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email,
+            classId: student.classId,
+            completedModules: student.completedModules || [],
+            testResults: results,
+          };
+        })
+      );
+
+      res.json({
+        classes: teacherClasses,
+        students: studentsWithResults,
+      });
+    } catch (error) {
+      console.error('Error fetching teacher home stats:', error);
+      res.status(500).json({ message: 'Failed to fetch teacher home stats' });
+    }
+  });
+
   app.get('/api/teacher/classes/:id/grades', combinedAuth, checkTeacher, async (req: any, res) => {
     try {
       const classId = parseInt(req.params.id);
