@@ -612,18 +612,18 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
               )}
             </div>
 
-            {/* ── Tanulók akik nem töltöttek ki tesztet ── */}
-            {noTestStudents.length > 0 && (
+            {/* ── Tanulók akik nem kezdtek még el egyetlen modult sem ── */}
+            {noActivityStudents.length > 0 && (
               <div>
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <XCircle className="h-5 w-5 text-red-500" />
-                  Tesztet nem töltött ki ({noTestStudents.length} tanuló)
-                  <UiBadge variant="destructive" className="ml-1">{noTestStudents.length}</UiBadge>
+                  Még nem kezdett el egy modult sem ({noActivityStudents.length} tanuló)
+                  <UiBadge variant="destructive" className="ml-1">{noActivityStudents.length}</UiBadge>
                 </h2>
                 <Card className="shadow-sm border-0 ring-1 ring-red-100">
                   <CardContent className="p-0">
                     <div className="divide-y divide-gray-100">
-                      {noTestStudents.map(s => {
+                      {noActivityStudents.map(s => {
                         const cls = teacherClasses.find(c => c.id === s.classId);
                         const displayName = s.firstName && s.lastName ? `${s.firstName} ${s.lastName}` : s.username;
                         return (
@@ -654,7 +654,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
             )}
 
             {/* ── Ha mindenki töltött ki tesztet ── */}
-            {noTestStudents.length === 0 && totalStudents > 0 && (
+            {noActivityStudents.length === 0 && totalStudents > 0 && (
               <Card className="border-0 ring-1 ring-green-200 bg-green-50">
                 <CardContent className="p-5 flex items-center gap-4">
                   <CheckCircle2 className="h-8 w-8 text-green-500 flex-shrink-0" />
