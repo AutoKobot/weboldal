@@ -1217,7 +1217,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let userId: string;
 
-      // Get user ID from either Replit auth or local auth
       if (req.user.claims && req.user.claims.sub) {
         userId = req.user.claims.sub;
       } else if (req.user.id) {
@@ -1229,32 +1228,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ message: "User not found" });
 
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      // Admin can see all professions
+      // Admin: mindent lát
       if (user.role === 'admin') {
-        const professions = await storage.getProfessions();
-        return res.json(professions);
+        return res.json(await storage.getProfessions());
       }
 
-      // Students can see assigned professions or all if they haven't chosen any
-      const hasAssignedProfessions = user.assignedProfessionIds && user.assignedProfessionIds.length > 0;
+      // Tanár és school_admin: az iskolájuk szakmáit látják (schoolAdminId alapján)
+      if (user.role === 'teacher' || user.role === 'school_admin') {
+        const schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        return res.json(await storage.getProfessions(schoolAdminId));
+      }
 
-      if (hasAssignedProfessions) {
-        // Return only assigned professions
+      // Diák: szigorú szűrés
+      const hasAssigned = user.assignedProfessionIds && user.assignedProfessionIds.length > 0;
+      const hasSelected = !!user.selectedProfessionId;
+
+      if (hasAssigned) {
+        // Admin rendelte hozzá → csak az engedélyezett szakmák
         const allProfessions = await storage.getProfessions();
-        const assignedProfessions = allProfessions.filter(p =>
-          user.assignedProfessionIds!.includes(p.id)
-        );
-        return res.json(assignedProfessions);
-      } else {
-        // Return all professions for first-time selection
-        const professions = await storage.getProfessions();
-        return res.json(professions);
+        return res.json(allProfessions.filter(p => user.assignedProfessionIds!.includes(p.id)));
       }
+
+      if (hasSelected) {
+        // Diák maga választotta / osztályon keresztül → csak az egy szakma
+        const allProfessions = await storage.getProfessions();
+        return res.json(allProfessions.filter(p => p.id === user.selectedProfessionId));
+      }
+
+      // Még nem választott szakmát → mindenki látható a választáshoz
+      return res.json(await storage.getProfessions());
+
     } catch (error) {
       console.error("Error fetching public professions:", error);
       res.status(500).json({ message: "Failed to fetch professions" });

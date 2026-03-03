@@ -22,7 +22,7 @@ export default function TananyagokPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const professionParam = urlParams.get('profession');
-    
+
     // Always start with profession selection view first
     if (professionParam) {
       setSelectedProfession(parseInt(professionParam));
@@ -35,17 +35,19 @@ export default function TananyagokPage() {
   const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
     queryKey: ['/api/public/professions'],
     retry: false,
-    select: (data) => {
-      // Sort professions to show user's assigned profession first
-      if (user?.assignedProfessionIds && user.assignedProfessionIds.length > 0) {
-        const assignedId = user.assignedProfessionIds[0];
-        const assigned = data.find(p => p.id === assignedId);
-        const others = data.filter(p => p.id !== assignedId);
-        return assigned ? [assigned, ...others] : data;
-      }
-      return data;
-    },
   });
+
+  // Ha pontosan 1 szakma van elérhető és nincs URL paraméter → automatikusan kiválasztjuk
+  useEffect(() => {
+    if (
+      professions.length === 1 &&
+      !selectedProfession &&
+      !new URLSearchParams(window.location.search).get('profession')
+    ) {
+      setSelectedProfession(professions[0].id);
+      navigate(`/tananyagok?profession=${professions[0].id}`);
+    }
+  }, [professions, selectedProfession]);
 
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
     queryKey: ['/api/public/subjects', selectedProfession],
@@ -91,12 +93,12 @@ export default function TananyagokPage() {
   const handleProfessionSelect = (professionId: number) => {
     const hasAssignedProfessions = user?.assignedProfessionIds && user.assignedProfessionIds.length > 0;
     const isInClass = user?.classId;
-    
+
     // Ellenőrizzük, hogy a diák hozzáférhet-e ehhez a szakmához
-    const isAccessible = user?.role === 'admin' || user?.role === 'teacher' || 
+    const isAccessible = user?.role === 'admin' || user?.role === 'teacher' ||
       (!hasAssignedProfessions && user?.role === 'student') ||
       (hasAssignedProfessions && user?.assignedProfessionIds?.includes(professionId));
-    
+
     if (!isAccessible) {
       toast({
         title: "Hozzáférés megtagadva",
@@ -105,12 +107,12 @@ export default function TananyagokPage() {
       });
       return;
     }
-    
+
     // Ha a tanuló még nem választott szakmát és nincs osztályban, automatikusan hozzárendeljük
     if (user?.role === 'student' && !hasAssignedProfessions && !isInClass) {
       selectProfessionMutation.mutate(professionId);
     }
-    
+
     setSelectedProfession(professionId);
     // Update URL with profession parameter
     navigate(`/tananyagok?profession=${professionId}`);
@@ -154,13 +156,13 @@ export default function TananyagokPage() {
           <Sidebar user={user} />
         </div>
       </div>
-      
-      <MobileNav 
-        isOpen={isMobileNavOpen} 
-        onClose={() => setIsMobileNavOpen(false)} 
-        user={user} 
+
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
+        user={user}
       />
-      
+
       <div className="flex-1 overflow-auto">
         <header className="bg-student-warm shadow-sm border-b border-neutral-100">
           <div className="flex items-center justify-between px-6 py-4">
@@ -204,26 +206,25 @@ export default function TananyagokPage() {
                     // Ha tanuló és nincs még hozzárendelt szakma, minden választható
                     // Ha tanuló és már van hozzárendelt szakma, csak azok érhetők el
                     const hasAssignedProfessions = user?.assignedProfessionIds && user.assignedProfessionIds.length > 0;
-                    const isAccessible = user?.role === 'admin' || user?.role === 'teacher' || 
+                    const isAccessible = user?.role === 'admin' || user?.role === 'teacher' ||
                       (!hasAssignedProfessions && user?.role === 'student') ||
                       (hasAssignedProfessions && user?.assignedProfessionIds?.includes(profession.id));
-                    
+
                     return (
-                      <Card 
+                      <Card
                         key={profession.id}
-                        className={`neumorphism hover-lift gradient-overlay transition-all duration-300 flex flex-col h-full ${
-                          isAccessible 
-                            ? "cursor-pointer interactive-element" 
+                        className={`neumorphism hover-lift gradient-overlay transition-all duration-300 flex flex-col h-full ${isAccessible
+                            ? "cursor-pointer interactive-element"
                             : "opacity-50 cursor-not-allowed"
-                        } border-0`}
+                          } border-0`}
                         onClick={() => isAccessible && handleProfessionSelect(profession.id)}
                       >
                         <CardHeader className="pb-3 flex-shrink-0">
                           <div className="flex items-start space-x-3">
                             <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                               {profession.iconUrl ? (
-                                <img 
-                                  src={profession.iconUrl} 
+                                <img
+                                  src={profession.iconUrl}
                                   alt={profession.name}
                                   className="w-10 h-10 object-contain"
                                 />
@@ -239,7 +240,7 @@ export default function TananyagokPage() {
                             <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
                           </div>
                         </CardHeader>
-                        
+
                         <CardContent className="flex flex-col flex-grow">
                           <div className="flex-grow">
                             {profession.description && (
@@ -248,13 +249,12 @@ export default function TananyagokPage() {
                               </p>
                             )}
                           </div>
-                          
-                          <Button 
-                            className={`w-full mt-auto transition-colors ${
-                              isAccessible 
-                                ? "bg-primary hover:bg-primary/90" 
+
+                          <Button
+                            className={`w-full mt-auto transition-colors ${isAccessible
+                                ? "bg-primary hover:bg-primary/90"
                                 : "bg-neutral-300 cursor-not-allowed"
-                            }`}
+                              }`}
                             disabled={!isAccessible}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -299,7 +299,7 @@ export default function TananyagokPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {subjects.map((subject: Subject) => (
-                    <Card 
+                    <Card
                       key={subject.id}
                       className="glassmorphism gradient-overlay hover-lift transition-all duration-300 cursor-pointer flex flex-col h-full interactive-element border-white/20"
                       onClick={() => handleSubjectSelect(subject.id)}
@@ -317,7 +317,7 @@ export default function TananyagokPage() {
                           <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent className="flex flex-col flex-grow">
                         <div className="flex-grow">
                           {subject.description && (
@@ -326,8 +326,8 @@ export default function TananyagokPage() {
                             </p>
                           )}
                         </div>
-                        
-                        <Button 
+
+                        <Button
                           className="w-full mt-auto bg-secondary hover:bg-secondary/90 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -340,7 +340,7 @@ export default function TananyagokPage() {
                       </CardContent>
                     </Card>
                   ))}
-                  
+
                   {subjects.length === 0 && (
                     <div className="col-span-full text-center py-12">
                       <BookOpen className="mx-auto h-12 w-12 text-neutral-400 mb-4" />
