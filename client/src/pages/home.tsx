@@ -15,6 +15,7 @@ import {
   ChevronRight, FileText
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
+import AvatarPet from "@/components/avatar-pet";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -210,6 +211,9 @@ export default function HomePage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Avatar kísérő */}
+          <AvatarPet user={user} />
 
           {/* Vizuális Haladás & Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
