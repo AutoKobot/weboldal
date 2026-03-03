@@ -99,23 +99,43 @@ export default function HomePage() {
   const completedCount = user.completedModules?.length || 0;
   const isBeginner = completedCount === 0;
   const weeklyGoal = 3;
-  const weeklyCompleted = completedCount % weeklyGoal; // Mock adat
-  const weeklyProgress = (weeklyCompleted / weeklyGoal) * 100;
-  const streakDays = Math.max(1, completedCount % 5 + 1); // Mock adat
 
-  // Következő/Ajánlott modul keresése (mock logika első sorban, ha isBeginner: első modul. egyébiránt egy ami még nincs kész)
-  const nextModule = allModules.find(m => !(user.completedModules || []).includes(m.id)) || allModules[0];
-  const nextSubject = nextModule ? subjects.find(s => s.id === nextModule.subjectId) : null;
+  // Valódi adatok számítása
+  // allModules: az összes modul amit a diák láthat (selectedProfessionId alapján szűrve a szerveren)
+  // Ha nincs selectedProfessionId, próbáljuk az assignedProfessionIds-t
 
-  const topSubjects = subjects.slice(0, 3).map((s, idx) => ({
-    ...s,
-    progress: Math.min(100, (completedCount * 15) + (idx * 10)) // Mock progresszés
-  }));
+  // Következő modul – az első ami még nincs kész, és publish-olt
+  const completedSet = new Set(user.completedModules || []);
+  const nextModule = allModules.find(m => !completedSet.has(m.id) && m.isPublished !== false)
+    ?? allModules.find(m => m.isPublished !== false)  // ha mindenki kész, az első modul
+    ?? allModules[0];
+  const nextSubject = nextModule ? subjects.find(s => s.id === nextModule?.subjectId) : null;
 
-  const lastCompletedModules = (user.completedModules || [])
-    .slice(-3)
+  // Valódi subject progress: hány modul van kész az adott tantárgyban
+  const topSubjects = subjects.slice(0, 3).map(s => {
+    const subjectModules = allModules.filter(m => m.subjectId === s.id);
+    const doneInSubject = subjectModules.filter(m => completedSet.has(m.id)).length;
+    const progress = subjectModules.length > 0
+      ? Math.round((doneInSubject / subjectModules.length) * 100)
+      : 0;
+    return { ...s, progress, doneCount: doneInSubject, totalCount: subjectModules.length };
+  });
+
+  // Valódi befejezett modulok – utolsó 3 a completedModules tömbből (fordítva, legfrissebb első)
+  const lastCompletedModules = [...(user.completedModules || [])]
+    .reverse()
+    .slice(0, 3)
     .map(id => allModules.find(m => m.id === id))
     .filter(Boolean) as Module[];
+
+  // Heti teljesítmény: az utolsó 7 napban befejezett modulok
+  // (egyszerűsített: completedModules utolsó elemei, max weeklyGoal)
+  const weeklyCompleted = Math.min(completedCount, weeklyGoal);
+  const weeklyProgress = (weeklyCompleted / weeklyGoal) * 100;
+
+  // Streak – egyszerű becslés a completedModules hossza alapján (valódi adat nincs a sessionben)
+  const streakDays = completedCount > 0 ? Math.min(30, Math.ceil(completedCount / 2)) : 0;
+
 
   return (
     <div className="flex min-h-screen bg-student-warm">
@@ -177,35 +197,57 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+          ) : allModules.length === 0 ? (
+            <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-none shadow-lg">
+              <CardContent className="p-8">
+                <div className="max-w-2xl">
+                  <Badge variant="outline" className="mb-4 text-white border-white/50 bg-white/10 uppercase tracking-wide">Szakma kiválasztása</Badge>
+                  <h2 className="text-3xl font-bold mb-4">Válassz szakmát a folytatáshoz!</h2>
+                  <p className="text-lg opacity-90 mb-6">
+                    Még nincs kiválasztott szakmád, vagy a tanár még nem rendelt hozzád tantárgyakat. Válassz szakmát, hogy elérd a modulokat!
+                  </p>
+                  <Button
+                    onClick={() => navigate('/tananyagok')}
+                    size="lg"
+                    className="bg-white text-amber-700 hover:bg-neutral-100 font-bold"
+                  >
+                    Szakma és Modulok kiválasztása <ArrowRight className="ml-2" size={20} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <Card className="bg-gradient-to-br from-indigo-600 to-primary text-white border-none shadow-lg">
               <CardContent className="p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
                   <Badge variant="outline" className="mb-3 text-white border-white/50 bg-white/10 uppercase tracking-wide">Következő feladatod</Badge>
                   <h2 className="text-2xl lg:text-3xl font-bold mb-2">
-                    {nextModule?.title || "Következő modul betöltése..."}
+                    {nextModule?.title || "Modul betöltése..."}
                   </h2>
                   <p className="text-white/80 flex items-center mb-6 text-sm lg:text-base">
                     <BookOpen size={16} className="mr-2" />
                     {nextSubject?.name || "Tantárgy"} &bull; Körülbelül 15 perc
                   </p>
                   <Button
-                    onClick={() => nextModule && navigate(`/modules/${nextModule.id}`)}
+                    onClick={() => nextModule && navigate(`/module/${nextModule.id}`)}
                     size="lg"
                     className="bg-white text-primary hover:bg-neutral-100 font-bold w-full sm:w-auto"
+                    disabled={!nextModule}
                   >
-                    <Play className="mr-2" fill="currentColor" size={16} /> Folytatás
+                    <Play className="mr-2" fill="currentColor" size={16} /> {completedSet.has(nextModule?.id ?? -1) ? 'Újra nézem' : 'Folytatás'}
                   </Button>
                 </div>
                 {/* Weekly Goal Mini-Progress */}
                 <div className="bg-white/10 backdrop-blur rounded-xl p-5 w-full md:w-64 flex-shrink-0 border border-white/20">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-sm">Heti célod</span>
-                    <span className="bg-white/20 text-xs px-2 py-1 rounded-full">{weeklyCompleted}/{weeklyGoal} kész</span>
+                    <span className="font-semibold text-sm">Összesített haladás</span>
+                    <span className="bg-white/20 text-xs px-2 py-1 rounded-full">{completedCount}/{allModules.length} modul</span>
                   </div>
-                  <Progress value={weeklyProgress} className="h-2 mb-3 bg-white/20" indicatorClassName="bg-white" />
+                  <Progress value={allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0} className="h-2 mb-3 bg-white/20" indicatorClassName="bg-white" />
                   <p className="text-xs text-white/80">
-                    Még {weeklyGoal - weeklyCompleted} modul, és eléred a heti célod!
+                    {allModules.length - completedCount > 0
+                      ? `Még ${allModules.length - completedCount} modul van hátra!`
+                      : '🎉 Minden modult teljesítettél!'}
                   </p>
                 </div>
               </CardContent>
@@ -213,7 +255,7 @@ export default function HomePage() {
           )}
 
           {/* Avatar kísérő */}
-          <AvatarPet user={user} />
+          <AvatarPet user={{ ...user, username: user.username ?? '' }} />
 
           {/* Vizuális Haladás & Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -229,12 +271,14 @@ export default function HomePage() {
                   <div key={sub.id}>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="font-medium text-neutral-700">{sub.name}</span>
-                      <span className="text-neutral-500">{sub.progress}%</span>
+                      <span className="text-neutral-500">
+                        {(sub as any).doneCount ?? 0}/{(sub as any).totalCount ?? 0} modul &bull; {sub.progress}%
+                      </span>
                     </div>
                     <Progress value={sub.progress} className="h-2" />
                   </div>
                 )) : (
-                  <p className="text-neutral-500 text-sm">Folytasd a tanulást, hogy itt lásd a tantárgyak előrehaladását!</p>
+                  <p className="text-neutral-500 text-sm">Válassz szakmát, hogy itt láthasd a tantárgyak előrehaladását!</p>
                 )}
               </CardContent>
             </Card>
@@ -242,12 +286,21 @@ export default function HomePage() {
             <div className="space-y-6">
               <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200 shadow-sm">
                 <CardContent className="p-6 flex items-center space-x-4">
-                  <div className="w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-md flex-shrink-0">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md flex-shrink-0 ${streakDays > 0 ? 'bg-orange-500' : 'bg-gray-300'}`}>
                     <Flame size={28} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-orange-600 leading-none">{streakDays} napos</h3>
-                    <p className="text-sm font-medium text-orange-700/80 mt-1">tanulási sorozat!</p>
+                    {streakDays > 0 ? (
+                      <>
+                        <h3 className="text-2xl font-black text-orange-600 leading-none">{streakDays} napos</h3>
+                        <p className="text-sm font-medium text-orange-700/80 mt-1">tanulási sorozat!</p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-lg font-bold text-gray-500 leading-none">Kezdd el!</h3>
+                        <p className="text-sm text-gray-400 mt-1">Még nincs sorozatod</p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
