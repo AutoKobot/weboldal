@@ -272,7 +272,7 @@ export default function HomePage() {
           )}
 
           {/* Avatar kísérő */}
-          <AvatarPet user={{ ...user, username: user.username ?? '' }} />
+          <AvatarPet user={{ ...user, username: user.username ?? '', firstName: user.firstName ?? undefined, lastName: user.lastName ?? undefined } as any} />
 
           {/* Vizuális Haladás & Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -330,9 +330,17 @@ export default function HomePage() {
                   {lastCompletedModules.length > 0 ? (
                     <ul className="space-y-3">
                       {lastCompletedModules.map(m => (
-                        <li key={m.id} className="flex items-start text-sm">
-                          <CheckCircle2 className="mr-2 text-green-500 flex-shrink-0 mt-0.5" size={16} />
-                          <span className="text-neutral-700 line-clamp-2">{m.title}</span>
+                        <li
+                          key={m.id}
+                          className="flex items-center justify-between text-sm cursor-pointer hover:bg-neutral-50 p-2 -mx-2 rounded-md transition-colors"
+                          onClick={() => navigate(`/module/${m.id}`)}
+                          title="Kattints az újbóli megtekintéshez"
+                        >
+                          <div className="flex items-start">
+                            <CheckCircle2 className="mr-2 text-green-500 flex-shrink-0 mt-0.5" size={16} />
+                            <span className="text-neutral-700 font-medium line-clamp-2">{m.title}</span>
+                          </div>
+                          <ChevronRight size={16} className="text-neutral-400 flex-shrink-0 ml-2" />
                         </li>
                       ))}
                     </ul>
@@ -432,10 +440,10 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
   const totalStudents = students.length;
   const totalClasses = teacherClasses.length;
 
-  // Összes kitöltött teszt száma (egyedi modul/diák kombinációk)
-  const totalTests = students.reduce((sum, s) => sum + (s.testResults?.length || 0), 0);
+  // Összes befejezett modul száma
+  const totalCompletedModules = students.reduce((sum, s) => sum + (s.completedModules?.length || 0), 0);
 
-  // Átlagos százalékos eredmény → átlagjegy
+  // Átlagos százalékos eredmény → átlagjegy (ha vannak tesztek, ha nincsenek, a modul befejezések alapján)
   const allScores = students.flatMap(s => s.testResults?.map(t => t.score) || []);
   const avgScore = allScores.length > 0
     ? allScores.reduce((a, b) => a + b, 0) / allScores.length
@@ -444,26 +452,24 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
   const avgGrade = avgScore !== null ? scoreToGrade(avgScore) : null;
   const avgScorePct = avgScore !== null ? Math.round(avgScore) : null;
 
-  // Tanulók akik NEM töltöttek ki egyetlen tesztet sem
-  const noTestStudents = students.filter(s => !s.testResults || s.testResults.length === 0);
+  // Tanulók akik NEM fejeztek be egyetlen modult sem
+  const noActivityStudents = students.filter(s => !s.completedModules || s.completedModules.length === 0);
 
   // ── Osztályonkénti statisztikák ─────────────────────────────────────────
   const classStats = teacherClasses.map(cls => {
     const clsStudents = students.filter(s => s.classId === cls.id);
     const clsScores = clsStudents.flatMap(s => s.testResults?.map(t => t.score) || []);
     const clsAvg = clsScores.length > 0 ? clsScores.reduce((a, b) => a + b, 0) / clsScores.length : null;
-    const clsTests = clsStudents.reduce((sum, s) => sum + (s.testResults?.length || 0), 0);
-    const clsNoTest = clsStudents.filter(s => !s.testResults || s.testResults.length === 0);
     const clsModulesDone = clsStudents.reduce((sum, s) => sum + (s.completedModules?.length || 0), 0);
+    const clsNoActivity = clsStudents.filter(s => !s.completedModules || s.completedModules.length === 0);
     return {
       cls,
       students: clsStudents,
       avgScore: clsAvg,
       avgScorePct: clsAvg !== null ? Math.round(clsAvg) : null,
       avgGrade: clsAvg !== null ? scoreToGrade(clsAvg) : null,
-      totalTests: clsTests,
-      noTestCount: clsNoTest.length,
       totalModulesDone: clsModulesDone,
+      noActivityCount: clsNoActivity.length,
     };
   });
 
@@ -521,9 +527,9 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: "Osztályok", value: totalClasses, sub: null, icon: <Users className="h-5 w-5 text-blue-500" />, bg: "bg-blue-50" },
-                { label: "Tanulók", value: totalStudents, sub: `${noTestStudents.length} teszt nélkül`, icon: <GraduationCap className="h-5 w-5 text-purple-500" />, bg: "bg-purple-50" },
-                { label: "Kitöltött tesztek", value: totalTests, sub: totalStudents > 0 ? `${Math.round(totalTests / totalStudents * 10) / 10} / tanuló` : null, icon: <FileText className="h-5 w-5 text-green-500" />, bg: "bg-green-50" },
-                { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", sub: avgScorePct !== null ? `${avgScorePct}% átlag` : "Nincs teszt még", icon: <Award className="h-5 w-5 text-yellow-500" />, bg: "bg-yellow-50" },
+                { label: "Tanulók", value: totalStudents, sub: `${noActivityStudents.length} még nem kezdte el`, icon: <GraduationCap className="h-5 w-5 text-purple-500" />, bg: "bg-purple-50" },
+                { label: "Befejezett modulok", value: totalCompletedModules, sub: totalStudents > 0 ? `${Math.round(totalCompletedModules / totalStudents * 10) / 10} / tanuló` : null, icon: <FileText className="h-5 w-5 text-green-500" />, bg: "bg-green-50" },
+                { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", sub: avgScorePct !== null ? `${avgScorePct}% átlag` : "Még nincs adat", icon: <Award className="h-5 w-5 text-yellow-500" />, bg: "bg-yellow-50" },
               ].map(stat => (
                 <Card key={stat.label} className="shadow-sm border-0 ring-1 ring-gray-100">
                   <CardContent className="p-5">
@@ -551,7 +557,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {classStats.map(({ cls, students: clsStudents, avgGrade: cg, totalTests: ct, noTestCount }) => (
+                  {classStats.map(({ cls, students: clsStudents, avgGrade: cg, totalModulesDone, noActivityCount }) => (
                     <Card key={cls.id} className="shadow-sm border-0 ring-1 ring-gray-100 hover:shadow-md transition-shadow">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center justify-between">
@@ -571,26 +577,26 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                             <p className="text-xs text-gray-500 mt-0.5">Átlagjegy</p>
                           </div>
                           <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-2xl font-bold text-green-600">{ct}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Kitöltött teszt</p>
+                            <p className="text-2xl font-bold text-green-600">{totalModulesDone}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Befejezések</p>
                           </div>
-                          <div className={`rounded-lg p-3 ${noTestCount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                            <p className={`text-2xl font-bold ${noTestCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{noTestCount}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Teszt nélkül</p>
+                          <div className={`rounded-lg p-3 ${noActivityCount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                            <p className={`text-2xl font-bold ${noActivityCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{noActivityCount}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Inaktív</p>
                           </div>
                         </div>
 
-                        {/* Progresz: hány % töltött ki legalább 1 tesztet */}
+                        {/* Progresz: hány % töltött ki legalább 1 modult */}
                         {clsStudents.length > 0 && (() => {
-                          const testedCount = clsStudents.length - noTestCount;
-                          const pct = Math.round((testedCount / clsStudents.length) * 100);
+                          const activeCount = clsStudents.length - noActivityCount;
+                          const pct = Math.round((activeCount / clsStudents.length) * 100);
                           return (
                             <div>
                               <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>Részvételi arány</span>
-                                <span>{testedCount}/{clsStudents.length} tanuló</span>
+                                <span>Aktivitási arány</span>
+                                <span>{activeCount}/{clsStudents.length} aktív</span>
                               </div>
-                              <Progress value={pct} className="h-2" />
+                              <Progress value={pct} className="h-1.5" />
                             </div>
                           );
                         })()}

@@ -19,12 +19,12 @@ interface ModuleCardProps {
   isUnlocked: boolean;
 }
 
-export default function ModuleCard({ 
-  module, 
-  isCompleted, 
-  userRole, 
+export default function ModuleCard({
+  module,
+  isCompleted,
+  userRole,
   progress = 0,
-  isUnlocked 
+  isUnlocked
 }: ModuleCardProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -77,7 +77,7 @@ export default function ModuleCard({
       queryClient.clear();
       await queryClient.refetchQueries({ queryKey: ['/api/modules'] });
       await queryClient.refetchQueries({ queryKey: ['/api/public/modules'] });
-      
+
       toast({
         title: "AI Újragenerálás sikeres!",
         description: "A modul tartalmát sikeresen frissítette az AI - webes keresési eredményekkel és videókkal bővítve.",
@@ -108,7 +108,7 @@ export default function ModuleCard({
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check if module is accessible
     if (!isAccessible) {
       if (!isUnlocked) {
@@ -126,7 +126,7 @@ export default function ModuleCard({
       }
       return;
     }
-    
+
     setLocation(`/module/${module.id}`);
   };
 
@@ -159,10 +159,10 @@ export default function ModuleCard({
     return "text-primary";
   };
 
-  const isAccessible = (userRole === 'admin' || userRole === 'teacher') || (module.isPublished && isUnlocked);
+  const isAccessible = (userRole === 'admin' || userRole === 'teacher') || (module.isPublished && (isUnlocked || isCompleted));
 
   return (
-    <Card 
+    <Card
       className="rounded-lg border text-card-foreground shadow-sm glassmorphism gradient-overlay hover-lift transition-all duration-300 flex flex-col h-full cursor-pointer border-white/20 bg-[#d1ae9924]"
       onClick={isAccessible ? handleCardClick : undefined}
     >
@@ -170,8 +170,8 @@ export default function ModuleCard({
         <div className="flex items-start space-x-3">
           <div className="w-16 h-16 bg-gradient-to-br from-accent to-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
             {module.imageUrl ? (
-              <img 
-                src={module.imageUrl} 
+              <img
+                src={module.imageUrl}
                 alt={module.title}
                 className="w-12 h-12 object-cover rounded-lg"
               />
@@ -231,7 +231,7 @@ export default function ModuleCard({
               </Button>
             </div>
           )}
-          
+
           <p className="text-neutral-600 text-sm leading-relaxed line-clamp-3 mb-4">
             {(() => {
               // AI enhanced modules: use selected preview version
@@ -310,10 +310,9 @@ export default function ModuleCard({
           )}
         </div>
 
-        <Button 
-          className={`w-full mt-auto bg-accent hover:bg-accent/90 transition-colors ${
-            !isAccessible ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+        <Button
+          className={`w-full mt-auto bg-accent hover:bg-accent/90 transition-colors ${!isAccessible ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           onClick={isAccessible ? handleCardClick : undefined}
           disabled={!isAccessible}
         >
