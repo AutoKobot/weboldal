@@ -177,7 +177,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                         </div>
                     </div>
                 ) : (
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 w-full overflow-hidden">
                         <Label htmlFor="csv-url" className="text-blue-700 font-medium">🔗 CSV fájl URL-je</Label>
                         <Input
                             id="csv-url"
@@ -185,7 +185,7 @@ export function FlashcardImport({ moduleId, moduleTitle, onSuccess }: FlashcardI
                             value={csvUrl}
                             onChange={(e) => setCsvUrl(e.target.value)}
                             placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
-                            className="border-blue-200 focus:border-blue-400"
+                            className="border-blue-200 focus:border-blue-400 w-full"
                             onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                         />
                         <p className="text-xs text-gray-500">

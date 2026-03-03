@@ -5302,7 +5302,7 @@ Platform funkciók és navigáció:
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -5335,7 +5335,7 @@ Platform funkciók és navigáció:
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
 
-      if (!user || user.role !== 'admin') {
+      if (!user || !['admin', 'school_admin', 'teacher'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 

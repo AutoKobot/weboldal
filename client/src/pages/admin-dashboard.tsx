@@ -3974,13 +3974,13 @@ export default function AdminDashboard() {
 
                     {/* Aktuális URL megjelenítése */}
                     {form.watch('presentationUrl') && (
-                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100 text-xs text-blue-700">
-                        <span>✅ Beállított URL:</span>
-                        <span className="truncate font-mono">{form.watch('presentationUrl')}</span>
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100 text-xs text-blue-700 w-full overflow-hidden">
+                        <span className="flex-shrink-0">✅ Beállított URL:</span>
+                        <span className="truncate flex-1 min-w-0 font-mono" title={form.watch('presentationUrl')}>{form.watch('presentationUrl')}</span>
                         <button
                           type="button"
                           onClick={() => form.setValue('presentationUrl', '')}
-                          className="ml-auto text-red-400 hover:text-red-600 flex-shrink-0"
+                          className="ml-auto text-red-400 hover:text-red-600 flex-shrink-0 font-medium px-2"
                         >
                           ✕ Törlés
                         </button>
