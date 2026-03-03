@@ -106,9 +106,11 @@ export default function HomePage() {
 
   // Következő modul – az első ami még nincs kész, és publish-olt
   const completedSet = new Set(user.completedModules || []);
-  const nextModule = allModules.find(m => !completedSet.has(m.id) && m.isPublished !== false)
-    ?? allModules.find(m => m.isPublished !== false)  // ha mindenki kész, az első modul
-    ?? allModules[0];
+  const allDone = allModules.length > 0 && allModules.every(m => completedSet.has(m.id));
+  // nextModule: ha van be nem fejezett → az, ha minden kész → null (áttérünk ismétlés módba)
+  const nextModule = allDone
+    ? null
+    : (allModules.find(m => !completedSet.has(m.id) && m.isPublished !== false) ?? allModules[0]);
   const nextSubject = nextModule ? subjects.find(s => s.id === nextModule?.subjectId) : null;
 
   // Valódi subject progress: hány modul van kész az adott tantárgyban
@@ -220,24 +222,37 @@ export default function HomePage() {
             <Card className="bg-gradient-to-br from-indigo-600 to-primary text-white border-none shadow-lg">
               <CardContent className="p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
-                  <Badge variant="outline" className="mb-3 text-white border-white/50 bg-white/10 uppercase tracking-wide">Következő feladatod</Badge>
+                  <Badge variant="outline" className="mb-3 text-white border-white/50 bg-white/10 uppercase tracking-wide">
+                    {allDone ? '🎉 Gratulálunk!' : 'Következő feladatod'}
+                  </Badge>
                   <h2 className="text-2xl lg:text-3xl font-bold mb-2">
-                    {nextModule?.title || "Modul betöltése..."}
+                    {allDone
+                      ? 'Minden modult teljesítettél!'
+                      : (nextModule?.title || 'Modul betöltése...')}
                   </h2>
                   <p className="text-white/80 flex items-center mb-6 text-sm lg:text-base">
                     <BookOpen size={16} className="mr-2" />
-                    {nextSubject?.name || "Tantárgy"} &bull; Körülbelül 15 perc
+                    {allDone
+                      ? 'Böngéssz a tananyagok között és ismételj!'
+                      : `${nextSubject?.name || 'Tantárgy'} • Körülbelül 15 perc`}
                   </p>
                   <Button
-                    onClick={() => nextModule && navigate(`/module/${nextModule.id}`)}
+                    onClick={() => {
+                      if (allDone) {
+                        navigate('/tananyagok');
+                      } else if (nextModule) {
+                        navigate(`/module/${nextModule.id}`);
+                      }
+                    }}
                     size="lg"
                     className="bg-white text-primary hover:bg-neutral-100 font-bold w-full sm:w-auto"
-                    disabled={!nextModule}
+                    disabled={!nextModule && !allDone}
                   >
-                    <Play className="mr-2" fill="currentColor" size={16} /> {completedSet.has(nextModule?.id ?? -1) ? 'Újra nézem' : 'Folytatás'}
+                    <Play className="mr-2" fill="currentColor" size={16} />
+                    {allDone ? 'Tananyagok böngészése' : 'Folytatás'}
                   </Button>
                 </div>
-                {/* Weekly Goal Mini-Progress */}
+                {/* Összesített haladás */}
                 <div className="bg-white/10 backdrop-blur rounded-xl p-5 w-full md:w-64 flex-shrink-0 border border-white/20">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-sm">Összesített haladás</span>
@@ -245,9 +260,11 @@ export default function HomePage() {
                   </div>
                   <Progress value={allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0} className="h-2 mb-3 bg-white/20" indicatorClassName="bg-white" />
                   <p className="text-xs text-white/80">
-                    {allModules.length - completedCount > 0
-                      ? `Még ${allModules.length - completedCount} modul van hátra!`
-                      : '🎉 Minden modult teljesítettél!'}
+                    {allDone
+                      ? '🏆 Teljes tananyagot elvégezted!'
+                      : allModules.length - completedCount > 0
+                        ? `Még ${allModules.length - completedCount} modul van hátra!`
+                        : ''}
                   </p>
                 </div>
               </CardContent>
