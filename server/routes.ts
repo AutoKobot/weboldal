@@ -406,6 +406,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper to update streaks and XP dynamically
+  async function syncUserActivity(userId: string, user: any) {
+    if (!user) return user;
+    try {
+      const { db } = await import('./db');
+      const { users, testResults } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      let lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
+      if (lastActive) {
+        lastActive = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
+      }
+
+      let newStreak = user.currentStreak || 0;
+      let shouldUpdateLastActive = false;
+
+      if (!lastActive || lastActive.getTime() < today.getTime()) {
+        shouldUpdateLastActive = true;
+        if (lastActive) {
+          const diffTime = today.getTime() - lastActive.getTime();
+          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            newStreak += 1;
+          } else if (diffDays > 1) {
+            newStreak = 1;
+          }
+        } else {
+          newStreak = 1;
+        }
+      }
+
+      // Calculate XP
+      const modulesXP = (user.completedModules?.length || 0) * 100;
+      const tests = await db.select().from(testResults).where(eq(testResults.userId, userId));
+      let testXP = 0;
+      tests.forEach((t: any) => {
+        if (t.score) testXP += t.score * 2;
+      });
+      const totalXP = modulesXP + testXP;
+
+      let updateData: any = {};
+      if (shouldUpdateLastActive) {
+        updateData.currentStreak = newStreak;
+        updateData.lastActiveDate = now;
+        user.currentStreak = newStreak;
+        user.lastActiveDate = now;
+      }
+      if (totalXP !== user.xp) {
+        updateData.xp = totalXP;
+        user.xp = totalXP;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.update(users).set(updateData).where(eq(users.id, userId));
+      }
+    } catch (e) { console.error("Error syncing user activity", e) }
+
+    return user;
+  }
+
   // Auth routes
   app.get('/api/auth/user', async (req: any, res) => {
     try {
@@ -425,15 +488,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.user.claims && req.user.claims.sub) {
           // Replit auth
           const userId = req.user.claims.sub;
-          const user = await storage.getUser(userId);
-          console.log('Replit user fetched:', { userId: user?.id, completedModules: user?.completedModules });
+          let user = await storage.getUser(userId);
+          user = await syncUserActivity(userId, user);
           return res.json(user);
         } else if (req.user.id) {
           // Local auth - ALWAYS fetch fresh data from database
-          console.log('Local user from session:', { userId: req.user.id, completedModules: req.user.completedModules });
-
-          const freshUser = await storage.getUser(req.user.id);
-          console.log('Fresh local user from DB:', { userId: freshUser?.id, completedModules: freshUser?.completedModules, assignedProfessionIds: freshUser?.assignedProfessionIds });
+          let freshUser = await storage.getUser(req.user.id);
+          freshUser = await syncUserActivity(req.user.id, freshUser);
 
           // Update session with fresh data to keep it synchronized
           if (freshUser && req.session?.passport?.user) {

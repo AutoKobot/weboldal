@@ -12,7 +12,7 @@ import ProgressCard from "@/components/progress-card";
 import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Clock, MessageSquare, Menu, Award } from "lucide-react";
+import { BookOpen, Clock, MessageSquare, Menu, Award, Flame } from "lucide-react";
 import type { Module } from "@shared/schema";
 
 export default function StudentDashboard() {
@@ -106,6 +106,13 @@ export default function StudentDashboard() {
   const displayGrade = weeklyAvg !== null ? weeklyAvg : (monthlyAvg !== null ? monthlyAvg : "N/A");
   const gradeLabel = weeklyAvg !== null ? "Heti átlag" : (monthlyAvg !== null ? "Havi átlag" : "Nincs teszt");
 
+  // XP and Level Calculation
+  const xp = user.xp || 0;
+  const currentLevel = Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
+  const nextLevelXP = Math.pow(currentLevel, 2) * 100;
+  const currentLevelBaseXP = Math.pow(currentLevel - 1, 2) * 100;
+  const progressToNextLevel = ((xp - currentLevelBaseXP) / (nextLevelXP - currentLevelBaseXP)) * 100;
+
   return (
     <div className="flex min-h-screen bg-neutral-50 relative">
       <DynamicBackground />
@@ -139,12 +146,35 @@ export default function StudentDashboard() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 lg:p-8">
-          {/* Welcome Section */}
+          {/* Welcome Section with XP & Streak */}
           <div className="mb-8">
-            <h2 className="text-2xl lg:text-3xl font-bold text-neutral-700 mb-2">
-              Üdvözlünk, {user.firstName || user.email}!
-            </h2>
-            <p className="text-neutral-400">Folytasd a tanulást ott, ahol abbahagytad</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between">
+              <div>
+                <h2 className="text-2xl lg:text-3xl font-bold text-neutral-700 mb-2">
+                  Üdvözlünk, {user.firstName || user.email}!
+                </h2>
+                <p className="text-neutral-400">Folytasd a tanulást ott, ahol abbahagytad</p>
+              </div>
+              <div className="mt-4 md:mt-0 bg-white p-4 rounded-xl shadow-sm border border-neutral-100 flex items-center space-x-6">
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center space-x-2 text-orange-500 font-bold text-lg">
+                    <Flame size={24} className={(user.currentStreak || 0) > 0 ? "fill-orange-500" : ""} />
+                    <span>{user.currentStreak || 0} nap</span>
+                  </div>
+                  <span className="text-xs text-neutral-400 uppercase tracking-wider font-semibold">Tűz</span>
+                </div>
+
+                <div className="hidden sm:block w-px h-10 bg-neutral-200"></div>
+
+                <div className="flex flex-col min-w-[150px]">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="font-bold text-primary">Szint {currentLevel}</span>
+                    <span className="text-xs text-neutral-500 font-medium">{xp} / {nextLevelXP} XP</span>
+                  </div>
+                  <Progress value={progressToNextLevel} className="h-2.5 bg-neutral-100" />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Progress Overview */}

@@ -43,6 +43,9 @@ export const users = pgTable("users", {
   schoolAdminId: varchar("school_admin_id"), // Melyik iskolai admin hozta létre
   classId: integer("class_id"), // Melyik osztályhoz tartozik
   phone: varchar("phone"), // Telefonszám
+  currentStreak: integer("current_streak").default(0), // Folytonos bejelentkezések
+  lastActiveDate: timestamp("last_active_date"), // Utolsó aktív nap
+  xp: integer("xp").default(0), // Tapasztalati pontok
   completedModules: jsonb("completed_modules").default([]).$type<number[]>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
