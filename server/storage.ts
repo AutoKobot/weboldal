@@ -504,6 +504,16 @@ export class DatabaseStorage implements IStorage {
       // 13. Update classes where user is assigned teacher (set to null)
       await db.execute(sql`UPDATE classes SET assigned_teacher_id = NULL WHERE assigned_teacher_id = ${id}`);
 
+      // 13.5 Delete test results
+      await db.execute(sql`DELETE FROM test_results WHERE user_id = ${id}`);
+
+      // 13.6 Delete privacy requests and user consents
+      await db.execute(sql`DELETE FROM privacy_requests WHERE user_id = ${id}`);
+      await db.execute(sql`DELETE FROM user_consents WHERE user_id = ${id}`);
+
+      // 13.7 Remove school_admin_id references if this user is a school admin
+      await db.execute(sql`UPDATE users SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
+
       // 14. Finally delete the user
       const deletedUser = await db.delete(users).where(eq(users.id, id));
 

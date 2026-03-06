@@ -656,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const targetUserId = req.params.id;
       const { role } = req.body;
 
-      if (!['admin', 'student', 'teacher'].includes(role)) {
+      if (!['admin', 'student', 'teacher', 'school_admin'].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
 
@@ -2197,7 +2197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (req.user && req.user.id) {
         userId = req.user.id;
       } else if (req.session?.adminUser) {
-        userId = req.session.adminUser;
+        userId = req.session.adminUser.id;
       } else {
         return res.status(401).json({ message: "Unauthorized" });
       }
