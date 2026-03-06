@@ -451,6 +451,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/student/test-results', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { db } = await import('./db');
+      const { testResults } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const results = await db.select().from(testResults).where(eq(testResults.userId, userId)).orderBy(testResults.createdAt);
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching test results:", error);
+      res.status(500).json({ message: "Failed to fetch test results" });
+    }
+  });
+
   // Admin login routes
   app.post('/api/admin/login', async (req, res) => {
     try {
@@ -931,7 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/school-admin/register-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
-      const { username, password, firstName, lastName, email } = req.body;
+      const { username, password, name, schoolName, email, phone } = req.body;
 
       if (!username || !password) {
         return res.status(400).json({ message: "Felhasználónév és jelszó megadása kötelező" });
@@ -952,12 +973,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Név szétválasztása vezetéknévre és keresztnévre
+      let firstName = "";
+      let lastName = "";
+      if (name) {
+        const nameParts = name.trim().split(" ");
+        if (nameParts.length > 0) {
+          lastName = nameParts[0]; // Első a vezetéknév magyarosan
+          if (nameParts.length > 1) {
+            firstName = nameParts.slice(1).join(" ");
+          }
+        }
+      }
+
       const newUser = await storage.createUser({
         username,
         password,
         firstName,
         lastName,
         email: normalizedEmail,
+        phone: phone || null,
+        schoolName: schoolName || null,
         role: 'student',
         schoolAdminId: req.user.id
       });
@@ -965,6 +1001,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (e) {
       console.error("Register student error:", e);
       res.status(500).json({ message: "Sikertelen regisztráció" });
+    }
+  });
+
+  app.post('/api/school-admin/bulk-register-students', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { students } = req.body;
+      const results = { success: 0, failed: 0, errors: [] as string[] };
+
+      for (const student of students) {
+        try {
+          if (!student.username || !student.password) {
+            results.failed++;
+            results.errors.push(`Hiányzó felh.név/jelszó: ${student.name || 'Ismeretlen'}`);
+            continue;
+          }
+
+          const existingUser = await storage.getUserByUsername(student.username);
+          if (existingUser) {
+            results.failed++;
+            results.errors.push(`Foglalt felhasználónév: ${student.username}`);
+            continue;
+          }
+
+          let firstName = "";
+          let lastName = "";
+          if (student.name) {
+            const nameParts = student.name.trim().split(" ");
+            if (nameParts.length > 0) {
+              lastName = nameParts[0];
+              if (nameParts.length > 1) {
+                firstName = nameParts.slice(1).join(" ");
+              }
+            }
+          }
+
+          await storage.createUser({
+            username: student.username,
+            password: student.password,
+            firstName,
+            lastName,
+            email: student.email || null,
+            phone: student.phone || null,
+            schoolName: student.schoolName || null,
+            role: 'student',
+            schoolAdminId: req.user.id
+          });
+          results.success++;
+        } catch (e: any) {
+          results.failed++;
+          results.errors.push(`Hiba (${student.username}): ${e.message}`);
+        }
+      }
+
+      res.status(200).json({ message: "Import kész", results });
+    } catch (e) {
+      console.error("Bulk register error:", e);
+      res.status(500).json({ message: "Sikertelen tömeges regisztráció" });
     }
   });
 
@@ -1083,7 +1176,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/teacher/students', combinedAuth, checkTeacher, async (req: any, res) => {
     try {
       const students = await storage.getStudentsByTeacher(req.user.id);
-      res.json(students);
+
+      // Determine online status based on active sessions
+      const { db } = await import('./db');
+      const { sessions: sessionsTable } = await import('@shared/schema');
+      const { gt } = await import('drizzle-orm');
+
+      const activeSessions = await db.select().from(sessionsTable).where(gt(sessionsTable.expire, new Date()));
+      const onlineUserIds = new Set<string>();
+
+      for (const session of activeSessions) {
+        try {
+          const sessData = session.sess as any;
+          if (sessData?.passport?.user?.id) onlineUserIds.add(sessData.passport.user.id);
+          else if (typeof sessData?.passport?.user === 'string') onlineUserIds.add(sessData.passport.user);
+
+          if (sessData?.adminUser?.id) onlineUserIds.add(sessData.adminUser.id);
+          if (sessData?.schoolAdminUser?.id) onlineUserIds.add(sessData.schoolAdminUser.id);
+        } catch (e) { }
+      }
+
+      const studentsWithOnlineStatus = students.map((s: any) => ({
+        ...s,
+        isOnline: onlineUserIds.has(s.id)
+      }));
+
+      res.json(studentsWithOnlineStatus);
     } catch (e) {
       console.error(e);
       res.status(500).json({ message: "Failed to fetch students" });

@@ -5,7 +5,6 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Player } from "@lottiefiles/react-lottie-player";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Star, Shield, Crown, Zap, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";

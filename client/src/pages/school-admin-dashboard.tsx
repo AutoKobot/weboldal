@@ -321,6 +321,115 @@ function DeleteClassDialog({ classId, className, onSuccess }: { classId: number,
   );
 }
 
+function CSVImportStudents({ onSuccess }: { onSuccess: () => void }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text) {
+        setIsUploading(false);
+        return;
+      }
+
+      try {
+        const lines = text.split("\n").filter(l => l.trim().length > 0);
+        const students = [];
+
+        let startIndex = 0;
+        if (lines[0].toLowerCase().includes("név") || lines[0].toLowerCase().includes("name")) {
+          startIndex = 1;
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+          const sep = lines[i].includes(";") ? ";" : ",";
+          const parts = lines[i].split(sep).map(s => s.trim());
+          const name = parts[0];
+          const username = parts[1];
+          const password = parts[2];
+          const schoolName = parts[3];
+          const email = parts[4];
+          const phone = parts[5];
+
+          if (name && username && password) {
+            students.push({
+              name,
+              username,
+              password,
+              schoolName: schoolName || "",
+              email: email || "",
+              phone: phone || ""
+            });
+          }
+        }
+
+        if (students.length === 0) {
+          toast({ title: "Hiba", description: "Nem található érvényes diák adat a fájlban. Ellenőrizze a formátumot: Név;Felhasználónév;Jelszó;Iskola;Email;Telefonszám", variant: "destructive" });
+          setIsUploading(false);
+          return;
+        }
+
+        const response = await fetch("/api/school-admin/bulk-register-students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ students })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          toast({
+            title: "Importálás sikeres",
+            description: `${data.results.success} diák regisztrálva, ${data.results.failed} hiba.`,
+          });
+          if (data.results.failed > 0) {
+            alert(`Néhány hiba történt:\n` + data.results.errors.join("\n"));
+          }
+          onSuccess();
+        } else {
+          toast({ title: "Hiba", description: data.message, variant: "destructive" });
+        }
+      } catch (err) {
+        toast({ title: "Hiba", description: "Fájl feldolgozása sikertelen.", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+        e.target.value = ""; // Reset file input
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <span>Tömeges importálás (CSV)</span>
+        </CardTitle>
+        <CardDescription>
+          Töltsön fel egy CSV fájlt a diákok adatával. A kötelező oszlopok: <strong>Név, Felhasználónév, Jelszó</strong>.
+          Opcionális oszlopok (ugyanebben a sorrendben): Iskola, Email, Telefonszám.<br />
+          (Elválasztó: pontosvessző <code>;</code> vagy vessző <code>,</code>)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center space-x-4">
+          <Input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            disabled={isUploading}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SchoolAdminDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -346,11 +455,12 @@ export default function SchoolAdminDashboard() {
     password: ""
   });
   const [studentForm, setStudentForm] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
     username: "",
     email: "",
-    password: ""
+    password: "",
+    schoolName: "",
+    phone: ""
   });
 
   useEffect(() => {
@@ -695,11 +805,12 @@ export default function SchoolAdminDashboard() {
           description: "A diák sikeresen regisztrálva lett",
         });
         setStudentForm({
-          firstName: "",
-          lastName: "",
+          name: "",
           username: "",
           email: "",
-          password: ""
+          password: "",
+          schoolName: "",
+          phone: ""
         });
         setIsStudentDialogOpen(false);
         fetchData(); // Frissítjük az adatokat
@@ -1215,21 +1326,12 @@ export default function SchoolAdminDashboard() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="student-firstName">Keresztnév</Label>
+                    <Label htmlFor="student-name">Név (Vezetéknév Keresztnév)</Label>
                     <Input
-                      id="student-firstName"
-                      value={studentForm.firstName}
-                      onChange={(e) => setStudentForm({ ...studentForm, firstName: e.target.value })}
-                      placeholder="Keresztnév"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="student-lastName">Vezetéknév</Label>
-                    <Input
-                      id="student-lastName"
-                      value={studentForm.lastName}
-                      onChange={(e) => setStudentForm({ ...studentForm, lastName: e.target.value })}
-                      placeholder="Vezetéknév"
+                      id="student-name"
+                      value={studentForm.name}
+                      onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })}
+                      placeholder="Pl: Kovács Péter"
                     />
                   </div>
                   <div>
@@ -1243,13 +1345,32 @@ export default function SchoolAdminDashboard() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="student-email">Email (opcionális)</Label>
+                    <Label htmlFor="student-schoolName">Iskola neve</Label>
+                    <Input
+                      id="student-schoolName"
+                      value={studentForm.schoolName}
+                      onChange={(e) => setStudentForm({ ...studentForm, schoolName: e.target.value })}
+                      placeholder="Iskola neve"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="student-email">Email cím (opcionális)</Label>
                     <Input
                       id="student-email"
                       type="email"
                       value={studentForm.email}
                       onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
                       placeholder="email@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="student-phone">Telefonszám (opcionális)</Label>
+                    <Input
+                      id="student-phone"
+                      type="tel"
+                      value={studentForm.phone}
+                      onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })}
+                      placeholder="+36 30 123 4567"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -1276,6 +1397,8 @@ export default function SchoolAdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            <CSVImportStudents onSuccess={fetchData} />
 
             <Card className="mt-6">
               <CardHeader>

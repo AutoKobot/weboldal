@@ -62,6 +62,7 @@ interface Student {
   createdAt: string;
   testResults?: TestResult[];
   classId?: number;
+  isOnline?: boolean;
 }
 
 interface Module {
@@ -99,9 +100,10 @@ export default function TeacherDashboard() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>("all");
   const [timeFilter, setTimeFilter] = useState("week"); // week, month, all
 
-  // Fetch students
+  // Fetch students with auto-refresh to see online status live
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ["/api/teacher/students"],
+    refetchInterval: 15000, // Refresh every 15 seconds
   });
 
   // Fetch modules
@@ -195,6 +197,7 @@ export default function TeacherDashboard() {
 
   const totalStudents = students.length;
   const activeStudents = students.filter((s: Student) => s.completedModules?.length > 0).length;
+  const onlineStudentsCount = students.filter((s: Student) => s.isOnline).length;
   const averageProgress = students.length > 0
     ? Math.round(students.reduce((sum: number, s: Student) => sum + getStudentProgress(s), 0) / students.length)
     : 0;
@@ -251,7 +254,15 @@ export default function TeacherDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Összes tanuló</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
+                  <div className="flex items-baseline space-x-2">
+                    <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
+                    {onlineStudentsCount > 0 && (
+                      <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse"></span>
+                        {onlineStudentsCount} online
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
                   <Users className="h-6 w-6 text-blue-600" />
@@ -357,11 +368,14 @@ export default function TeacherDashboard() {
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-2">
                                 <div>
-                                  <h3 className="text-lg font-semibold text-gray-900">
+                                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                                     {student.firstName && student.lastName
                                       ? `${student.firstName} ${student.lastName}`
                                       : student.username
                                     }
+                                    {student.isOnline && (
+                                      <span title="Jelenleg bejelentkezve" className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
+                                    )}
                                   </h3>
                                   <p className="text-sm text-gray-500">@{student.username}</p>
                                 </div>
@@ -372,7 +386,7 @@ export default function TeacherDashboard() {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                 <div>
                                   <p className="text-sm font-medium text-gray-600 mb-1">Szakma</p>
                                   <p className="text-sm text-gray-900">
@@ -383,6 +397,14 @@ export default function TeacherDashboard() {
                                   <p className="text-sm font-medium text-gray-600 mb-1">Teljesített modulok</p>
                                   <p className="text-sm text-gray-900">
                                     {completedCount} / {modules.length}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
+                                    <Clock className="w-3 h-3 mr-1" /> Tanulási idő
+                                  </p>
+                                  <p className="text-sm text-gray-900">
+                                    ~{Math.floor(completedCount * 2.5)} óra
                                   </p>
                                 </div>
                               </div>

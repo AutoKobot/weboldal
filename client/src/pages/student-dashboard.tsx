@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useProgress } from "@/hooks/useProgress";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
@@ -11,7 +12,7 @@ import ProgressCard from "@/components/progress-card";
 import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Clock, MessageSquare, Menu } from "lucide-react";
+import { BookOpen, Clock, MessageSquare, Menu, Award } from "lucide-react";
 import type { Module } from "@shared/schema";
 
 export default function StudentDashboard() {
@@ -27,6 +28,26 @@ export default function StudentDashboard() {
       return response.json();
     },
     retry: false,
+  });
+
+  const { data: chatMessages = [] } = useQuery({
+    queryKey: ['/api/chat/messages'],
+    queryFn: async () => {
+      const response = await fetch('/api/chat/messages');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: testResults = [] } = useQuery({
+    queryKey: ['/api/student/test-results'],
+    queryFn: async () => {
+      const response = await fetch('/api/student/test-results');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
   });
 
   // Redirect to home if not authenticated
@@ -55,42 +76,35 @@ export default function StudentDashboard() {
     );
   }
 
-  const getUnlockedModules = (modules: Module[], completedModules: number[]) => {
-    if (!modules.length) return new Set<number>();
-    const unlockedModules = new Set<number>();
+  const completedModules = user.completedModules || [];
+  const { unlockedModules, overallProgress, totalModules } = useProgress(modules, completedModules);
 
-    // Group modules by subjectId to calculate sequence properly within each subject
-    const modulesBySubject = modules.reduce((acc, module) => {
-      if (!acc[module.subjectId]) acc[module.subjectId] = [];
-      acc[module.subjectId].push(module);
-      return acc;
-    }, {} as Record<number, Module[]>);
-
-    Object.values(modulesBySubject).forEach(subjectModules => {
-      // Sort modules by moduleNumber (represents learning sequence)
-      const sortedModules = [...subjectModules].sort((a, b) => a.moduleNumber - b.moduleNumber);
-
-      // First module of any subject is always unlocked
-      if (sortedModules.length > 0) {
-        unlockedModules.add(sortedModules[0].id);
-      }
-
-      // Unlock subsequent modules if previous ones within the same subject are completed
-      for (let i = 1; i < sortedModules.length; i++) {
-        const previousModule = sortedModules[i - 1];
-        if (completedModules.includes(previousModule.id)) {
-          unlockedModules.add(sortedModules[i].id);
-        }
-      }
-    });
-
-    return unlockedModules;
+  // Calculate Average Grades
+  const scoreToGrade = (score: number) => {
+    if (score >= 95) return 5;
+    if (score >= 80) return 4;
+    if (score >= 70) return 3;
+    if (score >= 60) return 2;
+    return 1;
   };
 
-  const completedModules = user.completedModules || [];
-  const unlockedModules = getUnlockedModules(modules, completedModules);
-  const totalModules = modules.length;
-  const overallProgress = totalModules > 0 ? Math.round((completedModules.length / totalModules) * 100) : 0;
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const calculateAverageGrade = (results: any[]) => {
+    if (results.length === 0) return null;
+    const sum = results.reduce((acc, r) => acc + scoreToGrade(r.score), 0);
+    return (sum / results.length).toFixed(1);
+  };
+
+  const weeklyResults = testResults.filter((r: any) => new Date(r.createdAt) >= oneWeekAgo);
+  const monthlyResults = testResults.filter((r: any) => new Date(r.createdAt) >= oneMonthAgo);
+
+  const weeklyAvg = calculateAverageGrade(weeklyResults);
+  const monthlyAvg = calculateAverageGrade(monthlyResults);
+  const displayGrade = weeklyAvg !== null ? weeklyAvg : (monthlyAvg !== null ? monthlyAvg : "N/A");
+  const gradeLabel = weeklyAvg !== null ? "Heti átlag" : (monthlyAvg !== null ? "Havi átlag" : "Nincs teszt");
 
   return (
     <div className="flex min-h-screen bg-neutral-50 relative">
@@ -134,7 +148,7 @@ export default function StudentDashboard() {
           </div>
 
           {/* Progress Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <ProgressCard
               title="Befejezett modulok"
               value={completedModules.length}
@@ -151,10 +165,17 @@ export default function StudentDashboard() {
             />
             <ProgressCard
               title="AI beszélgetések"
-              value={42}
+              value={chatMessages.length}
               subtitle="üzenet"
               icon={MessageSquare}
               color="primary"
+            />
+            <ProgressCard
+              title="Átlagos érdemjegy"
+              value={displayGrade as any}
+              subtitle={gradeLabel}
+              icon={Award}
+              color="secondary"
             />
           </div>
 

@@ -42,6 +42,7 @@ export const users = pgTable("users", {
   schoolName: varchar("school_name"), // Iskola neve (csak iskolai adminoknak)
   schoolAdminId: varchar("school_admin_id"), // Melyik iskolai admin hozta létre
   classId: integer("class_id"), // Melyik osztályhoz tartozik
+  phone: varchar("phone"), // Telefonszám
   completedModules: jsonb("completed_modules").default([]).$type<number[]>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
