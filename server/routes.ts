@@ -1327,6 +1327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: student.email,
             classId: student.classId,
             completedModules: student.completedModules || [],
+            lastActiveDate: student.lastActiveDate,
+            currentStreak: student.currentStreak,
             testResults: results,
           };
         })

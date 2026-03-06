@@ -63,6 +63,8 @@ interface Student {
   testResults?: TestResult[];
   classId?: number;
   isOnline?: boolean;
+  lastActiveDate?: string | null;
+  currentStreak?: number | null;
 }
 
 interface Module {
@@ -378,6 +380,11 @@ export default function TeacherDashboard() {
                                     )}
                                   </h3>
                                   <p className="text-sm text-gray-500">@{student.username}</p>
+                                  {student.lastActiveDate && (
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      Utolsó belépés: {new Date(student.lastActiveDate).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  )}
                                 </div>
                                 <div className="text-right">
                                   <Badge variant={progress > 50 ? "default" : "secondary"}>
@@ -403,9 +410,14 @@ export default function TeacherDashboard() {
                                   <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
                                     <Clock className="w-3 h-3 mr-1" /> Tanulási idő
                                   </p>
-                                  <p className="text-sm text-gray-900">
+                                  <p className="text-sm text-gray-900" title="Becsült idő a befejezett modulok alapján">
                                     ~{Math.floor(completedCount * 2.5)} óra
                                   </p>
+                                  {(student.currentStreak || 0) > 0 && (
+                                    <p className="text-xs text-orange-600 font-medium mt-0.5 flex items-center">
+                                      🔥 {student.currentStreak} napos sorozat
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 

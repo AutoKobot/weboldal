@@ -55,6 +55,16 @@ export default function HomePage() {
     retry: false
   });
 
+  const { data: testResults = [] } = useQuery({
+    queryKey: ['/api/student/test-results'],
+    queryFn: async () => {
+      const response = await fetch('/api/student/test-results');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user && user.role === 'student',
+  });
+
   if (!user) return null;
 
   // Ha tanár, akkor gazdag statisztikai home oldal
@@ -135,8 +145,38 @@ export default function HomePage() {
   const weeklyCompleted = Math.min(completedCount, weeklyGoal);
   const weeklyProgress = (weeklyCompleted / weeklyGoal) * 100;
 
-  // Streak – egyszerű becslés a completedModules hossza alapján (valódi adat nincs a sessionben)
-  const streakDays = completedCount > 0 ? Math.min(30, Math.ceil(completedCount / 2)) : 0;
+  // Streak és XP
+  const streakDays = user.currentStreak || 0;
+  const xp = user.xp || 0;
+  const currentLevel = Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
+  const nextLevelXP = Math.pow(currentLevel, 2) * 100;
+  const currentLevelBaseXP = Math.pow(currentLevel - 1, 2) * 100;
+  const progressToNextLevel = ((xp - currentLevelBaseXP) / (nextLevelXP - currentLevelBaseXP)) * 100;
+
+  // Átlagjegy számítás
+  const scoreToGrade = (score: number) => {
+    if (score >= 95) return 5;
+    if (score >= 80) return 4;
+    if (score >= 70) return 3;
+    if (score >= 60) return 2;
+    return 1;
+  };
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const calculateAverageGrade = (results: any[]) => {
+    if (results.length === 0) return null;
+    const sum = results.reduce((acc: number, r: any) => acc + scoreToGrade(r.score), 0);
+    return (sum / results.length).toFixed(1);
+  };
+
+  const weeklyResults = testResults.filter((r: any) => new Date(r.createdAt) >= oneWeekAgo);
+  const monthlyResults = testResults.filter((r: any) => new Date(r.createdAt) >= oneMonthAgo);
+  const weeklyAvg = calculateAverageGrade(weeklyResults);
+  const monthlyAvg = calculateAverageGrade(monthlyResults);
+  const displayGrade = weeklyAvg !== null ? weeklyAvg : (monthlyAvg !== null ? monthlyAvg : "N/A");
+  const gradeLabel = weeklyAvg !== null ? "Heti átlag" : (monthlyAvg !== null ? "Havi átlag" : "Nincs teszt");
 
 
   return (
@@ -301,24 +341,44 @@ export default function HomePage() {
             </Card>
 
             <div className="space-y-6">
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200 shadow-sm">
-                <CardContent className="p-6 flex items-center space-x-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md flex-shrink-0 ${streakDays > 0 ? 'bg-orange-500' : 'bg-gray-300'}`}>
-                    <Flame size={28} />
-                  </div>
-                  <div>
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200 shadow-sm">
+                  <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-sm mb-2 ${streakDays > 0 ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                      <Flame size={24} />
+                    </div>
                     {streakDays > 0 ? (
                       <>
-                        <h3 className="text-2xl font-black text-orange-600 leading-none">{streakDays} napos</h3>
-                        <p className="text-sm font-medium text-orange-700/80 mt-1">tanulási sorozat!</p>
+                        <h3 className="text-xl font-black text-orange-600 leading-none">{streakDays} napos</h3>
+                        <p className="text-xs font-medium text-orange-700/80 mt-1">tanulási sorozat</p>
                       </>
                     ) : (
                       <>
-                        <h3 className="text-lg font-bold text-gray-500 leading-none">Kezdd el!</h3>
-                        <p className="text-sm text-gray-400 mt-1">Még nincs sorozatod</p>
+                        <h3 className="text-base font-bold text-gray-500 leading-none">Kezdd el!</h3>
+                        <p className="text-xs text-gray-400 mt-1">Még nincs sorozatod</p>
                       </>
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 shadow-sm">
+                  <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-sm mb-2 bg-blue-500">
+                      <Award size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-blue-600 leading-none">{displayGrade}</h3>
+                    <p className="text-xs font-medium text-blue-700/80 mt-1">{gradeLabel}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border-indigo-200 shadow-sm">
+                <CardContent className="p-4 flex flex-col justify-center">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="font-bold text-indigo-700">Szint {currentLevel}</span>
+                    <span className="text-xs text-indigo-600/80 font-medium">{xp} / {nextLevelXP} XP</span>
                   </div>
+                  <Progress value={progressToNextLevel} className="h-2.5 bg-indigo-200/50" />
                 </CardContent>
               </Card>
 
