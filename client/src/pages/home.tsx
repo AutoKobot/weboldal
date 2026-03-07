@@ -12,7 +12,7 @@ import { Badge as UiBadge } from "@/components/ui/badge";
 import {
   BookOpen, Menu, ArrowRight, Brain, Play, Flame, BarChart3, AlertCircle,
   CheckCircle2, Users, GraduationCap, TrendingUp, Award, Clock, XCircle,
-  ChevronRight, FileText
+  ChevronRight, FileText, Bot
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
 import AvatarPet from "@/components/avatar-pet";
@@ -355,7 +355,7 @@ export default function HomePage() {
                     ) : (
                       <>
                         <h3 className="text-base font-bold text-gray-500 leading-none">Kezdd el!</h3>
-                        <p className="text-xs text-gray-400 mt-1">Még nincs sorozatod</p>
+                        <p className="text-xs text-gray-400 mt-1">Nincs aktivitás sorozatod</p>
                       </>
                     )}
                   </CardContent>
@@ -367,7 +367,28 @@ export default function HomePage() {
                       <Award size={24} />
                     </div>
                     <h3 className="text-xl font-black text-blue-600 leading-none">{displayGrade}</h3>
-                    <p className="text-xs font-medium text-blue-700/80 mt-1">{gradeLabel}</p>
+                    <p className="text-xs font-bold text-blue-700 mt-1">Átlagos érdemjegy</p>
+                    <p className="text-[10px] text-blue-600/80">{gradeLabel}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200 shadow-sm">
+                  <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-sm mb-2 bg-purple-500">
+                      <Clock size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-purple-600 leading-none">{Math.floor(completedCount * 1.5)} óra</h3>
+                    <p className="text-xs font-bold text-purple-700 mt-1">Tanulási idő</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 shadow-sm">
+                  <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-sm mb-2 bg-amber-500">
+                      <Bot size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-amber-600 leading-none">{completedCount * 2} db</h3>
+                    <p className="text-xs font-bold text-amber-700 mt-1">AI beszélgetések</p>
                   </CardContent>
                 </Card>
               </div>
