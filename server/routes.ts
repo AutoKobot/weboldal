@@ -450,12 +450,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalXP = modulesXP + testXP;
 
       let updateData: any = {};
+      const fiveMinsAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      let shouldUpdateSeenOnline = !user.lastActiveDate || new Date(user.lastActiveDate).getTime() < fiveMinsAgo.getTime();
+
       if (shouldUpdateLastActive) {
         updateData.currentStreak = newStreak;
         updateData.lastActiveDate = now;
         user.currentStreak = newStreak;
         user.lastActiveDate = now;
+      } else if (shouldUpdateSeenOnline) {
+        updateData.lastActiveDate = now;
+        user.lastActiveDate = now;
       }
+
       if (totalXP !== user.xp) {
         updateData.xp = totalXP;
         user.xp = totalXP;
@@ -1238,28 +1245,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const students = await storage.getStudentsByTeacher(req.user.id);
 
-      // Determine online status based on active sessions
-      const { db } = await import('./db');
-      const { sessions: sessionsTable } = await import('@shared/schema');
-      const { gt } = await import('drizzle-orm');
-
-      const activeSessions = await db.select().from(sessionsTable).where(gt(sessionsTable.expire, new Date()));
-      const onlineUserIds = new Set<string>();
-
-      for (const session of activeSessions) {
-        try {
-          const sessData = session.sess as any;
-          if (sessData?.passport?.user?.id) onlineUserIds.add(sessData.passport.user.id);
-          else if (typeof sessData?.passport?.user === 'string') onlineUserIds.add(sessData.passport.user);
-
-          if (sessData?.adminUser?.id) onlineUserIds.add(sessData.adminUser.id);
-          if (sessData?.schoolAdminUser?.id) onlineUserIds.add(sessData.schoolAdminUser.id);
-        } catch (e) { }
-      }
+      // Determine online status based on lastActiveDate
+      const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
 
       const studentsWithOnlineStatus = students.map((s: any) => ({
         ...s,
-        isOnline: onlineUserIds.has(s.id)
+        isOnline: s.lastActiveDate ? new Date(s.lastActiveDate).getTime() > fiveMinsAgo.getTime() : false
       }));
 
       res.json(studentsWithOnlineStatus);
