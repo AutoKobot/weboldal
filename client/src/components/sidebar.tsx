@@ -295,8 +295,8 @@ export default function Sidebar({ user }: SidebarProps) {
         <div className="bg-neutral-50 rounded-lg p-3">
           <div className="mb-2">
             <p className="text-sm font-medium text-neutral-700 truncate">
-              {user.firstName && user.lastName
-                ? `${user.firstName} ${user.lastName}`
+              {user.lastName && user.firstName
+                ? `${user.lastName} ${user.firstName}`
                 : user.email
               }
             </p>

@@ -3663,8 +3663,8 @@ export default function AdminDashboard() {
                           <div key={admin.id} className="flex items-center justify-between p-3 border rounded-lg">
                             <div>
                               <p className="font-medium">
-                                {admin.firstName && admin.lastName
-                                  ? `${admin.firstName} ${admin.lastName}`
+                                {admin.lastName && admin.firstName
+                                  ? `${admin.lastName} ${admin.firstName}`
                                   : admin.username}
                               </p>
                               <p className="text-sm text-muted-foreground">
@@ -4120,8 +4120,8 @@ function UserRow({
   unlockPending: boolean;
   professions?: Profession[];
 }) {
-  const displayName = user.firstName && user.lastName
-    ? `${user.firstName} ${user.lastName}`
+  const displayName = user.lastName && user.firstName
+    ? `${user.lastName} ${user.firstName}`
     : user.email || user.username || user.id;
 
   return (

@@ -371,8 +371,8 @@ export default function TeacherDashboard() {
                               <div className="flex items-center justify-between mb-2">
                                 <div>
                                   <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                                    {student.firstName && student.lastName
-                                      ? `${student.firstName} ${student.lastName}`
+                                    {student.lastName && student.firstName
+                                      ? `${student.lastName} ${student.firstName}`
                                       : student.username
                                     }
                                     {student.isOnline && (
@@ -449,8 +449,8 @@ export default function TeacherDashboard() {
                                   <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                                     <DialogHeader>
                                       <DialogTitle>
-                                        {student.firstName && student.lastName
-                                          ? `${student.firstName} ${student.lastName}`
+                                        {student.lastName && student.firstName
+                                          ? `${student.lastName} ${student.firstName}`
                                           : student.username
                                         } tanulmányi eredményei
                                       </DialogTitle>
@@ -566,8 +566,8 @@ export default function TeacherDashboard() {
                             .filter(s => s.classId === parseInt(selectedClassId))
                             .map((student) => (
                               <SelectItem key={student.id} value={student.id}>
-                                {student.firstName && student.lastName
-                                  ? `${student.firstName} ${student.lastName}`
+                                {student.lastName && student.firstName
+                                  ? `${student.lastName} ${student.firstName}`
                                   : student.username
                                 }
                               </SelectItem>

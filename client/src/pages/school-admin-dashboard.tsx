@@ -577,8 +577,8 @@ export default function SchoolAdminDashboard() {
     if (!teacherId) return "Nincs hozzárendelve";
     const teacher = teachers.find(t => t.id === teacherId);
     if (!teacher) return "Ismeretlen tanár";
-    return teacher.firstName && teacher.lastName
-      ? `${teacher.firstName} ${teacher.lastName}`
+    return teacher.lastName && teacher.firstName
+      ? `${teacher.lastName} ${teacher.firstName}`
       : teacher.username;
   };
 
@@ -1020,7 +1020,7 @@ export default function SchoolAdminDashboard() {
                                       <SelectItem value="none">Nincs tanár</SelectItem>
                                       {teachers.map((teacher) => (
                                         <SelectItem key={teacher.id} value={teacher.id}>
-                                          {teacher.firstName} {teacher.lastName}
+                                          {teacher.lastName} {teacher.firstName}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1053,7 +1053,7 @@ export default function SchoolAdminDashboard() {
                                       <SelectContent>
                                         {teachers.map((teacher) => (
                                           <SelectItem key={teacher.id} value={teacher.id}>
-                                            {teacher.firstName} {teacher.lastName}
+                                            {teacher.lastName} {teacher.firstName}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -1292,7 +1292,7 @@ export default function SchoolAdminDashboard() {
                     >
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {teacher.firstName} {teacher.lastName}
+                          {teacher.lastName} {teacher.firstName}
                         </h3>
                         <p className="text-sm text-gray-500">@{teacher.username}</p>
                         {teacher.email && (
@@ -1463,7 +1463,7 @@ export default function SchoolAdminDashboard() {
                     .map(student => (
                       <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
-                          <p className="font-medium">{student.firstName} {student.lastName}</p>
+                          <p className="font-medium">{student.lastName} {student.firstName}</p>
                           <p className="text-sm text-gray-600">{student.username}</p>
                         </div>
                         <Button
@@ -1510,7 +1510,7 @@ export default function SchoolAdminDashboard() {
                       .map(student => (
                         <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
-                            <p className="font-medium">{student.firstName} {student.lastName}</p>
+                            <p className="font-medium">{student.lastName} {student.firstName}</p>
                             <p className="text-sm text-gray-600">{student.username}</p>
                             {student.classId && (
                               <p className="text-xs text-orange-600">

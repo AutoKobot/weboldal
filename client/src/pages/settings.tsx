@@ -82,7 +82,7 @@ export default function SettingsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{user.firstName} {user.lastName}</h3>
+                    <h3 className="font-semibold">{user.lastName} {user.firstName}</h3>
                     <p className="text-sm text-neutral-600">{user.email}</p>
                     <p className="text-xs text-neutral-500 capitalize">{user.role}</p>
                   </div>

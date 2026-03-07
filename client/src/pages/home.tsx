@@ -706,7 +706,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                     <div className="divide-y divide-gray-100">
                       {noActivityStudents.map(s => {
                         const cls = teacherClasses.find(c => c.id === s.classId);
-                        const displayName = s.firstName && s.lastName ? `${s.firstName} ${s.lastName}` : s.username;
+                        const displayName = s.lastName && s.firstName ? `${s.lastName} ${s.firstName}` : s.username;
                         return (
                           <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-red-50/50">
                             <div className="flex items-center gap-3">

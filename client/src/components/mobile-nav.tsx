@@ -107,8 +107,8 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
           <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-neutral-700 truncate">
-                {user.firstName && user.lastName
-                  ? `${user.firstName} ${user.lastName}`
+                {user.lastName && user.firstName
+                  ? `${user.lastName} ${user.firstName}`
                   : user.email
                 }
               </p>
