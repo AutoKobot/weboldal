@@ -1072,6 +1072,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/school-admin/users/:id', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, username, email, phone, schoolName, password } = req.body;
+
+      const { db } = await import('./db');
+      const { users: usersTable } = await import('@shared/schema');
+      const { eq, or } = await import('drizzle-orm');
+
+      const userToUpdate = await storage.getUser(id);
+      if (!userToUpdate || userToUpdate.schoolAdminId !== req.user.id) {
+        return res.status(403).json({ message: "Nincs joga módosítani ezt a felhasználót." });
+      }
+
+      // If updating username, check if taken
+      if (username && username !== userToUpdate.username) {
+        const existing = await storage.getUserByUsername(username);
+        if (existing) {
+          return res.status(400).json({ message: "Ez a felhasználónév már foglalt" });
+        }
+      }
+
+      // If updating email, check if taken
+      const normalizedEmail = email !== undefined ? (email.trim() === "" ? null : email.trim()) : undefined;
+      if (normalizedEmail !== undefined && normalizedEmail !== null && normalizedEmail !== userToUpdate.email) {
+        const existingEmail = await storage.getUserByEmail(normalizedEmail);
+        if (existingEmail) {
+          return res.status(400).json({ message: "Ez az email cím már foglalt" });
+        }
+      }
+
+      const updateData: any = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (username !== undefined) updateData.username = username;
+      if (normalizedEmail !== undefined) updateData.email = normalizedEmail;
+      if (phone !== undefined) updateData.phone = phone;
+      if (schoolName !== undefined) updateData.schoolName = schoolName;
+
+      // Handle password if set
+      if (password && password.trim() !== '') {
+        const crypto = await import('crypto');
+        const promisify = (await import('util')).promisify;
+        const scryptAsync = promisify(crypto.scrypt);
+        const salt = crypto.randomBytes(16).toString("hex");
+        const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+        updateData.password = `${buf.toString("hex")}.${salt}`;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.update(usersTable).set(updateData).where(eq(usersTable.id, id));
+      }
+
+      const updatedUser = await storage.getUser(id);
+      res.json(updatedUser);
+    } catch (e) {
+      console.error("Update user error:", e);
+      res.status(500).json({ message: "Sikertelen módosítás" });
+    }
+  });
+
   app.post('/api/school-admin/bulk-register-students', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
       const { students } = req.body;

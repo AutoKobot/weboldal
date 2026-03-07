@@ -430,6 +430,110 @@ function CSVImportStudents({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+function EditUserDialog({ user, isOpen, onOpenChange, onSuccess }: { user: any, isOpen: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    phone: "",
+    schoolName: "",
+    password: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user && isOpen) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        username: user.username || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        schoolName: user.schoolName || "",
+        password: ""
+      });
+    }
+  }, [user, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/school-admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+      if (response.ok) {
+        toast({ title: "Siker", description: "Felhasználó adatai frissítve" });
+        onSuccess();
+        onOpenChange(false);
+      } else {
+        const error = await response.json();
+        toast({ title: "Hiba", description: error.message || "Nem sikerült menteni", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Hiba", description: "Hálózati hiba", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Felhasználó szerkesztése: {user?.username}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Vezetéknév</Label>
+              <Input value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Keresztnév</Label>
+              <Input value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Felhasználónév</Label>
+            <Input value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Email cím</Label>
+            <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+          </div>
+          {user?.role === 'student' && (
+            <>
+              <div className="space-y-2">
+                <Label>Telefonszám</Label>
+                <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Iskola neve</Label>
+                <Input value={formData.schoolName} onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })} />
+              </div>
+            </>
+          )}
+          <div className="space-y-2 mt-4">
+            <Label>Új jelszó</Label>
+            <Input type="password" placeholder="Hagyja üresen, ha nem módosítja" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Mégse</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Mentés..." : "Mentés"}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SchoolAdminDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -440,6 +544,8 @@ export default function SchoolAdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingClass, setEditingClass] = useState<number | null>(null);
   const [managingStudents, setManagingStudents] = useState<number | null>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -1299,6 +1405,19 @@ export default function SchoolAdminDashboard() {
                           <p className="text-sm text-gray-500">{teacher.email}</p>
                         )}
                       </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingUser(teacher);
+                            setIsEditUserOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Szerkesztés
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   {teachers.length === 0 && (
@@ -1413,7 +1532,7 @@ export default function SchoolAdminDashboard() {
                     >
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {`${student.firstName || ""} ${student.lastName || ""}`.trim() || student.username}
+                          {`${student.lastName || ""} ${student.firstName || ""}`.trim() || student.username}
                         </h3>
                         <p className="text-sm text-gray-500">@{student.username}</p>
                         {student.email && (
@@ -1424,6 +1543,19 @@ export default function SchoolAdminDashboard() {
                             Osztály: {classes.find(c => c.id === student.classId)?.name || 'Ismeretlen'}
                           </p>
                         )}
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingUser(student);
+                            setIsEditUserOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Szerkesztés
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -1437,6 +1569,15 @@ export default function SchoolAdminDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {editingUser && (
+          <EditUserDialog
+            user={editingUser}
+            isOpen={isEditUserOpen}
+            onOpenChange={setIsEditUserOpen}
+            onSuccess={fetchData}
+          />
+        )}
       </main>
 
       {/* Diák kezelés modal */}
