@@ -12,10 +12,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Users, Plus, MessageCircle, BookOpen, Star, Calendar, User, ArrowLeft, Mail, Edit, Trash2, MoreVertical, Send, Trophy, Medal, Flame } from "lucide-react";
+import { Users, Plus, MessageCircle, BookOpen, Star, Calendar, User, ArrowLeft, Mail, Edit, Trash2, MoreVertical, Send, Trophy, Medal, Flame, ShieldCheck, BarChart3, TrendingUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CommunityGroup {
   id: number;
@@ -75,6 +76,8 @@ interface Profession {
 }
 
 export default function CommunityLearning() {
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const [activeTab, setActiveTab] = useState("groups");
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -658,7 +661,7 @@ export default function CommunityLearning() {
         <AdminMessageDialog />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${isTeacher ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="groups" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Közösségek
@@ -671,6 +674,12 @@ export default function CommunityLearning() {
               <MessageCircle className="w-4 h-4" />
               Beszélgetések
             </TabsTrigger>
+            {isTeacher && (
+              <TabsTrigger value="moderation" className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                Moderálás
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="groups" className="space-y-6">
@@ -680,18 +689,26 @@ export default function CommunityLearning() {
                 <Trophy className="w-64 h-64 text-yellow-500" />
               </div>
 
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg text-white shadow-md">
-                  <Trophy className="w-5 h-5" />
+              <div className="flex items-center justify-between gap-3 mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg text-white shadow-md">
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-600 to-orange-600">
+                      Közösségi Ranglista
+                    </h3>
+                    <p className="text-sm text-muted-foreground">Ezen a héten melyik csoport szerzett a legtöbb XP-t?</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-600 to-orange-600">
-                    Közösségi Ranglista
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Ezen a héten melyik csoport szerzett a legtöbb XP-t?</p>
-                </div>
+                {isTeacher && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 hidden md:flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Tanári nézet
+                  </Badge>
+                )}
               </div>
 
+              {/* Top 3 cards – always shown */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 {leaderboardLoading ? (
                   [1, 2, 3].map(i => (
@@ -726,6 +743,43 @@ export default function CommunityLearning() {
                   <div className="text-muted-foreground text-sm col-span-3">Még nincsenek adatok a ranglistához.</div>
                 )}
               </div>
+
+              {/* Teacher-only: full leaderboard table */}
+              {isTeacher && leaderboard && leaderboard.length > 3 && (
+                <div className="mt-6 border-t border-orange-200/50 pt-4 relative z-10">
+                  <h4 className="text-sm font-semibold text-orange-700 mb-3 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" /> Teljes Ranglista (Tanári nézet)
+                  </h4>
+                  <div className="bg-white/70 rounded-lg overflow-hidden border border-orange-100">
+                    <table className="w-full text-sm">
+                      <thead className="bg-orange-50">
+                        <tr>
+                          <th className="text-left p-3 font-semibold text-orange-700">#</th>
+                          <th className="text-left p-3 font-semibold text-orange-700">Csoport neve</th>
+                          <th className="text-right p-3 font-semibold text-orange-700">Tagok</th>
+                          <th className="text-right p-3 font-semibold text-orange-700">Összes XP</th>
+                          <th className="text-right p-3 font-semibold text-orange-700">Átlag XP/fő</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leaderboard.map((group, index) => (
+                          <tr key={group.id} className={`border-t border-orange-50 hover:bg-orange-50/50 transition-colors ${index < 3 ? 'font-medium' : ''}`}>
+                            <td className="p-3 text-muted-foreground">
+                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                            </td>
+                            <td className="p-3 font-medium">{group.name}</td>
+                            <td className="p-3 text-right text-muted-foreground">{group.memberCount}</td>
+                            <td className="p-3 text-right text-orange-600 font-semibold">{group.totalXp} XP</td>
+                            <td className="p-3 text-right text-muted-foreground">
+                              {group.memberCount > 0 ? Math.round(group.totalXp / group.memberCount) : 0} XP
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center mt-8">
@@ -976,6 +1030,141 @@ export default function CommunityLearning() {
               </div>
             )}
           </TabsContent>
+
+          {/* Teacher-only: Moderation tab */}
+          {isTeacher && (
+            <TabsContent value="moderation" className="space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-2 rounded-lg text-white shadow-md">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Moderálás</h2>
+                  <p className="text-sm text-muted-foreground">Kezeld a csoportokat és a fórum bejegyzéseket – tanári felület</p>
+                </div>
+              </div>
+
+              {/* Group overview for teacher */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Összes csoport</p>
+                      <p className="text-3xl font-bold text-blue-700">{groups?.length ?? 0}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-100">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                      <Flame className="h-6 w-6 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Összes XP (rendszer)</p>
+                      <p className="text-3xl font-bold text-orange-600">{leaderboard?.reduce((s, g) => s + g.totalXp, 0) ?? 0}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Összes fórum bejegyzés</p>
+                      <p className="text-3xl font-bold text-green-700">{discussions?.length ?? 0}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* All discussions with delete option for teacher */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  Összes Fórum Bejegyzés
+                </h3>
+                {discussionsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => <div key={i} className="h-20 animate-pulse bg-gray-100 rounded-lg" />)}
+                  </div>
+                ) : discussions && discussions.length > 0 ? (
+                  <div className="space-y-3">
+                    {discussions.map((discussion) => (
+                      <Card key={discussion.id} className="border-border/50 hover:shadow-sm transition-all">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <Avatar className="w-9 h-9 shrink-0">
+                                <AvatarImage src={discussion.author?.profileImageUrl || undefined} />
+                                <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                                  {discussion.author?.firstName?.[0] || discussion.author?.username?.[0] || '?'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-sm">
+                                    {discussion.author?.firstName
+                                      ? `${discussion.author.firstName} ${discussion.author.lastName}`
+                                      : discussion.author?.username || 'Ismeretlen'}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">{discussion.title}</Badge>
+                                  <span className="text-xs text-muted-foreground ml-auto">
+                                    {new Date(discussion.createdAt).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{discussion.content}</p>
+                              </div>
+                            </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Bejegyzés törlése?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Biztosan törölni szeretnéd ezt a bejegyzést? Ez a művelet nem vonható vissza.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Mégse</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={async () => {
+                                      try {
+                                        await apiRequest('DELETE', `/api/discussions/${discussion.id}`);
+                                        queryClient.invalidateQueries({ queryKey: ['/api/discussions'] });
+                                        toast({ title: 'Bejegyzés törölve' });
+                                      } catch {
+                                        toast({ title: 'Hiba', description: 'Nem sikerült törölni', variant: 'destructive' });
+                                      }
+                                    }}
+                                  >
+                                    Törlés
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="p-10 text-center border-dashed">
+                    <MessageCircle className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
+                    <p className="text-muted-foreground">Még nincsenek fórum bejegyzések.</p>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

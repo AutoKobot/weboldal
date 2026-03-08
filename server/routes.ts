@@ -4917,6 +4917,28 @@ Platform funkciók és navigáció:
     }
   });
 
+  app.delete("/api/discussions/:id", combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+        return res.status(403).json({ message: "Hozzáférés megtagadva. Csak tanárok és adminok törölhetnek bejegyzéseket." });
+      }
+
+      const discussionId = parseInt(req.params.id);
+      if (isNaN(discussionId)) {
+        return res.status(400).json({ message: "Érvénytelen azonosító" });
+      }
+
+      await storage.deleteDiscussion(discussionId);
+      res.status(200).json({ message: "Bejegyzés törölve" });
+    } catch (error) {
+      console.error("Error deleting discussion:", error);
+      res.status(500).json({ message: "Nem sikerült törölni a bejegyzést" });
+    }
+  });
+
   // Teacher Routes
   app.get("/api/teacher/students", combinedAuth, async (req: any, res) => {
     try {

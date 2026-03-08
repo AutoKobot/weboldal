@@ -182,6 +182,7 @@ export interface IStorage {
   // Discussions
   getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]>;
   createDiscussion(discussion: InsertDiscussion): Promise<Discussion>;
+  deleteDiscussion(id: number): Promise<void>;
 
   // Peer reviews
   createPeerReview(review: InsertPeerReview): Promise<PeerReview>;
@@ -1008,6 +1009,10 @@ export class DatabaseStorage implements IStorage {
       .values(discussionData)
       .returning();
     return discussion;
+  }
+
+  async deleteDiscussion(id: number): Promise<void> {
+    await db.delete(discussions).where(eq(discussions.id, id));
   }
 
   // Peer reviews
