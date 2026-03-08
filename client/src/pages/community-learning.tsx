@@ -26,6 +26,8 @@ interface CommunityGroup {
   createdBy: string;
   isActive: boolean;
   memberLimit: number;
+  realMemberCount: number;
+  isMember: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -179,6 +181,20 @@ export default function CommunityLearning() {
     },
     onError: () => {
       toast({ title: "Hiba", description: "Nem sikerült csatlakozni", variant: "destructive" });
+    },
+  });
+
+  const leaveGroupMutation = useMutation({
+    mutationFn: async (groupId: number) => {
+      const response = await apiRequest("DELETE", `/api/community-groups/${groupId}/leave`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/community-groups"] });
+      toast({ title: "Kileptél a közösségből." });
+    },
+    onError: () => {
+      toast({ title: "Hiba", description: "Nem sikerült kilépni", variant: "destructive" });
     },
   });
 
@@ -804,17 +820,30 @@ export default function CommunityLearning() {
                   </Card>
                 ))}
               </div>
+            ) : !groups || groups.length === 0 ? (
+              <Card className="p-12 text-center border-dashed bg-white/50">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Még nincs közösség</h3>
+                <p className="text-muted-foreground mb-4">Légy az első, aki elindít egy szakmai közösséget!</p>
+                <CreateGroupDialog />
+              </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {groups?.map((group) => (
-                  <Card key={group.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={group.id} className={`hover:shadow-lg transition-all border-2 ${group.isMember ? 'border-primary/30 bg-primary/5' : 'border-transparent'
+                    }`}>
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>{group.name}</span>
                         <div className="flex items-center gap-2">
+                          {group.isMember && (
+                            <Badge variant="default" className="text-xs bg-green-100 text-green-700 border-green-200">
+                              Tag vagy
+                            </Badge>
+                          )}
                           <Badge variant="secondary">
                             <Users className="w-3 h-3 mr-1" />
-                            {group.memberLimit}
+                            {group.realMemberCount ?? 0} tag
                           </Badge>
                           {currentUser && currentUser.id === group.createdBy && (
                             <DropdownMenu>
@@ -864,16 +893,29 @@ export default function CommunityLearning() {
                         <span className="text-xs text-muted-foreground">
                           Létrehozva: {new Date(group.createdAt).toLocaleDateString('hu-HU')}
                         </span>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            joinGroupMutation.mutate(group.id);
-                            setSelectedGroupId(group.id);
-                          }}
-                          disabled={joinGroupMutation.isPending}
-                        >
-                          Csatlakozás
-                        </Button>
+                        {group.isMember ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => leaveGroupMutation.mutate(group.id)}
+                            disabled={leaveGroupMutation.isPending || group.createdBy === currentUser?.id}
+                            title={group.createdBy === currentUser?.id ? 'Alapítóként nem léphetsz ki' : ''}
+                            className="border-red-200 text-red-600 hover:bg-red-50"
+                          >
+                            Kilépés
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              joinGroupMutation.mutate(group.id);
+                              setSelectedGroupId(group.id);
+                            }}
+                            disabled={joinGroupMutation.isPending}
+                          >
+                            Csatlakozás
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -904,6 +946,13 @@ export default function CommunityLearning() {
                   </Card>
                 ))}
               </div>
+            ) : !projects || projects.length === 0 ? (
+              <Card className="p-12 text-center border-dashed bg-white/50">
+                <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Még nincs projekt</h3>
+                <p className="text-muted-foreground mb-4">Indíts el egy közös projektet a csoportoddal!</p>
+                <CreateProjectDialog />
+              </Card>
             ) : (
               <div className="space-y-4">
                 {projects?.map((project) => (

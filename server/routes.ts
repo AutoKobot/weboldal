@@ -4648,7 +4648,21 @@ Platform funkciók és navigáció:
     try {
       const professionId = req.query.professionId ? parseInt(req.query.professionId) : undefined;
       const groups = await storage.getCommunityGroups(professionId);
-      res.json(groups);
+
+      // Get current user ID for isMember check
+      const userId = req.user.claims?.sub || req.user.id || null;
+
+      // Enrich each group with real member count and membership status
+      const enrichedGroups = await Promise.all(groups.map(async (group) => {
+        const members = await storage.getGroupMembers(group.id);
+        return {
+          ...group,
+          realMemberCount: members.length,
+          isMember: userId ? members.some(m => m.userId === userId) : false,
+        };
+      }));
+
+      res.json(enrichedGroups);
     } catch (error) {
       console.error("Error fetching community groups:", error);
       res.status(500).json({ message: "Failed to fetch community groups" });
@@ -4702,6 +4716,19 @@ Platform funkciók és navigáció:
     } catch (error) {
       console.error("Error joining community group:", error);
       res.status(500).json({ message: "Failed to join community group" });
+    }
+  });
+
+  app.delete("/api/community-groups/:id/leave", combinedAuth, async (req: any, res) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const userId = req.user.claims?.sub || req.user.id;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      await storage.leaveCommunityGroup(groupId, userId);
+      res.json({ message: "Successfully left group" });
+    } catch (error) {
+      console.error("Error leaving community group:", error);
+      res.status(500).json({ message: "Failed to leave community group" });
     }
   });
 
