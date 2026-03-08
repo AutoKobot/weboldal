@@ -16,7 +16,7 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Reduced connection pool size
+  max: 100, // Megnövelt csatlakozási limit a nagyobb terhelés kiszolgálására
   idleTimeoutMillis: 20000,
   connectionTimeoutMillis: 5000,
   maxUses: Infinity, // Allow unlimited uses per connection
