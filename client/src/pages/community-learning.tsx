@@ -11,7 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, MessageCircle, BookOpen, Star, Calendar, User, ArrowLeft, Mail, Edit, Trash2, MoreVertical } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Users, Plus, MessageCircle, BookOpen, Star, Calendar, User, ArrowLeft, Mail, Edit, Trash2, MoreVertical, Send, Trophy, Medal, Flame } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -26,6 +27,14 @@ interface CommunityGroup {
   memberLimit: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface LeaderboardEntry {
+  id: number;
+  name: string;
+  description: string;
+  memberCount: number;
+  totalXp: number;
 }
 
 interface CommunityProject {
@@ -51,6 +60,12 @@ interface Discussion {
   parentId: number | null;
   createdAt: string;
   updatedAt: string;
+  author?: {
+    username: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl: string | null;
+  };
 }
 
 interface Profession {
@@ -107,6 +122,11 @@ export default function CommunityLearning() {
   // Fetch data
   const { data: groups, isLoading: groupsLoading } = useQuery<CommunityGroup[]>({
     queryKey: ["/api/community-groups"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: leaderboard, isLoading: leaderboardLoading } = useQuery<LeaderboardEntry[]>({
+    queryKey: ["/api/community-groups/leaderboard"],
     staleTime: 5 * 60 * 1000,
   });
 
@@ -212,10 +232,10 @@ export default function CommunityLearning() {
       toast({ title: "Csoport sikeresen frissítve!" });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Hiba", 
-        description: error?.message || "Nem sikerült frissíteni a csoportot", 
-        variant: "destructive" 
+      toast({
+        title: "Hiba",
+        description: error?.message || "Nem sikerült frissíteni a csoportot",
+        variant: "destructive"
       });
     },
   });
@@ -231,10 +251,10 @@ export default function CommunityLearning() {
       setSelectedGroupId(null);
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Hiba", 
-        description: error?.message || "Nem sikerült törölni a csoportot", 
-        variant: "destructive" 
+      toast({
+        title: "Hiba",
+        description: error?.message || "Nem sikerült törölni a csoportot",
+        variant: "destructive"
       });
     },
   });
@@ -406,7 +426,7 @@ export default function CommunityLearning() {
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.groupId) return;
-      
+
       const data = {
         title: formData.title,
         description: formData.description,
@@ -471,6 +491,70 @@ export default function CommunityLearning() {
     );
   };
 
+  const CreateDiscussionDialog = () => {
+    const [open, setOpen] = useState(false);
+    const [formData, setFormData] = useState({
+      title: "",
+      content: "",
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!formData.title || !formData.content) return;
+
+      createDiscussionMutation.mutate({
+        title: formData.title,
+        content: formData.content,
+        groupId: selectedGroupId || undefined,
+        projectId: selectedProjectId || undefined,
+      });
+      setOpen(false);
+      setFormData({ title: "", content: "" });
+    };
+
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Új Bejegyzés
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Új bejegyzés írása</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="title">Cím (Opcionális / Téma)</Label>
+              <Input
+                id="title"
+                placeholder="Miről szeretnél beszélni?"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="content">Bejegyzés szövege</Label>
+              <Textarea
+                id="content"
+                placeholder="Írd le a gondolataidat, kérdéseidet..."
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                rows={5}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={createDiscussionMutation.isPending}>
+              {createDiscussionMutation.isPending ? "Közzététel..." : "Közzététel"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   // Admin message dialog component - simple version to prevent focus jumping
   const AdminMessageDialog = () => {
     const handleSubmit = (e: any) => {
@@ -515,9 +599,9 @@ export default function CommunityLearning() {
               />
             </div>
             <div className="flex gap-3 pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setShowAdminMessage(false);
                   setAdminMessageData({ subject: "", message: "" });
@@ -526,8 +610,8 @@ export default function CommunityLearning() {
               >
                 Mégse
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={sendAdminMessageMutation.isPending}
                 className="flex-1"
               >
@@ -573,249 +657,326 @@ export default function CommunityLearning() {
 
         <AdminMessageDialog />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="groups" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Közösségek
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4" />
-            Projektek
-          </TabsTrigger>
-          <TabsTrigger value="discussions" className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />
-            Beszélgetések
-          </TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="groups" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Közösségek
+            </TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Projektek
+            </TabsTrigger>
+            <TabsTrigger value="discussions" className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              Beszélgetések
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="groups" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Szakmai Közösségek</h2>
-            <CreateGroupDialog />
-          </div>
-          
-          {groupsLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded"></div>
-                      <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {groups?.map((group) => (
-                <Card key={group.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{group.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">
-                          <Users className="w-3 h-3 mr-1" />
-                          {group.memberLimit}
-                        </Badge>
-                        {currentUser && currentUser.id === group.createdBy && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <EditGroupDialog group={group} />
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Törlés
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Biztos vagy benne?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Ez a művelet nem vonható vissza. Ez véglegesen törli a csoportot és az összes kapcsolódó adatot.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Mégse</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deleteGroupMutation.mutate(group.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Törlés
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+          <TabsContent value="groups" className="space-y-6">
+            {/* Gamification Panel - Leaderboard */}
+            <div className="bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-500/20 shadow-sm relative overflow-hidden">
+              <div className="absolute right-0 top-0 opacity-10 blur-xl pointer-events-none">
+                <Trophy className="w-64 h-64 text-yellow-500" />
+              </div>
+
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg text-white shadow-md">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-600 to-orange-600">
+                    Közösségi Ranglista
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Ezen a héten melyik csoport szerzett a legtöbb XP-t?</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+                {leaderboardLoading ? (
+                  [1, 2, 3].map(i => (
+                    <div key={i} className="h-24 bg-white/50 animate-pulse rounded-lg border border-border/50"></div>
+                  ))
+                ) : leaderboard && leaderboard.length > 0 ? (
+                  leaderboard.slice(0, 3).map((group, index) => (
+                    <div key={group.id} className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-border/50 shadow-sm flex items-center gap-4 group hover:-translate-y-1 transition-all">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-inner
+                         ${index === 0 ? 'bg-yellow-100 text-yellow-600 border border-yellow-300' :
+                          index === 1 ? 'bg-gray-100 text-gray-500 border border-gray-300' :
+                            'bg-orange-100 text-orange-600 border border-orange-300'}`}>
+                        {index === 0 ? <Medal className="w-6 h-6" /> : `#${index + 1}`}
                       </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      {group.description || "Nincs leírás elérhető"}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground">
-                        Létrehozva: {new Date(group.createdAt).toLocaleDateString('hu-HU')}
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          joinGroupMutation.mutate(group.id);
-                          setSelectedGroupId(group.id);
-                        }}
-                        disabled={joinGroupMutation.isPending}
-                      >
-                        Csatlakozás
-                      </Button>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-foreground line-clamp-1 truncate">{group.name}</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <span className="flex items-center gap-1 text-orange-600 font-medium">
+                            <Flame className="w-3 h-3" />
+                            {group.totalXp} XP
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {group.memberCount} tag
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))
+                ) : (
+                  <div className="text-muted-foreground text-sm col-span-3">Még nincsenek adatok a ranglistához.</div>
+                )}
+              </div>
             </div>
-          )}
-        </TabsContent>
 
-        <TabsContent value="projects" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Közösségi Projektek</h2>
-            <CreateProjectDialog />
-          </div>
-
-          {projectsLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded"></div>
-                      <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex justify-between items-center mt-8">
+              <h2 className="text-2xl font-semibold">Szakmai Közösségek</h2>
+              <CreateGroupDialog />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {projects?.map((project) => (
-                <Card key={project.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{project.title}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                          {project.status === 'active' ? 'Aktív' : project.status}
-                        </Badge>
-                        {project.dueDate && (
-                          <Badge variant="outline">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(project.dueDate).toLocaleDateString('hu-HU')}
+
+            {groupsLoading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groups?.map((group) => (
+                  <Card key={group.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>{group.name}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            <Users className="w-3 h-3 mr-1" />
+                            {group.memberLimit}
                           </Badge>
-                        )}
+                          {currentUser && currentUser.id === group.createdBy && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <EditGroupDialog group={group} />
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Törlés
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Biztos vagy benne?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Ez a művelet nem vonható vissza. Ez véglegesen törli a csoportot és az összes kapcsolódó adatot.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Mégse</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => deleteGroupMutation.mutate(group.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Törlés
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {group.description || "Nincs leírás elérhető"}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">
+                          Létrehozva: {new Date(group.createdAt).toLocaleDateString('hu-HU')}
+                        </span>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            joinGroupMutation.mutate(group.id);
+                            setSelectedGroupId(group.id);
+                          }}
+                          disabled={joinGroupMutation.isPending}
+                        >
+                          Csatlakozás
+                        </Button>
                       </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      {project.description || "Nincs leírás elérhető"}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground">
-                        Létrehozva: {new Date(project.createdAt).toLocaleDateString('hu-HU')}
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedProjectId(project.id)}
-                      >
-                        Megtekintés
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        <TabsContent value="discussions" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Beszélgetések</h2>
-            <Button onClick={() => {
-              const title = prompt("Beszélgetés címe:");
-              const content = prompt("Kezdő üzenet:");
-              if (title && content) {
-                createDiscussionMutation.mutate({
-                  title,
-                  content,
-                  groupId: selectedGroupId || undefined,
-                  projectId: selectedProjectId || undefined,
-                });
-              }
-            }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Új Beszélgetés
-            </Button>
-          </div>
-
-          {discussionsLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded"></div>
-                      <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          <TabsContent value="projects" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Közösségi Projektek</h2>
+              <CreateProjectDialog />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {discussions?.map((discussion) => (
-                <Card key={discussion.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4" />
-                      {discussion.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm">{discussion.content}</p>
-                    <div className="flex justify-between items-center text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {discussion.authorId}
+
+            {projectsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
                       </div>
-                      <span>{new Date(discussion.createdAt).toLocaleDateString('hu-HU')}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {projects?.map((project) => (
+                  <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>{project.title}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                            {project.status === 'active' ? 'Aktív' : project.status}
+                          </Badge>
+                          {project.dueDate && (
+                            <Badge variant="outline">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {new Date(project.dueDate).toLocaleDateString('hu-HU')}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        {project.description || "Nincs leírás elérhető"}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">
+                          Létrehozva: {new Date(project.createdAt).toLocaleDateString('hu-HU')}
+                        </span>
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedProjectId(project.id)}
+                        >
+                          Megtekintés
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="discussions" className="space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+                  Közösségi Fórum
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  Kérdezz a többiektől, oszd meg a tapasztalataidat!
+                </p>
+              </div>
+              <CreateDiscussionDialog />
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+
+            {discussionsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-6">
+                      <div className="flex gap-4">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-full"></div>
+                          <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : discussions?.length === 0 ? (
+              <Card className="p-12 text-center bg-white/50 border-dashed">
+                <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Még nincsenek bejegyzések</h3>
+                <p className="text-muted-foreground">Légy te az első, aki elindít egy beszélgetést a csoportban!</p>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {discussions?.map((discussion) => (
+                  <Card key={discussion.id} className="overflow-hidden border-border/50 hover:shadow-md transition-all">
+                    <CardContent className="p-0">
+                      <div className="p-6">
+                        <div className="flex items-start gap-4">
+                          <Avatar className="w-12 h-12 border-2 border-primary/10 shadow-sm shrink-0">
+                            <AvatarImage src={discussion.author?.profileImageUrl || undefined} />
+                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary font-bold">
+                              {discussion.author?.firstName?.[0] || discussion.author?.username?.[0] || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                              <div>
+                                <span className="font-semibold text-foreground mr-2">
+                                  {discussion.author?.firstName ? `${discussion.author.firstName} ${discussion.author.lastName}` : discussion.author?.username || 'Ismeretlen Felhasználó'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(discussion.createdAt).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <Badge variant="outline" className="w-fit bg-primary/5 border-primary/20 font-normal">
+                                {discussion.title}
+                              </Badge>
+                            </div>
+
+                            <div className="text-foreground leading-relaxed mt-3 whitespace-pre-wrap">
+                              {discussion.content}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-muted/30 px-6 py-3 border-t flex items-center gap-4 text-sm text-muted-foreground">
+                        <button className="flex items-center gap-2 hover:text-primary transition-colors font-medium">
+                          <MessageCircle className="w-4 h-4" />
+                          Válasz
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

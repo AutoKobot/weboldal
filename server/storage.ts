@@ -170,6 +170,7 @@ export interface IStorage {
   joinCommunityGroup(groupId: number, userId: string): Promise<void>;
   leaveCommunityGroup(groupId: number, userId: string): Promise<void>;
   getGroupMembers(groupId: number): Promise<GroupMember[]>;
+  getCommunityLeaderboard(): Promise<any[]>;
 
   // Community projects
   getCommunityProjects(groupId?: number): Promise<CommunityProject[]>;
@@ -928,6 +929,27 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupMembers(groupId: number): Promise<GroupMember[]> {
     return await db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
+  }
+
+  async getCommunityLeaderboard(): Promise<any[]> {
+    const { sql } = await import('drizzle-orm');
+    const result = await db.execute(sql`
+      SELECT 
+        cg.id, 
+        cg.name, 
+        cg.description,
+        COUNT(gm.user_id) as member_count,
+        COALESCE(SUM(u.xp), 0) as total_xp
+      FROM community_groups cg
+      LEFT JOIN group_members gm ON cg.id = gm.group_id
+      LEFT JOIN users u ON gm.user_id = u.id
+      GROUP BY cg.id
+      ORDER BY total_xp DESC
+      LIMIT 10
+    `);
+    // PostgreSQL pg driver returns rows in .rows property, while local sqlite returns an array.
+    // Handling both cases:
+    return Array.isArray(result) ? result : (result.rows || []);
   }
 
   // Community projects

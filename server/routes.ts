@@ -1499,7 +1499,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      if (!user && req.user?.authType === 'demo') {
+        user = req.user;
+      }
+
       if (!user) return res.status(401).json({ message: "User not found" });
 
       // Admin: mindent lát
@@ -1560,7 +1564,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      if (!user && req.user?.authType === 'demo') {
+        user = req.user;
+      }
 
       if (!user) {
         return res.status(401).json({ message: "User not found" });
@@ -2496,7 +2503,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/public/modules', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims?.sub || req.user.id;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      if (!user && req.user?.authType === 'demo') {
+        user = req.user;
+      }
       const subjectId = req.query.subjectId ? parseInt(req.query.subjectId as string) : undefined;
 
       if (!user) {
@@ -4624,6 +4634,16 @@ Platform funkciók és navigáció:
   app.use('/uploads', express.static('uploads'));
 
   // Community Groups Routes
+  app.get("/api/community-groups/leaderboard", combinedAuth, async (req: any, res) => {
+    try {
+      const topGroups = await storage.getCommunityLeaderboard();
+      res.json(topGroups);
+    } catch (error) {
+      console.error("Error fetching community leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
   app.get("/api/community-groups", combinedAuth, async (req: any, res) => {
     try {
       const professionId = req.query.professionId ? parseInt(req.query.professionId) : undefined;
@@ -4854,7 +4874,19 @@ Platform funkciók és navigáció:
     try {
       const groupId = req.query.groupId ? parseInt(req.query.groupId) : undefined;
       const projectId = req.query.projectId ? parseInt(req.query.projectId) : undefined;
-      const discussions = await storage.getDiscussions(groupId, projectId);
+      const discussionsRows = await storage.getDiscussions(groupId, projectId);
+
+      const usersData = await Promise.all(discussionsRows.map(d => storage.getUser(d.authorId)));
+      const discussions = discussionsRows.map((d, i) => ({
+        ...d,
+        author: {
+          username: usersData[i]?.username || 'Ismeretlen',
+          firstName: usersData[i]?.firstName || '',
+          lastName: usersData[i]?.lastName || '',
+          profileImageUrl: usersData[i]?.profileImageUrl || null
+        }
+      }));
+
       res.json(discussions);
     } catch (error) {
       console.error("Error fetching discussions:", error);
