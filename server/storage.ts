@@ -395,6 +395,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserCompletedModules(id: string, moduleIds: number[]): Promise<void> {
+    if (id && id.startsWith('demo-user-')) return;
     await db
       .update(users)
       .set({
@@ -1610,6 +1611,9 @@ export class DatabaseStorage implements IStorage {
 
   // Test result operations
   async createTestResult(result: InsertTestResult): Promise<TestResult> {
+    if (result.userId && result.userId.startsWith('demo-user-')) {
+      return { id: 999999, ...result, createdAt: new Date() } as TestResult;
+    }
     const [testResult] = await db
       .insert(testResults)
       .values(result)

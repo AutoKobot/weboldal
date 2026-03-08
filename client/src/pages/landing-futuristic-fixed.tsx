@@ -71,6 +71,20 @@ export default function FuturisticLanding() {
                 Rendszer Admin
               </Button>
             </Link>
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/auth/demo', { method: 'POST' });
+                  if (res.ok) {
+                    window.location.href = '/tananyagok';
+                  }
+                } catch (e) { console.error("Demo login failed", e) }
+              }}
+              variant="outline"
+              className="bg-white/10 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-400 font-bold backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+              <Play className="w-4 h-4 mr-2" />
+              Demo Ingyen
+            </Button>
           </div>
         </nav>
 
@@ -109,10 +123,17 @@ export default function FuturisticLanding() {
               <Button
                 size="lg"
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 border-0 px-8 py-6 text-xl font-bold rounded-full shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all hover:scale-105"
-                onClick={scrollToFeatures}
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/auth/demo', { method: 'POST' });
+                    if (res.ok) {
+                      window.location.href = '/tananyagok';
+                    }
+                  } catch (e) { console.error("Demo login failed", e) }
+                }}
               >
-                Fedezd fel a funkciókat
-                <ArrowRight className="w-6 h-6 ml-3" />
+                <Play className="w-6 h-6 mr-3" />
+                Demo Indítása Regisztráció Nélkül
               </Button>
               <Link href="/student-auth">
                 <Button

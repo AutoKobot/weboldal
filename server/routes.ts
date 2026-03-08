@@ -30,6 +30,14 @@ const combinedAuth = async (req: any, res: any, next: any) => {
       return next();
     }
 
+    // Check for demo user
+    if (req.session?.demoUser) {
+      req.user = req.session.demoUser;
+      req.user.claims = { sub: req.user.id };
+      console.log('Combined auth - Using demo session');
+      return next();
+    }
+
     // Check for school admin session
     if (req.session?.schoolAdminUser) {
       req.user = {
@@ -489,6 +497,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Check for demo user
+      if (req.session?.demoUser) {
+        return res.json(req.session.demoUser);
+      }
+
       // Check for authenticated user (Replit or local)
       if (req.isAuthenticated && req.isAuthenticated()) {
         // Check if this is Replit auth (has claims) or local auth (direct user object)
@@ -519,6 +532,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demo user login endpoint
+  app.post('/api/auth/demo', async (req: any, res) => {
+    try {
+      if (!req.session) {
+        return res.status(500).json({ message: "Szerver hiba (session nem működik)" });
+      }
+      req.session.demoUser = {
+        id: 'demo-user-' + Math.random().toString(36).substring(2, 9),
+        username: 'Látogató',
+        firstName: 'Demo',
+        lastName: 'Felhasználó',
+        email: 'demo@demo.com',
+        role: 'student',
+        authType: 'demo'
+      };
+      res.status(200).json(req.session.demoUser);
+    } catch (error) {
+      console.error("Demo login fail:", error);
+      res.status(500).json({ message: "Sikertelen demo belépés" });
+    }
+  });
+
   app.get('/api/student/test-results', async (req: any, res) => {
     try {
       if (!req.isAuthenticated || !req.isAuthenticated()) {
@@ -527,6 +562,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.user?.id || req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      if (req.user?.authType === 'demo') {
+        return res.json([]);
+      }
 
       const { db } = await import('./db');
       const { testResults } = await import('@shared/schema');
@@ -1474,6 +1513,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(await storage.getProfessions(schoolAdminId));
       }
 
+      // Demo mód: csak az engedélyezett szakmák
+      if (user.authType === 'demo') {
+        const mind = await storage.getProfessions();
+        const demoProfessions = mind.filter(p => p.name.toLowerCase().includes('hegesztő') || (p.name.toLowerCase().includes('épület') && p.name.toLowerCase().includes('lakatos')));
+        return res.json(demoProfessions);
+      }
+
       // Diák: szigorú szűrés
       const hasAssigned = user.assignedProfessionIds && user.assignedProfessionIds.length > 0;
       const hasSelected = !!user.selectedProfessionId;
@@ -1529,6 +1575,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Students can only see subjects from their assigned professions
+      if (user.authType === 'demo') {
+        const mind = await storage.getSubjects(professionId);
+        const demoSubjects = mind.filter(s => s.name.toLowerCase().includes('alapozó'));
+        return res.json(demoSubjects);
+      }
+
       const hasAssignedProfessions = user.assignedProfessionIds && user.assignedProfessionIds.length > 0;
 
       if (!hasAssignedProfessions) {
@@ -2460,6 +2512,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conciseContent: module.conciseContent ? fixMermaidSyntax(module.conciseContent) : module.conciseContent,
         detailedContent: module.detailedContent ? fixMermaidSyntax(module.detailedContent) : module.detailedContent,
       }));
+
+      // --- Demo mode restriction ---
+      if (user.authType === 'demo') {
+        let allowedModules: any[] = [];
+
+        const professions = await storage.getProfessions();
+        const allSubjects = await storage.getSubjects();
+
+        const hegeszto = professions.find(p => p.name.toLowerCase().includes('hegesztő'));
+        const epulet = professions.find(p => p.name.toLowerCase().includes('épület') && p.name.toLowerCase().includes('lakatos'));
+
+        const allowedSubjects = allSubjects.filter(sub => {
+          if (!sub.professionId) return false;
+          // "hegesztő/műszaki alapozó ismeretek" and "Épület- és szerkezetlakatos/műszaki dokumentáció és alapozó ismeretek"
+          const isHegesztoAlapozo = hegeszto && sub.professionId === hegeszto.id && sub.name.toLowerCase().includes('alapozó');
+          const isEpuletAlapozo = epulet && sub.professionId === epulet.id && sub.name.toLowerCase().includes('alapozó');
+          return isHegesztoAlapozo || isEpuletAlapozo;
+        });
+
+        if (subjectId) {
+          if (allowedSubjects.find(s => s.id === subjectId)) {
+            const mods = await storage.getPublishedModules(subjectId);
+            allowedModules = mods.slice(0, 3);
+          }
+        } else {
+          for (const sub of allowedSubjects) {
+            const mods = await storage.getPublishedModules(sub.id);
+            allowedModules.push(...mods.slice(0, 3));
+          }
+        }
+
+        return res.json(cleanModules(allowedModules));
+      }
 
       // For teachers and admins, show all modules; for students, only published ones
       if (user.role === 'teacher' || user.role === 'admin') {
