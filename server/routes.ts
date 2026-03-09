@@ -4938,6 +4938,16 @@ Platform funkciók és navigáció:
       const discussionData = { ...req.body, authorId: userId };
       const discussion = await storage.createDiscussion(discussionData);
       res.status(201).json(discussion);
+
+      // Fire-and-forget: notify group members
+      if (discussion.groupId) {
+        notifyGroupMembers(
+          discussion.groupId,
+          userId,
+          discussion.title || "Új bejegyzés",
+          discussion.id
+        ).catch(console.error);
+      }
     } catch (error) {
       console.error("Error creating discussion:", error);
       res.status(500).json({ message: "Failed to create discussion" });
@@ -4965,6 +4975,134 @@ Platform funkciók és navigáció:
       res.status(500).json({ message: "Nem sikerült törölni a bejegyzést" });
     }
   });
+
+  // ──────────────────────────────────────────────────────────────────
+  // REAL-TIME NOTIFICATION SYSTEM (SSE)
+  // ──────────────────────────────────────────────────────────────────
+
+  // In-memory connected SSE clients: Map<userId, Set<res>>
+  const sseClients = new Map<string, Set<any>>();
+
+  function sendSseToUser(userId: string, data: object) {
+    const clients = sseClients.get(userId);
+    if (clients) {
+      const payload = `data: ${JSON.stringify(data)}\n\n`;
+      clients.forEach(res => {
+        try { res.write(payload); } catch { /* client disconnected */ }
+      });
+    }
+  }
+
+  // SSE stream endpoint
+  app.get("/api/notifications/stream", combinedAuth, (req: any, res) => {
+    const userId = req.user.claims?.sub || req.user.id;
+    if (!userId) return res.status(401).end();
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    // Register client
+    if (!sseClients.has(userId)) sseClients.set(userId, new Set());
+    sseClients.get(userId)!.add(res);
+
+    // Send ping every 30s to keep alive
+    const keepAlive = setInterval(() => {
+      try { res.write(": ping\n\n"); } catch { clearInterval(keepAlive); }
+    }, 30000);
+
+    req.on("close", () => {
+      clearInterval(keepAlive);
+      sseClients.get(userId)?.delete(res);
+      if (sseClients.get(userId)?.size === 0) sseClients.delete(userId);
+    });
+  });
+
+  // GET notifications for current user
+  app.get("/api/notifications", combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const limit = req.query.limit ? parseInt(req.query.limit) : 30;
+      const notifs = await storage.getNotifications(userId, limit);
+      const unreadCount = await storage.getUnreadCount(userId);
+      res.json({ notifications: notifs, unreadCount });
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark single notification as read
+  app.patch("/api/notifications/:id/read", combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const id = parseInt(req.params.id);
+      if (!userId || isNaN(id)) return res.status(400).json({ message: "Invalid" });
+      await storage.markNotificationRead(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark notification" });
+    }
+  });
+
+  // Mark ALL notifications as read
+  app.post("/api/notifications/read-all", combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      await storage.markAllNotificationsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark all notifications" });
+    }
+  });
+
+  // Delete a notification
+  app.delete("/api/notifications/:id", combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const id = parseInt(req.params.id);
+      if (!userId || isNaN(id)) return res.status(400).json({ message: "Invalid" });
+      await storage.deleteNotification(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
+  // Hook into discussion creation to auto-notify group members
+  // (called internally, not exposed separately – we patch the POST /api/discussions handler below)
+  async function notifyGroupMembers(groupId: number, authorId: string, discussionTitle: string, discussionId: number) {
+    try {
+      const members = await storage.getGroupMembers(groupId);
+      const group = await storage.getCommunityGroup(groupId);
+      const author = await storage.getUser(authorId);
+      const authorName = author?.firstName
+        ? `${author.firstName} ${author.lastName || ''}`.trim()
+        : author?.username || 'Valaki';
+
+      for (const member of members) {
+        if (member.userId === authorId) continue; // Don't notify yourself
+        const notif = await storage.createNotification({
+          userId: member.userId,
+          type: "discussion_reply",
+          title: `Új bejegyzés: ${group?.name || 'Csoport'}`,
+          message: `${authorName} elindított egy új témát: "${discussionTitle}"`,
+          link: "/community",
+          isRead: false,
+          actorId: authorId,
+          metadata: { groupId, discussionId },
+        });
+        // Push real-time
+        sendSseToUser(member.userId, { type: "notification", data: notif });
+      }
+    } catch (err) {
+      console.error("Error sending group notifications:", err);
+    }
+  }
 
   // Teacher Routes
   app.get("/api/teacher/students", combinedAuth, async (req: any, res) => {

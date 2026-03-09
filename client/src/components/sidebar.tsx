@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import NotificationBell from "@/components/notification-bell";
 
 interface SidebarProps {
   user: User;
@@ -185,14 +186,18 @@ export default function Sidebar({ user }: SidebarProps) {
     <aside className="w-64 bg-white shadow-lg h-full flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-neutral-100 flex-shrink-0 bg-[#635c5c4f]">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-700 rounded-lg flex items-center justify-center">
-            <GraduationCap className="text-white" size={20} />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-700 rounded-lg flex items-center justify-center">
+              <GraduationCap className="text-white" size={20} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-neutral-700">Global Learning System</h1>
+              <p className="text-sm text-[#1c1b1b]">AI Oktatási Platform</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-neutral-700">Global Learning System</h1>
-            <p className="text-sm text-[#1c1b1b]">AI Oktatási Platform</p>
-          </div>
+          {/* Notification Bell */}
+          <NotificationBell />
         </div>
       </div>
       {/* Search Section */}

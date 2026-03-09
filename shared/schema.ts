@@ -561,6 +561,27 @@ export type InsertPeerReview = z.infer<typeof insertPeerReviewSchema>;
 export type AdminMessage = typeof adminMessages.$inferSelect;
 export type InsertAdminMessage = z.infer<typeof insertAdminMessageSchema>;
 
+// Notifications table – real-time user notification system
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type").notNull(), // "discussion_reply" | "group_join" | "group_activity" | "system"
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  link: varchar("link"), // Optional: navigate to this URL when clicked
+  isRead: boolean("is_read").default(false).notNull(),
+  actorId: varchar("actor_id").references(() => users.id, { onDelete: "set null" }), // Who triggered the notification
+  metadata: jsonb("metadata").default({}), // Extra data (groupId, discussionId, etc.)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 
