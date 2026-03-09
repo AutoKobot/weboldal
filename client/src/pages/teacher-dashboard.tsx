@@ -113,6 +113,15 @@ export default function TeacherDashboard() {
   const [rosterCustomStart, setRosterCustomStart] = useState("");
   const [rosterCustomEnd, setRosterCustomEnd] = useState("");
   const [rosterExpandedStudents, setRosterExpandedStudents] = useState<Set<string>>(new Set());
+  // Collapsible class groups in student list
+  const [collapsedClasses, setCollapsedClasses] = useState<Set<string>>(new Set());
+  const toggleClassCollapse = (classId: string) => {
+    setCollapsedClasses(prev => {
+      const next = new Set(prev);
+      next.has(classId) ? next.delete(classId) : next.add(classId);
+      return next;
+    });
+  };
 
   // Fetch students with auto-refresh to see online status live
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
@@ -425,209 +434,226 @@ export default function TeacherDashboard() {
 
                       return (
                         <div key={classId} className="space-y-4">
-                          <h3 className="text-xl font-semibold text-gray-800 flex items-center border-b pb-2">
-                            <Users className="h-5 w-5 mr-2 text-blue-600" />
-                            {classInfo.name} <Badge variant="secondary" className="ml-3">{classStudents.length} tanuló</Badge>
-                          </h3>
-                          <div className="grid gap-4">
-                            {classStudents.map((student: Student) => {
-                              const progress = getStudentProgress(student);
-                              const completedCount = student.completedModules?.length || 0;
-                              const recentModules = student.completedModules?.slice(-3) || [];
+                          {/* Clickable class header – toggles collapse */}
+                          <button
+                            onClick={() => toggleClassCollapse(classId)}
+                            className="w-full flex items-center justify-between text-left group border-b pb-2 hover:border-blue-400 transition-colors"
+                          >
+                            <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+                              <Users className="h-5 w-5 mr-2 text-blue-600" />
+                              {classInfo.name}
+                              <Badge variant="secondary" className="ml-3">{classStudents.length} tanuló</Badge>
+                            </h3>
+                            <span className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                              {collapsedClasses.has(classId)
+                                ? <ChevronDown className="h-5 w-5" />
+                                : <ChevronUp className="h-5 w-5" />
+                              }
+                            </span>
+                          </button>
 
-                              return (
-                                <Card key={student.id} className="hover:shadow-md transition-shadow">
-                                  <CardContent className="p-6">
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex items-start space-x-4 flex-1">
-                                        <Avatar className="h-12 w-12">
-                                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.firstName} ${student.lastName}`} />
-                                          <AvatarFallback>
-                                            {(student.firstName?.[0] || '') + (student.lastName?.[0] || student.username?.[0] || 'T')}
-                                          </AvatarFallback>
-                                        </Avatar>
+                          {/* Student cards – hidden when collapsed */}
+                          {!collapsedClasses.has(classId) && (
+                            <div className="grid gap-4">
+                              {classStudents.map((student: Student) => {
+                                const progress = getStudentProgress(student);
+                                const completedCount = student.completedModules?.length || 0;
+                                const recentModules = student.completedModules?.slice(-3) || [];
 
-                                        <div className="flex-1">
-                                          <div className="flex items-center justify-between mb-2">
-                                            <div>
-                                              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                                                {student.lastName && student.firstName
-                                                  ? `${student.lastName} ${student.firstName}`
-                                                  : student.username
-                                                }
-                                                {student.isOnline && (
-                                                  <span title="Jelenleg bejelentkezve" className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
-                                                )}
-                                              </h3>
-                                              <p className="text-sm text-gray-500">@{student.username}</p>
-                                              {student.lastActiveDate && (
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                  Utolsó belépés: {new Date(student.lastActiveDate).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                </p>
-                                              )}
-                                            </div>
-                                            <div className="text-right">
-                                              <Badge variant={progress > 50 ? "default" : "secondary"}>
-                                                {progress}% kész
-                                              </Badge>
-                                            </div>
-                                          </div>
+                                return (
+                                  <Card key={student.id} className="hover:shadow-md transition-shadow">
+                                    <CardContent className="p-6">
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex items-start space-x-4 flex-1">
+                                          <Avatar className="h-12 w-12">
+                                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.firstName} ${student.lastName}`} />
+                                            <AvatarFallback>
+                                              {(student.firstName?.[0] || '') + (student.lastName?.[0] || student.username?.[0] || 'T')}
+                                            </AvatarFallback>
+                                          </Avatar>
 
-                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                            <div>
-                                              <p className="text-sm font-medium text-gray-600 mb-1">Szakma</p>
-                                              <p className="text-sm text-gray-900">
-                                                {getProfessionName(student.selectedProfessionId)}
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-sm font-medium text-gray-600 mb-1">Teljesített modulok</p>
-                                              <p className="text-sm text-gray-900">
-                                                {completedCount} / {modules.length}
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
-                                                <Clock className="w-3 h-3 mr-1" /> Tanulási idő
-                                              </p>
-                                              <p className="text-sm text-gray-900" title="Becsült idő a befejezett modulok alapján">
-                                                ~{Math.floor(completedCount * 2.5)} óra
-                                              </p>
-                                              {(student.currentStreak || 0) > 0 && (
-                                                <p className="text-xs text-orange-600 font-medium mt-0.5 flex items-center">
-                                                  🔥 {student.currentStreak} napos sorozat
-                                                </p>
-                                              )}
-                                            </div>
-                                          </div>
-
-                                          <div className="mb-4">
+                                          <div className="flex-1">
                                             <div className="flex items-center justify-between mb-2">
-                                              <p className="text-sm font-medium text-gray-600">Haladás</p>
-                                              <p className="text-sm text-gray-500">{progress}%</p>
-                                            </div>
-                                            <Progress value={progress} className="h-2" />
-                                          </div>
-
-                                          <div className="flex justify-between items-center mt-4">
-                                            <div className="flex flex-wrap gap-2">
-                                              {recentModules.length > 0 && recentModules.map((moduleId: number) => (
-                                                <Badge key={moduleId} variant="outline" className="text-xs">
-                                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                                  {getModuleName(moduleId)}
+                                              <div>
+                                                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                                  {student.lastName && student.firstName
+                                                    ? `${student.lastName} ${student.firstName}`
+                                                    : student.username
+                                                  }
+                                                  {student.isOnline && (
+                                                    <span title="Jelenleg bejelentkezve" className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
+                                                  )}
+                                                </h3>
+                                                <p className="text-sm text-gray-500">@{student.username}</p>
+                                                {student.lastActiveDate && (
+                                                  <p className="text-xs text-gray-400 mt-0.5">
+                                                    Utolsó belépés: {new Date(student.lastActiveDate).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                  </p>
+                                                )}
+                                              </div>
+                                              <div className="text-right">
+                                                <Badge variant={progress > 50 ? "default" : "secondary"}>
+                                                  {progress}% kész
                                                 </Badge>
-                                              ))}
+                                              </div>
                                             </div>
 
-                                            <Dialog>
-                                              <DialogTrigger asChild>
-                                                <Button variant="outline" size="sm">
-                                                  <FileText className="h-4 w-4 mr-2" />
-                                                  Részletek
-                                                </Button>
-                                              </DialogTrigger>
-                                              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                                                <DialogHeader>
-                                                  <DialogTitle>
-                                                    {student.lastName && student.firstName
-                                                      ? `${student.lastName} ${student.firstName}`
-                                                      : student.username
-                                                    } tanulmányi eredményei
-                                                  </DialogTitle>
-                                                  <DialogDescription>
-                                                    Részletes áttekintés a modulok teljesítéséről és a teszt eredményekről.
-                                                  </DialogDescription>
-                                                </DialogHeader>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                              <div>
+                                                <p className="text-sm font-medium text-gray-600 mb-1">Szakma</p>
+                                                <p className="text-sm text-gray-900">
+                                                  {getProfessionName(student.selectedProfessionId)}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-sm font-medium text-gray-600 mb-1">Teljesített modulok</p>
+                                                <p className="text-sm text-gray-900">
+                                                  {completedCount} / {modules.length}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
+                                                  <Clock className="w-3 h-3 mr-1" /> Tanulási idő
+                                                </p>
+                                                <p className="text-sm text-gray-900" title="Becsült idő a befejezett modulok alapján">
+                                                  ~{Math.floor(completedCount * 2.5)} óra
+                                                </p>
+                                                {(student.currentStreak || 0) > 0 && (
+                                                  <p className="text-xs text-orange-600 font-medium mt-0.5 flex items-center">
+                                                    🔥 {student.currentStreak} napos sorozat
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </div>
 
-                                                <div className="mt-4 mb-8">
-                                                  <h4 className="text-sm font-medium mb-3 flex items-center">
-                                                    <CheckCircle className="h-4 w-4 mr-2 text-blue-500" />
-                                                    Teljesített modulok
-                                                  </h4>
-                                                  {student.completedModules && student.completedModules.length > 0 ? (
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {student.completedModules.map((moduleId: number) => (
-                                                        <Badge key={`completed-${moduleId}`} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 py-1">
-                                                          <CheckCircle className="h-3 w-3 mr-1" />
-                                                          {getModuleName(moduleId)}
-                                                        </Badge>
-                                                      ))}
-                                                    </div>
-                                                  ) : (
-                                                    <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md border border-gray-100">
-                                                      Még nincsenek teljesített modulok.
-                                                    </p>
-                                                  )}
-                                                </div>
+                                            <div className="mb-4">
+                                              <div className="flex items-center justify-between mb-2">
+                                                <p className="text-sm font-medium text-gray-600">Haladás</p>
+                                                <p className="text-sm text-gray-500">{progress}%</p>
+                                              </div>
+                                              <Progress value={progress} className="h-2" />
+                                            </div>
 
-                                                <div className="mt-4">
-                                                  <h4 className="text-sm font-medium mb-3 flex items-center">
-                                                    <Award className="h-4 w-4 mr-2 text-purple-500" />
-                                                    Teszt eredmények
-                                                  </h4>
-                                                  {student.testResults && student.testResults.length > 0 ? (
-                                                    <Table>
-                                                      <TableHeader>
-                                                        <TableRow>
-                                                          <TableHead>Modul</TableHead>
-                                                          <TableHead>Dátum</TableHead>
-                                                          <TableHead>Pontszám</TableHead>
-                                                          <TableHead>Osztályzat</TableHead>
-                                                          <TableHead>Eredmény</TableHead>
-                                                        </TableRow>
-                                                      </TableHeader>
-                                                      <TableBody>
-                                                        {student.testResults.map((result) => {
-                                                          const grade = getGrade(result.score);
-                                                          return (
-                                                            <TableRow key={result.id}>
-                                                              <TableCell className="font-medium">
-                                                                {getModuleName(result.moduleId)}
-                                                              </TableCell>
-                                                              <TableCell>
-                                                                {new Date(result.createdAt).toLocaleDateString()}
-                                                              </TableCell>
-                                                              <TableCell>
-                                                                {result.score}%
-                                                              </TableCell>
-                                                              <TableCell>
-                                                                <span className={getGradeColor(grade)}>
-                                                                  {grade}
-                                                                </span>
-                                                              </TableCell>
-                                                              <TableCell>
-                                                                {result.passed ? (
-                                                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                                                                    Sikeres
-                                                                  </Badge>
-                                                                ) : (
-                                                                  <Badge variant="destructive">
-                                                                    Sikertelen
-                                                                  </Badge>
-                                                                )}
-                                                              </TableCell>
-                                                            </TableRow>
-                                                          );
-                                                        })}
-                                                      </TableBody>
-                                                    </Table>
-                                                  ) : (
-                                                    <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md border border-gray-100 mt-2">
-                                                      Nincsenek elérhető teszt eredmények.
-                                                    </p>
-                                                  )}
-                                                </div>
-                                              </DialogContent>
-                                            </Dialog>
+                                            <div className="flex justify-between items-center mt-4">
+                                              <div className="flex flex-wrap gap-2">
+                                                {recentModules.length > 0 && recentModules.map((moduleId: number) => (
+                                                  <Badge key={moduleId} variant="outline" className="text-xs">
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    {getModuleName(moduleId)}
+                                                  </Badge>
+                                                ))}
+                                              </div>
+
+                                              <Dialog>
+                                                <DialogTrigger asChild>
+                                                  <Button variant="outline" size="sm">
+                                                    <FileText className="h-4 w-4 mr-2" />
+                                                    Részletek
+                                                  </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                                  <DialogHeader>
+                                                    <DialogTitle>
+                                                      {student.lastName && student.firstName
+                                                        ? `${student.lastName} ${student.firstName}`
+                                                        : student.username
+                                                      } tanulmányi eredményei
+                                                    </DialogTitle>
+                                                    <DialogDescription>
+                                                      Részletes áttekintés a modulok teljesítéséről és a teszt eredményekről.
+                                                    </DialogDescription>
+                                                  </DialogHeader>
+
+                                                  <div className="mt-4 mb-8">
+                                                    <h4 className="text-sm font-medium mb-3 flex items-center">
+                                                      <CheckCircle className="h-4 w-4 mr-2 text-blue-500" />
+                                                      Teljesített modulok
+                                                    </h4>
+                                                    {student.completedModules && student.completedModules.length > 0 ? (
+                                                      <div className="flex flex-wrap gap-2">
+                                                        {student.completedModules.map((moduleId: number) => (
+                                                          <Badge key={`completed-${moduleId}`} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 py-1">
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            {getModuleName(moduleId)}
+                                                          </Badge>
+                                                        ))}
+                                                      </div>
+                                                    ) : (
+                                                      <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md border border-gray-100">
+                                                        Még nincsenek teljesített modulok.
+                                                      </p>
+                                                    )}
+                                                  </div>
+
+                                                  <div className="mt-4">
+                                                    <h4 className="text-sm font-medium mb-3 flex items-center">
+                                                      <Award className="h-4 w-4 mr-2 text-purple-500" />
+                                                      Teszt eredmények
+                                                    </h4>
+                                                    {student.testResults && student.testResults.length > 0 ? (
+                                                      <Table>
+                                                        <TableHeader>
+                                                          <TableRow>
+                                                            <TableHead>Modul</TableHead>
+                                                            <TableHead>Dátum</TableHead>
+                                                            <TableHead>Pontszám</TableHead>
+                                                            <TableHead>Osztályzat</TableHead>
+                                                            <TableHead>Eredmény</TableHead>
+                                                          </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                          {student.testResults.map((result) => {
+                                                            const grade = getGrade(result.score);
+                                                            return (
+                                                              <TableRow key={result.id}>
+                                                                <TableCell className="font-medium">
+                                                                  {getModuleName(result.moduleId)}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                  {new Date(result.createdAt).toLocaleDateString()}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                  {result.score}%
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                  <span className={getGradeColor(grade)}>
+                                                                    {grade}
+                                                                  </span>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                  {result.passed ? (
+                                                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                                                                      Sikeres
+                                                                    </Badge>
+                                                                  ) : (
+                                                                    <Badge variant="destructive">
+                                                                      Sikertelen
+                                                                    </Badge>
+                                                                  )}
+                                                                </TableCell>
+                                                              </TableRow>
+                                                            );
+                                                          })}
+                                                        </TableBody>
+                                                      </Table>
+                                                    ) : (
+                                                      <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md border border-gray-100 mt-2">
+                                                        Nincsenek elérhető teszt eredmények.
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                </DialogContent>
+                                              </Dialog>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
-                          </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     });
@@ -979,8 +1005,8 @@ export default function TeacherDashboard() {
             )}
           </TabsContent>
 
-        </Tabs>
-      </div>
-    </div>
+        </Tabs >
+      </div >
+    </div >
   );
 }
