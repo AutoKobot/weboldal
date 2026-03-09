@@ -1484,6 +1484,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Class Roster endpoint ─────────────────────────────────────────────────
+  // Returns each student's average grade and test count for the selected period.
+  // Query params: startDate, endDate  (ISO strings, optional)
+  // Response: { className, period, generatedAt, students: [{name, username, avgGrade, testCount, grades[]}] }
+  app.get('/api/teacher/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { startDate, endDate } = req.query;
+
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+
+      if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+        return res.status(403).json({ message: "You are not assigned to this class" });
+      }
+
+      // Pull all grades in the requested window
+      const allResults = await storage.getTestResultsByClass(
+        classId,
+        typeof startDate === 'string' ? startDate : undefined,
+        typeof endDate === 'string' ? endDate : undefined,
+        undefined // all students
+      );
+
+      // Compute grade (1-5) helper
+      const toGrade = (score: number) => {
+        if (score >= 95) return 5;
+        if (score >= 80) return 4;
+        if (score >= 70) return 3;
+        if (score >= 60) return 2;
+        return 1;
+      };
+
+      // Group results by student
+      const byStudent: Record<string, typeof allResults> = {};
+      for (const r of allResults) {
+        const key = (r as any).studentId || (r as any).userId;
+        if (!byStudent[key]) byStudent[key] = [];
+        byStudent[key].push(r);
+      }
+
+      // Build roster rows
+      const rosterRows = Object.entries(byStudent).map(([, results]) => {
+        const first = results[0] as any;
+        const grades = results.map(r => ({ ...r, grade: toGrade(r.score) }));
+        const avgGrade = grades.length > 0
+          ? parseFloat((grades.reduce((s, g) => s + g.grade, 0) / grades.length).toFixed(2))
+          : null;
+        return {
+          studentName: first.studentName || 'Ismeretlen',
+          username: first.username || '',
+          avgGrade,
+          testCount: grades.length,
+          grades: grades.map(g => ({
+            moduleTitle: g.moduleTitle || g.moduleId,
+            score: g.score,
+            grade: g.grade,
+            createdAt: g.createdAt,
+          })),
+        };
+      });
+
+      // Sort by name alphabetically
+      rosterRows.sort((a, b) => a.studentName.localeCompare(b.studentName, 'hu'));
+
+      // Build period label
+      let periodLabel = 'Mindenkori';
+      if (startDate && endDate) {
+        periodLabel = `${new Date(startDate as string).toLocaleDateString('hu-HU')} – ${new Date(endDate as string).toLocaleDateString('hu-HU')}`;
+      } else if (startDate) {
+        periodLabel = `${new Date(startDate as string).toLocaleDateString('hu-HU')} –tól`;
+      }
+
+      res.json({
+        className: classData.name,
+        period: periodLabel,
+        generatedAt: new Date().toISOString(),
+        students: rosterRows,
+      });
+    } catch (error) {
+      console.error("Error fetching class roster:", error);
+      res.status(500).json({ message: "Failed to fetch roster" });
+    }
+  });
+
+
+
   // Public API endpoints (for authenticated users with profession-based access control)
   app.get('/api/public/professions', combinedAuth, async (req: any, res) => {
     try {
