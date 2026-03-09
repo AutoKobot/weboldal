@@ -417,7 +417,11 @@ export default function TeacherDashboard() {
                         ? { name: 'Osztály nélküliek' }
                         : teacherClasses.find(c => c.id.toString() === classId) || { name: `Osztály #${classId}` };
 
-                      const classStudents = studentsByClass[classId];
+                      const classStudents = studentsByClass[classId].sort((a: Student, b: Student) => {
+                        const nameA = `${a.lastName || ''} ${a.firstName || ''}`.toLowerCase().trim() || a.username?.toLowerCase() || '';
+                        const nameB = `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase().trim() || b.username?.toLowerCase() || '';
+                        return nameA.localeCompare(nameB, 'hu');
+                      });
 
                       return (
                         <div key={classId} className="space-y-4">
