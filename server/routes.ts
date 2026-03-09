@@ -4901,25 +4901,132 @@ Platform funkciók és navigáció:
     try {
       const groupId = req.query.groupId ? parseInt(req.query.groupId) : undefined;
       const projectId = req.query.projectId ? parseInt(req.query.projectId) : undefined;
-      const discussionsRows = await storage.getDiscussions(groupId, projectId);
+      const search = req.query.search as string | undefined;      // keyword filter
+      const tag = req.query.tag as string | undefined;            // #tag filter
+      const currentUserId = req.user.claims?.sub || req.user.id;
 
-      const usersData = await Promise.all(discussionsRows.map(d => storage.getUser(d.authorId)));
-      const discussions = discussionsRows.map((d, i) => ({
+      let discussionsRows = await storage.getDiscussions(groupId, projectId);
+
+      // Client-side search and tag filter (simple – no extra DB query)
+      if (search && search.trim().length >= 2) {
+        const q = search.toLowerCase();
+        discussionsRows = discussionsRows.filter(d =>
+          d.title.toLowerCase().includes(q) || d.content.toLowerCase().includes(q)
+        );
+      }
+      if (tag) {
+        discussionsRows = discussionsRows.filter(d => d.tags?.includes(tag));
+      }
+
+      // Fetch authors, reply counts and reactions in parallel
+      const ids = discussionsRows.map(d => d.id);
+      const [usersData, reactions, replyCounts] = await Promise.all([
+        Promise.all(discussionsRows.map(d => storage.getUser(d.authorId))),
+        storage.getReactionsForDiscussions(ids),
+        Promise.all(ids.map(id => storage.getReplies(id))),
+      ]);
+
+      // Build reaction summary: { discussionId: { emoji: count, myReactions: string[] } }
+      const reactionMap: Record<number, Record<string, { count: number; mine: boolean }>> = {};
+      for (const r of reactions) {
+        if (!reactionMap[r.discussionId]) reactionMap[r.discussionId] = {};
+        if (!reactionMap[r.discussionId][r.emoji]) {
+          reactionMap[r.discussionId][r.emoji] = { count: 0, mine: false };
+        }
+        reactionMap[r.discussionId][r.emoji].count++;
+        if (r.userId === currentUserId) reactionMap[r.discussionId][r.emoji].mine = true;
+      }
+
+      const enriched = discussionsRows.map((d, i) => ({
         ...d,
         author: {
           username: usersData[i]?.username || 'Ismeretlen',
           firstName: usersData[i]?.firstName || '',
           lastName: usersData[i]?.lastName || '',
           profileImageUrl: usersData[i]?.profileImageUrl || null
-        }
+        },
+        replyCount: replyCounts[i]?.length ?? 0,
+        reactions: reactionMap[d.id] ?? {},
       }));
 
-      res.json(discussions);
+      res.json(enriched);
     } catch (error) {
       console.error("Error fetching discussions:", error);
       res.status(500).json({ message: "Failed to fetch discussions" });
     }
   });
+
+  // Get replies (thread) for a discussion
+  app.get("/api/discussions/:id/replies", combinedAuth, async (req: any, res) => {
+    try {
+      const parentId = parseInt(req.params.id);
+      const currentUserId = req.user.claims?.sub || req.user.id;
+      const replies = await storage.getReplies(parentId);
+      const ids = replies.map(r => r.id);
+      const [usersData, reactions] = await Promise.all([
+        Promise.all(replies.map(r => storage.getUser(r.authorId))),
+        storage.getReactionsForDiscussions(ids),
+      ]);
+      const reactionMap: Record<number, Record<string, { count: number; mine: boolean }>> = {};
+      for (const r of reactions) {
+        if (!reactionMap[r.discussionId]) reactionMap[r.discussionId] = {};
+        if (!reactionMap[r.discussionId][r.emoji]) reactionMap[r.discussionId][r.emoji] = { count: 0, mine: false };
+        reactionMap[r.discussionId][r.emoji].count++;
+        if (r.userId === currentUserId) reactionMap[r.discussionId][r.emoji].mine = true;
+      }
+      const enriched = replies.map((r, i) => ({
+        ...r,
+        author: {
+          username: usersData[i]?.username || 'Ismeretlen',
+          firstName: usersData[i]?.firstName || '',
+          lastName: usersData[i]?.lastName || '',
+          profileImageUrl: usersData[i]?.profileImageUrl || null
+        },
+        reactions: reactionMap[r.id] ?? {},
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching replies:", error);
+      res.status(500).json({ message: "Failed to fetch replies" });
+    }
+  });
+
+  // Toggle emoji reaction
+  app.post("/api/discussions/:id/react", combinedAuth, async (req: any, res) => {
+    try {
+      const discussionId = parseInt(req.params.id);
+      const { emoji } = req.body;
+      const userId = req.user.claims?.sub || req.user.id;
+      if (!userId || !emoji) return res.status(400).json({ message: "Missing params" });
+      const ALLOWED = ["👍", "❤️", "🔥", "💡"];
+      if (!ALLOWED.includes(emoji)) return res.status(400).json({ message: "Invalid emoji" });
+      const result = await storage.toggleReaction(discussionId, userId, emoji);
+      res.json(result);
+    } catch (error) {
+      console.error("Error toggling reaction:", error);
+      res.status(500).json({ message: "Failed to toggle reaction" });
+    }
+  });
+
+  // Pin / unpin a discussion (teacher/admin only)
+  app.patch("/api/discussions/:id/pin", combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+        return res.status(403).json({ message: "Csak tanár rögzíthet bejegyzést" });
+      }
+      const id = parseInt(req.params.id);
+      const { pinned } = req.body;
+      await storage.pinDiscussion(id, !!pinned);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error pinning discussion:", error);
+      res.status(500).json({ message: "Failed to pin discussion" });
+    }
+  });
+
+
 
   app.post("/api/discussions", combinedAuth, async (req: any, res) => {
     try {

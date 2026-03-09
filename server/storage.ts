@@ -69,6 +69,8 @@ import {
   notifications,
   type Notification,
   type InsertNotification,
+  discussionReactions,
+  type DiscussionReaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte, or, isNull } from "drizzle-orm";
@@ -184,8 +186,14 @@ export interface IStorage {
 
   // Discussions
   getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]>;
+  getReplies(parentId: number): Promise<Discussion[]>;
   createDiscussion(discussion: InsertDiscussion): Promise<Discussion>;
   deleteDiscussion(id: number): Promise<void>;
+  pinDiscussion(id: number, pinned: boolean): Promise<void>;
+
+  // Discussion Reactions
+  toggleReaction(discussionId: number, userId: string, emoji: string): Promise<{ added: boolean }>;
+  getReactionsForDiscussions(discussionIds: number[]): Promise<DiscussionReaction[]>;
 
   // Peer reviews
   createPeerReview(review: InsertPeerReview): Promise<PeerReview>;
@@ -997,21 +1005,36 @@ export class DatabaseStorage implements IStorage {
 
   // Discussions
   async getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]> {
+    // Pinned posts always come first, then by date desc
+    const orderBy = [desc(discussions.isPinned), desc(discussions.createdAt)];
+
     if (groupId && projectId) {
       return await db.select().from(discussions)
-        .where(and(eq(discussions.groupId, groupId), eq(discussions.projectId, projectId)))
-        .orderBy(desc(discussions.createdAt));
+        .where(and(
+          eq(discussions.groupId, groupId),
+          eq(discussions.projectId, projectId),
+          isNull(discussions.parentId)   // only top-level in list
+        ))
+        .orderBy(...orderBy);
     } else if (groupId) {
       return await db.select().from(discussions)
-        .where(eq(discussions.groupId, groupId))
-        .orderBy(desc(discussions.createdAt));
+        .where(and(eq(discussions.groupId, groupId), isNull(discussions.parentId)))
+        .orderBy(...orderBy);
     } else if (projectId) {
       return await db.select().from(discussions)
-        .where(eq(discussions.projectId, projectId))
-        .orderBy(desc(discussions.createdAt));
+        .where(and(eq(discussions.projectId, projectId), isNull(discussions.parentId)))
+        .orderBy(...orderBy);
     }
 
-    return await db.select().from(discussions).orderBy(desc(discussions.createdAt));
+    return await db.select().from(discussions)
+      .where(isNull(discussions.parentId))
+      .orderBy(...orderBy);
+  }
+
+  async getReplies(parentId: number): Promise<Discussion[]> {
+    return await db.select().from(discussions)
+      .where(eq(discussions.parentId, parentId))
+      .orderBy(discussions.createdAt);
   }
 
   async createDiscussion(discussionData: InsertDiscussion): Promise<Discussion> {
@@ -1024,6 +1047,44 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDiscussion(id: number): Promise<void> {
     await db.delete(discussions).where(eq(discussions.id, id));
+  }
+
+  async pinDiscussion(id: number, pinned: boolean): Promise<void> {
+    await db.update(discussions)
+      .set({ isPinned: pinned })
+      .where(eq(discussions.id, id));
+  }
+
+  // Reactions
+  async toggleReaction(discussionId: number, userId: string, emoji: string): Promise<{ added: boolean }> {
+    const existing = await db.select()
+      .from(discussionReactions)
+      .where(and(
+        eq(discussionReactions.discussionId, discussionId),
+        eq(discussionReactions.userId, userId),
+        eq(discussionReactions.emoji, emoji)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db.delete(discussionReactions)
+        .where(and(
+          eq(discussionReactions.discussionId, discussionId),
+          eq(discussionReactions.userId, userId),
+          eq(discussionReactions.emoji, emoji)
+        ));
+      return { added: false };
+    } else {
+      await db.insert(discussionReactions)
+        .values({ discussionId, userId, emoji });
+      return { added: true };
+    }
+  }
+
+  async getReactionsForDiscussions(discussionIds: number[]): Promise<DiscussionReaction[]> {
+    if (discussionIds.length === 0) return [];
+    return await db.select().from(discussionReactions)
+      .where(inArray(discussionReactions.discussionId, discussionIds));
   }
 
   // Peer reviews

@@ -243,8 +243,19 @@ export const discussions = pgTable("discussions", {
   groupId: integer("group_id").references(() => communityGroups.id),
   projectId: integer("project_id").references(() => communityProjects.id),
   parentId: integer("parent_id"), // Self-reference handled separately
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  tags: text("tags").array().default([]),  // ["#kérdés", "#tipp", "#bejelentés"]
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Emoji reactions on discussion posts
+export const discussionReactions = pgTable("discussion_reactions", {
+  id: serial("id").primaryKey(),
+  discussionId: integer("discussion_id").references(() => discussions.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  emoji: varchar("emoji", { length: 10 }).notNull(), // "👍" "❤️" "🔥" "💡"
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Peer reviews and feedback
@@ -501,6 +512,19 @@ export const insertDiscussionSchema = createInsertSchema(discussions).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+export const insertDiscussionReactionSchema = createInsertSchema(discussionReactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type DiscussionReaction = typeof discussionReactions.$inferSelect;
+export type InsertDiscussionReaction = z.infer<typeof insertDiscussionReactionSchema>;
+
+export const ALLOWED_EMOJIS = ["👍", "❤️", "🔥", "💡"] as const;
+export type AllowedEmoji = (typeof ALLOWED_EMOJIS)[number];
+
+export const DISCUSSION_TAGS = ["#kérdés", "#tipp", "#bejelentés", "#segítség", "#megbeszélés"] as const;
+export type DiscussionTag = (typeof DISCUSSION_TAGS)[number];
 
 export const insertPeerReviewSchema = createInsertSchema(peerReviews).omit({
   id: true,

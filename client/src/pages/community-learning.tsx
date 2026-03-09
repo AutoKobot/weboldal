@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Users, Plus, MessageCircle, BookOpen, Star, Calendar, User, ArrowLeft, Mail, Edit, Trash2, MoreVertical, Send, Trophy, Medal, Flame, ShieldCheck, BarChart3, TrendingUp } from "lucide-react";
+import { Users, Plus, MessageCircle, BookOpen, Star, Calendar, User, ArrowLeft, Mail, Edit, Trash2, MoreVertical, Send, Trophy, Medal, Flame, ShieldCheck, BarChart3, TrendingUp, Pin, PinOff, Search, Tag, ChevronDown, ChevronUp, Reply, ThumbsUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -61,6 +61,10 @@ interface Discussion {
   groupId: number | null;
   projectId: number | null;
   parentId: number | null;
+  isPinned: boolean;
+  tags: string[];
+  replyCount: number;
+  reactions: Record<string, { count: number; mine: boolean }>;
   createdAt: string;
   updatedAt: string;
   author?: {
@@ -84,10 +88,13 @@ export default function CommunityLearning() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showAdminMessage, setShowAdminMessage] = useState(false);
-  const [adminMessageData, setAdminMessageData] = useState({
-    subject: "",
-    message: ""
-  });
+  const [adminMessageData, setAdminMessageData] = useState({ subject: "", message: "" });
+  // Forum state
+  const [forumSearch, setForumSearch] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<number>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<{ id: number; title: string } | null>(null);
+  const [replyContent, setReplyContent] = useState("");
 
   // Admin message mutation
   const adminMessageMutation = useMutation({
@@ -213,18 +220,44 @@ export default function CommunityLearning() {
   });
 
   const createDiscussionMutation = useMutation({
-    mutationFn: async (discussionData: { title: string; content: string; groupId?: number; projectId?: number }) => {
+    mutationFn: async (discussionData: { title: string; content: string; groupId?: number; projectId?: number; parentId?: number; tags?: string[] }) => {
       const response = await apiRequest("POST", "/api/discussions", discussionData);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
-      toast({ title: "Beszélgetés elindítva!" });
+      setReplyingTo(null);
+      setReplyContent("");
+      toast({ title: "Bejegyzés közzétéve!" });
     },
     onError: () => {
-      toast({ title: "Hiba", description: "Nem sikerült elindítani a beszélgetést", variant: "destructive" });
+      toast({ title: "Hiba", description: "Nem sikerült közzétenni", variant: "destructive" });
     },
   });
+
+  const reactionMutation = useMutation({
+    mutationFn: async ({ discussionId, emoji }: { discussionId: number; emoji: string }) => {
+      const response = await apiRequest("POST", `/api/discussions/${discussionId}/react`, { emoji });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+    },
+  });
+
+  const pinMutation = useMutation({
+    mutationFn: async ({ id, pinned }: { id: number; pinned: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/discussions/${id}/pin`, { pinned });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/discussions"] });
+      toast({ title: "Bejegyzés rögzítve!" });
+    },
+  });
+
+  const DISCUSSION_TAGS = ["#kérdés", "#tipp", "#bejelentés", "#segítség", "#megbeszélés"];
+  const ALLOWED_EMOJIS = ["👍", "❤️", "🔥", "💡"];
 
   const sendAdminMessageMutation = useMutation({
     mutationFn: async (messageData: { subject: string; message: string }) => {
@@ -512,23 +545,28 @@ export default function CommunityLearning() {
 
   const CreateDiscussionDialog = () => {
     const [open, setOpen] = useState(false);
-    const [formData, setFormData] = useState({
-      title: "",
-      content: "",
-    });
+    const [formData, setFormData] = useState({ title: "", content: "" });
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+    const toggleTag = (tag: string) => {
+      setSelectedTags(prev =>
+        prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+      );
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.title || !formData.content) return;
-
       createDiscussionMutation.mutate({
         title: formData.title,
         content: formData.content,
         groupId: selectedGroupId || undefined,
         projectId: selectedProjectId || undefined,
+        tags: selectedTags,
       });
       setOpen(false);
       setFormData({ title: "", content: "" });
+      setSelectedTags([]);
     };
 
     return (
@@ -545,9 +583,9 @@ export default function CommunityLearning() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="title">Cím (Opcionális / Téma)</Label>
+              <Label htmlFor="disc-title">Téma / Cím</Label>
               <Input
-                id="title"
+                id="disc-title"
                 placeholder="Miről szeretnél beszélni?"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -555,15 +593,33 @@ export default function CommunityLearning() {
               />
             </div>
             <div>
-              <Label htmlFor="content">Bejegyzés szövege</Label>
+              <Label htmlFor="disc-content">Bejegyzés szövege</Label>
               <Textarea
-                id="content"
+                id="disc-content"
                 placeholder="Írd le a gondolataidat, kérdéseidet..."
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 rows={5}
                 required
               />
+            </div>
+            <div>
+              <Label className="mb-2 block">Témacímkék (opcionális)</Label>
+              <div className="flex flex-wrap gap-2">
+                {DISCUSSION_TAGS.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${selectedTags.includes(tag)
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-white text-muted-foreground border-border hover:border-primary'
+                      }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={createDiscussionMutation.isPending}>
               {createDiscussionMutation.isPending ? "Közzététel..." : "Közzététel"}
@@ -996,16 +1052,50 @@ export default function CommunityLearning() {
           </TabsContent>
 
           <TabsContent value="discussions" className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
               <div>
                 <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
                   Közösségi Fórum
                 </h2>
-                <p className="text-muted-foreground mt-1">
+                <p className="text-muted-foreground mt-1 text-sm">
                   Kérdezz a többiektől, oszd meg a tapasztalataidat!
                 </p>
               </div>
               <CreateDiscussionDialog />
+            </div>
+
+            {/* Search + tag filters */}
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Keresés a bejegyzések között..."
+                  value={forumSearch}
+                  onChange={e => setForumSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                <button
+                  onClick={() => setActiveTag(null)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${activeTag === null ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:border-primary'
+                    }`}
+                >
+                  Összes
+                </button>
+                {DISCUSSION_TAGS.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${activeTag === tag ? 'bg-primary text-white border-primary' : 'bg-white text-muted-foreground border-border hover:border-primary'
+                      }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {discussionsLoading ? (
@@ -1025,60 +1115,167 @@ export default function CommunityLearning() {
                   </Card>
                 ))}
               </div>
-            ) : discussions?.length === 0 ? (
-              <Card className="p-12 text-center bg-white/50 border-dashed">
-                <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Még nincsenek bejegyzések</h3>
-                <p className="text-muted-foreground">Légy te az első, aki elindít egy beszélgetést a csoportban!</p>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {discussions?.map((discussion) => (
-                  <Card key={discussion.id} className="overflow-hidden border-border/50 hover:shadow-md transition-all">
-                    <CardContent className="p-0">
-                      <div className="p-6">
-                        <div className="flex items-start gap-4">
-                          <Avatar className="w-12 h-12 border-2 border-primary/10 shadow-sm shrink-0">
-                            <AvatarImage src={discussion.author?.profileImageUrl || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary font-bold">
-                              {discussion.author?.firstName?.[0] || discussion.author?.username?.[0] || "?"}
-                            </AvatarFallback>
-                          </Avatar>
+            ) : (() => {
+              // Apply search + tag filter
+              const filtered = (discussions ?? []).filter(d => {
+                const q = forumSearch.toLowerCase();
+                const matchesSearch = !forumSearch || d.title.toLowerCase().includes(q) || d.content.toLowerCase().includes(q);
+                const matchesTag = !activeTag || (d.tags ?? []).includes(activeTag);
+                return matchesSearch && matchesTag;
+              });
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
-                              <div>
-                                <span className="font-semibold text-foreground mr-2">
-                                  {discussion.author?.firstName ? `${discussion.author.firstName} ${discussion.author.lastName}` : discussion.author?.username || 'Ismeretlen Felhasználó'}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(discussion.createdAt).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </span>
+              if (filtered.length === 0) return (
+                <Card className="p-12 text-center bg-white/50 border-dashed">
+                  <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Nincs találat</h3>
+                  <p className="text-muted-foreground">
+                    {forumSearch || activeTag ? 'Próbálj más keresési feltételt!' : 'Légy te az első, aki elindít egy beszélgetést!'}
+                  </p>
+                </Card>
+              );
+
+              return (
+                <div className="space-y-4">
+                  {filtered.map((discussion) => {
+                    const isExpanded = expandedReplies.has(discussion.id);
+                    const authorName = discussion.author?.firstName
+                      ? `${discussion.author.firstName} ${discussion.author.lastName}`
+                      : discussion.author?.username || 'Ismeretlen';
+
+                    return (
+                      <Card
+                        key={discussion.id}
+                        className={`overflow-hidden border-border/50 hover:shadow-md transition-all ${discussion.isPinned ? 'border-amber-300 bg-amber-50/40' : ''}`}
+                      >
+                        <CardContent className="p-0">
+                          <div className="p-5">
+                            {/* Pinned banner */}
+                            {discussion.isPinned && (
+                              <div className="flex items-center gap-1.5 text-amber-600 text-xs font-semibold mb-3">
+                                <Pin className="w-3.5 h-3.5" />
+                                Rögzített bejegyzés
                               </div>
-                              <Badge variant="outline" className="w-fit bg-primary/5 border-primary/20 font-normal">
-                                {discussion.title}
-                              </Badge>
-                            </div>
+                            )}
 
-                            <div className="text-foreground leading-relaxed mt-3 whitespace-pre-wrap">
-                              {discussion.content}
+                            <div className="flex items-start gap-4">
+                              <Avatar className="w-10 h-10 border-2 border-primary/10 shadow-sm shrink-0">
+                                <AvatarImage src={discussion.author?.profileImageUrl || undefined} />
+                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary font-bold text-sm">
+                                  {discussion.author?.firstName?.[0] || discussion.author?.username?.[0] || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+
+                              <div className="flex-1 min-w-0">
+                                {/* Author + time */}
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                                  <span className="font-semibold text-foreground text-sm">{authorName}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(discussion.createdAt).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                  {isTeacher && (
+                                    <button
+                                      onClick={() => pinMutation.mutate({ id: discussion.id, pinned: !discussion.isPinned })}
+                                      className="ml-auto p-1 rounded hover:bg-amber-100 text-muted-foreground hover:text-amber-600 transition-colors"
+                                      title={discussion.isPinned ? "Rögzítés visszavonása" : "Bejegyzés rögzítése"}
+                                    >
+                                      {discussion.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Title */}
+                                <p className="font-semibold text-base text-foreground mb-2">{discussion.title}</p>
+
+                                {/* Content */}
+                                <p className="text-foreground/80 text-sm leading-relaxed whitespace-pre-wrap">{discussion.content}</p>
+
+                                {/* Tags */}
+                                {discussion.tags?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 mt-3">
+                                    {discussion.tags.map(tag => (
+                                      <span
+                                        key={tag}
+                                        className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium cursor-pointer hover:bg-primary/20"
+                                        onClick={() => setActiveTag(tag)}
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="bg-muted/30 px-6 py-3 border-t flex items-center gap-4 text-sm text-muted-foreground">
-                        <button className="flex items-center gap-2 hover:text-primary transition-colors font-medium">
-                          <MessageCircle className="w-4 h-4" />
-                          Válasz
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                          {/* Action bar */}
+                          <div className="bg-muted/30 px-5 py-2.5 border-t flex flex-wrap items-center gap-3">
+                            {/* Emoji reactions */}
+                            <div className="flex items-center gap-1.5">
+                              {ALLOWED_EMOJIS.map(emoji => {
+                                const r = discussion.reactions?.[emoji];
+                                return (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => reactionMutation.mutate({ discussionId: discussion.id, emoji })}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-all hover:scale-110 ${r?.mine
+                                      ? 'bg-primary/10 border-primary/30 text-primary font-semibold'
+                                      : 'bg-white border-border/50 hover:border-primary/30'
+                                      }`}
+                                  >
+                                    <span>{emoji}</span>
+                                    {r && r.count > 0 && <span className="text-xs">{r.count}</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Reply toggle */}
+                            <button
+                              onClick={() => {
+                                setExpandedReplies(prev => {
+                                  const next = new Set(prev);
+                                  next.has(discussion.id) ? next.delete(discussion.id) : next.add(discussion.id);
+                                  return next;
+                                });
+                                setReplyingTo(isExpanded ? null : { id: discussion.id, title: discussion.title });
+                              }}
+                              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors ml-auto"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              <span>{discussion.replyCount > 0 ? `${discussion.replyCount} válasz` : 'Válasz'}</span>
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+
+                          {/* Replies section */}
+                          {isExpanded && (
+                            <DiscussionReplies
+                              parentId={discussion.id}
+                              groupId={discussion.groupId}
+                              currentUserId={user?.id || ""}
+                              isTeacher={isTeacher}
+                              onReply={(content) => {
+                                createDiscussionMutation.mutate({
+                                  title: `Re: ${discussion.title}`,
+                                  content,
+                                  groupId: discussion.groupId || undefined,
+                                  parentId: discussion.id,
+                                });
+                              }}
+                              reactionMutation={reactionMutation}
+                              ALLOWED_EMOJIS={ALLOWED_EMOJIS}
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </TabsContent>
+
+
 
           {/* Teacher-only: Moderation tab */}
           {isTeacher && (
@@ -1215,6 +1412,106 @@ export default function CommunityLearning() {
             </TabsContent>
           )}
         </Tabs>
+      </div>
+    </div>
+  );
+}
+
+// ── Sub-component: Threaded replies ─────────────────────────────────────────
+interface DiscussionRepliesProps {
+  parentId: number;
+  groupId: number | null;
+  currentUserId: string;
+  isTeacher: boolean;
+  onReply: (content: string) => void;
+  reactionMutation: any;
+  ALLOWED_EMOJIS: string[];
+}
+
+function DiscussionReplies({ parentId, currentUserId, onReply, reactionMutation, ALLOWED_EMOJIS }: DiscussionRepliesProps) {
+  const [replyText, setReplyText] = useState("");
+  const { data: replies = [], isLoading } = useQuery<Discussion[]>({
+    queryKey: [`/api/discussions/${parentId}/replies`],
+    staleTime: 30_000,
+  });
+
+  const handleSend = () => {
+    if (!replyText.trim()) return;
+    onReply(replyText);
+    setReplyText("");
+  };
+
+  return (
+    <div className="border-t bg-muted/20">
+      {/* Replies list */}
+      {isLoading ? (
+        <div className="px-5 py-3 text-sm text-muted-foreground">Töltés...</div>
+      ) : replies.length > 0 ? (
+        <div className="divide-y divide-border/40">
+          {replies.map(reply => {
+            const authorName = reply.author?.firstName
+              ? `${reply.author.firstName} ${reply.author.lastName}`
+              : reply.author?.username || 'Ismeretlen';
+            return (
+              <div key={reply.id} className="px-5 py-3 flex gap-3">
+                <Avatar className="w-8 h-8 shrink-0 border border-primary/10">
+                  <AvatarImage src={reply.author?.profileImageUrl || undefined} />
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                    {reply.author?.firstName?.[0] || reply.author?.username?.[0] || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold">{authorName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(reply.createdAt).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                  {/* Reactions on replies */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    {ALLOWED_EMOJIS.map(emoji => {
+                      const r = reply.reactions?.[emoji];
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => reactionMutation.mutate({ discussionId: reply.id, emoji })}
+                          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-all hover:scale-110 ${r?.mine ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white border-border/40 hover:border-primary/20'
+                            }`}
+                        >
+                          {emoji}{r && r.count > 0 && <span className="ml-0.5">{r.count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="px-5 py-3 text-sm text-muted-foreground italic">Még nincs hozzászólás – légy te az első!</p>
+      )}
+
+      {/* Reply compose */}
+      <div className="px-5 py-3 flex gap-3 border-t border-border/30 bg-white/50">
+        <div className="flex-1">
+          <Textarea
+            placeholder="Írj egy választ..."
+            value={replyText}
+            onChange={e => setReplyText(e.target.value)}
+            rows={2}
+            className="resize-none text-sm"
+          />
+        </div>
+        <Button
+          size="sm"
+          onClick={handleSend}
+          disabled={!replyText.trim()}
+          className="self-end"
+        >
+          <Send className="w-3.5 h-3.5" />
+        </Button>
       </div>
     </div>
   );
