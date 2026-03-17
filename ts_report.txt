@@ -1,0 +1,1 @@
+client/src/pages/admin-dashboard.tsx(3809,38): error TS18047: 'editingModule' is possibly 'null'.

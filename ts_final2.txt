@@ -1,0 +1,9 @@
+client/src/pages/admin-dashboard.tsx(3756,17): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+client/src/pages/admin-dashboard.tsx(3756,47): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3756,79): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3760,22): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3767,66): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3775,83): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3780,22): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3787,67): error TS18047: 'editingModule' is possibly 'null'.
+client/src/pages/admin-dashboard.tsx(3795,84): error TS18047: 'editingModule' is possibly 'null'.

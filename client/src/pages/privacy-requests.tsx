@@ -7,16 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  ArrowLeft, 
-  Download, 
-  Trash2, 
-  Edit, 
-  StopCircle, 
-  FileText, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  Download,
+  Trash2,
+  Edit,
+  StopCircle,
+  FileText,
+  CheckCircle,
   Clock,
-  AlertTriangle 
+  AlertTriangle
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
@@ -75,7 +75,7 @@ export default function PrivacyRequests() {
   const queryClient = useQueryClient();
 
   // Fetch existing requests for the user
-  const { data: requests = [], isLoading } = useQuery({
+  const { data: requests = [] as PrivacyRequest[], isLoading } = useQuery<PrivacyRequest[]>({
     queryKey: ['/api/privacy/requests'],
     enabled: !!email && email.includes('@'),
   });
@@ -102,7 +102,7 @@ export default function PrivacyRequests() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !requestType) {
       toast({
         title: "Hiányos adatok",
@@ -224,8 +224,8 @@ export default function PrivacyRequests() {
                   </p>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={submitRequestMutation.isPending}
                   className="w-full sm:w-auto"
                 >
@@ -266,14 +266,14 @@ export default function PrivacyRequests() {
                                 </p>
                               </div>
                             </div>
-                            
-                            <Badge 
+
+                            <Badge
                               variant={statusConfig.color === 'green' ? 'default' : 'secondary'}
                               className={
                                 statusConfig.color === 'green' ? 'bg-green-100 text-green-800' :
-                                statusConfig.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                                statusConfig.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
+                                  statusConfig.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                                    statusConfig.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
                               }
                             >
                               <StatusIcon className="h-3 w-3 mr-1" />

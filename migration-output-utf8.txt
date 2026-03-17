@@ -1,0 +1,9 @@
+﻿­čôő Jelenl├ęt rendszer migration ind├şt├ísa...
+Ôťů lesson_schedules t├íbla l├ętrehozva
+Ôťů attendance t├íbla l├ętrehozva
+Ôťů attendance indexek l├ętrehozva
+Ôťů student_daily_notes t├íbla l├ętrehozva
+Ôä╣´ŞĆ  Alap├ęrtelmezett ├│rarend NEM ker├╝l bet├Âlt├ęsre ÔÇô az iskolai adminok maguk konfigur├ílj├ík.
+
+­čÄë Migration sikeresen befejezve!
+­čôî K├Âvetkez┼Ĺ l├ęp├ęs: Az iskolai adminok be├íll├şthatj├ík az ├│rarendet a dashboardon.

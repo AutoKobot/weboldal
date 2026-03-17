@@ -8,7 +8,10 @@ export function useAuth() {
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache user data (React Query v5)
     refetchOnWindowFocus: false,
-    refetchInterval: 60000, // Ping every minute to update online status
+    refetchInterval: (query) => {
+      // Csak akkor frissítsen automatikusan, ha már be van jelentkezve
+      return query.state.data ? 60000 : false;
+    },
   });
 
   return {

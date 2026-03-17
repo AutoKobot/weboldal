@@ -11,6 +11,10 @@ import { enhancedModuleGenerator } from "./enhanced-module-generator";
 import { parse } from 'csv-parse/sync';
 
 
+// In-memory cache to throttle attendance tracking
+const studentActivityTracker = new Map<string, number>();
+const userSyncTracker = new Map<string, number>();
+
 // Combined authentication middleware for both Replit and local auth
 const combinedAuth = async (req: any, res: any, next: any) => {
   try {
@@ -59,9 +63,19 @@ const combinedAuth = async (req: any, res: any, next: any) => {
 
       // Option 1: Automatikus aktivitás alapú jelenlét rögzítés diákoknak
       if (req.user && req.user.role === 'student') {
-        storage.recordLoginAttendance(req.user.id).catch(err => {
-          console.error('Error tracking student activity attendance:', err);
-        });
+        const studentId = req.user.id;
+        const now = Date.now();
+        
+        // Throttling: Csak 5 percenként egyszer próbáljuk meg rögzíteni a jelenlétet
+        // Ez megvédi az adatbázist a túl sok párhuzamos lekéréstől
+        if (!studentActivityTracker.has(studentId) || (now - studentActivityTracker.get(studentId)!) > 5 * 60 * 1000) {
+          studentActivityTracker.set(studentId, now);
+          storage.recordLoginAttendance(studentId).catch(err => {
+            console.error('Error tracking student activity attendance:', err);
+            // Hiba esetén töröljük, hogy a következő kísérletnél újra próbálkozzon
+            studentActivityTracker.delete(studentId);
+          });
+        }
       }
 
       return next();
@@ -425,6 +439,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper to update streaks and XP dynamically
   async function syncUserActivity(userId: string, user: any) {
     if (!user) return user;
+    
+    const nowTimestamp = Date.now();
+    const lastSync = userSyncTracker.get(userId);
+    
+    // Csak 10 percenként szinkronizáljuk a streak-eket és XP-t
+    if (lastSync && (nowTimestamp - lastSync) < 10 * 60 * 1000) {
+      return user;
+    }
+    
+    userSyncTracker.set(userId, nowTimestamp);
     try {
       const { db } = await import('./db');
       const { users, testResults } = await import('@shared/schema');

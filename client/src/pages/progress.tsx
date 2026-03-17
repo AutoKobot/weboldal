@@ -13,7 +13,7 @@ export default function ProgressPage() {
   const { user } = useAuth();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  const { data: modules = [] } = useQuery({
+  const { data: modules = [] as Module[] } = useQuery<Module[]>({
     queryKey: ['/api/modules'],
     retry: false,
   });
@@ -29,16 +29,16 @@ export default function ProgressPage() {
       <div className="hidden lg:block">
         <Sidebar user={user} />
       </div>
-      
-      <MobileNav 
-        isOpen={isMobileNavOpen} 
-        onClose={() => setIsMobileNavOpen(false)} 
+
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
         user={user}
       />
-      
+
       <main className="flex-1 lg:ml-0">
         <header className="bg-student-warm shadow-sm p-4 lg:hidden">
-          <button 
+          <button
             onClick={() => setIsMobileNavOpen(true)}
             className="p-2 rounded-lg hover:bg-neutral-100"
           >
