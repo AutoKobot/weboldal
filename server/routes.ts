@@ -787,7 +787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const professionData = insertProfessionSchema.parse(req.body);
       if (user.role !== 'admin') {
-        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (professionData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -812,7 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const professionData = insertProfessionSchema.partial().parse(req.body);
       if (user.role !== 'admin') {
-        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (professionData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -895,17 +895,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/school-admin/classes', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
-      const { name, description, professionId } = req.body;
+      const { name, description, professionId, scheduleGroup } = req.body;
       const newClass = await storage.createClass({
         name,
         description,
         professionId: professionId ? parseInt(professionId) : undefined,
         schoolAdminId: req.user.id,
+        scheduleGroup: scheduleGroup || 'morning',
       });
       res.status(201).json(newClass);
     } catch (error) {
       console.error("Error creating class:", error);
       res.status(500).json({ message: "Failed to create class" });
+    }
+  });
+
+  app.patch('/api/school-admin/classes/:id/shift', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { scheduleGroup } = req.body;
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+      
+      if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      await storage.updateClass(classId, { scheduleGroup });
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error updating class shift:", error);
+      res.status(500).json({ message: "Failed to update class shift" });
     }
   });
 
@@ -1570,6 +1590,261 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
+  // ── Jelenl\u00e9t API endpoints ─────────────────────────────────────────────────
+
+  // GET: Oszt\u00e1ly jelenl\u00e9ti adatai egy napra
+  app.get('/api/teacher/classes/:id/attendance', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { date, startDate, endDate } = req.query;
+
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+
+      if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+        return res.status(403).json({ message: "You are not assigned to this class" });
+      }
+
+      if (startDate && endDate) {
+        const rows = await storage.getAttendanceByClassRange(
+          classId,
+          startDate as string,
+          endDate as string
+        );
+        return res.json(rows);
+      }
+
+      const targetDate = (date as string) || new Date().toISOString().split('T')[0];
+      const rows = await storage.getAttendanceByClass(classId, targetDate);
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      res.status(500).json({ message: "Failed to fetch attendance" });
+    }
+  });
+
+  // PATCH: Jelenl\u00e9t st\u00e1tusz m\u00f3dos\u00edt\u00e1sa (tan\u00e1r m\u00f3dos\u00edthatja k\u00e9zi m\u00f3don)
+  app.patch('/api/teacher/attendance/:id', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const attendanceId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      const validStatuses = ['present', 'absent', 'late', 'excused'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Érvénytelen státusz. Lehetséges értékek: present, absent, late, excused" });
+      }
+
+      const updated = await storage.updateAttendanceStatus(attendanceId, status, req.user.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      res.status(500).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  // POST: Kézi jelenlétrögzítés (pl. ha a diák nem lépett be, de jelen volt)
+  app.post('/api/teacher/classes/:id/attendance', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { studentId, date, periodNumber, status } = req.body;
+
+      if (!studentId || !date || !periodNumber || !status) {
+        return res.status(400).json({ message: "studentId, date, periodNumber, status megadása kötelező" });
+      }
+
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+
+      if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+        return res.status(403).json({ message: "You are not assigned to this class" });
+      }
+
+      const row = await storage.upsertAttendance({
+        studentId,
+        classId,
+        teacherId: req.user.id,
+        date,
+        periodNumber: parseInt(periodNumber),
+        status,
+        recordedBy: req.user.id,
+      });
+
+      res.json(row);
+    } catch (error) {
+      console.error("Error recording attendance:", error);
+      res.status(500).json({ message: "Failed to record attendance" });
+    }
+  });
+
+  // GET: Napi megjegyzések egy osztályhoz
+  app.get('/api/teacher/classes/:id/notes', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { date } = req.query;
+      const targetDate = (date as string) || new Date().toISOString().split('T')[0];
+
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+
+      if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+        return res.status(403).json({ message: "You are not assigned to this class" });
+      }
+
+      const notes = await storage.getClassDailyNotes(classId, targetDate);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  // POST: Napi megjegyzés mentése / frissítése
+  app.post('/api/teacher/students/:studentId/notes', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const { studentId } = req.params;
+      const { date, note, classId } = req.body;
+
+      if (!date || !note) {
+        return res.status(400).json({ message: "date és note megadása kötelező" });
+      }
+
+      const targetDate = date || new Date().toISOString().split('T')[0];
+
+      const row = await storage.upsertStudentDailyNote({
+        studentId,
+        teacherId: req.user.id,
+        classId: classId ? parseInt(classId) : null,
+        date: targetDate,
+        note,
+      });
+
+      res.json(row);
+    } catch (error) {
+      console.error("Error saving note:", error);
+      res.status(500).json({ message: "Failed to save note" });
+    }
+  });
+
+  // GET: Órarend lekérdezése (school admin ID alapján)
+  app.get('/api/lesson-schedules', combinedAuth, async (req: any, res) => {
+    try {
+      let schoolAdminId: string;
+      const user = req.user;
+
+      if (user.role === 'school_admin') {
+        schoolAdminId = user.id;
+      } else if (user.role === 'teacher' && user.schoolAdminId) {
+        schoolAdminId = user.schoolAdminId;
+      } else if (user.role === 'admin') {
+        schoolAdminId = req.query.schoolAdminId as string;
+        if (!schoolAdminId) return res.status(400).json({ message: "schoolAdminId query param required for admin" });
+      } else {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { scheduleGroup } = req.query;
+      const schedules = await storage.getLessonSchedules(schoolAdminId, (scheduleGroup as string) || 'morning');
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching lesson schedules:", error);
+      res.status(500).json({ message: "Failed to fetch lesson schedules" });
+    }
+  });
+
+  // POST: Órarend mentése (school admin)
+  app.post('/api/lesson-schedules', combinedAuth, async (req: any, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== 'school_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Only school admins can manage lesson schedules" });
+      }
+
+      const { schedules, scheduleGroup } = req.body;
+      if (!Array.isArray(schedules) || schedules.length === 0) {
+        return res.status(400).json({ message: "schedules array required" });
+      }
+
+      const schoolAdminId = user.role === 'school_admin' ? user.id : req.body.schoolAdminId;
+      if (!schoolAdminId) return res.status(400).json({ message: "schoolAdminId required" });
+
+      const targetGroup = scheduleGroup || 'morning';
+
+      const result = await storage.upsertLessonSchedules(
+        schedules.map((s: any) => ({
+          schoolAdminId,
+          periodNumber: parseInt(s.periodNumber),
+          startHour: parseInt(s.startHour),
+          startMinute: parseInt(s.startMinute || 0),
+          endHour: parseInt(s.endHour),
+          endMinute: parseInt(s.endMinute || 45),
+          label: s.label || `${s.periodNumber}. óra`,
+          scheduleGroup: targetGroup,
+          isActive: true,
+        }))
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error saving lesson schedules:", error);
+      res.status(500).json({ message: "Failed to save lesson schedules" });
+    }
+  });
+
+  // GET: CSV / Excel export adat
+  app.get('/api/teacher/classes/:id/attendance/export', combinedAuth, checkTeacher, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { startDate, endDate, format } = req.query;
+
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+
+      if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+        return res.status(403).json({ message: "You are not assigned to this class" });
+      }
+
+      const sd = (startDate as string) || new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+      const ed = (endDate as string) || new Date().toISOString().split('T')[0];
+
+      const rows = await storage.getAttendanceExportData(classId, sd, ed);
+
+      // CSV formátum
+      if (format === 'csv') {
+        const statusMap: Record<string, string> = {
+          present: 'Jelen', absent: 'Hiányzik', late: 'Késő', excused: 'Igazolt'
+        };
+
+        const header = 'Vezetéknév;Keresztnév;Felhasználó;Dátum;Óra sorszáma;Státusz;Belépés ideje;Napi megjegyzés\n';
+        const csvRows = rows.map((r: any) => [
+          r.last_name || '',
+          r.first_name || '',
+          r.username || '',
+          r.date || '',
+          r.period_number || '',
+          statusMap[r.status] || r.status || '',
+          r.login_at ? new Date(r.login_at).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) : '',
+          (r.daily_note || '').replace(/;/g, ',')
+        ].join(';')).join('\n');
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="jelenlét_${classData.name}_${sd}_${ed}.csv"`);
+        res.send('\uFEFF' + header + csvRows); // BOM for Excel UTF-8
+      } else {
+        // JSON (alapértelmezett – a frontend rendereli PDF-be)
+        res.json({
+          className: classData.name,
+          startDate: sd,
+          endDate: ed,
+          generatedAt: new Date().toISOString(),
+          rows
+        });
+      }
+    } catch (error) {
+      console.error("Error exporting attendance:", error);
+      res.status(500).json({ message: "Failed to export attendance" });
+    }
+  });
 
   // Public API endpoints (for authenticated users with profession-based access control)
   app.get('/api/public/professions', combinedAuth, async (req: any, res) => {
@@ -2477,7 +2752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const subjectData = insertSubjectSchema.parse(req.body);
       if (user.role !== 'admin') {
-        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (subjectData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2502,7 +2777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subjectId = parseInt(req.params.id);
       const subjectData = insertSubjectSchema.parse(req.body);
       if (user.role !== 'admin') {
-        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (subjectData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2545,7 +2820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const moduleData = insertModuleSchema.parse(req.body);
       if (user.role !== 'admin') {
-        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (moduleData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2570,7 +2845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const moduleId = parseInt(req.params.id);
       const moduleData = insertModuleSchema.partial().parse(req.body);
       if (user.role !== 'admin') {
-        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (moduleData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2647,7 +2922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role === 'teacher' || user.role === 'admin') {
         // If subjectId is provided, use it directly
         if (subjectId) {
-          const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const schoolAdminId = user?.role === 'admin' ? undefined : ((user?.role as string) === 'school_admin' ? user.id : user?.schoolAdminId);
           const modules = await storage.getModules(subjectId, schoolAdminId);
           res.json(cleanModules(modules));
           return;
@@ -2658,7 +2933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let allModules = [];
 
         for (const subject of allSubjects) {
-          const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const schoolAdminId = user?.role === 'admin' ? undefined : ((user?.role as string) === 'school_admin' ? user.id : user?.schoolAdminId);
           const modules = await storage.getModules(subject.id, schoolAdminId);
           allModules.push(...modules);
         }
@@ -2667,7 +2942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Regular students - only published modules
         if (subjectId) {
-          const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+          const schoolAdminId = user?.role === 'admin' ? undefined : ((user?.role as string) === 'school_admin' ? user.id : user?.schoolAdminId);
           const modules = await storage.getPublishedModules(subjectId, schoolAdminId);
           res.json(cleanModules(modules));
           return;
@@ -2707,7 +2982,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const professionData = insertProfessionSchema.parse(req.body);
       if (user.role !== 'admin') {
-        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (professionData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2732,7 +3007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const professionId = parseInt(req.params.id);
       const professionData = insertProfessionSchema.partial().parse(req.body);
       if (user.role !== 'admin') {
-        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (professionData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2757,7 +3032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const professionId = parseInt(req.params.id);
       const professionData = insertProfessionSchema.parse(req.body);
       if (user.role !== 'admin') {
-        professionData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (professionData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2811,7 +3086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const subjectData = insertSubjectSchema.parse(req.body);
       if (user.role !== 'admin') {
-        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (subjectData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2836,7 +3111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subjectId = parseInt(req.params.id);
       const subjectData = insertSubjectSchema.partial().parse(req.body);
       if (user.role !== 'admin') {
-        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (subjectData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -2861,7 +3136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subjectId = parseInt(req.params.id);
       const subjectData = insertSubjectSchema.parse(req.body);
       if (user.role !== 'admin') {
-        subjectData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (subjectData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -3115,7 +3390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const moduleData = insertModuleSchema.parse(req.body);
       if (user.role !== 'admin') {
-        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (moduleData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -3143,7 +3418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const moduleData = insertModuleSchema.partial().parse(req.body);
       if (user.role !== 'admin') {
-        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (moduleData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 
@@ -6101,7 +6376,7 @@ Platform funkciók és navigáció:
         isPublished: false
       };
       if (user.role !== 'admin') {
-        moduleData.schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
+        (moduleData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
 

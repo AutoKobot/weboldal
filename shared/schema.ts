@@ -9,6 +9,7 @@ import {
   serial,
   boolean,
   numeric,
+  AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -36,7 +37,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("student"), // "student", "teacher", "admin", or "school_admin"
   authType: varchar("auth_type").notNull().default("replit"), // "replit" or "local"
-  selectedProfessionId: integer("selected_profession_id").references(() => professions.id),
+  selectedProfessionId: integer("selected_profession_id").references((): AnyPgColumn => professions.id),
   assignedProfessionIds: jsonb("assigned_profession_ids").default([]).$type<number[]>(), // Admin által hozzárendelt szakmák
   assignedTeacherId: varchar("assigned_teacher_id"), // Iskolai admin által hozzárendelt tanár
   schoolName: varchar("school_name"), // Iskola neve (csak iskolai adminoknak)
@@ -58,7 +59,7 @@ export const professions = pgTable("professions", {
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name (pl. "wrench", "hammer", "cpu")
   iconUrl: varchar("icon_url"), // Feltöltött kép URL
-  schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik (null = admin által globális)
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // ÚJ: melyik iskolához tartozik (null = admin által globális)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -70,7 +71,7 @@ export const subjects = pgTable("subjects", {
   name: varchar("name").notNull(),
   description: text("description"),
   orderIndex: integer("order_index").notNull().default(0),
-  schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // ÚJ: melyik iskolához tartozik
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -93,7 +94,7 @@ export const modules = pgTable("modules", {
   presentationUrl: varchar("presentation_url"), // Feltöltött prezentáció URL (pl. pptx)
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
-  schoolAdminId: varchar("school_admin_id").references(() => users.id), // ÚJ: melyik iskolához tartozik
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // ÚJ: melyik iskolához tartozik
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -289,9 +290,58 @@ export const classes = pgTable("classes", {
   schoolAdminId: varchar("school_admin_id").references(() => users.id).notNull(), // Melyik iskolai admin hozta létre
   assignedTeacherId: varchar("assigned_teacher_id").references(() => users.id), // Osztályfőnök
   professionId: integer("profession_id").references(() => professions.id), // Osztályhoz rendelt szakma
+  scheduleGroup: varchar("schedule_group").notNull().default("morning"), // pl. "morning", "afternoon"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ── Jelenlét kezelés ──────────────────────────────────────────────────────────
+
+// Lesson schedule table – iskolai órarend (tanórák kezdési/befejezési ideje)
+export const lessonSchedules = pgTable("lesson_schedules", {
+  id: serial("id").primaryKey(),
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id).notNull(),
+  periodNumber: integer("period_number").notNull(), // 1, 2, 3, ... (hányadik tanóra)
+  startHour: integer("start_hour").notNull(),   // pl. 8  (08:00)
+  startMinute: integer("start_minute").notNull().default(0), // pl. 0
+  endHour: integer("end_hour").notNull(),       // pl. 8  (08:45)
+  endMinute: integer("end_minute").notNull().default(45),
+  label: varchar("label"), // pl. "1. óra", "Szünet utáni 1."
+  scheduleGroup: varchar("schedule_group").notNull().default("morning"), // ÚJ: melyik műszakhoz tartozik
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Attendance table – jelenlét nyilvántartás (tanóránkénti, automatikus login alapján)
+export const attendance = pgTable("attendance", {
+  id: serial("id").primaryKey(),
+  studentId: varchar("student_id").references((): AnyPgColumn => users.id, { onDelete: "cascade" }).notNull(),
+  classId: integer("class_id").references((): AnyPgColumn => classes.id).notNull(),
+  teacherId: varchar("teacher_id").references((): AnyPgColumn => users.id),
+  date: varchar("date").notNull(), // "YYYY-MM-DD" formátum
+  periodNumber: integer("period_number").notNull(), // hányadik óra
+  status: varchar("status").notNull().default("present"), // "present" | "absent" | "late" | "excused"
+  recordedAt: timestamp("recorded_at").defaultNow(), // mikor lett rögzítve
+  recordedBy: varchar("recorded_by").notNull().default("auto"), // "auto" | tanár userId
+  loginAt: timestamp("login_at"), // mikor lépett be a diák
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Student daily notes – napi megjegyzések tanártól diákonként
+export const studentDailyNotes = pgTable("student_daily_notes", {
+  id: serial("id").primaryKey(),
+  studentId: varchar("student_id").references((): AnyPgColumn => users.id, { onDelete: "cascade" }).notNull(),
+  teacherId: varchar("teacher_id").references((): AnyPgColumn => users.id).notNull(),
+  classId: integer("class_id").references((): AnyPgColumn => classes.id),
+  date: varchar("date").notNull(), // "YYYY-MM-DD"
+  note: text("note").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -303,6 +353,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   profileImageUrl: true,
   role: true,
   authType: true,
+  phone: true,
+  schoolName: true,
+  schoolAdminId: true,
 });
 
 // Schema for local user registration
@@ -386,12 +439,14 @@ export const insertProfessionSchema = createInsertSchema(professions).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  schoolAdminId: true,
 });
 
 export const insertSubjectSchema = createInsertSchema(subjects).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  schoolAdminId: true,
 });
 
 // Type definitions for key concepts data structure
@@ -422,6 +477,7 @@ export const insertModuleSchema = createInsertSchema(modules).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  schoolAdminId: true,
 }).extend({
   youtubeUrl: z.string().optional().nullable(),
   podcastUrl: z.string().optional().nullable(),
@@ -682,3 +738,54 @@ export const insertTestResultSchema = createInsertSchema(testResults).omit({
   createdAt: true,
 });
 
+// ── Jelenlét Relations ────────────────────────────────────────────────────────
+export const lessonSchedulesRelations = relations(lessonSchedules, ({ one }) => ({
+  schoolAdmin: one(users, { fields: [lessonSchedules.schoolAdminId], references: [users.id] }),
+}));
+
+export const attendanceRelations = relations(attendance, ({ one }) => ({
+  student: one(users, { fields: [attendance.studentId], references: [users.id] }),
+  class: one(classes, { fields: [attendance.classId], references: [classes.id] }),
+  teacher: one(users, { fields: [attendance.teacherId], references: [users.id] }),
+}));
+
+export const studentDailyNotesRelations = relations(studentDailyNotes, ({ one }) => ({
+  student: one(users, { fields: [studentDailyNotes.studentId], references: [users.id] }),
+  teacher: one(users, { fields: [studentDailyNotes.teacherId], references: [users.id] }),
+  class: one(classes, { fields: [studentDailyNotes.classId], references: [classes.id] }),
+}));
+
+// ── Jelenlét Types & Schemas ──────────────────────────────────────────────────
+export type LessonSchedule = typeof lessonSchedules.$inferSelect;
+export type InsertLessonSchedule = typeof lessonSchedules.$inferInsert;
+export const insertLessonScheduleSchema = createInsertSchema(lessonSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Attendance = typeof attendance.$inferSelect;
+export type InsertAttendance = typeof attendance.$inferInsert;
+export const insertAttendanceSchema = createInsertSchema(attendance).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  recordedAt: true,
+});
+
+export type StudentDailyNote = typeof studentDailyNotes.$inferSelect;
+export type InsertStudentDailyNote = typeof studentDailyNotes.$inferInsert;
+export const insertStudentDailyNoteSchema = createInsertSchema(studentDailyNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Attendance status constants
+export const ATTENDANCE_STATUS = {
+  PRESENT: "present",
+  ABSENT: "absent",
+  LATE: "late",
+  EXCUSED: "excused",
+} as const;
+export type AttendanceStatus = typeof ATTENDANCE_STATUS[keyof typeof ATTENDANCE_STATUS];

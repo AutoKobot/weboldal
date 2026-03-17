@@ -2291,7 +2291,7 @@ export default function AdminDashboard() {
                               {subjects.find(s => s.id === module.subjectId)?.name}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Utolsó frissítés: {module.updatedAt ? new Date(module.updatedAt as string).toLocaleString('hu-HU', {
+                              Utolsó frissítés: {module.updatedAt ? new Date(module.updatedAt as any).toLocaleString('hu-HU', {
                                 year: 'numeric',
                                 month: '2-digit',
                                 day: '2-digit',
@@ -3753,11 +3753,11 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* AI Enhanced Content Editing */}
-                {editingModule && (editingModule.conciseContent || editingModule.detailedContent) && (
+                {editingModule && !!(editingModule.conciseContent || editingModule.detailedContent) ? (
                   <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm text-purple-700">AI-generált tartalom szerkesztése</h4>
 
-                    {editingModule.conciseContent && (
+                    {!!editingModule.conciseContent && (
                       <div className="space-y-2">
                         <Label htmlFor="concise-content-field">Tömör verzió (tanulók által látott)</Label>
                         <Textarea
@@ -3772,12 +3772,12 @@ export default function AdminDashboard() {
                           className="min-h-[150px] resize-y bg-purple-50"
                         />
                         <p className="text-xs text-purple-600">
-                          Karakter szám: {(form.watch("conciseContent") || editingModule.conciseContent || "").length}
+                          Karakter szám: {(String(form.watch("conciseContent") || editingModule.conciseContent || "")).length}
                         </p>
                       </div>
                     )}
 
-                    {editingModule.detailedContent && (
+                    {!!editingModule.detailedContent && (
                       <div className="space-y-2">
                         <Label htmlFor="detailed-content-field">Részletes verzió (tanulók által látott)</Label>
                         <Textarea
@@ -3792,7 +3792,7 @@ export default function AdminDashboard() {
                           className="min-h-[200px] resize-y bg-purple-50"
                         />
                         <p className="text-xs text-purple-600">
-                          Karakter szám: {(form.watch("detailedContent") || editingModule.detailedContent || "").length}
+                          Karakter szám: {(String(form.watch("detailedContent") || editingModule.detailedContent || "")).length}
                         </p>
                       </div>
                     )}
@@ -3801,12 +3801,12 @@ export default function AdminDashboard() {
                       Ez a tartalom jelenik meg a tanulók számára. Az újragenerálás gombbal lehet AI-vel frissíteni.
                     </p>
                   </div>
-                )}
+                ) : null}
 
                 {/* YouTube és Wikipedia linkek szerkesztése */}
-                {editingModule && editingModule.keyConceptsData && Array.isArray(editingModule.keyConceptsData) && (
+                {Boolean(editingModule && editingModule.keyConceptsData && Array.isArray(editingModule.keyConceptsData)) && (
                   <LinkEditor
-                    keyConceptsData={editingModule.keyConceptsData as KeyConceptsData}
+                    keyConceptsData={editingModule!.keyConceptsData as KeyConceptsData}
                     onUpdate={(updatedData: KeyConceptsData) => {
                       form.setValue("keyConceptsData", updatedData);
                       form.trigger("keyConceptsData");
@@ -3976,7 +3976,7 @@ export default function AdminDashboard() {
                     {form.watch('presentationUrl') && (
                       <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-100 text-xs text-blue-700 w-full overflow-hidden">
                         <span className="flex-shrink-0">✅ Beállított URL:</span>
-                        <span className="truncate flex-1 min-w-0 font-mono" title={form.watch('presentationUrl')}>{form.watch('presentationUrl')}</span>
+                        <span className="truncate flex-1 min-w-0 font-mono" title={form.watch('presentationUrl') || undefined}>{form.watch('presentationUrl')}</span>
                         <button
                           type="button"
                           onClick={() => form.setValue('presentationUrl', '')}

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { School, Users, UserCheck, Search, LogOut, UserPlus, GraduationCap, Plus, Info, Edit, Save, X, Trash2 } from "lucide-react";
+import { School, Users, UserCheck, Search, LogOut, UserPlus, GraduationCap, Plus, Info, Edit, Save, X, Trash2, Clock } from "lucide-react";
 import { useLocation } from "wouter";
 
 // CreateClassForm komponens az osztályok létrehozásához
@@ -27,7 +27,8 @@ function CreateClassForm({ professions, onSuccess }: { professions: Profession[]
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    professionId: ""
+    professionId: "",
+    scheduleGroup: "morning"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -46,13 +47,14 @@ function CreateClassForm({ professions, onSuccess }: { professions: Profession[]
         body: JSON.stringify({
           name: formData.name,
           description: formData.description || null,
-          professionId: formData.professionId && formData.professionId !== "0" ? parseInt(formData.professionId) : null
+          professionId: formData.professionId && formData.professionId !== "0" ? parseInt(formData.professionId) : null,
+          scheduleGroup: formData.scheduleGroup
         }),
       });
 
       if (response.ok) {
         onSuccess();
-        setFormData({ name: "", description: "", professionId: "" });
+        setFormData({ name: "", description: "", professionId: "", scheduleGroup: "morning" });
       } else {
         const errorData = await response.json();
         toast({
@@ -109,6 +111,18 @@ function CreateClassForm({ professions, onSuccess }: { professions: Profession[]
           </SelectContent>
         </Select>
       </div>
+      <div>
+        <Label>Műszak (Órarend csoport)</Label>
+        <Select value={formData.scheduleGroup} onValueChange={(value) => setFormData({ ...formData, scheduleGroup: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Válasszon műszakot" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="morning">Délelőtti munkarend</SelectItem>
+            <SelectItem value="afternoon">Délutáni munkarend</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex justify-end space-x-2">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Létrehozás..." : "Osztály létrehozása"}
@@ -143,6 +157,7 @@ interface Class {
   schoolAdminId: string;
   assignedTeacherId?: string;
   professionId?: number;
+  scheduleGroup: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -534,6 +549,167 @@ function EditUserDialog({ user, isOpen, onOpenChange, onSuccess }: { user: any, 
   );
 }
 
+// --- Órarend Kezelő Komponens ---
+function LessonScheduleManager() {
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [scheduleGroup, setScheduleGroup] = useState("morning");
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [scheduleGroup]);
+
+  const fetchSchedules = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/lesson-schedules?scheduleGroup=${scheduleGroup}`, { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        // Ha üres, adjunk hozzá 8 alapértelmezett órát
+        if (data.length === 0) {
+          const defaults = Array.from({ length: 8 }, (_, i) => ({
+            periodNumber: i + 1,
+            startHour: scheduleGroup === 'morning' ? 8 + i : 13 + i,
+            startMinute: 0,
+            endHour: scheduleGroup === 'morning' ? 8 + i : 13 + i,
+            endMinute: 45,
+            label: `${i + 1}. óra`
+          }));
+          setSchedules(defaults);
+        } else {
+          setSchedules(data);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const response = await fetch("/api/lesson-schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ schedules, scheduleGroup }),
+      });
+
+      if (response.ok) {
+        toast({ title: "Siker", description: `${scheduleGroup === 'morning' ? 'Délelőtti' : 'Délutáni'} órarend sikeresen mentve.` });
+        fetchSchedules();
+      } else {
+        toast({ title: "Hiba", description: "Nem sikerült menteni az órarendet.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Hiba", description: "Hálózati hiba történt.", variant: "destructive" });
+    }
+  };
+
+  const updateSchedule = (index: number, field: string, value: any) => {
+    const newSchedules = [...schedules];
+    newSchedules[index] = { ...newSchedules[index], [field]: value };
+    setSchedules(newSchedules);
+  };
+
+  if (isLoading) return <div className="p-10 text-center">Betöltés...</div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Iskolai csengetési rend (Órarend)
+            </CardTitle>
+            <CardDescription>
+              Állítsa be a tanórák kezdetét és végét műszakonként.
+            </CardDescription>
+          </div>
+          <div className="w-full sm:w-64">
+            <Label className="text-xs font-bold mb-1 block">Műszak kiválasztása</Label>
+            <Select value={scheduleGroup} onValueChange={setScheduleGroup}>
+              <SelectTrigger className="bg-blue-50 border-blue-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Délelőtti munkarend</SelectItem>
+                <SelectItem value="afternoon">Délutáni munkarend</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          {schedules.map((s, idx) => (
+            <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-700">
+                {s.periodNumber}.
+              </div>
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+                <div>
+                  <Label className="text-xs">Kezdés (óra)</Label>
+                  <Input
+                    type="number"
+                    min="0" max="23"
+                    value={s.startHour}
+                    onChange={(e) => updateSchedule(idx, 'startHour', parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Kezdés (perc)</Label>
+                  <Input
+                    type="number"
+                    min="0" max="59"
+                    value={s.startMinute}
+                    onChange={(e) => updateSchedule(idx, 'startMinute', parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Vége (óra)</Label>
+                  <Input
+                    type="number"
+                    min="0" max="23"
+                    value={s.endHour}
+                    onChange={(e) => updateSchedule(idx, 'endHour', parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Vége (perc)</Label>
+                  <Input
+                    type="number"
+                    min="0" max="59"
+                    value={s.endMinute}
+                    onChange={(e) => updateSchedule(idx, 'endMinute', parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+              <div className="w-full sm:w-auto">
+                <Label className="text-xs">Megnevezés</Label>
+                <Input
+                  value={s.label || ""}
+                  onChange={(e) => updateSchedule(idx, 'label', e.target.value)}
+                  placeholder="pl. 1. óra"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end pt-4">
+          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+            <Save className="h-4 w-4 mr-2" />
+            Órarend Mentése
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SchoolAdminDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -894,6 +1070,22 @@ export default function SchoolAdminDashboard() {
     }
   };
 
+  const changeClassShift = async (classId: number, scheduleGroup: string) => {
+    try {
+      const response = await fetch(`/api/school-admin/classes/${classId}/shift`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduleGroup }),
+      });
+      if (response.ok) {
+        toast({ title: "Siker", description: "Műszak sikeresen módosítva" });
+        fetchData();
+      }
+    } catch (error) {
+      toast({ title: "Hiba", description: "Nem sikerült módosítani a műszakot", variant: "destructive" });
+    }
+  };
+
   // Diák regisztrációs funkció
   const registerStudent = async () => {
     try {
@@ -1026,8 +1218,9 @@ export default function SchoolAdminDashboard() {
 
         {/* Tab rendszer */}
         <Tabs defaultValue="assignments" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="assignments">Hozzárendelések</TabsTrigger>
+            <TabsTrigger value="schedule">Órarend</TabsTrigger>
             <TabsTrigger value="register-teacher">Tanár regisztráció</TabsTrigger>
             <TabsTrigger value="register-student">Diák regisztráció</TabsTrigger>
           </TabsList>
@@ -1100,6 +1293,9 @@ export default function SchoolAdminDashboard() {
                                     Tanár: {getTeacherName(classItem.assignedTeacherId)}
                                   </Badge>
                                 )}
+                                <Badge variant="outline" className={classItem.scheduleGroup === 'morning' ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-purple-50 text-purple-700 border-purple-200"}>
+                                  {classItem.scheduleGroup === 'morning' ? "Délelőtt" : "Délután"}
+                                </Badge>
                               </div>
                             </div>
                             <div className="flex space-x-2">
@@ -1129,6 +1325,15 @@ export default function SchoolAdminDashboard() {
                                           {teacher.lastName} {teacher.firstName}
                                         </SelectItem>
                                       ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Select value={classItem.scheduleGroup} onValueChange={(val) => changeClassShift(classItem.id, val)}>
+                                    <SelectTrigger className="w-32">
+                                      <SelectValue placeholder="Műszak" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="morning">Délelőtt</SelectItem>
+                                      <SelectItem value="afternoon">Délután</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <Button size="sm" onClick={() => setEditingClass(null)}>
@@ -1567,6 +1772,10 @@ export default function SchoolAdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <LessonScheduleManager />
           </TabsContent>
         </Tabs>
 

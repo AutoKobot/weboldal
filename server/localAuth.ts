@@ -153,6 +153,10 @@ export function setupLocalAuth(app: Express) {
               console.error('Universal login error:', err);
               return res.status(500).json({ message: "Bejelentkezési hiba történt" });
             }
+            // Attendance auto-record for students
+            if (universalUser.role === 'student') {
+              storage.recordLoginAttendance(universalUser.id, new Date()).catch(console.error);
+            }
             res.json(universalUser);
           });
           return;
@@ -180,6 +184,10 @@ export function setupLocalAuth(app: Express) {
         if (err) {
           console.error('Login error:', err);
           return res.status(500).json({ message: "Bejelentkezési hiba történt" });
+        }
+        // Attendance auto-record for students
+        if (user.role === 'student') {
+          storage.recordLoginAttendance(user.id, new Date()).catch(console.error);
         }
         res.json(user);
       });
@@ -222,6 +230,10 @@ export function setupLocalAuth(app: Express) {
         if (err) {
           console.error('Google login error:', err);
           return res.status(500).json({ message: "Google bejelentkezési hiba történt" });
+        }
+        // Attendance auto-record for students
+        if (user.role === 'student') {
+          storage.recordLoginAttendance(user.id, new Date()).catch(console.error);
         }
         res.json(user);
       });

@@ -71,6 +71,16 @@ import {
   type InsertNotification,
   discussionReactions,
   type DiscussionReaction,
+  // Jelenlét
+  attendance,
+  studentDailyNotes,
+  lessonSchedules,
+  type Attendance,
+  type InsertAttendance,
+  type StudentDailyNote,
+  type InsertStudentDailyNote,
+  type LessonSchedule,
+  type InsertLessonSchedule,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte, or, isNull } from "drizzle-orm";
@@ -86,7 +96,7 @@ export interface IStorage {
   getStudentsByTeacher(teacherId: string): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
   createLocalUser(user: Omit<UpsertUser, 'id'> & { id: string }): Promise<User>;
-  createUser(user: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string }): Promise<User>;
+  createUser(user: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string; phone?: string | null }): Promise<User>;
   setUserPassword(userId: string, password: string): Promise<void>;
   updateUserRole(id: string, role: string): Promise<void>;
   updateUserProfession(id: string, professionId: number): Promise<void>;
@@ -229,6 +239,28 @@ export interface IStorage {
   markNotificationRead(id: number, userId: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
   deleteNotification(id: number, userId: string): Promise<void>;
+
+  // ── Jelenlét operations ───────────────────────────────────────────────────
+  // Lesson schedule
+  getLessonSchedules(schoolAdminId: string, scheduleGroup?: string): Promise<LessonSchedule[]>;
+  upsertLessonSchedules(schedules: InsertLessonSchedule[]): Promise<LessonSchedule[]>;
+
+  // Attendance auto-recording
+  recordLoginAttendance(studentId: string, loginAt?: Date): Promise<Attendance | null>;
+  getAttendanceByClass(classId: number, date: string): Promise<any[]>;
+  getAttendanceByClassRange(classId: number, startDate: string, endDate: string): Promise<any[]>;
+  getAttendanceByStudent(studentId: string, startDate: string, endDate: string): Promise<Attendance[]>;
+  updateAttendanceStatus(attendanceId: number, status: string, teacherId: string): Promise<Attendance>;
+  upsertAttendance(data: InsertAttendance): Promise<Attendance>;
+
+  // Student daily notes
+  getStudentDailyNotes(studentId: string, teacherId: string, date?: string): Promise<StudentDailyNote[]>;
+  getClassDailyNotes(classId: number, date: string): Promise<any[]>;
+  upsertStudentDailyNote(data: InsertStudentDailyNote): Promise<StudentDailyNote>;
+  deleteStudentDailyNote(id: number): Promise<void>;
+
+  // Export helpers
+  getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -305,7 +337,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string }): Promise<User> {
+  async createUser(userData: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string; phone?: string | null }): Promise<User> {
     const { hashPassword } = await import('./localAuth');
     const hashedPassword = await hashPassword(userData.password);
 
@@ -706,7 +738,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(
         isNull(modules.schoolAdminId),
         eq(modules.schoolAdminId, schoolAdminId)
-      ));
+      )!);
     }
 
     return await db
@@ -1267,6 +1299,7 @@ export class DatabaseStorage implements IStorage {
         schoolAdminId: classes.schoolAdminId,
         assignedTeacherId: classes.assignedTeacherId,
         professionId: classes.professionId,
+        scheduleGroup: classes.scheduleGroup,
         createdAt: classes.createdAt,
         updatedAt: classes.updatedAt,
         profession: professions
@@ -1535,7 +1568,7 @@ export class DatabaseStorage implements IStorage {
       .from(apiCalls)
       .orderBy(apiCalls.provider, apiCalls.service);
 
-    return result;
+    return result as any;
   }
 
   // API Call tracking for AI regeneration
@@ -1586,15 +1619,12 @@ export class DatabaseStorage implements IStorage {
       const price = pricing[0];
       let cost = 0;
 
-      if (price.pricingType === 'token') {
-        if (price.inputTokenPrice && inputTokens > 0) {
-          cost += (inputTokens / 1000) * parseFloat(price.inputTokenPrice);
-        }
-        if (price.outputTokenPrice && outputTokens > 0) {
-          cost += (outputTokens / 1000) * parseFloat(price.outputTokenPrice);
-        }
-      } else if (price.pricingType === 'request' && price.requestPrice) {
-        cost = parseFloat(price.requestPrice);
+      if (price.pricePerToken && (inputTokens > 0 || outputTokens > 0)) {
+        cost += ((inputTokens + outputTokens) / 1000) * parseFloat(price.pricePerToken);
+      }
+
+      if (price.pricePerRequest) {
+        cost += parseFloat(price.pricePerRequest);
       }
 
       return cost;
@@ -1679,7 +1709,7 @@ export class DatabaseStorage implements IStorage {
       const chatMessages = await this.getChatMessages(userId);
 
       // Get API calls
-      const apiCalls = await db.select().from(apiCalls).where(eq(apiCalls.userId, userId));
+      const userApiCalls = await db.select().from(apiCalls).where(eq(apiCalls.userId, userId));
 
       // Get consents
       const consents = await this.getUserConsents(userId);
@@ -1690,7 +1720,7 @@ export class DatabaseStorage implements IStorage {
       return {
         user: userData,
         chatMessages,
-        apiCalls,
+        apiCalls: userApiCalls,
         consents,
         privacyRequests: requests,
         exportedAt: new Date().toISOString(),
@@ -1839,6 +1869,249 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(notifications)
       .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+
+  // ── Jelenlét implementáció ─────────────────────────────────────────────────
+
+
+  async getLessonSchedules(schoolAdminId: string, scheduleGroup: string = 'morning'): Promise<LessonSchedule[]> {
+    return await db
+      .select()
+      .from(lessonSchedules)
+      .where(and(
+        eq(lessonSchedules.schoolAdminId, schoolAdminId),
+        eq(lessonSchedules.scheduleGroup, scheduleGroup)
+      ))
+      .orderBy(lessonSchedules.periodNumber);
+  }
+
+  async upsertLessonSchedules(schedules: InsertLessonSchedule[]): Promise<LessonSchedule[]> {
+    if (schedules.length === 0) return [];
+    
+    // Perform upserts one by one or in a transaction
+    const results: LessonSchedule[] = [];
+    for (const s of schedules) {
+      const [row] = await db
+        .insert(lessonSchedules)
+        .values(s)
+        .onConflictDoUpdate({
+          target: [lessonSchedules.schoolAdminId, lessonSchedules.periodNumber, lessonSchedules.scheduleGroup],
+          set: {
+            startHour: s.startHour,
+            startMinute: s.startMinute,
+            endHour: s.endHour,
+            endMinute: s.endMinute,
+            label: s.label,
+            isActive: s.isActive,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      results.push(row);
+    }
+    return results;
+  }
+
+  async recordLoginAttendance(studentId: string, loginAt: Date = new Date()): Promise<Attendance | null> {
+    const user = await this.getUser(studentId);
+    if (!user || user.role !== 'student' || !user.classId) return null;
+
+    const dateStr = loginAt.toISOString().split('T')[0];
+    const hour = loginAt.getHours();
+    const minute = loginAt.getMinutes();
+    const currentTimeInMinutes = hour * 60 + minute;
+
+    // Osztály adatainak lekérése a műszak (scheduleGroup) meghatározásához
+    const [classData] = await db.select().from(classes).where(eq(classes.id, user.classId));
+    const scheduleGroup = classData?.scheduleGroup || 'morning';
+
+    // Iskola admin ID lekérése
+    const schoolAdminId = user.schoolAdminId;
+    if (!schoolAdminId) return null;
+
+    const schedules = await this.getLessonSchedules(schoolAdminId, scheduleGroup);
+    let activePeriod: number | null = null;
+
+    if (schedules.length > 0) {
+      // Megkeressük az aktuális periódust
+      for (const s of schedules) {
+        if (!s.isActive) continue;
+        const startTotal = s.startHour * 60 + s.startMinute;
+        const endTotal = s.endHour * 60 + s.endMinute;
+        
+        // Adjunk egy kis puffert (pl. bejöhet 10 perccel előbb)
+        if (currentTimeInMinutes >= startTotal - 10 && currentTimeInMinutes <= endTotal) {
+          activePeriod = s.periodNumber;
+          break;
+        }
+      }
+    } else {
+      // Fallback: ha nincs órarend beállítva
+      // Délelőtti: 8-16h
+      // Délutáni: 13-21h
+      if (scheduleGroup === 'morning') {
+        if (hour >= 8 && hour <= 16 && minute <= 45) {
+          activePeriod = hour - 7;
+        }
+      } else {
+        if (hour >= 13 && hour <= 21 && minute <= 45) {
+          activePeriod = hour - 12;
+        }
+      }
+    }
+
+    if (activePeriod === null) return null;
+
+    // Rögzítés
+    return await this.upsertAttendance({
+      studentId,
+      classId: user.classId,
+      date: dateStr,
+      periodNumber: activePeriod,
+      status: 'present',
+      loginAt: loginAt,
+      recordedBy: 'auto',
+    });
+  }
+
+  async getAttendanceByClass(classId: number, date: string): Promise<any[]> {
+    const rows = await db.execute(sql`
+      SELECT
+        a.*,
+        u.first_name, u.last_name, u.username
+      FROM attendance a
+      JOIN users u ON u.id = a.student_id
+      WHERE a.class_id = ${classId} AND a.date = ${date}
+      ORDER BY u.last_name, u.first_name, a.period_number
+    `);
+    return rows.rows;
+  }
+
+  async getAttendanceByClassRange(classId: number, startDate: string, endDate: string): Promise<any[]> {
+    const rows = await db.execute(sql`
+      SELECT
+        a.*,
+        u.first_name, u.last_name, u.username
+      FROM attendance a
+      JOIN users u ON u.id = a.student_id
+      WHERE a.class_id = ${classId}
+        AND a.date >= ${startDate}
+        AND a.date <= ${endDate}
+      ORDER BY a.date, u.last_name, u.first_name, a.period_number
+    `);
+    return rows.rows;
+  }
+
+  async getAttendanceByStudent(studentId: string, startDate: string, endDate: string): Promise<Attendance[]> {
+    return await db
+      .select()
+      .from(attendance)
+      .where(and(
+        eq(attendance.studentId, studentId),
+        sql`${attendance.date} >= ${startDate}`,
+        sql`${attendance.date} <= ${endDate}`
+      ))
+      .orderBy(attendance.date, attendance.periodNumber);
+  }
+
+  async updateAttendanceStatus(attendanceId: number, status: string, teacherId: string): Promise<Attendance> {
+    const [row] = await db
+      .update(attendance)
+      .set({ status, recordedBy: teacherId, updatedAt: new Date() })
+      .where(eq(attendance.id, attendanceId))
+      .returning();
+    return row;
+  }
+
+  async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
+    const [row] = await db
+      .insert(attendance)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [attendance.studentId, attendance.classId, attendance.date, attendance.periodNumber],
+        set: {
+          status: data.status,
+          recordedBy: data.recordedBy,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async getStudentDailyNotes(studentId: string, teacherId: string, date?: string): Promise<StudentDailyNote[]> {
+    const conditions = [
+      eq(studentDailyNotes.studentId, studentId),
+      eq(studentDailyNotes.teacherId, teacherId),
+    ];
+    if (date) conditions.push(eq(studentDailyNotes.date, date));
+    return await db
+      .select()
+      .from(studentDailyNotes)
+      .where(and(...conditions))
+      .orderBy(desc(studentDailyNotes.date));
+  }
+
+  async getClassDailyNotes(classId: number, date: string): Promise<any[]> {
+    const rows = await db.execute(sql`
+      SELECT
+        n.*,
+        u.first_name, u.last_name, u.username AS student_username
+      FROM student_daily_notes n
+      JOIN users u ON u.id = n.student_id
+      WHERE n.class_id = ${classId} AND n.date = ${date}
+      ORDER BY u.last_name, u.first_name
+    `);
+    return rows.rows;
+  }
+
+  async upsertStudentDailyNote(data: InsertStudentDailyNote): Promise<StudentDailyNote> {
+    const [row] = await db
+      .insert(studentDailyNotes)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [studentDailyNotes.studentId, studentDailyNotes.teacherId, studentDailyNotes.date],
+        set: {
+          note: data.note,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async deleteStudentDailyNote(id: number): Promise<void> {
+    await db.delete(studentDailyNotes).where(eq(studentDailyNotes.id, id));
+  }
+
+  /**
+   * Export adatok teljeskörű lekérdezése CSV/Excel exporthoz
+   */
+  async getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]> {
+    const rows = await db.execute(sql`
+      SELECT
+        u.last_name,
+        u.first_name,
+        u.username,
+        a.date,
+        a.period_number,
+        a.status,
+        a.login_at,
+        a.recorded_by,
+        n.note AS daily_note
+      FROM attendance a
+      JOIN users u ON u.id = a.student_id
+      LEFT JOIN student_daily_notes n
+        ON n.student_id = a.student_id
+        AND n.class_id = a.class_id
+        AND n.date = a.date
+      WHERE a.class_id = ${classId}
+        AND a.date >= ${startDate}
+        AND a.date <= ${endDate}
+      ORDER BY a.date, u.last_name, u.first_name, a.period_number
+    `);
+    return rows.rows;
   }
 }
 
