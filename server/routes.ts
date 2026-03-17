@@ -56,6 +56,14 @@ const combinedAuth = async (req: any, res: any, next: any) => {
       if (req.user && !req.user.claims) {
         req.user.claims = { sub: req.user.id };
       }
+
+      // Option 1: Automatikus aktivitás alapú jelenlét rögzítés diákoknak
+      if (req.user && req.user.role === 'student') {
+        storage.recordLoginAttendance(req.user.id).catch(err => {
+          console.error('Error tracking student activity attendance:', err);
+        });
+      }
+
       return next();
     }
 

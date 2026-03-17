@@ -4,8 +4,9 @@ Az új jelenléti rendszer lehetővé teszi a tanulók automatikus óránkénti 
 
 ## 1. Automatikus Jelenlét (Tanulóknak)
 A tanulóknak nincs külön teendőjük a jelenlét rögzítéséhez.
-- Amikor a tanuló bejelentkezik a weboldalra, a rendszer **automatikusan** rögzíti a jelenlétét az aktuális tanórához.
-- A rendszer felismeri, hogy a diák **délelőtti** vagy **délutáni** munkarendbe tartozik-e, és az annak megfelelő órarendhez rögzíti a jelenlétet.
+- A rendszer **automatikusan** rögzíti a jelenlétet az aktuális tanórához a bejelentkezéskor, illetve **bármilyen aktivitás** (oldalmegnyitás, tananyag használat) esetén.
+- Ez azt jelenti, hogy a diáknak nem kell óránként ki- és bejelentkeznie; elég, ha használja az oldalt a tanóra alatt, és a rendszer automatikusan "jelenlévőnek" jelöli az adott órára.
+- A rendszer felismeri, hogy a diák **délelőtti** vagy **délutáni** munkarendbe tartozik-e, és az annak megfelelő órarend szerint rögzíti a jelenlétet.
 
 ## 2. Tanári Dashboard (Jelenlét Fül)
 A tanárok az **Osztályok kezelése** oldalon belül az új **Jelenlét** fülön kezelhetik az adatokat:
