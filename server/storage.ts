@@ -520,6 +520,10 @@ export class DatabaseStorage implements IStorage {
       // 5. Delete teacher-student relationships (both directions)
       await db.execute(sql`DELETE FROM teacher_students WHERE teacher_id = ${id} OR student_id = ${id}`);
 
+      // 5.5 Delete attendance records and daily notes (both as student or teacher)
+      await db.execute(sql`DELETE FROM attendance WHERE student_id = ${id} OR teacher_id = ${id}`);
+      await db.execute(sql`DELETE FROM student_daily_notes WHERE student_id = ${id} OR teacher_id = ${id}`);
+
       // 6. Delete group memberships
       await db.execute(sql`DELETE FROM group_members WHERE user_id = ${id}`);
 
@@ -527,7 +531,12 @@ export class DatabaseStorage implements IStorage {
       await db.execute(sql`DELETE FROM project_participants WHERE user_id = ${id}`);
 
       // 8. Delete discussions authored by user
+      // First handle replies to avoid foreign key violations in case children reference user posts
+      await db.execute(sql`UPDATE discussions SET parent_id = NULL WHERE parent_id IN (SELECT id FROM discussions WHERE author_id = ${id})`);
       await db.execute(sql`DELETE FROM discussions WHERE author_id = ${id}`);
+
+      // 8.5 Delete discussion reactions
+      await db.execute(sql`DELETE FROM discussion_reactions WHERE user_id = ${id}`);
 
       // 9. Delete peer reviews (both as reviewer and reviewed)
       await db.execute(sql`DELETE FROM peer_reviews WHERE reviewer_id = ${id} OR reviewed_user_id = ${id}`);
@@ -567,6 +576,10 @@ export class DatabaseStorage implements IStorage {
 
       // 13.7 Remove school_admin_id references if this user is a school admin
       await db.execute(sql`UPDATE users SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
+      
+      // 13.8 Handle fields with references to this user in other tables
+      await db.execute(sql`UPDATE system_settings SET updated_by = NULL WHERE updated_by = ${id}`);
+      await db.execute(sql`UPDATE api_pricing SET updated_by = NULL WHERE updated_by = ${id}`);
 
       // 14. Finally delete the user
       const deletedUser = await db.delete(users).where(eq(users.id, id));
@@ -1940,8 +1953,9 @@ export class DatabaseStorage implements IStorage {
         const startTotal = s.startHour * 60 + s.startMinute;
         const endTotal = s.endHour * 60 + s.endMinute;
         
-        // Adjunk egy kis puffert (pl. bejöhet 10 perccel előbb)
-        if (currentTimeInMinutes >= startTotal - 10 && currentTimeInMinutes <= endTotal) {
+        // Adjunk egy nagyobb puffert (pl. bejöhet 15 perccel előbb)
+        // És ha az órák között van 5-10 perc szünet, azt is kezeljük le
+        if (currentTimeInMinutes >= startTotal - 15 && currentTimeInMinutes <= endTotal + 2) {
           activePeriod = s.periodNumber;
           break;
         }
@@ -1951,12 +1965,20 @@ export class DatabaseStorage implements IStorage {
       // Délelőtti: 8-16h
       // Délutáni: 13-21h
       if (scheduleGroup === 'morning') {
-        if (hour >= 8 && hour <= 16 && minute <= 45) {
-          activePeriod = hour - 7;
+        if (hour >= 7 && hour < 17) { // 07:45-től már az 1. órát számoljuk
+          const totalMins = hour * 60 + minute;
+          if (totalMins >= 7 * 60 + 45) { // 7:45 után
+             activePeriod = Math.floor((totalMins - 7 * 60) / 60) + 1;
+             if (activePeriod > 8) activePeriod = 8;
+          }
         }
       } else {
-        if (hour >= 13 && hour <= 21 && minute <= 45) {
-          activePeriod = hour - 12;
+        if (hour >= 12 && hour < 22) {
+          const totalMins = hour * 60 + minute;
+          if (totalMins >= 12 * 60 + 45) {
+             activePeriod = Math.floor((totalMins - 12 * 60) / 60) + 1;
+             if (activePeriod > 8) activePeriod = 8;
+          }
         }
       }
     }
@@ -1976,14 +1998,61 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAttendanceByClass(classId: number, date: string): Promise<any[]> {
+    // Elsőnek lekérjük az osztály és a kapcsolódó admin adatait, hogy tudjuk az aktuális órát
+    const [classData] = await db.select().from(classes).where(eq(classes.id, classId));
+    if (!classData) return [];
+
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const currentTimeInMinutes = hour * 60 + minute;
+    const isToday = new Date(date).toISOString().split('T')[0] === now.toISOString().split('T')[0];
+
+    let currentPeriod: number | null = null;
+    if (isToday && classData.schoolAdminId) {
+      const schedules = await this.getLessonSchedules(classData.schoolAdminId, classData.scheduleGroup || 'morning');
+      for (const s of schedules) {
+        if (!s.isActive) continue;
+        const startTotal = s.startHour * 60 + s.startMinute;
+        const endTotal = s.endHour * 60 + s.endMinute;
+        if (currentTimeInMinutes >= startTotal - 10 && currentTimeInMinutes <= endTotal) {
+          currentPeriod = s.periodNumber;
+          break;
+        }
+      }
+    }
+
     const rows = await db.execute(sql`
+      WITH student_list AS (
+        SELECT id as student_id, first_name, last_name, username
+        FROM users
+        WHERE class_id = ${classId} AND role = 'student'
+      ),
+      all_periods AS (
+        SELECT DISTINCT period_number 
+        FROM attendance 
+        WHERE class_id = ${classId} AND date = ${date}
+        ${currentPeriod !== null ? sql`UNION SELECT ${currentPeriod}` : sql``}
+      )
       SELECT
-        a.*,
-        u.first_name, u.last_name, u.username
-      FROM attendance a
-      JOIN users u ON u.id = a.student_id
-      WHERE a.class_id = ${classId} AND a.date = ${date}
-      ORDER BY u.last_name, u.first_name, a.period_number
+        COALESCE(a.id, -1) as id,
+        sl.student_id,
+        ${classId} as class_id,
+        ${date} as date,
+        ap.period_number,
+        COALESCE(a.status, 'absent') as status,
+        a.recorded_at,
+        a.recorded_by,
+        a.login_at,
+        sl.first_name, sl.last_name, sl.username
+      FROM student_list sl
+      CROSS JOIN all_periods ap
+      LEFT JOIN attendance a 
+        ON a.student_id = sl.student_id 
+        AND a.period_number = ap.period_number 
+        AND a.date = ${date}
+        AND a.class_id = ${classId}
+      ORDER BY ap.period_number, sl.last_name, sl.first_name
     `);
     return rows.rows;
   }
@@ -2090,26 +2159,40 @@ export class DatabaseStorage implements IStorage {
    */
   async getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]> {
     const rows = await db.execute(sql`
+      WITH student_list AS (
+        SELECT id as student_id, first_name, last_name, username
+        FROM users
+        WHERE class_id = ${classId} AND role = 'student'
+      ),
+      calendar_periods AS (
+        SELECT DISTINCT date, period_number
+        FROM attendance
+        WHERE class_id = ${classId}
+          AND date >= ${startDate}
+          AND date <= ${endDate}
+      )
       SELECT
-        u.last_name,
-        u.first_name,
-        u.username,
-        a.date,
-        a.period_number,
-        a.status,
+        sl.last_name,
+        sl.first_name,
+        sl.username,
+        cp.date,
+        cp.period_number,
+        COALESCE(a.status, 'absent') as status,
         a.login_at,
         a.recorded_by,
         n.note AS daily_note
-      FROM attendance a
-      JOIN users u ON u.id = a.student_id
+      FROM student_list sl
+      CROSS JOIN calendar_periods cp
+      LEFT JOIN attendance a 
+        ON a.student_id = sl.student_id 
+        AND a.period_number = cp.period_number
+        AND a.date = cp.date
+        AND a.class_id = ${classId}
       LEFT JOIN student_daily_notes n
-        ON n.student_id = a.student_id
-        AND n.class_id = a.class_id
-        AND n.date = a.date
-      WHERE a.class_id = ${classId}
-        AND a.date >= ${startDate}
-        AND a.date <= ${endDate}
-      ORDER BY a.date, u.last_name, u.first_name, a.period_number
+        ON n.student_id = sl.student_id
+        AND n.class_id = ${classId}
+        AND n.date = cp.date
+      ORDER BY cp.date, cp.period_number, sl.last_name, sl.first_name
     `);
     return rows.rows;
   }

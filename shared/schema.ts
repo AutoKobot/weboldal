@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
   integer,
   serial,
   boolean,
@@ -311,7 +312,9 @@ export const lessonSchedules = pgTable("lesson_schedules", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => ({
+  lessonScheduleUnique: uniqueIndex("lesson_schedule_unique").on(t.schoolAdminId, t.periodNumber, t.scheduleGroup),
+}));
 
 // Attendance table – jelenlét nyilvántartás (tanóránkénti, automatikus login alapján)
 export const attendance = pgTable("attendance", {
@@ -327,7 +330,9 @@ export const attendance = pgTable("attendance", {
   loginAt: timestamp("login_at"), // mikor lépett be a diák
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => ({
+  attendanceUnique: uniqueIndex("attendance_unique").on(t.studentId, t.classId, t.date, t.periodNumber),
+}));
 
 // Student daily notes – napi megjegyzések tanártól diákonként
 export const studentDailyNotes = pgTable("student_daily_notes", {

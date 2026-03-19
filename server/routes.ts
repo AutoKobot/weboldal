@@ -391,6 +391,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User ping endpoint for attendance heartbeat
+  app.get('/api/user/ping', combinedAuth, (req, res) => {
+    res.json({ ok: true });
+  });
+
   // User details endpoint for sidebar information
   app.get('/api/user/details/:userId', combinedAuth, async (req: any, res) => {
     try {
@@ -1847,7 +1852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           present: 'Jelen', absent: 'Hiányzik', late: 'Késő', excused: 'Igazolt'
         };
 
-        const header = '\uFEFF' + 'Vezetéknév;Keresztnév;Felhasználó;Dátum;Óra sorszáma;Státusz;Belépés ideje;Napi megjegyzés\n';
+        const headerLine = 'Vezetéknév;Keresztnév;Felhasználó;Dátum;Óra sorszáma;Státusz;Belépés ideje;Napi megjegyzés\n';
         const csvRows = rows.map((r: any) => [
           r.last_name || '',
           r.first_name || '',
@@ -1856,12 +1861,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           r.period_number || '',
           statusMap[r.status] || r.status || '',
           r.login_at ? new Date(r.login_at).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) : '',
-          (r.daily_note || '').replace(/;/g, ',')
+          (r.daily_note || '').replace(/;/g, ',').replace(/\n/g, ' ')
         ].join(';')).join('\n');
 
+        const safeClassName = (classData.name || 'class').replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `jelenlét_${safeClassName}_${sd}_${ed}.csv`.replace(/[^a-zA-Z0-9\._-]/g, '_');
+        
+        // Use Buffer with BOM to ensure correct encoding in Excel
+        const bom = Buffer.from([0xEF, 0xBB, 0xBF]);
+        const content = Buffer.from(headerLine + csvRows, 'utf8');
+        const responseBuffer = Buffer.concat([bom, content]);
+
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="jelenlét_${classData.name}_${sd}_${ed}.csv"`);
-        res.send(header + csvRows);
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Content-Length', responseBuffer.length.toString());
+        res.end(responseBuffer);
       } else {
         // JSON (alapértelmezett – a frontend rendereli PDF-be)
         res.json({

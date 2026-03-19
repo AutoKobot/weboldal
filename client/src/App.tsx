@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import CookieBanner from "@/components/cookie-banner";
 
 // Lazy-loaded pages – minden oldal külön chunk lesz a bundle-ban
@@ -35,6 +35,28 @@ const ChatPage = lazy(() => import("@/pages/chat"));
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const PrivacyRequests = lazy(() => import("@/pages/privacy-requests"));
 const TeacherContentGuard = lazy(() => import("@/pages/teacher-content-guard"));
+
+// Heartbeat a jelenléthez
+function AttendanceHeartbeat() {
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    if (user?.role !== 'student') return;
+
+    // Első ping azonnal (ha épp belépett)
+    fetch('/api/user/ping', { credentials: 'include' }).catch(() => {});
+
+    // Ping minden 5 percben
+    const interval = setInterval(() => {
+      fetch('/api/user/ping', { credentials: 'include' })
+        .catch(err => console.error('Attendance heartbeat failed', err));
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [user?.id, user?.role]);
+
+  return null;
+}
 
 // Betöltési fallback – azonos stílusú spinner
 function PageLoader() {
@@ -182,6 +204,7 @@ function App() {
           <Suspense fallback={<PageLoader />}>
             <Router />
           </Suspense>
+          <AttendanceHeartbeat />
           <CookieBanner />
         </TooltipProvider>
       </ThemeProvider>

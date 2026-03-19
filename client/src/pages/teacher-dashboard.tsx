@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1153,13 +1153,29 @@ export default function TeacherDashboard() {
                   return 'Hiányzik';
                 };
 
-                const handleStatusChange = async (attendanceId: number, newStatus: string) => {
-                  await fetch(`/api/teacher/attendance/${attendanceId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ status: newStatus }),
-                  });
+                const handleStatusChange = async (attendanceId: number, newStatus: string, studentData?: any) => {
+                  if (attendanceId === -1 && studentData) {
+                    // Új bejegyzés létrehozása
+                    await fetch(`/api/teacher/classes/${attendanceClassId}/attendance`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        studentId: studentData.student_id,
+                        date: attendanceDate,
+                        periodNumber: studentData.period_number,
+                        status: newStatus,
+                      }),
+                    });
+                  } else {
+                    // Meglévő bejegyzés frissítése
+                    await fetch(`/api/teacher/attendance/${attendanceId}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ status: newStatus }),
+                    });
+                  }
                   queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/attendance?date=${attendanceDate}`] });
                 };
 
@@ -1258,7 +1274,7 @@ export default function TeacherDashboard() {
                                       {/* Status selector */}
                                       <Select
                                         value={row.status}
-                                        onValueChange={s => handleStatusChange(row.id, s)}
+                                        onValueChange={s => handleStatusChange(row.id, s, row)}
                                       >
                                         <SelectTrigger className={`h-8 w-28 text-xs border font-medium ${statusColor(row.status)}`}>
                                           <SelectValue />
