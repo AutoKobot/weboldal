@@ -2094,19 +2094,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
-    const [row] = await db
-      .insert(attendance)
-      .values(data)
-      .onConflictDoUpdate({
-        target: [attendance.studentId, attendance.classId, attendance.date, attendance.periodNumber],
-        set: {
+    // Először megnézzük, van-e már bejegyzés
+    const [existing] = await db
+      .select()
+      .from(attendance)
+      .where(and(
+        eq(attendance.studentId, data.studentId),
+        eq(attendance.classId, data.classId),
+        eq(attendance.date, data.date),
+        eq(attendance.periodNumber, data.periodNumber)
+      ));
+
+    if (existing) {
+      // Ha tanár rögzítette manuálisan, és az automata akarja felülírni -> ne engedjük
+      if (existing.recordedBy !== 'auto' && data.recordedBy === 'auto') {
+        return existing;
+      }
+      
+      // Ha van bejegyzés, frissítjük
+      const [updated] = await db
+        .update(attendance)
+        .set({
           status: data.status,
           recordedBy: data.recordedBy,
           updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return row;
+          loginAt: data.loginAt || existing.loginAt,
+        })
+        .where(eq(attendance.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    // Ha nincs, beszúrjuk
+    const [inserted] = await db.insert(attendance).values(data).returning();
+    return inserted;
   }
 
   async getStudentDailyNotes(studentId: string, teacherId: string, date?: string): Promise<StudentDailyNote[]> {
