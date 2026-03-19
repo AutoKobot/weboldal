@@ -1256,7 +1256,7 @@ export default function TeacherDashboard() {
                                 const existingNote = notesByStudent[studentId];
 
                                 return (
-                                  <div key={row.id} className="flex flex-col gap-1 p-2 rounded-lg bg-gray-50 border">
+                                  <div key={`${studentId}-${period}`} className="flex flex-col gap-1 p-2 rounded-lg bg-gray-50 border">
                                     <div className="flex items-center gap-2">
                                       {/* Student name */}
                                       <span className="font-medium text-sm flex-1 min-w-0 truncate">
