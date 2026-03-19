@@ -2855,6 +2855,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Module operations
+  app.get('/api/modules/:id/assignments', combinedAuth, async (req: any, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      const assignments = await storage.getModuleAssignments(moduleId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching module assignments:", error);
+      res.status(500).json({ message: "Failed to fetch module assignments" });
+    }
+  });
+
   app.post('/api/modules', combinedAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -2890,13 +2901,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const moduleId = parseInt(req.params.id);
       const moduleData = insertModuleSchema.partial().parse(req.body);
+      const additionalSubjectIds = req.body.additionalSubjectIds;
+
       if (user.role !== 'admin') {
         (moduleData as any).schoolAdminId = user.role === 'school_admin' ? user.id : user.schoolAdminId;
       }
 
-
-
       const module = await storage.updateModule(moduleId, moduleData);
+      
+      // Update additional assignments if provided
+      if (Array.isArray(additionalSubjectIds)) {
+        await storage.updateModuleAssignments(module.id, additionalSubjectIds);
+      }
+
       res.json(module);
     } catch (error) {
       console.error("Error updating module:", error);

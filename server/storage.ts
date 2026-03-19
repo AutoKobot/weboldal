@@ -14,6 +14,7 @@ import {
   peerReviews,
   adminMessages,
   classes,
+  moduleSubjectAssignments,
   type User,
   type UpsertUser,
   type Profession,
@@ -724,7 +725,22 @@ export class DatabaseStorage implements IStorage {
   // Module operations
   async getModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
     const conditions = [];
-    if (subjectId) conditions.push(eq(modules.subjectId, subjectId));
+
+    if (subjectId) {
+      // Modulok, amik közvetlenül a tantárgyhoz tartoznak, VAGY a junction táblán keresztül hozzá vannak rendelve
+      const subjectFilter = or(
+        eq(modules.subjectId, subjectId),
+        exists(
+          db.select()
+            .from(moduleSubjectAssignments)
+            .where(and(
+              eq(moduleSubjectAssignments.moduleId, modules.id),
+              eq(moduleSubjectAssignments.subjectId, subjectId)
+            ))
+        )
+      );
+      conditions.push(subjectFilter);
+    }
 
     if (schoolAdminId === null) {
       conditions.push(isNull(modules.schoolAdminId));
@@ -743,7 +759,21 @@ export class DatabaseStorage implements IStorage {
 
   async getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
     const conditions = [eq(modules.isPublished, true)];
-    if (subjectId) conditions.push(eq(modules.subjectId, subjectId));
+
+    if (subjectId) {
+      const subjectFilter = or(
+        eq(modules.subjectId, subjectId),
+        exists(
+          db.select()
+            .from(moduleSubjectAssignments)
+            .where(and(
+              eq(moduleSubjectAssignments.moduleId, modules.id),
+              eq(moduleSubjectAssignments.subjectId, subjectId)
+            ))
+        )
+      );
+      conditions.push(subjectFilter);
+    }
 
     if (schoolAdminId === null) {
       conditions.push(isNull(modules.schoolAdminId));
@@ -751,7 +781,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(
         isNull(modules.schoolAdminId),
         eq(modules.schoolAdminId, schoolAdminId)
-      )!);
+      ));
     }
 
     return await db
@@ -766,20 +796,33 @@ export class DatabaseStorage implements IStorage {
     return module;
   }
 
-  async createModule(module: InsertModule): Promise<Module> {
+  async createModule(moduleData: InsertModule): Promise<Module> {
+    const { additionalSubjectIds, ...data } = moduleData as any;
     const [newModule] = await db
       .insert(modules)
-      .values(module)
+      .values(data)
       .returning();
+    
+    if (additionalSubjectIds && Array.isArray(additionalSubjectIds)) {
+      await this.updateModuleAssignments(newModule.id, additionalSubjectIds);
+    }
+    
     return newModule;
   }
 
   async updateModule(id: number, moduleData: Partial<InsertModule>): Promise<Module> {
+    const { additionalSubjectIds, ...data } = moduleData as any;
+    
     const [module] = await db
       .update(modules)
-      .set({ ...moduleData, updatedAt: new Date() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(modules.id, id))
       .returning();
+      
+    if (additionalSubjectIds !== undefined && Array.isArray(additionalSubjectIds)) {
+      await this.updateModuleAssignments(id, additionalSubjectIds);
+    }
+    
     return module;
   }
 
@@ -802,7 +845,10 @@ export class DatabaseStorage implements IStorage {
     // 5. Delete test results related to this module
     await db.delete(testResults).where(eq(testResults.moduleId, id));
 
-    // 6. Finally delete the module
+    // 6. Delete many-to-many assignments
+    await db.delete(moduleSubjectAssignments).where(eq(moduleSubjectAssignments.moduleId, id));
+
+    // 7. Finally delete the module
     await db.delete(modules).where(eq(modules.id, id));
     console.log(`✅ Module ${id} deleted`);
   }
@@ -827,6 +873,26 @@ export class DatabaseStorage implements IStorage {
   async bulkCreateFlashcards(flashcardsList: InsertFlashcard[]): Promise<Flashcard[]> {
     if (flashcardsList.length === 0) return [];
     return await db.insert(flashcards).values(flashcardsList).returning();
+  }
+
+  // Module assignment operations
+  async getModuleAssignments(moduleId: number): Promise<number[]> {
+    const rows = await db
+      .select({ subjectId: moduleSubjectAssignments.subjectId })
+      .from(moduleSubjectAssignments)
+      .where(eq(moduleSubjectAssignments.moduleId, moduleId));
+    return rows.map(r => r.subjectId);
+  }
+
+  async updateModuleAssignments(moduleId: number, subjectIds: number[]): Promise<void> {
+    // 1. Delete existing assignments
+    await db.delete(moduleSubjectAssignments).where(eq(moduleSubjectAssignments.moduleId, moduleId));
+
+    // 2. Insert new assignments
+    if (subjectIds.length > 0) {
+      const values = subjectIds.map(subjectId => ({ moduleId, subjectId }));
+      await db.insert(moduleSubjectAssignments).values(values);
+    }
   }
 
   // Chat operations

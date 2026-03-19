@@ -100,6 +100,14 @@ export const modules = pgTable("modules", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Junction table for many-to-many relationship between modules and subjects
+export const moduleSubjectAssignments = pgTable("module_subject_assignments", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  subjectId: integer("subject_id").references(() => subjects.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Flashcards table for learning cards
 export const flashcards = pgTable("flashcards", {
   id: serial("id").primaryKey(),
@@ -151,8 +159,14 @@ export const subjectsRelations = relations(subjects, ({ one, many }) => ({
 
 export const modulesRelations = relations(modules, ({ one, many }) => ({
   subject: one(subjects, { fields: [modules.subjectId], references: [subjects.id] }),
+  additionalAssignments: many(moduleSubjectAssignments),
   chatMessages: many(chatMessages),
   flashcards: many(flashcards),
+}));
+
+export const moduleSubjectAssignmentsRelations = relations(moduleSubjectAssignments, ({ one }) => ({
+  module: one(modules, { fields: [moduleSubjectAssignments.moduleId], references: [modules.id] }),
+  subject: one(subjects, { fields: [moduleSubjectAssignments.subjectId], references: [subjects.id] }),
 }));
 
 export const flashcardsRelations = relations(flashcards, ({ one }) => ({
@@ -489,6 +503,7 @@ export const insertModuleSchema = createInsertSchema(modules).omit({
   presentationUrl: z.string().optional().nullable(),
   keyConceptsData: keyConceptsDataSchema.optional().nullable(),
   generatedQuizzes: z.array(z.any()).optional().nullable(),
+  additionalSubjectIds: z.array(z.number()).optional(),
 });
 
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({

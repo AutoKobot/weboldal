@@ -763,6 +763,8 @@ export default function AdminDashboard() {
   const [bulkImportParsed, setBulkImportParsed] = useState<{ number: number; title: string; content: string }[]>([]);
   const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const [bulkImportProgress, setBulkImportProgress] = useState(0);
+  // Additional subject assignments for module linking
+  const [additionalSubjectIds, setAdditionalSubjectIds] = useState<number[]>([]);
 
   // Queries
   const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
@@ -985,8 +987,17 @@ export default function AdminDashboard() {
       form.setValue("presentationUrl", editingModule.presentationUrl || "");
       form.setValue("isPublished", editingModule.isPublished || false);
 
+      // Load existing additional subject assignments
+      fetch(`/api/modules/${editingModule.id}/assignments`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(ids => setAdditionalSubjectIds(Array.isArray(ids) ? ids : []))
+        .catch(() => setAdditionalSubjectIds([]));
+
       form.trigger();
       console.log('Form content loaded:', form.getValues("content"));
+    } else if (!editingModule && isDialogOpen) {
+      // Reset when creating new module
+      setAdditionalSubjectIds([]);
     }
   }, [editingModule, isDialogOpen, form]);
 
@@ -1070,6 +1081,7 @@ export default function AdminDashboard() {
       const dataWithPublishPreserved = {
         ...data,
         isPublished: editingModule?.isPublished ?? data.isPublished,
+        additionalSubjectIds,
       };
       const res = await apiRequest("PATCH", `/api/modules/${editingModule!.id}`, dataWithPublishPreserved);
       return await res.json();
@@ -4061,6 +4073,66 @@ export default function AdminDashboard() {
                     </FormItem>
                   )}
                 />
+
+                {/* Multi-subject assignment */}
+                <div className="space-y-3 border-t pt-4">
+                  <div>
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <span>🔗</span> Modul megosztása más tantárgyakkal
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      A modul az alábbi tantárgyak tananyagainál is megjelenik (az elsődleges tantárgy mellett)
+                    </p>
+                  </div>
+                  {subjects.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nincsenek elérhető tantárgyak</p>
+                  ) : (
+                    <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-1 bg-muted/30">
+                      {professions.map((prof: any) => {
+                        const profSubjects = subjects.filter((s: Subject) => s.professionId === prof.id);
+                        if (profSubjects.length === 0) return null;
+                        const currentSubjectId = form.watch('subjectId');
+                        return (
+                          <div key={prof.id}>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1 mt-2 first:mt-0">{prof.name}</p>
+                            {profSubjects.map((subject: Subject) => {
+                              const isCurrentSubject = subject.id === currentSubjectId;
+                              const isChecked = additionalSubjectIds.includes(subject.id);
+                              return (
+                                <label
+                                  key={subject.id}
+                                  className={`flex items-center gap-2 py-1 px-2 rounded cursor-pointer hover:bg-muted transition-colors text-sm ${isCurrentSubject ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    disabled={isCurrentSubject}
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setAdditionalSubjectIds(prev => [...prev, subject.id]);
+                                      } else {
+                                        setAdditionalSubjectIds(prev => prev.filter(id => id !== subject.id));
+                                      }
+                                    }}
+                                    className="h-4 w-4 rounded"
+                                  />
+                                  <span>{subject.name}</span>
+                                  {isCurrentSubject && <span className="text-xs text-muted-foreground">(elsődleges)</span>}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {additionalSubjectIds.length > 0 && (
+                    <p className="text-xs text-blue-600 font-medium">
+                      ✓ {additionalSubjectIds.length} további tantárgyhoz rendelve
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex justify-end space-x-2">
                   <Button
                     type="button"
