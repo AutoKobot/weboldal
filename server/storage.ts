@@ -84,7 +84,7 @@ import {
   type InsertLessonSchedule,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, sql, gte, lte, or, isNull } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
