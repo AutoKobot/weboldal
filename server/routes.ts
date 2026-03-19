@@ -1847,7 +1847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           present: 'Jelen', absent: 'Hiányzik', late: 'Késő', excused: 'Igazolt'
         };
 
-        const header = 'Vezetéknév;Keresztnév;Felhasználó;Dátum;Óra sorszáma;Státusz;Belépés ideje;Napi megjegyzés\n';
+        const header = '\uFEFF' + 'Vezetéknév;Keresztnév;Felhasználó;Dátum;Óra sorszáma;Státusz;Belépés ideje;Napi megjegyzés\n';
         const csvRows = rows.map((r: any) => [
           r.last_name || '',
           r.first_name || '',
@@ -1861,7 +1861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="jelenlét_${classData.name}_${sd}_${ed}.csv"`);
-        res.send('\uFEFF' + header + csvRows); // BOM for Excel UTF-8
+        res.send(header + csvRows);
       } else {
         // JSON (alapértelmezett – a frontend rendereli PDF-be)
         res.json({
@@ -5926,7 +5926,7 @@ Platform funkciók és navigáció:
       const schoolAdminId = req.session.schoolAdminUser.id;
 
       // Use schema validation if available, otherwise manual validation with strict types
-      const { name, description, professionId } = req.body;
+      const { name, description, professionId, scheduleGroup } = req.body;
 
       if (!name) {
         return res.status(400).json({ message: "Az osztály neve kötelező" });
@@ -5939,7 +5939,8 @@ Platform funkciók és navigáció:
         name,
         description: description || null,
         schoolAdminId,
-        professionId: parsedProfessionId
+        professionId: parsedProfessionId,
+        scheduleGroup: scheduleGroup || 'morning'
       };
 
       const newClass = await storage.createClass(classData);
@@ -7248,7 +7249,7 @@ export function setupPrivacyRoutes(app: Express) {
       const user = await storage.getUser(userId);
 
       if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
+        return res.status(403).json({ message: 'Admin access required' });
       }
 
       const requests = await storage.getPrivacyRequests();
@@ -7266,7 +7267,7 @@ export function setupPrivacyRoutes(app: Express) {
       const user = await storage.getUser(userId);
 
       if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
+        return res.status(403).json({ message: 'Admin access required' });
       }
 
       const requestId = parseInt(req.params.id);
@@ -7290,3 +7291,4 @@ export function setupPrivacyRoutes(app: Express) {
     }
   });
 }
+
