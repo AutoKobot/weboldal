@@ -85,6 +85,20 @@ export function StudentAvatar() {
     }
   });
 
+  const releaseMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('DELETE', '/api/student/avatar/release');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/student/avatar'] });
+      toast({
+        title: "Elengedted az avatárt!",
+        description: "Most választhatsz egy újat.",
+      });
+    }
+  });
+
   // Keresd meg a megfelelő Rive fájlt, vagy fallback a 'test.riv'
   const currentAvatarDef = avatar ? AVATARS.find(a => a.id === avatar.avatarType) : null;
   const riveFileName = currentAvatarDef ? currentAvatarDef.filename : 'test.riv';
@@ -219,6 +233,19 @@ export function StudentAvatar() {
              Főétel (50 XP)
            </Button>
         </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full text-xs text-neutral-400 mt-2"
+          onClick={() => {
+            if (confirm('Biztos elengeded ezt az avatárt, hogy egy másikat válassz? A szintje elvész!')) {
+              releaseMutation.mutate();
+            }
+          }}
+          disabled={releaseMutation.isPending}
+        >
+          Másik avatár választása
+        </Button>
       </div>
     </div>
   );

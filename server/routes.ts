@@ -7389,5 +7389,16 @@ export function setupPrivacyRoutes(app: Express) {
       res.status(500).json({ message: 'Failed to revive avatar' });
     }
   });
+
+  app.delete('/api/student/avatar/release', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      await storage.releaseStudentAvatar(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error releasing avatar:', error);
+      res.status(500).json({ message: 'Failed to release avatar' });
+    }
+  });
 }
 

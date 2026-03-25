@@ -250,6 +250,7 @@ export interface IStorage {
   updateStudentAvatar(userId: string, data: Partial<InsertStudentAvatar>): Promise<StudentAvatar>;
   selectStudentAvatar(userId: string, avatarType: string): Promise<StudentAvatar>;
   reviveStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null>;
+  releaseStudentAvatar(userId: string): Promise<void>;
 
   // ── Jelenlét operations ───────────────────────────────────────────────────
   // Lesson schedule
@@ -2391,6 +2392,10 @@ export class DatabaseStorage implements IStorage {
       .returning();
       
     return updated;
+  }
+
+  async releaseStudentAvatar(userId: string): Promise<void> {
+    await db.delete(studentAvatars).where(eq(studentAvatars.userId, userId));
   }
 }
 
