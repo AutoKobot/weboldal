@@ -228,8 +228,8 @@ export function StudentAvatar() {
         transition={{ duration: 0.5 }}
       >
         
-        {/* Maga a canvas, ami kirajzolja a vektort */}
-        <RiveComponent className="w-full h-full pointer-events-none" />
+        {/* Maga a canvas, ami kirajzolja a vektort, engedjük az interakciót (klikkelés) */}
+        <RiveComponent className="w-full h-full cursor-pointer" />
         
         {!rive && (
           <div className="absolute inset-0 flex items-center justify-center text-center p-3 bg-black/60 text-white flex-col">
