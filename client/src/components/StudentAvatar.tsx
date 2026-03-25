@@ -111,7 +111,6 @@ export function StudentAvatar() {
 
   const { RiveComponent, rive } = useRive({
     src: `/avatars/${riveFileName}`,
-    stateMachines: 'State Machine 1', 
     autoplay: true,
   });
 
