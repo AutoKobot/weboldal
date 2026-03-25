@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRive, useStateMachineInput } from '@rive-app/react-canvas';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -268,13 +267,15 @@ export function StudentAvatar() {
       </div>
 
       {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
-      {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár - Csak ha kész a pozíció */}
-      {isReady && typeof window !== 'undefined' && createPortal(
+      {isReady && avatar.isAlive && (
         <motion.div 
-          className={`fixed z-[9999] w-[130px] h-[130px] pointer-events-none
-            ${avatar.hunger < 30 ? 'grayscale-[40%] sepia-[20%]' : ''}
-          `}
-          initial={{ opacity: 0, x: petPos.x, y: petPos.y }}
+          className={`fixed z-[100000] w-[130px] h-[130px] pointer-events-none`}
+          style={{ 
+            left: 0, 
+            top: 0,
+            filter: avatar.hunger < 30 ? 'grayscale(40%) sepia(20%)' : 'none'
+          }}
+          initial={{ opacity: 0, x: winSize.w / 2, y: winSize.h / 2 }}
           animate={{ 
             opacity: 1,
             x: petPos.x, 
@@ -287,7 +288,7 @@ export function StudentAvatar() {
             x: { type: "spring", stiffness: 30, damping: 20 },
             y: { type: "spring", stiffness: 30, damping: 20 },
             rotate: avatar.hunger < 30 ? { repeat: Infinity, duration: 2 } : { duration: 0.5 },
-            opacity: { duration: 0.3 }
+            opacity: { duration: 0.5 }
           }}
           onMouseEnter={() => setIsWandering(false)}
           onMouseLeave={() => setIsWandering(true)}
@@ -315,8 +316,7 @@ export function StudentAvatar() {
               </div>
             )}
           </motion.div>
-        </motion.div>,
-        document.body
+        </motion.div>
       )}
 
       <div className="w-full space-y-4">
