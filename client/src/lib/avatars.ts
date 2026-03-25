@@ -9,6 +9,13 @@ export interface AvatarDefinition {
 // Ide tölthetitek fel a Rive fájlokat, és adhattok hozzá újakat a jövőben!
 export const AVATARS: AvatarDefinition[] = [
   { 
+    id: "fekete_macska", 
+    name: "Fekete Kiber-Macska", 
+    filename: "black-cat.riv", 
+    unlockXP: 0, 
+    description: "Egy misztikus digitális macska, amit Te tölöttél fel!" 
+  },
+  { 
     id: "alap_robot", 
     name: "Kezdő Robot", 
     filename: "robot.riv", 
