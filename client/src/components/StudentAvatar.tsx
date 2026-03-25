@@ -269,10 +269,11 @@ export function StudentAvatar() {
       {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
       {isReady && avatar.isAlive && (
         <motion.div 
-          className="fixed z-[100000] w-[130px] h-[130px] pointer-events-none select-none outline-none"
+          className="fixed z-[100000] w-[130px] h-[130px] pointer-events-none select-none outline-none border-none !bg-transparent"
           style={{ 
             left: 0, 
             top: 0,
+            background: 'transparent',
             filter: avatar.hunger < 30 ? 'grayscale(40%) sepia(20%)' : 'none'
           }}
           initial={{ opacity: 0, x: winSize.w / 2, y: winSize.h / 2 }}
@@ -294,7 +295,8 @@ export function StudentAvatar() {
           onMouseLeave={() => setIsWandering(true)}
         >
           <motion.div 
-            className="w-full h-full relative cursor-grab active:cursor-grabbing transition-shadow duration-300 pointer-events-auto outline-none border-none ring-0 focus:ring-0 focus:outline-none"
+            className="w-full h-full relative cursor-grab active:cursor-grabbing transition-shadow duration-300 pointer-events-auto outline-none border-none ring-0 focus:ring-0 focus:outline-none !bg-transparent"
+            style={{ background: 'transparent' }}
             drag
             dragConstraints={{ 
               left: 20, 
@@ -308,7 +310,7 @@ export function StudentAvatar() {
               setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
             }}
           >
-            <RiveComponent className="w-full h-full cursor-pointer" />
+            <RiveComponent className="w-full h-full cursor-pointer !bg-transparent" style={{ background: 'transparent' }} />
             
             {/* Éhezés ikon a feje felett, ha baj van */}
             {avatar.hunger < 30 && (
