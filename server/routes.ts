@@ -7321,5 +7321,39 @@ export function setupPrivacyRoutes(app: Express) {
       res.status(500).json({ message: 'Failed to update request status' });
     }
   });
+
+  // ==========================================
+  // STUDENT AVATAR ROUTES
+  // ==========================================
+  app.get('/api/student/avatar', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const avatar = await storage.getStudentAvatar(userId);
+      res.json(avatar);
+    } catch (error) {
+      console.error('Error fetching student avatar:', error);
+      res.status(500).json({ message: 'Failed to fetch avatar' });
+    }
+  });
+
+  app.post('/api/student/avatar/feed', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const { xpCost } = req.body;
+      if (!xpCost || typeof xpCost !== 'number' || xpCost <= 0) {
+        return res.status(400).json({ message: 'Invalid XP cost' });
+      }
+      
+      const updatedAvatar = await storage.feedStudentAvatar(userId, xpCost);
+      if (!updatedAvatar) {
+        return res.status(400).json({ message: 'Nem elegendő XP vagy hiba történt' });
+      }
+      
+      res.json(updatedAvatar);
+    } catch (error) {
+      console.error('Error feeding avatar:', error);
+      res.status(500).json({ message: 'Failed to feed avatar' });
+    }
+  });
 }
 

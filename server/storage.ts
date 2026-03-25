@@ -82,6 +82,9 @@ import {
   type InsertStudentDailyNote,
   type LessonSchedule,
   type InsertLessonSchedule,
+  studentAvatars,
+  type StudentAvatar,
+  type InsertStudentAvatar,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists } from "drizzle-orm";
@@ -240,6 +243,11 @@ export interface IStorage {
   markNotificationRead(id: number, userId: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
   deleteNotification(id: number, userId: string): Promise<void>;
+
+  // Student Avatar operations
+  getStudentAvatar(userId: string): Promise<StudentAvatar>;
+  feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null>;
+  updateStudentAvatar(userId: string, data: Partial<InsertStudentAvatar>): Promise<StudentAvatar>;
 
   // ── Jelenlét operations ───────────────────────────────────────────────────
   // Lesson schedule
@@ -739,16 +747,17 @@ export class DatabaseStorage implements IStorage {
             ))
         )
       );
-      conditions.push(subjectFilter);
+      if (subjectFilter) conditions.push(subjectFilter);
     }
 
     if (schoolAdminId === null) {
       conditions.push(isNull(modules.schoolAdminId));
     } else if (schoolAdminId) {
-      conditions.push(or(
+      const adminFilter = or(
         isNull(modules.schoolAdminId),
         eq(modules.schoolAdminId, schoolAdminId)
-      ));
+      );
+      if (adminFilter) conditions.push(adminFilter);
     }
 
     if (conditions.length > 0) {
@@ -772,16 +781,17 @@ export class DatabaseStorage implements IStorage {
             ))
         )
       );
-      conditions.push(subjectFilter);
+      if (subjectFilter) conditions.push(subjectFilter);
     }
 
     if (schoolAdminId === null) {
       conditions.push(isNull(modules.schoolAdminId));
     } else if (schoolAdminId) {
-      conditions.push(or(
+      const adminFilter = or(
         isNull(modules.schoolAdminId),
         eq(modules.schoolAdminId, schoolAdminId)
-      ));
+      );
+      if (adminFilter) conditions.push(adminFilter);
     }
 
     return await db
@@ -2282,6 +2292,71 @@ export class DatabaseStorage implements IStorage {
       ORDER BY cp.date, cp.period_number, sl.last_name, sl.first_name
     `);
     return rows.rows;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Student Avatar operations
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async getStudentAvatar(userId: string): Promise<StudentAvatar> {
+    const existing = await db.select().from(studentAvatars).where(eq(studentAvatars.userId, userId));
+    
+    if (existing && existing.length > 0) {
+      let avatar = existing[0];
+      
+      // Calculate hunger decay
+      const now = new Date();
+      if (avatar.lastFedAt) {
+        const hoursPassed = (now.getTime() - avatar.lastFedAt.getTime()) / (1000 * 60 * 60);
+        const hungerDecay = Math.floor(hoursPassed * 0.5); // Depletes 0.5 points per hour -> 12 per day
+        
+        if (hungerDecay > 0) {
+          const newHunger = Math.max(0, avatar.hunger - hungerDecay);
+          avatar = await this.updateStudentAvatar(userId, { hunger: newHunger });
+        }
+      }
+      return avatar;
+    }
+    
+    // Create new if doesn't exist
+    const [newAvatar] = await db.insert(studentAvatars).values({
+      userId,
+      avatarType: 'test',
+      hunger: 100,
+      happiness: 100,
+      level: 1,
+      isAlive: true,
+      lastFedAt: new Date()
+    }).returning();
+    
+    return newAvatar;
+  }
+
+  async feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null> {
+    const user = await this.getUser(userId);
+    if (!user || (user.xp ?? 0) < xpCost) return null; // Not enough XP
+    
+    // Deduct XP
+    await db.update(users).set({ xp: (user.xp ?? 0) - xpCost }).where(eq(users.id, userId));
+    
+    const avatar = await this.getStudentAvatar(userId);
+    // Increase hunger (max 100) and possibly level up if fed a lot
+    const newHunger = Math.min(100, avatar.hunger + 20); // Each feed +20 hunger
+    
+    return await this.updateStudentAvatar(userId, { 
+      hunger: newHunger,
+      lastFedAt: new Date()
+    });
+  }
+
+  async updateStudentAvatar(userId: string, data: Partial<InsertStudentAvatar>): Promise<StudentAvatar> {
+    const [updated] = await db
+      .update(studentAvatars)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(studentAvatars.userId, userId))
+      .returning();
+      
+    return updated;
   }
 }
 

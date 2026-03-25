@@ -360,6 +360,21 @@ export const studentDailyNotes = pgTable("student_daily_notes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Student avatars (Tamagotchi)
+export const studentAvatars = pgTable("student_avatars", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references((): AnyPgColumn => users.id, { onDelete: "cascade" }).notNull(),
+  avatarType: varchar("avatar_type").default("test").notNull(),
+  name: varchar("name"),
+  level: integer("level").default(1).notNull(),
+  hunger: integer("hunger").default(100).notNull(),
+  happiness: integer("happiness").default(100).notNull(),
+  isAlive: boolean("is_alive").default(true).notNull(),
+  lastFedAt: timestamp("last_fed_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Insert schemas
@@ -749,6 +764,15 @@ export type InsertDataProcessingActivity = typeof dataProcessingActivities.$infe
 export const insertUserConsentSchema = createInsertSchema(userConsents);
 export const insertPrivacyRequestSchema = createInsertSchema(privacyRequests);
 export const insertDataProcessingActivitySchema = createInsertSchema(dataProcessingActivities);
+
+// Student avatars types and schemas
+export type StudentAvatar = typeof studentAvatars.$inferSelect;
+export type InsertStudentAvatar = typeof studentAvatars.$inferInsert;
+export const insertStudentAvatarSchema = createInsertSchema(studentAvatars).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 // Test results types and schemas
 export type TestResult = typeof testResults.$inferSelect;
