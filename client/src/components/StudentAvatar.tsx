@@ -269,7 +269,7 @@ export function StudentAvatar() {
       {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
       {isReady && avatar.isAlive && (
         <motion.div 
-          className={`fixed z-[100000] w-[130px] h-[130px] pointer-events-none`}
+          className="fixed z-[100000] w-[130px] h-[130px] pointer-events-none select-none outline-none"
           style={{ 
             left: 0, 
             top: 0,
@@ -294,8 +294,15 @@ export function StudentAvatar() {
           onMouseLeave={() => setIsWandering(true)}
         >
           <motion.div 
-            className="w-full h-full relative cursor-grab active:cursor-grabbing hover:drop-shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-shadow duration-300 pointer-events-auto"
+            className="w-full h-full relative cursor-grab active:cursor-grabbing transition-shadow duration-300 pointer-events-auto outline-none border-none ring-0 focus:ring-0 focus:outline-none"
             drag
+            dragConstraints={{ 
+              left: 20, 
+              right: winSize.w - 150, 
+              top: 20, 
+              bottom: winSize.h - 150 
+            }}
+            dragElastic={0.1}
             dragMomentum={false}
             onDragEnd={(e, info) => {
               setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
