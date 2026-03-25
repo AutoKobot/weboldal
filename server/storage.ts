@@ -245,9 +245,11 @@ export interface IStorage {
   deleteNotification(id: number, userId: string): Promise<void>;
 
   // Student Avatar operations
-  getStudentAvatar(userId: string): Promise<StudentAvatar>;
+  getStudentAvatar(userId: string): Promise<StudentAvatar | null>;
   feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null>;
   updateStudentAvatar(userId: string, data: Partial<InsertStudentAvatar>): Promise<StudentAvatar>;
+  selectStudentAvatar(userId: string, avatarType: string): Promise<StudentAvatar>;
+  reviveStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null>;
 
   // ── Jelenlét operations ───────────────────────────────────────────────────
   // Lesson schedule
@@ -2298,33 +2300,44 @@ export class DatabaseStorage implements IStorage {
   // Student Avatar operations
   // ────────────────────────────────────────────────────────────────────────────
 
-  async getStudentAvatar(userId: string): Promise<StudentAvatar> {
+  async getStudentAvatar(userId: string): Promise<StudentAvatar | null> {
     const existing = await db.select().from(studentAvatars).where(eq(studentAvatars.userId, userId));
-    
     if (existing && existing.length > 0) {
       let avatar = existing[0];
       
-      // Calculate hunger decay
-      const now = new Date();
-      if (avatar.lastFedAt) {
+      // Calculate hunger decay only if alive
+      if (avatar.isAlive && avatar.lastFedAt) {
+        const now = new Date();
         const hoursPassed = (now.getTime() - avatar.lastFedAt.getTime()) / (1000 * 60 * 60);
-        const hungerDecay = Math.floor(hoursPassed * 0.5); // Depletes 0.5 points per hour -> 12 per day
+        const hungerDecay = Math.floor(hoursPassed * 0.5); // Depletes 0.5 points per hour
         
         if (hungerDecay > 0) {
           const newHunger = Math.max(0, avatar.hunger - hungerDecay);
-          avatar = await this.updateStudentAvatar(userId, { hunger: newHunger });
+          let isAlive = true;
+          if (newHunger === 0) {
+             isAlive = false;
+          }
+          avatar = await this.updateStudentAvatar(userId, { hunger: newHunger, isAlive });
         }
       }
       return avatar;
     }
+    return null;
+  }
+
+  async selectStudentAvatar(userId: string, avatarType: string): Promise<StudentAvatar> {
+    const existing = await db.select().from(studentAvatars).where(eq(studentAvatars.userId, userId));
+    if (existing.length > 0) {
+      return await this.updateStudentAvatar(userId, { avatarType });
+    }
     
-    // Create new if doesn't exist
     const [newAvatar] = await db.insert(studentAvatars).values({
       userId,
-      avatarType: 'test',
+      avatarType,
       hunger: 100,
       happiness: 100,
       level: 1,
+      xpInvested: 0,
       isAlive: true,
       lastFedAt: new Date()
     }).returning();
@@ -2332,19 +2345,40 @@ export class DatabaseStorage implements IStorage {
     return newAvatar;
   }
 
+  async reviveStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null> {
+    const user = await this.getUser(userId);
+    if (!user || (user.xp ?? 0) < xpCost) return null;
+    
+    const avatar = await this.getStudentAvatar(userId);
+    if (!avatar || avatar.isAlive) return null;
+    
+    await db.update(users).set({ xp: (user.xp ?? 0) - xpCost }).where(eq(users.id, userId));
+    
+    return await this.updateStudentAvatar(userId, { 
+      isAlive: true, 
+      hunger: 50,
+      lastFedAt: new Date() 
+    });
+  }
+
   async feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | null> {
     const user = await this.getUser(userId);
     if (!user || (user.xp ?? 0) < xpCost) return null; // Not enough XP
     
+    const avatar = await this.getStudentAvatar(userId);
+    if (!avatar || !avatar.isAlive) return null; // Cannot feed ghost
+    
     // Deduct XP
     await db.update(users).set({ xp: (user.xp ?? 0) - xpCost }).where(eq(users.id, userId));
     
-    const avatar = await this.getStudentAvatar(userId);
-    // Increase hunger (max 100) and possibly level up if fed a lot
-    const newHunger = Math.min(100, avatar.hunger + 20); // Each feed +20 hunger
+    const newHunger = Math.min(100, avatar.hunger + 20); 
+    const newXpInvested = avatar.xpInvested + xpCost;
+    const newLevel = Math.floor(newXpInvested / 500) + 1; // Level up every 500 XP invested
     
     return await this.updateStudentAvatar(userId, { 
       hunger: newHunger,
+      xpInvested: newXpInvested,
+      level: newLevel,
       lastFedAt: new Date()
     });
   }

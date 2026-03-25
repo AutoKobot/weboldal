@@ -369,6 +369,7 @@ export const studentAvatars = pgTable("student_avatars", {
   level: integer("level").default(1).notNull(),
   hunger: integer("hunger").default(100).notNull(),
   happiness: integer("happiness").default(100).notNull(),
+  xpInvested: integer("xp_invested").default(0).notNull(),
   isAlive: boolean("is_alive").default(true).notNull(),
   lastFedAt: timestamp("last_fed_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),

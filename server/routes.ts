@@ -7355,5 +7355,39 @@ export function setupPrivacyRoutes(app: Express) {
       res.status(500).json({ message: 'Failed to feed avatar' });
     }
   });
+
+  app.post('/api/student/avatar/select', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const { avatarType } = req.body;
+      if (!avatarType) {
+        return res.status(400).json({ message: 'Avatar type is required' });
+      }
+      
+      const newAvatar = await storage.selectStudentAvatar(userId, avatarType);
+      res.json(newAvatar);
+    } catch (error) {
+      console.error('Error selecting avatar:', error);
+      res.status(500).json({ message: 'Failed to select avatar' });
+    }
+  });
+
+  app.post('/api/student/avatar/revive', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      // Fixed cost for resurrection, could be configurable
+      const xpCost = 1000; 
+      
+      const revivedAvatar = await storage.reviveStudentAvatar(userId, xpCost);
+      if (!revivedAvatar) {
+        return res.status(400).json({ message: 'Nem elegendő XP az újraélesztéshez, vagy az avatár még él.' });
+      }
+      
+      res.json(revivedAvatar);
+    } catch (error) {
+      console.error('Error reviving avatar:', error);
+      res.status(500).json({ message: 'Failed to revive avatar' });
+    }
+  });
 }
 
