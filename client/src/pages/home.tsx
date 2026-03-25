@@ -15,7 +15,7 @@ import {
   ChevronRight, FileText, Bot
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
-import AvatarPet from "@/components/avatar-pet";
+import { StudentAvatar } from "@/components/StudentAvatar";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -311,8 +311,10 @@ export default function HomePage() {
             </Card>
           )}
 
-          {/* Avatar kísérő */}
-          <AvatarPet user={{ ...user, username: user.username ?? '', firstName: user.firstName ?? undefined, lastName: user.lastName ?? undefined } as any} />
+          {/* Új Student Avatar Rendszer (Rive) */}
+          <div className="w-full max-w-md mx-auto">
+            <StudentAvatar />
+          </div>
 
           {/* Vizuális Haladás & Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
