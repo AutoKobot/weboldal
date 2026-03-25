@@ -16,6 +16,49 @@ export function StudentAvatar() {
   const { user } = useAuth();
   const userXp = user?.xp || 0;
   const [isFeeding, setIsFeeding] = useState(false);
+  
+  // Bolyongás állapota
+  const [petPos, setPetPos] = useState({ x: 20, y: 20 });
+  const [petScaleX, setPetScaleX] = useState(1);
+  const [isWandering, setIsWandering] = useState(true);
+
+  // Képernyőmérethez igazodás
+  const [winSize, setWinSize] = useState({ w: 1000, h: 800 });
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const updateSize = () => setWinSize({ w: window.innerWidth, h: window.innerHeight });
+      window.addEventListener('resize', updateSize);
+      updateSize();
+      
+      // Kezdeti pozíció a képernyő jobb alsó sarka felé
+      setPetPos({ x: window.innerWidth - 180, y: window.innerHeight - 180 });
+      return () => window.removeEventListener('resize', updateSize);
+    }
+  }, []);
+
+  // Időszakos bóklászás logika
+  useEffect(() => {
+    if (!isWandering) return;
+    
+    const interval = setInterval(() => {
+      // 30% eséllyel megáll pihenni
+      if (Math.random() < 0.3) return;
+      
+      // Véletlenszerű X pozíció
+      const newX = Math.max(20, Math.random() * (winSize.w - 150));
+      // Véletlenszerű Y pozíció az alsó szegmensben (képernyő alsó 30%-a)
+      const bottomArea = winSize.h * 0.3;
+      const newY = winSize.h - 150 - (Math.random() * bottomArea);
+      
+      // Forduljon abba az irányba, amerre megy
+      setPetScaleX(newX > petPos.x ? 1 : -1);
+      
+      setPetPos({ x: newX, y: newY });
+    }, 4000 + Math.random() * 4000);
+    
+    return () => clearInterval(interval);
+  }, [petPos.x, winSize.w, winSize.h, isWandering]);
 
   const { data: avatar, isLoading } = useQuery({
     queryKey: ['/api/student/avatar'],
@@ -214,31 +257,55 @@ export function StudentAvatar() {
         </span>
       </div>
       
-      {/* Rive Canvas - Most már Animált (Framer Motion) dobozban! */}
+      {/* Játékos "Bázis" a Dashboardon */}
+      <div className="w-full max-w-[200px] aspect-square bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-primary/30 flex flex-col items-center justify-center mb-4 text-center p-4">
+        <div className="text-4xl mb-2 opacity-50">🏠</div>
+        <p className="text-xs text-neutral-500 font-medium">Az állatkád jelenleg a képernyőn bóklászik!</p>
+        <p className="text-[10px] text-neutral-400 mt-2">Itt várjuk vissza.</p>
+      </div>
+
+      {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
       <motion.div 
-        className={`w-full max-w-[200px] aspect-square rounded-2xl border-4 overflow-hidden relative flex items-center justify-center mb-4 transition-all duration-500
-          ${avatar.hunger < 30 ? 'bg-red-900/10 border-red-500/40 grayscale-[40%] sepia-[20%]' : 'bg-slate-100 dark:bg-slate-800 border-primary/20'}
+        className={`fixed z-[100] w-[130px] h-[130px] transition-all
+          ${avatar.hunger < 30 ? 'grayscale-[40%] sepia-[20%]' : ''}
         `}
-        animate={
-          isFeeding ? { scale: [1, 1.15, 0.9, 1.05, 1], rotate: [0, -5, 5, -2, 0] } 
-          : avatar.hunger < 30 ? { x: [-2, 2, -2, 2, 0], transition: { repeat: Infinity, duration: 2 } } 
-          : {}
-        }
-        whileHover={{ scale: 1.05, boxShadow: "0px 0px 15px rgba(79, 70, 229, 0.3)" }}
-        transition={{ duration: 0.5 }}
+        initial={{ x: petPos.x, y: petPos.y }}
+        animate={{ 
+          x: petPos.x, 
+          y: petPos.y,
+          scaleX: petScaleX,
+          scaleY: isFeeding ? [1, 1.15, 0.9, 1] : 1,
+          rotate: isFeeding ? [-5, 5, 0] : (avatar.hunger < 30 ? [-2, 2, -2, 2, 0] : 0)
+        }}
+        transition={{ 
+          x: { type: "spring", stiffness: 30, damping: 20 },
+          y: { type: "spring", stiffness: 30, damping: 20 },
+          rotate: avatar.hunger < 30 ? { repeat: Infinity, duration: 2 } : { duration: 0.5 }
+        }}
+        onMouseEnter={() => setIsWandering(false)}
+        onMouseLeave={() => setIsWandering(true)}
+        drag
+        dragMomentum={false}
+        onDragEnd={(e, info) => {
+          setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
+        }}
       >
-        
-        {/* Maga a canvas, ami kirajzolja a vektort, engedjük az interakciót (klikkelés) */}
-        <RiveComponent className="w-full h-full cursor-pointer" />
-        
-        {!rive && (
-          <div className="absolute inset-0 flex items-center justify-center text-center p-3 bg-black/60 text-white flex-col">
-            <span className="text-[10px] opacity-80 mb-1">Hiányzó fájl:</span>
-            <code className="text-[10px] bg-black px-2 py-1 rounded text-red-300 break-all w-[90%] font-mono">
-              public/avatars/{riveFileName}
-            </code>
-          </div>
-        )}
+        <div className="w-full h-full relative cursor-grab active:cursor-grabbing hover:drop-shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all duration-300">
+          <RiveComponent className="w-full h-full pointer-events-auto" />
+          
+          {/* Éhezés ikon a feje felett, ha baj van */}
+          {avatar.hunger < 30 && (
+            <div className="absolute -top-4 -right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-bounce shadow-sm font-bold border border-white">
+              Éhes! 🍖
+            </div>
+          )}
+          
+          {!rive && (
+            <div className="absolute inset-0 flex items-center justify-center text-center p-2 bg-black/60 text-white flex-col rounded-xl">
+              <span className="text-[9px] opacity-80">Fájl hiba</span>
+            </div>
+          )}
+        </div>
       </motion.div>
 
       <div className="w-full space-y-4">
