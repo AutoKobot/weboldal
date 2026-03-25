@@ -119,6 +119,21 @@ export function StudentAvatar() {
   const levelInput = useStateMachineInput(rive, 'State Machine 1', 'level', 1);
   const trigFeed = useStateMachineInput(rive, 'State Machine 1', 'feed');
 
+  // Próbáljuk meg BÁRMILYEN animációt vagy State Machine-t elindítani, amit a fájl tartalmaz!
+  useEffect(() => {
+    if (rive) {
+      const states = rive.stateMachineNames || [];
+      const anims = rive.animationNames || [];
+      console.log('Rive betöltve. StateMachines:', states, 'Animations:', anims);
+      
+      if (states.length > 0) {
+        try { rive.play(states); } catch(e) {}
+      } else if (anims.length > 0) {
+        try { rive.play(anims); } catch(e) {}
+      }
+    }
+  }, [rive]);
+
   useEffect(() => {
     if (avatar && hungerInput) {
       hungerInput.value = avatar.hunger;
