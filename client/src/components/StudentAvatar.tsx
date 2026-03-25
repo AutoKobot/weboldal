@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRive, useStateMachineInput } from '@rive-app/react-canvas';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ export function StudentAvatar() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const userXp = user?.xp || 0;
+  const [isFeeding, setIsFeeding] = useState(false);
 
   const { data: avatar, isLoading } = useQuery({
     queryKey: ['/api/student/avatar'],
@@ -72,6 +74,10 @@ export function StudentAvatar() {
         title: "Megetetted az avatárt!",
         description: "Erősödött és jóllakott!",
       });
+      // Vizuális "ugrás" effekt bekapcsolása CSS-el
+      setIsFeeding(true);
+      setTimeout(() => setIsFeeding(false), 800);
+      
       if (trigFeed) {
         trigFeed.fire();
       }
@@ -194,10 +200,22 @@ export function StudentAvatar() {
         </span>
       </div>
       
-      {/* Rive Canvas */}
-      <div className="w-full max-w-[200px] aspect-square bg-slate-100 dark:bg-slate-800 rounded-2xl border-4 border-primary/20 overflow-hidden relative flex items-center justify-center mb-4">
+      {/* Rive Canvas - Most már Animált (Framer Motion) dobozban! */}
+      <motion.div 
+        className={`w-full max-w-[200px] aspect-square rounded-2xl border-4 overflow-hidden relative flex items-center justify-center mb-4 transition-all duration-500
+          ${avatar.hunger < 30 ? 'bg-red-900/10 border-red-500/40 grayscale-[40%] sepia-[20%]' : 'bg-slate-100 dark:bg-slate-800 border-primary/20'}
+        `}
+        animate={
+          isFeeding ? { scale: [1, 1.15, 0.9, 1.05, 1], rotate: [0, -5, 5, -2, 0] } 
+          : avatar.hunger < 30 ? { x: [-2, 2, -2, 2, 0], transition: { repeat: Infinity, duration: 2 } } 
+          : {}
+        }
+        whileHover={{ scale: 1.05, boxShadow: "0px 0px 15px rgba(79, 70, 229, 0.3)" }}
+        transition={{ duration: 0.5 }}
+      >
         
-        <RiveComponent className="w-full h-full" />
+        {/* Maga a canvas, ami kirajzolja a vektort */}
+        <RiveComponent className="w-full h-full pointer-events-none" />
         
         {!rive && (
           <div className="absolute inset-0 flex items-center justify-center text-center p-3 bg-black/60 text-white flex-col">
@@ -207,7 +225,7 @@ export function StudentAvatar() {
             </code>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <div className="w-full space-y-4">
         <div>
