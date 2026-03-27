@@ -85,6 +85,12 @@ import {
   studentAvatars,
   type StudentAvatar,
   type InsertStudentAvatar,
+  classAnnouncements,
+  announcementAcknowledgements,
+  type ClassAnnouncement,
+  type InsertClassAnnouncement,
+  type AnnouncementAcknowledgement,
+  type InsertAnnouncementAcknowledgement,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists } from "drizzle-orm";
@@ -273,6 +279,15 @@ export interface IStorage {
 
   // Export helpers
   getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]>;
+
+  // Class Announcement operations
+  createAnnouncement(announcement: InsertClassAnnouncement): Promise<ClassAnnouncement>;
+  getAnnouncementsByClass(classId: number): Promise<ClassAnnouncement[]>;
+  getActiveAnnouncementsForStudent(studentId: string, classId: number): Promise<ClassAnnouncement[]>;
+  getUnacknowledgedAnnouncements(studentId: string, classId: number): Promise<ClassAnnouncement[]>;
+  acknowledgeAnnouncement(acknowledgement: InsertAnnouncementAcknowledgement): Promise<AnnouncementAcknowledgement>;
+  getAnnouncementStats(announcementId: number): Promise<any[]>;
+  deleteAnnouncement(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2396,6 +2411,114 @@ export class DatabaseStorage implements IStorage {
 
   async releaseStudentAvatar(userId: string): Promise<void> {
     await db.delete(studentAvatars).where(eq(studentAvatars.userId, userId));
+  }
+
+  // Class Announcements implementation
+  async createAnnouncement(announcementData: InsertClassAnnouncement): Promise<ClassAnnouncement> {
+    const [announcement] = await db
+      .insert(classAnnouncements)
+      .values(announcementData)
+      .returning();
+    return announcement;
+  }
+
+  async getAnnouncementsByClass(classId: number): Promise<ClassAnnouncement[]> {
+    return await db
+      .select()
+      .from(classAnnouncements)
+      .where(eq(classAnnouncements.classId, classId))
+      .orderBy(desc(classAnnouncements.createdAt));
+  }
+
+  async getActiveAnnouncementsForStudent(studentId: string, classId: number): Promise<ClassAnnouncement[]> {
+    // Return announcements that are active and not expired
+    const now = new Date();
+    return await db
+      .select()
+      .from(classAnnouncements)
+      .where(
+        and(
+          eq(classAnnouncements.classId, classId),
+          eq(classAnnouncements.isActive, true),
+          or(isNull(classAnnouncements.expiresAt), gte(classAnnouncements.expiresAt, now))
+        )
+      )
+      .orderBy(desc(classAnnouncements.createdAt));
+  }
+
+  async getUnacknowledgedAnnouncements(studentId: string, classId: number): Promise<ClassAnnouncement[]> {
+    const now = new Date();
+    
+    // Subquery to find already acknowledged announcement IDs
+    const acknowledgedIds = db
+      .select({ id: announcementAcknowledgements.announcementId })
+      .from(announcementAcknowledgements)
+      .where(eq(announcementAcknowledgements.studentId, studentId));
+
+    return await db
+      .select()
+      .from(classAnnouncements)
+      .where(
+        and(
+          eq(classAnnouncements.classId, classId),
+          eq(classAnnouncements.isActive, true),
+          or(isNull(classAnnouncements.expiresAt), gte(classAnnouncements.expiresAt, now)),
+          sql`${classAnnouncements.id} NOT IN (${acknowledgedIds})`
+        )
+      )
+      .orderBy(desc(classAnnouncements.createdAt));
+  }
+
+  async acknowledgeAnnouncement(acknowledgementData: InsertAnnouncementAcknowledgement): Promise<AnnouncementAcknowledgement> {
+    const [acknowledgement] = await db
+      .insert(announcementAcknowledgements)
+      .values(acknowledgementData)
+      .onConflictDoUpdate({
+        target: [announcementAcknowledgements.announcementId, announcementAcknowledgements.studentId],
+        set: {
+          response: acknowledgementData.response,
+          acknowledgedAt: new Date()
+        }
+      })
+      .returning();
+    return acknowledgement;
+  }
+
+  async getAnnouncementStats(announcementId: number): Promise<any[]> {
+    // Join with users to get names
+    return await db
+      .select({
+        studentId: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        response: announcementAcknowledgements.response,
+        acknowledgedAt: announcementAcknowledgements.acknowledgedAt,
+      })
+      .from(users)
+      .leftJoin(
+        announcementAcknowledgements,
+        and(
+          eq(announcementAcknowledgements.studentId, users.id),
+          eq(announcementAcknowledgements.announcementId, announcementId)
+        )
+      )
+      .where(
+        exists(
+          db.select()
+            .from(classAnnouncements)
+            .where(
+              and(
+                eq(classAnnouncements.id, announcementId),
+                eq(users.classId, classAnnouncements.classId)
+              )
+            )
+        )
+      );
+  }
+
+  async deleteAnnouncement(id: number): Promise<void> {
+    await db.delete(classAnnouncements).where(eq(classAnnouncements.id, id));
   }
 }
 

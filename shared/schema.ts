@@ -310,6 +310,31 @@ export const classes = pgTable("classes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Class announcements for teacher -> class messages
+export const classAnnouncements = pgTable("class_announcements", {
+  id: serial("id").primaryKey(),
+  teacherId: varchar("teacher_id").references(() => users.id).notNull(),
+  classId: integer("class_id").references(() => classes.id).notNull(),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  type: varchar("type").default("info").notNull(), // "info", "action_required", "event"
+  options: jsonb("options").default(["Értettem"]), // Custom response buttons if needed
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+// Acknowledgment tracking for announcements
+export const announcementAcknowledgements = pgTable("announcement_acknowledgements", {
+  id: serial("id").primaryKey(),
+  announcementId: integer("announcement_id").references(() => classAnnouncements.id, { onDelete: "cascade" }).notNull(),
+  studentId: varchar("student_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  response: varchar("response"), // Which button they clicked
+  acknowledgedAt: timestamp("acknowledged_at").defaultNow().notNull(),
+}, (t) => ({
+  uniqueAck: uniqueIndex("unique_acknowledgement").on(t.announcementId, t.studentId),
+}));
+
 // ── Jelenlét kezelés ──────────────────────────────────────────────────────────
 
 // Lesson schedule table – iskolai órarend (tanórák kezdési/befejezési ideje)
@@ -799,6 +824,32 @@ export const studentDailyNotesRelations = relations(studentDailyNotes, ({ one })
   teacher: one(users, { fields: [studentDailyNotes.teacherId], references: [users.id] }),
   class: one(classes, { fields: [studentDailyNotes.classId], references: [classes.id] }),
 }));
+
+export const classAnnouncementsRelations = relations(classAnnouncements, ({ one, many }) => ({
+  teacher: one(users, { fields: [classAnnouncements.teacherId], references: [users.id] }),
+  class: one(classes, { fields: [classAnnouncements.classId], references: [classes.id] }),
+  acknowledgements: many(announcementAcknowledgements),
+}));
+
+export const announcementAcknowledgementsRelations = relations(announcementAcknowledgements, ({ one }) => ({
+  announcement: one(classAnnouncements, { fields: [announcementAcknowledgements.announcementId], references: [classAnnouncements.id] }),
+  student: one(users, { fields: [announcementAcknowledgements.studentId], references: [users.id] }),
+}));
+
+// Announcement types & schemas
+export type ClassAnnouncement = typeof classAnnouncements.$inferSelect;
+export type InsertClassAnnouncement = typeof classAnnouncements.$inferInsert;
+export const insertClassAnnouncementSchema = createInsertSchema(classAnnouncements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AnnouncementAcknowledgement = typeof announcementAcknowledgements.$inferSelect;
+export type InsertAnnouncementAcknowledgement = typeof announcementAcknowledgements.$inferInsert;
+export const insertAnnouncementAcknowledgementSchema = createInsertSchema(announcementAcknowledgements).omit({
+  id: true,
+  acknowledgedAt: true,
+});
 
 // ── Jelenlét Types & Schemas ──────────────────────────────────────────────────
 export type LessonSchedule = typeof lessonSchedules.$inferSelect;

@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, Clock, MessageSquare, Menu, Award, Flame } from "lucide-react";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import type { Module } from "@shared/schema";
+import ClassAnnouncementModal from "@/components/ClassAnnouncementModal";
 
 export default function StudentDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -117,6 +118,7 @@ export default function StudentDashboard() {
   return (
     <div className="flex min-h-screen bg-neutral-50 relative">
       <DynamicBackground />
+      <ClassAnnouncementModal />
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar user={user} />

@@ -88,7 +88,7 @@ const combinedAuth = async (req: any, res: any, next: any) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 };
-import { insertModuleSchema, insertChatMessageSchema, insertProfessionSchema, insertSubjectSchema, insertAdminMessageSchema } from "@shared/schema";
+import { insertModuleSchema, insertChatMessageSchema, insertProfessionSchema, insertSubjectSchema, insertAdminMessageSchema, insertClassAnnouncementSchema } from "@shared/schema";
 import { generateChatResponse, generateQuizQuestions, explainConcept, generateSpeech } from "./openai";
 import multer from "multer";
 import path from "path";
@@ -3860,6 +3860,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sitemapCacheTime = 0;
     console.log('Sitemap cache invalidated - will regenerate on next request');
   };
+
+  // Class Announcement routes
+  app.post('/api/announcements', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== 'admin' && user.role !== 'teacher' && user.role !== 'school_admin')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const announcementData = insertClassAnnouncementSchema.parse(req.body);
+      const announcement = await storage.createAnnouncement({
+        ...announcementData,
+        teacherId: userId
+      });
+
+      res.status(201).json(announcement);
+    } catch (error) {
+      console.error("Error creating announcement:", error);
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  app.get('/api/classes/:classId/announcements', combinedAuth, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.classId);
+      const announcements = await storage.getAnnouncementsByClass(classId);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching class announcements:", error);
+      res.status(500).json({ message: "Failed to fetch class announcements" });
+    }
+  });
+
+  app.get('/api/announcements/my', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== 'student' && user.role !== 'teacher') || !user.classId) {
+        return res.json([]);
+      }
+
+      const announcements = await storage.getUnacknowledgedAnnouncements(userId, user.classId);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching my announcements:", error);
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.post('/api/announcements/:id/acknowledge', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const announcementId = parseInt(req.params.id);
+      const { response } = req.body;
+
+      const acknowledgement = await storage.acknowledgeAnnouncement({
+        announcementId,
+        studentId: userId,
+        response: response || "Értettem"
+      });
+
+      res.json(acknowledgement);
+    } catch (error) {
+      console.error("Error acknowledging announcement:", error);
+      res.status(500).json({ message: "Failed to acknowledge announcement" });
+    }
+  });
+
+  app.get('/api/announcements/:id/stats', combinedAuth, async (req: any, res) => {
+    try {
+      const announcementId = parseInt(req.params.id);
+      const stats = await storage.getAnnouncementStats(announcementId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching announcement stats:", error);
+      res.status(500).json({ message: "Failed to fetch announcement statistics" });
+    }
+  });
+
+  app.delete('/api/announcements/:id', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub || req.user.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteAnnouncement(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
 
   // Test sitemap generation endpoint with cache status
   app.get('/api/sitemap/test', combinedAuth, async (req: any, res) => {

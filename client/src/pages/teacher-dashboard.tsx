@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -47,6 +48,12 @@ import {
   Pencil,
   Save,
   X as XIcon,
+  Bell,
+  Plus,
+  Trash2,
+  Eye,
+  Info,
+  AlertTriangle,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -126,6 +133,13 @@ export default function TeacherDashboard() {
   const [noteText, setNoteText] = useState<string>("");
   const [savingNote, setSavingNote] = useState(false);
 
+  // Announcements state
+  const [annTitle, setAnnTitle] = useState("");
+  const [annContent, setAnnContent] = useState("");
+  const [annType, setAnnType] = useState<"info" | "action_required" | "event">("info");
+  const [annClassId, setAnnClassId] = useState<string>("all");
+  const [isCreatingAnn, setIsCreatingAnn] = useState(false);
+
   const queryClient = useQueryClient();
   // Collapsible class groups in student list
   const [collapsedClasses, setCollapsedClasses] = useState<Set<string>>(new Set());
@@ -156,6 +170,38 @@ export default function TeacherDashboard() {
   // Fetch teacher classes
   const { data: teacherClasses = [], isLoading: classesLoading } = useQuery<ClassData[]>({
     queryKey: ["/api/teacher/classes"],
+  });
+
+  const createAnnouncementMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create announcement");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/classes/${annClassId}/announcements`] });
+      setIsCreatingAnn(false);
+      setAnnTitle("");
+      setAnnContent("");
+      // @ts-ignore - Assuming toast is available from useToast
+      toast({ title: "Sikeresen küldve", description: "Az üzenetet elküldtük az osztálynak." });
+    },
+  });
+
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/announcements/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete announcement");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/classes/${annClassId}/announcements`] });
+      // @ts-ignore
+      toast({ title: "Törölve", description: "Az üzenetet sikeresen töröltük." });
+    },
   });
 
   // Fetch class grades for statistics
@@ -271,6 +317,255 @@ export default function TeacherDashboard() {
     ? (classGrades.reduce((sum, g) => sum + g.grade, 0) / classGrades.length).toFixed(2)
     : "N/A";
 
+  const AnnouncementsView = () => {
+    const { data: announcements = [], isLoading: annLoading } = useQuery<any[]>({
+      queryKey: [`/api/classes/${annClassId}/announcements`],
+      enabled: annClassId !== "all",
+    });
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">Osztály Üzenetek</CardTitle>
+              <CardDescription>Küldjön üzenetet az egész osztálynak és kövesse nyomon a visszaigazolásokat.</CardDescription>
+            </div>
+            <Button
+              id="new-announcement-btn"
+              onClick={() => setIsCreatingAnn(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Új üzenet
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6">
+              <label className="text-sm font-medium mb-1 block">Osztály kiválasztása</label>
+              <Select value={annClassId} onValueChange={setAnnClassId}>
+                <SelectTrigger id="ann-class-select" className="w-full sm:w-[300px]">
+                  <SelectValue placeholder="Válasszon osztályt..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Válasszon osztályt...</SelectItem>
+                  {teacherClasses.map(cls => (
+                    <SelectItem key={cls.id} value={cls.id.toString()}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {annClassId === "all" ? (
+              <div className="py-20 text-center border-dashed border-2 rounded-xl border-gray-100">
+                <Bell className="h-12 w-12 mx-auto text-gray-200 mb-4" />
+                <p className="text-gray-400">Válasszon egy osztályt az üzenetek megtekintéséhez.</p>
+              </div>
+            ) : annLoading ? (
+              <div className="py-20 text-center">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="py-20 text-center border-dashed border-2 rounded-xl border-gray-100">
+                <Bell className="h-12 w-12 mx-auto text-gray-200 mb-4" />
+                <p className="text-gray-400">Ehhez az osztályhoz még nem küldött üzenetet.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {announcements.map((ann) => (
+                  <Card key={ann.id} className="overflow-hidden border-gray-100">
+                    <div className="flex flex-col sm:flex-row">
+                      <div className={`w-2 ${ann.type === 'event' ? 'bg-blue-500' : ann.type === 'action_required' ? 'bg-amber-500' : 'bg-gray-400'}`} />
+                      <div className="p-4 flex-1">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-lg text-gray-800">{ann.title}</h4>
+                            <Badge variant="secondary" className="text-[10px] uppercase">
+                              {ann.type === 'event' ? 'Esemény' : ann.type === 'action_required' ? 'Művelet szükséges' : 'Információ'}
+                            </Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteAnnouncementMutation.mutate(ann.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{ann.content}</p>
+                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                          <span className="text-xs text-gray-400 flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(ann.createdAt).toLocaleDateString()} {new Date(ann.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8">
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                Statisztika
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Visszaigazolások: {ann.title}</DialogTitle>
+                                <DialogDescription>Lássa, ki olvasta el az üzenetet és mi volt a válaszuk.</DialogDescription>
+                              </DialogHeader>
+                              <div className="mt-4 max-h-[400px] overflow-auto">
+                                <AcknowledgementStats announcementId={ann.id} />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create Announcement Dialog */}
+        <Dialog open={isCreatingAnn} onOpenChange={setIsCreatingAnn}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Új osztályüzenet küldése</DialogTitle>
+              <DialogDescription>
+                Az üzenet meg fog jelenni az összes diáknál az osztályban.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Törzs</label>
+                <Input
+                  placeholder="Üzenet címe (pl. Következő óra időpontja)"
+                  value={annTitle}
+                  onChange={(e) => setAnnTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Típus</label>
+                <Select value={annType} onValueChange={(v: any) => setAnnType(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">Információ ℹ️</SelectItem>
+                    <SelectItem value="event">Esemény 📅</SelectItem>
+                    <SelectItem value="action_required">Művelet szükséges ⚠️</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Üzenet tartalma</label>
+                <Textarea
+                  placeholder="Írja meg az üzenetet részletesen..."
+                  rows={4}
+                  value={annContent}
+                  onChange={(e) => setAnnContent(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Válaszlehetőségek (JSON tömb, opcionális)</label>
+                <Input
+                  placeholder='["Értettem", "Ott leszek", "Nem tudok jönni"]'
+                  defaultValue='["Értettem"]'
+                  id="ann-options"
+                />
+                <p className="text-[10px] text-gray-400">Hagyja üresen az alapértelmezett "Értettem" gombhoz.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsCreatingAnn(false)}>Mégse</Button>
+              <Button
+                disabled={!annTitle || !annContent || createAnnouncementMutation.isPending}
+                onClick={() => {
+                  let options = ["Értettem"];
+                  try {
+                    const optInput = document.getElementById("ann-options") as HTMLInputElement;
+                    if (optInput && optInput.value) {
+                      options = JSON.parse(optInput.value);
+                    }
+                  } catch (e) {}
+                  
+                  createAnnouncementMutation.mutate({
+                    classId: parseInt(annClassId),
+                    title: annTitle,
+                    content: annContent,
+                    type: annType,
+                    options,
+                    isActive: true
+                  });
+                }}
+              >
+                {createAnnouncementMutation.isPending ? "Küldés..." : "Üzenet küldése"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  };
+
+  const AcknowledgementStats = ({ announcementId }: { announcementId: number }) => {
+    const { data: stats = [], isLoading } = useQuery<any[]>({
+      queryKey: [`/api/announcements/${announcementId}/stats`],
+    });
+
+    if (isLoading) return <div className="text-center p-4">Betöltés...</div>;
+
+    const acknowledgedCount = stats.filter(s => s.acknowledgedAt).length;
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <span className="text-sm font-medium">Összes visszaigazolás:</span>
+          <span className="font-bold text-blue-600">{acknowledgedCount} / {stats.length}</span>
+        </div>
+        
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead>Tanuló</TableHead>
+                <TableHead>Állapot / Válasz</TableHead>
+                <TableHead>Időpont</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stats.map((row) => (
+                <TableRow key={row.studentId}>
+                  <TableCell className="font-medium">
+                    {row.lastName} {row.firstName}
+                    <div className="text-[10px] text-gray-400">@{row.username}</div>
+                  </TableCell>
+                  <TableCell>
+                    {row.acknowledgedAt ? (
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">
+                        {row.response || "Visszaigazolva"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-400">
+                        Nem olvasta
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-gray-400">
+                    {row.acknowledgedAt ? new Date(row.acknowledgedAt).toLocaleString() : '-'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  };
+
   if (studentsLoading || modulesLoading || professionsLoading || classesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -381,6 +676,10 @@ export default function TeacherDashboard() {
             <TabsTrigger value="roster" className="flex items-center gap-2">
               <Printer className="h-4 w-4" />
               Névsor &amp; Nyomtatás
+            </TabsTrigger>
+            <TabsTrigger value="announcements" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Üzenetek
             </TabsTrigger>
           </TabsList>
 
@@ -679,6 +978,10 @@ export default function TeacherDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <AnnouncementsView />
           </TabsContent>
 
           <TabsContent value="stats">
