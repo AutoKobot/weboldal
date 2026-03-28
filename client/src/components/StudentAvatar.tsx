@@ -299,10 +299,10 @@ export function StudentAvatar() {
             opacity: 1,
             x: petPos.x, 
             y: petPos.y,
-            scaleX: petScaleX,
+            scaleX: isFBX ? 1 : petScaleX,
             scaleY: isFeeding ? [1, 1.15, 0.9, 1] : 1,
             rotate: isFeeding ? [-5, 5, 0] : (avatar.hunger < 30 ? [-2, 2, -2, 2, 0] : 0)
-          } : { opacity: 1, scaleX: petScaleX }}
+          } : { opacity: 1, scaleX: isFBX ? 1 : petScaleX }}
           transition={{ 
             x: { type: "spring", stiffness: 30, damping: 20 },
             y: { type: "spring", stiffness: 30, damping: 20 },
@@ -343,6 +343,7 @@ export function StudentAvatar() {
                 isHungry={avatar.hunger < 30}
                 currentAction={currentAction}
                 animationUrls={currentAvatarDef?.animations}
+                direction={petScaleX}
               />
             ) : (
               <RiveComponent 

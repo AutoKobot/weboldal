@@ -12,9 +12,10 @@ interface FBXAvatarProps {
   isHungry?: boolean;
   currentAction?: string | null;
   animationUrls?: Record<string, string>;
+  direction?: number;
 }
 
-function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls }: FBXAvatarProps) {
+function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1 }: FBXAvatarProps) {
   const fbx = useFBX(url);
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
@@ -108,6 +109,11 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
     }
 
     if (groupRef.current) {
+      // Valódi 3D-s elfordulás kezelése (Y tengely körüli forgatás)
+      const targetRotation = direction === 1 ? 0 : Math.PI;
+      // Finom átmenet a két irány között
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotation, 0.1);
+
       // Finom lebegés (csak ha nincs látható járás mozgás, vagy tetszés szerint)
       const t = state.clock.getElapsedTime();
       groupRef.current.position.y = Math.sin(t) * 0.05;
@@ -129,7 +135,7 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
   );
 }
 
-export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, currentAction, animationUrls }: FBXAvatarProps) {
+export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction }: FBXAvatarProps) {
   return (
     <div className={className} style={{ width: '100%', height: '100%', perspective: '1000px' }}>
       <Canvas
@@ -145,7 +151,7 @@ export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, curre
           <directionalLight position={[0, 5, 5]} intensity={0.5} />
           
           <Float speed={2} rotationIntensity={0.2} floatIntensity={isMoving ? 0.2 : 0.5}>
-            <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} />
+            <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} />
           </Float>
           
           <Environment preset="city" />
