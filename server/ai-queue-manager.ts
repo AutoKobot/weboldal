@@ -12,6 +12,7 @@ interface QueueItem {
   professionName?: string;
   moduleNumber?: number;
   customSystemMessage?: string;
+  type?: 'full' | 'quiz';
   timestamp: number;
   resolve: (result: any) => void;
   reject: (error: any) => void;
@@ -70,6 +71,7 @@ export class AIQueueManager {
         content: item.content,
         subjectId: item.subjectId,
         customSystemMessage: item.customSystemMessage,
+        type: item.type,
         timestamp: item.timestamp
       }));
       fs.writeFileSync(this.queueFilePath, JSON.stringify(queueData, null, 2));
@@ -101,6 +103,7 @@ export class AIQueueManager {
             content: item.content,
             subjectId: item.subjectId,
             customSystemMessage: item.customSystemMessage,
+            type: item.type,
             timestamp: item.timestamp
           }));
           fs.writeFileSync(this.queueFilePath, JSON.stringify(queueData, null, 2));
@@ -137,6 +140,7 @@ export class AIQueueManager {
         professionName,
         moduleNumber,
         customSystemMessage,
+        type: 'full',
         timestamp: Date.now(),
         resolve,
         reject
@@ -144,6 +148,34 @@ export class AIQueueManager {
 
       this.queue.push(queueItem);
       console.log(`📝 Added to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
+    });
+  }
+
+  /**
+   * Add AI quiz regeneration task to queue
+   */
+  async queueAIQuizRegeneration(
+    moduleId: number,
+    title: string,
+    content: string
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const id = `ai-quiz-regen-${moduleId}-${Date.now()}`;
+
+      const queueItem: QueueItem = {
+        id,
+        moduleId,
+        title,
+        content,
+        subjectId: '0', // Not used for quiz, but required by interface
+        type: 'quiz',
+        timestamp: Date.now(),
+        resolve,
+        reject
+      };
+
+      this.queue.push(queueItem);
+      console.log(`📝 Added quiz regen to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
     });
   }
 
@@ -159,6 +191,7 @@ export class AIQueueManager {
         id: item.id,
         moduleId: item.moduleId,
         title: item.title,
+        type: item.type || 'full',
         timestamp: item.timestamp
       }))
     };
@@ -190,7 +223,7 @@ export class AIQueueManager {
 
     this.processing.add(item.id);
     const remainingCount = this.queue.length;
-    console.log(`🔄 Processing AI task: "${item.title}" - Starting 4-step enhancement process... (${remainingCount} remaining in queue)`);
+    console.log(`🔄 Processing AI task (${item.type || 'full'}): "${item.title}"... (${remainingCount} remaining in queue)`);
 
     // Process the item WITHOUT async/await to prevent parallel processing
     this.performAIGeneration(item)
@@ -211,6 +244,27 @@ export class AIQueueManager {
    */
   private async performAIGeneration(item: QueueItem): Promise<any> {
     const { storage } = await import('./storage');
+
+    if (item.type === 'quiz') {
+      try {
+        const { enhancedModuleGenerator } = await import('./enhanced-module-generator');
+        const quizSets = await enhancedModuleGenerator.generateMultipleQuizSets(item.title, item.content);
+        
+        const updateData = {
+          generatedQuizzes: quizSets
+        };
+        const updatedModule = await storage.updateModule(item.moduleId, updateData);
+        
+        return {
+          success: true,
+          module: updatedModule,
+          message: 'Tesztkérdések sikeresen újragenerálva'
+        };
+      } catch (error) {
+        console.error(`Quiz generation error for module ${item.moduleId}:`, error);
+        throw error;
+      }
+    }
 
     try {
       // Build comprehensive context with all available information

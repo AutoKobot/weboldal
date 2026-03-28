@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { FlashcardImport } from "@/components/flashcard-import";
-import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft, HelpCircle } from "lucide-react";
 import FileUpload, { UrlInput } from "@/components/file-upload";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
 import { LinkEditor } from "@/components/link-editor";
@@ -752,6 +752,7 @@ export default function AdminDashboard() {
   const [audioExplanationPrompt, setAudioExplanationPrompt] = useState("");
   const [textExplanationPrompt, setTextExplanationPrompt] = useState("");
   const [regeneratingModules, setRegeneratingModules] = useState<Set<number>>(new Set());
+  const [regeneratingQuizzes, setRegeneratingQuizzes] = useState<Set<number>>(new Set());
   const [isSchoolAdminDialogOpen, setIsSchoolAdminDialogOpen] = useState(false);
   const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string>("");
@@ -1179,6 +1180,47 @@ export default function AdminDashboard() {
       toast({
         title: "Újragenerálás sikertelen",
         description: "Az AI nem tudta frissíteni a modul tartalmát.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { data: queueStatus, refetch: refetchQueueStatus } = useQuery({
+    queryKey: ["/api/admin/queue-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/queue-status");
+      return res.json();
+    },
+    refetchInterval: (data) => (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000,
+    enabled: isAdmin,
+  });
+
+  const regenerateQuizzesMutation = useMutation({
+    mutationFn: async ({ moduleId }: { moduleId: number }) => {
+      setRegeneratingQuizzes(prev => new Set(prev).add(moduleId));
+      const response = await apiRequest('POST', `/api/admin/modules/${moduleId}/regenerate-quizzes`);
+      return response.json();
+    },
+    onSuccess: async (_, variables) => {
+      setRegeneratingQuizzes(prev => {
+        const next = new Set(prev);
+        next.delete(variables.moduleId);
+        return next;
+      });
+      toast({
+        title: "Sikeresen sorba állítva!",
+        description: "A tesztkérdések újragenerálása elkezdődött a háttérben.",
+      });
+    },
+    onError: (error: Error, variables) => {
+      setRegeneratingQuizzes(prev => {
+        const next = new Set(prev);
+        next.delete(variables.moduleId);
+        return next;
+      });
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült sorba állítani az újragenerálást.",
         variant: "destructive",
       });
     },
@@ -2152,6 +2194,20 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+              
+              {/* Global Queue Status */}
+              {queueStatus && (queueStatus.queueSize > 0 || queueStatus.processing > 0) && (
+                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-full border border-blue-200 dark:border-blue-800 animate-pulse">
+                  <div className="flex -space-x-1">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  </div>
+                  <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                    AI SOR: {queueStatus.queueSize} várakozik, {queueStatus.processing} folyamatban
+                  </span>
+                  <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
                   <DialogTrigger asChild>
@@ -2340,13 +2396,39 @@ export default function AdminDashboard() {
                                 title: module.title,
                                 content: module.content
                               })}
-                              disabled={regeneratingModules.has(module.id)}
-                              title="AI Újragenerálás"
+                              disabled={regeneratingModules.has(module.id) || queueStatus?.items?.some((i: any) => i.moduleId === module.id && i.type === 'full')}
+                              title="Töltse újra az egészet (AI)"
                             >
-                              {regeneratingModules.has(module.id) ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                              {regeneratingModules.has(module.id) || queueStatus?.items?.some((i: any) => i.moduleId === module.id && i.type === 'full') ? (
+                                <div className="relative">
+                                  <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
+                                  <span className="absolute -top-4 -right-4 bg-purple-600 text-[8px] text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                    {queueStatus?.items?.findIndex((i: any) => i.moduleId === module.id && i.type === 'full') + 1 || '...'}
+                                  </span>
+                                </div>
                               ) : (
                                 <Wand2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-green-600"
+                              onClick={() => regenerateQuizzesMutation.mutate({
+                                moduleId: module.id
+                              })}
+                              disabled={regeneratingQuizzes.has(module.id) || queueStatus?.items?.some((i: any) => i.moduleId === module.id && i.type === 'quiz')}
+                              title="Csak a teszteket sorsolja újra"
+                            >
+                              {regeneratingQuizzes.has(module.id) || queueStatus?.items?.some((i: any) => i.moduleId === module.id && i.type === 'quiz') ? (
+                                <div className="relative">
+                                  <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                                  <span className="absolute -top-4 -right-4 bg-green-600 text-[8px] text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                    {queueStatus?.items?.findIndex((i: any) => i.moduleId === module.id && i.type === 'quiz') + 1 || '...'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <HelpCircle className="h-4 w-4" />
                               )}
                             </Button>
                             <Dialog>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2 } from "lucide-react";
+import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle } from "lucide-react";
 import type { Module } from "@shared/schema";
 
 interface ModuleCardProps {
@@ -31,6 +31,7 @@ export default function ModuleCard({
   const queryClient = useQueryClient();
   const [previewVersion, setPreviewVersion] = useState<'concise' | 'detailed'>('detailed');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isRegeneratingQuizzes, setIsRegeneratingQuizzes] = useState(false);
 
   const completeModuleMutation = useMutation({
     mutationFn: async () => {
@@ -102,6 +103,37 @@ export default function ModuleCard({
         variant: "destructive",
       });
       setIsRegenerating(false);
+    },
+  });
+
+  const regenerateQuizzesMutation = useMutation({
+    mutationFn: async () => {
+      setIsRegeneratingQuizzes(true);
+      const response = await apiRequest('POST', `/api/admin/modules/${module.id}/regenerate-quizzes`);
+      return response.json();
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Sikeresen sorba állítva!",
+        description: "A tesztkérdések újragenerálása elkezdődött a háttérben.",
+      });
+      setIsRegeneratingQuizzes(false);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Nincs engedély",
+          description: "Jelentkezz be újra a folytatáshoz.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült sorba állítani az újragenerálást.",
+        variant: "destructive",
+      });
+      setIsRegeneratingQuizzes(false);
     },
   });
 
@@ -284,28 +316,54 @@ export default function ModuleCard({
                 </Badge>
                 <span className="text-neutral-400">Admin nézet</span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  regenerateModuleMutation.mutate();
-                }}
-                disabled={isRegenerating}
-                className="w-full text-xs h-7"
-              >
-                {isRegenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
-                    AI Újragenerálás...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-3 h-3 mr-1" />
-                    AI Újragenerálás
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    regenerateModuleMutation.mutate();
+                  }}
+                  disabled={isRegenerating || isRegeneratingQuizzes}
+                  className="flex-1 text-xs h-7 px-1"
+                  title="A teljes modul (írásos tartalom, videók, Wikipédia linkek) újragenerálása"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                      AI...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-3 h-3 mr-1" />
+                      Modul
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    regenerateQuizzesMutation.mutate();
+                  }}
+                  disabled={isRegenerating || isRegeneratingQuizzes}
+                  className="flex-1 text-xs h-7 px-1"
+                  title="Csak a tesztkérdések újragenerálása"
+                >
+                  {isRegeneratingQuizzes ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                      Tesztek...
+                    </>
+                  ) : (
+                    <>
+                      <HelpCircle className="w-3 h-3 mr-1" />
+                      Tesztek
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>

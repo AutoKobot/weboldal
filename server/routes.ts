@@ -6631,6 +6631,45 @@ Platform funkciók és navigáció:
     }
   });
 
+  // AI regenerate only quizzes for existing module endpoint
+  app.post("/api/admin/modules/:id/regenerate-quizzes", customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const moduleId = parseInt(req.params.id);
+      
+      // Get existing module to ensure it exists and get title/content
+      const existingModule = await storage.getModule(moduleId);
+      if (!existingModule) {
+        return res.status(404).json({ message: "Module not found" });
+      }
+
+      console.log(`Queueing AI quiz regeneration for module ${moduleId}: ${existingModule.title}`);
+
+      const { aiQueueManager } = await import('./ai-queue-manager');
+      const result = await aiQueueManager.queueAIQuizRegeneration(
+        moduleId,
+        existingModule.title,
+        existingModule.content
+      );
+
+      res.json({
+        success: true,
+        message: 'A tesztkérdések újragenerálása sorba állítva.',
+        queueStatus: result
+      });
+
+    } catch (error) {
+      console.error("AI quiz regeneration error:", error);
+      res.status(500).json({ message: "Failed to queue quiz regeneration" });
+    }
+  });
+
   // AI Queue status endpoint
   app.get("/api/admin/ai-queue-status", isAuthenticated, async (req, res) => {
     try {

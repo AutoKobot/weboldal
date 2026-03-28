@@ -5,15 +5,19 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle, XCircle, Brain, Trophy } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Brain, Trophy, ChevronRight, HelpCircle } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 interface QuizQuestion {
   question: string;
+  type?: 'single' | 'multiple' | 'ordering' | 'icon' | 'find_incorrect';
   options: string[];
-  correctAnswer: number;
+  correctAnswer?: number;
+  correctAnswers?: number[];
+  correctOrder?: number[];
   explanation: string;
 }
 
@@ -32,7 +36,7 @@ interface QuizInterfaceProps {
 export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete }: QuizInterfaceProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<any[]>([]);
   const [evaluations, setEvaluations] = useState<(QuizEvaluation | null)[]>([]);
   const [isQuizStarted, setIsQuizStarted] = useState(false);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
@@ -50,7 +54,13 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
     },
     onSuccess: (data) => {
       setQuestions(data.questions);
-      setSelectedAnswers(new Array(data.questions.length).fill(null));
+      // Initialize selectedAnswers based on question types
+      const initialAnswers = data.questions.map((q: QuizQuestion) => {
+        if (q.type === 'multiple') return [];
+        if (q.type === 'ordering') return [];
+        return null;
+      });
+      setSelectedAnswers(initialAnswers);
       setEvaluations(new Array(data.questions.length).fill(null));
       setIsQuizStarted(true);
       toast({
@@ -82,7 +92,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       });
       return await response.json();
     },
-    onSuccess: (evaluation: QuizEvaluation, variables) => {
+    onSuccess: (evaluation: QuizEvaluation) => {
       const newEvaluations = [...evaluations];
       newEvaluations[currentQuestionIndex] = evaluation;
       setEvaluations(newEvaluations);
@@ -113,7 +123,6 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
           title: "Gratulálunk!",
           description: "Sikeresen teljesítetted a modult! 🎉",
         });
-        // onModuleComplete will be called manually by user
       }
     },
     onError: (error: Error) => {
@@ -127,26 +136,93 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   });
 
   const handleAnswerSelect = (answerIndex: number) => {
+    const currentQuestion = questions[currentQuestionIndex];
     const newAnswers = [...selectedAnswers];
-    newAnswers[currentQuestionIndex] = answerIndex;
+
+    if (currentQuestion.type === 'multiple') {
+      const currentSelection = (newAnswers[currentQuestionIndex] as number[]) || [];
+      if (currentSelection.includes(answerIndex)) {
+        newAnswers[currentQuestionIndex] = currentSelection.filter(i => i !== answerIndex);
+      } else {
+        newAnswers[currentQuestionIndex] = [...currentSelection, answerIndex].sort();
+      }
+    } else if (currentQuestion.type === 'ordering') {
+      const currentOrder = (newAnswers[currentQuestionIndex] as number[]) || [];
+      if (currentOrder.includes(answerIndex)) {
+        newAnswers[currentQuestionIndex] = currentOrder.filter(i => i !== answerIndex);
+      } else {
+        newAnswers[currentQuestionIndex] = [...currentOrder, answerIndex];
+      }
+    } else {
+      newAnswers[currentQuestionIndex] = answerIndex;
+    }
+
     setSelectedAnswers(newAnswers);
   };
 
   const handleSubmitAnswer = () => {
     const currentQuestion = questions[currentQuestionIndex];
-    const selectedIndex = selectedAnswers[currentQuestionIndex];
+    const selection = selectedAnswers[currentQuestionIndex];
 
-    if (selectedIndex === null) {
+    if (selection === null || (Array.isArray(selection) && selection.length === 0)) {
       toast({
         title: "Válasz hiányzik",
-        description: "Kérlek válassz ki egy lehetőséget!",
+        description: "Kérlek válassz ki legalább egy lehetőséget!",
         variant: "destructive",
       });
       return;
     }
 
-    const userAnswer = currentQuestion.options[selectedIndex];
-    const correctAnswer = currentQuestion.options[currentQuestion.correctAnswer];
+    // Evaluation logic for structured types
+    if (currentQuestion.type === 'multiple') {
+      const correctOnes = currentQuestion.correctAnswers || [];
+      const userOnes = selection as number[];
+      const isCorrect = correctOnes.length === userOnes.length && 
+                       correctOnes.every(val => userOnes.includes(val));
+      
+      const evaluation: QuizEvaluation = {
+        score: isCorrect ? 100 : 0,
+        isCorrect,
+        feedback: isCorrect ? "Helyes! Minden jó választ megtaláltál." : "Sajnos nem minden válasz helyes. A jó megoldások: " + correctOnes.map(i => currentQuestion.options[i]).join(", ")
+      };
+      
+      const newEvaluations = [...evaluations];
+      newEvaluations[currentQuestionIndex] = evaluation;
+      setEvaluations(newEvaluations);
+      return;
+    }
+
+    if (currentQuestion.type === 'ordering') {
+      const correctOrder = currentQuestion.correctOrder || [];
+      const userOrder = selection as number[];
+      const isCorrect = JSON.stringify(correctOrder) === JSON.stringify(userOrder);
+
+      const evaluation: QuizEvaluation = {
+        score: isCorrect ? 100 : 0,
+        isCorrect,
+        feedback: isCorrect ? "Helyes sorrend!" : "Sajnos a sorrend helytelen. A folyamat: " + correctOrder.map(i => currentQuestion.options[i]).join(" → ")
+      };
+
+      const newEvaluations = [...evaluations];
+      newEvaluations[currentQuestionIndex] = evaluation;
+      setEvaluations(newEvaluations);
+      return;
+    }
+
+    // Single choice types
+    const userIndex = selection as number;
+    const correctIndex = currentQuestion.correctAnswer ?? 0;
+    
+    if (userIndex === correctIndex) {
+      const evaluation: QuizEvaluation = { score: 100, isCorrect: true, feedback: "Helyes válasz!" };
+      const newEvaluations = [...evaluations];
+      newEvaluations[currentQuestionIndex] = evaluation;
+      setEvaluations(newEvaluations);
+      return;
+    }
+
+    const userAnswer = currentQuestion.options[userIndex];
+    const correctAnswer = currentQuestion.options[correctIndex];
 
     evaluateAnswerMutation.mutate({
       question: currentQuestion.question,
@@ -158,16 +234,13 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   const handleSubmitOpenAnswer = () => {
     if (!openAnswer.trim()) {
-      toast({
-        title: "Válasz hiányzik",
-        description: "Kérlek írj egy választ!",
-        variant: "destructive",
-      });
+      toast({ title: "Válasz hiányzik", description: "Írj egy választ!", variant: "destructive" });
       return;
     }
 
     const currentQuestion = questions[currentQuestionIndex];
-    const correctAnswer = currentQuestion.options[currentQuestion.correctAnswer];
+    const correctIndex = currentQuestion.correctAnswer ?? 0;
+    const correctAnswer = currentQuestion.options[correctIndex];
 
     evaluateAnswerMutation.mutate({
       question: currentQuestion.question,
@@ -183,19 +256,12 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       setOpenAnswer('');
     } else {
       setIsQuizCompleted(true);
-
-      // Calculate final score and submit results
       const finalScore = calculateFinalScore();
-      const passed = finalScore >= 60; // New threshold: 60%
-
       submitQuizResultMutation.mutate({
         score: finalScore,
         maxScore: 100,
-        passed,
-        details: {
-          questions,
-          evaluations
-        }
+        passed: finalScore >= 60,
+        details: { questions, evaluations }
       });
     }
   };
@@ -203,59 +269,30 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   const calculateFinalScore = () => {
     const validEvaluations = evaluations.filter(e => e !== null) as QuizEvaluation[];
     if (validEvaluations.length === 0) return 0;
-
-    const totalScore = validEvaluations.reduce((sum, evaluation) => sum + evaluation.score, 0);
+    const totalScore = validEvaluations.reduce((sum, e) => sum + e.score, 0);
     return Math.round(totalScore / validEvaluations.length);
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 95) return 'text-green-700'; // Kiváló
-    if (score >= 80) return 'text-green-600'; // Jó
-    if (score >= 70) return 'text-yellow-600'; // Közepesen megfelelt
-    if (score >= 60) return 'text-orange-500'; // Megfelelt
-    return 'text-red-600'; // Nem felelt meg
-  };
-
-  const getGradeLabel = (score: number) => {
-    if (score >= 95) return 'Kiváló';
-    if (score >= 80) return 'Jó';
-    if (score >= 70) return 'Közepesen megfelelt';
-    if (score >= 60) return 'Megfelelt';
-    return 'Nem felelt meg';
+    if (score >= 90) return 'text-green-700';
+    if (score >= 70) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   if (!isQuizStarted) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-2xl mx-auto shadow-lg border-primary/20">
+        <CardHeader className="text-center font-bold text-2xl">
           <CardTitle className="flex items-center justify-center gap-2">
-            <Brain className="h-6 w-6" />
+            <Brain className="h-8 w-8 text-primary" />
             Tudáspróba
           </CardTitle>
-          <CardDescription>
-            Teszteld a tudásod a "{moduleTitle}" modulból!
-          </CardDescription>
+          <CardDescription>Teszteld a tudásod a "{moduleTitle}" modulból!</CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="mb-6 text-muted-foreground">
-            Az AI automatikusan generál 10 kérdést a modul tartalma alapján. A sikeres teljesítéshez legalább 60%-ot kell elérned.
-          </p>
-          <Button
-            onClick={() => generateQuizMutation.mutate()}
-            disabled={generateQuizMutation.isPending}
-            size="lg"
-          >
-            {generateQuizMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Kérdések generálása...
-              </>
-            ) : (
-              <>
-                <Brain className="mr-2 h-4 w-4" />
-                Teszt indítása
-              </>
-            )}
+        <CardContent className="text-center space-y-4">
+          <p className="text-muted-foreground">Változatos kérdéstípusok (sorrend, választás, ikonok) várnak rád.</p>
+          <Button onClick={() => generateQuizMutation.mutate()} disabled={generateQuizMutation.isPending} size="lg">
+            {generateQuizMutation.isPending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Feldolgozás...</>) : "Indítás"}
           </Button>
         </CardContent>
       </Card>
@@ -264,97 +301,25 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   if (isQuizCompleted) {
     const finalScore = calculateFinalScore();
-    const correctAnswers = evaluations.filter(e => e?.isCorrect).length;
     const isPassed = finalScore >= 60;
-
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-2xl mx-auto border-2 shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
-            <Trophy className="h-6 w-6" />
-            Teszt befejezve!
-          </CardTitle>
+          <Trophy className={`h-16 w-16 mx-auto mb-4 ${isPassed ? 'text-yellow-500' : 'text-slate-300'}`} />
+          <CardTitle className="text-3xl font-black">{isPassed ? 'Gratulálunk!' : 'Sajnos nem sikerült'}</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-6">
-          <div className="space-y-4">
-            <div className={`text-4xl font-bold ${getScoreColor(finalScore)}`}>
-              {finalScore}/100 pont
-            </div>
-            <div className={`text-xl font-medium ${getScoreColor(finalScore)}`}>
-              {getGradeLabel(finalScore)}
-            </div>
-            <p className="text-lg">
-              {correctAnswers}/{questions.length} helyes válasz
-            </p>
-
-            {isPassed && (
-              <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-green-700">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-semibold">Modul sikeresen teljesítve!</span>
-                </div>
-                <p className="text-sm text-green-600 mt-1">
-                  Gratulálunk a sikeres vizsgához!
-                </p>
+          <div className={`text-5xl font-black ${getScoreColor(finalScore)}`}>{finalScore}%</div>
+          <div className="space-y-2">
+            {evaluations.map((e, i) => e && (
+              <div key={i} className="flex justify-between p-2 bg-muted/30 rounded border text-sm">
+                <span>{i + 1}. kérdés</span>
+                {e.isCorrect ? <CheckCircle className="text-green-600 h-4 w-4" /> : <XCircle className="text-red-600 h-4 w-4" />}
+                <Badge variant={e.isCorrect ? "default" : "destructive"}>{e.score}p</Badge>
               </div>
-            )}
-
-            {!isPassed && (
-              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-red-700">
-                  <XCircle className="h-5 w-5" />
-                  <span className="font-semibold">Nem sikerült</span>
-                </div>
-                <p className="text-sm text-red-600 mt-1">
-                  A modul teljesítéséhez legalább 60 pont szükséges. Próbáld újra!
-                </p>
-              </div>
-            )}
-
-          </div>
-
-          <div className="space-y-3">
-            {evaluations.map((evaluation, index) => (
-              evaluation && (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2">
-                    {evaluation.isCorrect ?
-                      <CheckCircle className="h-4 w-4 text-green-600" /> :
-                      <XCircle className="h-4 w-4 text-red-600" />
-                    }
-                    <span className="text-sm">Kérdés {index + 1}</span>
-                  </div>
-                  <Badge variant={evaluation.isCorrect ? "default" : "destructive"}>
-                    {evaluation.score} pont
-                  </Badge>
-                </div>
-              )
             ))}
           </div>
-
-          <div className="flex gap-4 justify-center w-full mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsQuizStarted(false);
-                setIsQuizCompleted(false);
-                setCurrentQuestionIndex(0);
-                setQuestions([]);
-                setSelectedAnswers([]);
-                setEvaluations([]);
-              }}
-              className="flex-1"
-            >
-              Új teszt indítása
-            </Button>
-
-            <Button
-              onClick={() => onModuleComplete?.()}
-              className="flex-1"
-            >
-              Befejezés
-            </Button>
-          </div>
+          <Button onClick={() => onModuleComplete?.()} className="w-full py-6 text-xl">Befejezés</Button>
         </CardContent>
       </Card>
     );
@@ -364,117 +329,109 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   const currentEvaluation = evaluations[currentQuestionIndex];
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>
-            Kérdés {currentQuestionIndex + 1}/{questions.length}
-          </CardTitle>
-          <Badge variant="outline">
-            {moduleTitle}
-          </Badge>
+    <Card className="w-full max-w-2xl mx-auto shadow-xl border-t-4 border-t-primary overflow-hidden">
+      <CardHeader className="bg-muted/30">
+        <div className="flex justify-between items-center mb-2">
+          <Badge variant="secondary">{currentQuestionIndex + 1} / {questions.length}</Badge>
+          <Badge variant="outline" className="opacity-50 italic">AI Generált</Badge>
         </div>
+        <CardTitle className="text-2xl font-bold leading-tight">{currentQuestion.question}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="text-lg font-medium">
-          {currentQuestion.question}
-        </div>
-
+      <CardContent className="space-y-6 pt-6">
         {!currentEvaluation ? (
-          <div className="space-y-4">
-            <RadioGroup
-              value={selectedAnswers[currentQuestionIndex]?.toString() || ''}
-              onValueChange={(value) => handleAnswerSelect(parseInt(value))}
-            >
-              {currentQuestion.options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                  <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                    {option}
-                  </Label>
+          <div className="space-y-6">
+            {currentQuestion.type === 'multiple' ? (
+              <div className="grid gap-3">
+                {currentQuestion.options.map((opt, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => handleAnswerSelect(i)}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${selectedAnswers[currentQuestionIndex]?.includes(i) ? 'border-primary bg-primary/5' : 'border-muted bg-muted/10 hover:border-primary/50'}`}
+                  >
+                    <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${selectedAnswers[currentQuestionIndex]?.includes(i) ? 'bg-primary border-primary text-white' : 'border-muted-foreground'}`}>
+                      {selectedAnswers[currentQuestionIndex]?.includes(i) && <CheckCircle className="h-4 w-4" />}
+                    </div>
+                    <span className="font-medium">{opt}</span>
+                  </div>
+                ))}
+              </div>
+            ) : currentQuestion.type === 'ordering' ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2 p-4 bg-primary/5 rounded-xl border-2 border-dashed border-primary/20 min-h-[60px]">
+                  {selectedAnswers[currentQuestionIndex].map((idx: number, step: number) => (
+                    <Badge key={step} className="px-3 py-1.5 flex items-center gap-1">
+                      <span className="bg-white/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">{step + 1}</span>
+                      {currentQuestion.options[idx]}
+                      <XCircle className="h-3 w-3 cursor-pointer ml-1" onClick={(e) => { e.stopPropagation(); handleAnswerSelect(idx); }} />
+                    </Badge>
+                  ))}
                 </div>
-              ))}
-            </RadioGroup>
+                <div className="grid gap-2">
+                  {currentQuestion.options.map((opt, i) => !selectedAnswers[currentQuestionIndex].includes(i) && (
+                    <Button key={i} variant="outline" className="justify-start text-left" onClick={() => handleAnswerSelect(i)}>{opt}</Button>
+                  ))}
+                </div>
+              </div>
+            ) : currentQuestion.type === 'icon' ? (
+              <div className="grid grid-cols-2 gap-4 text-center">
+                {currentQuestion.options.map((name, i) => {
+                  const Icon = (LucideIcons as any)[name.charAt(0).toUpperCase() + name.slice(1).replace(/-./g, x=>x[1].toUpperCase())] || HelpCircle;
+                  return (
+                    <div 
+                      key={i} 
+                      onClick={() => handleAnswerSelect(i)}
+                      className={`p-6 rounded-2xl border-2 cursor-pointer transition-all group ${selectedAnswers[currentQuestionIndex] === i ? 'border-primary bg-primary/5 scale-105' : 'border-muted hover:border-primary/30'}`}
+                    >
+                      <Icon className={`h-12 w-12 mx-auto mb-2 ${selectedAnswers[currentQuestionIndex] === i ? 'text-primary' : 'text-muted-foreground group-hover:text-primary/70'}`} />
+                      <div className="text-xs font-bold uppercase tracking-widest">{name}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <RadioGroup value={selectedAnswers[currentQuestionIndex]?.toString()} onValueChange={v => handleAnswerSelect(parseInt(v))}>
+                <div className="grid gap-3">
+                  {currentQuestion.options.map((opt, i) => (
+                    <div key={i} onClick={() => handleAnswerSelect(i)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${selectedAnswers[currentQuestionIndex] === i ? 'border-primary bg-primary/5' : 'border-muted bg-muted/10 hover:border-primary/50'}`}>
+                      <RadioGroupItem value={i.toString()} className="sr-only" />
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedAnswers[currentQuestionIndex] === i ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
+                        {selectedAnswers[currentQuestionIndex] === i && <div className="w-2 h-2 rounded-full bg-white text-md" />}
+                      </div>
+                      <span className="font-medium text-lg">{opt}</span>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            )}
 
-            <div className="border-t pt-4">
-              <Label htmlFor="open-answer" className="text-sm font-medium">
-                Vagy írd le saját szavaiddal a válaszod:
-              </Label>
-              <Textarea
-                id="open-answer"
-                placeholder="Itt írhatsz részletes választ..."
-                value={openAnswer}
-                onChange={(e) => setOpenAnswer(e.target.value)}
-                className="mt-2"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSubmitAnswer}
-                disabled={evaluateAnswerMutation.isPending || selectedAnswers[currentQuestionIndex] === null}
-                className="flex-1"
-              >
-                {evaluateAnswerMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Értékelés...
-                  </>
-                ) : (
-                  'Válasz elküldése'
-                )}
+            <div className="space-y-4 pt-4 border-t">
+              <Button onClick={handleSubmitAnswer} className="w-full h-14 text-xl font-bold" disabled={evaluateAnswerMutation.isPending}>
+                {evaluateAnswerMutation.isPending ? <Loader2 className="animate-spin" /> : "Válasz beküldése"}
               </Button>
-
-              {openAnswer.trim() && (
-                <Button
-                  onClick={handleSubmitOpenAnswer}
-                  disabled={evaluateAnswerMutation.isPending}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  {evaluateAnswerMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Értékelés...
-                    </>
-                  ) : (
-                    'Szöveges válasz'
-                  )}
-                </Button>
-              )}
+              <Textarea 
+                placeholder="VAGY írd le saját szavaiddal a részleteket..." 
+                value={openAnswer} 
+                onChange={e => setOpenAnswer(e.target.value)}
+                className="min-h-[80px]"
+              />
+              <Button variant="ghost" size="sm" onClick={handleSubmitOpenAnswer} className="w-full opacity-50" disabled={!openAnswer.trim()}>Szöveges kiértékelés</Button>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className={`p-4 rounded-lg border-2 ${currentEvaluation.isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                {currentEvaluation.isCorrect ?
-                  <CheckCircle className="h-5 w-5 text-green-600" /> :
-                  <XCircle className="h-5 w-5 text-red-600" />
-                }
-                <span className={`font-semibold ${getScoreColor(currentEvaluation.score)}`}>
-                  {currentEvaluation.score}/100 pont
-                </span>
+          <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+            <div className={`p-6 rounded-2xl border-l-8 ${currentEvaluation.isCorrect ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
+              <div className="flex items-center gap-4 mb-2">
+                {currentEvaluation.isCorrect ? <CheckCircle className="text-green-600 h-8 w-8" /> : <XCircle className="text-red-600 h-8 w-8" />}
+                <span className="text-2xl font-black">{currentEvaluation.score} / 100</span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {currentEvaluation.feedback}
-              </p>
+              <p className="font-medium leading-relaxed">{currentEvaluation.feedback}</p>
             </div>
-
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm">
-                <strong>Helyes válasz:</strong> {currentQuestion.options[currentQuestion.correctAnswer]}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {currentQuestion.explanation}
-              </p>
+            <div className="p-5 bg-muted rounded-xl">
+              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1"><Brain className="h-3 w-3" /> Magyarázat</div>
+              <p className="text-sm italic opacity-80">{currentQuestion.explanation}</p>
             </div>
-
-            <Button
-              onClick={goToNextQuestion}
-              className="w-full"
-            >
-              {currentQuestionIndex < questions.length - 1 ? 'Következő kérdés' : 'Teszt befejezése'}
+            <Button onClick={goToNextQuestion} className="w-full py-8 text-xl font-black group">
+              {currentQuestionIndex < questions.length - 1 ? (<>Következő kérdés<ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" /></>) : "Eredmény megtekintése"}
             </Button>
           </div>
         )}

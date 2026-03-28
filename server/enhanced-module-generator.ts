@@ -1780,11 +1780,7 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
     keyConceptsWithVideos.forEach(({ concept, youtubeVideos }) => {
       if (youtubeVideos.length > 0) {
         const primaryVideo = youtubeVideos[0];
-
-        // Create a regex to find the concept in the content (case insensitive)
         const conceptRegex = new RegExp(`\\b${concept}\\b`, 'gi');
-
-        // Replace first occurrence with a link
         let replaced = false;
         linkedContent = linkedContent.replace(conceptRegex, (match) => {
           if (!replaced) {
@@ -1799,50 +1795,68 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
     return linkedContent;
   }
 
-  /**
-   * Convert Mermaid diagrams in content to SVG images (DISABLED)
-   */
-
-  /**
-   * Automatikusan generál 5 különböző tesztsort a modulhoz (50 kérdéssel összesen, 10 kérdés/szett).
-  /**
-   * Generates 5 different quiz sets (10 questions each) for a module.
-   * Makes 5 separate API calls (1 set per call) for reliability.
-   * Only called once during module creation/regeneration.
-   */
-  async generateMultipleQuizSets(title: string, content: string): Promise<Array<Array<{ question: string; options: string[]; correctAnswer: number; explanation: string; }>>> {
+  async generateMultipleQuizSets(title: string, content: string): Promise<any[]> {
     try {
-      console.log('📝 Generating 5 quiz sets of 10 questions each...');
+      console.log('📝 Generating 5 quiz sets of mixed question types (10 questions each)...');
       const apiKey = process.env.OPENAI_API_KEY || (await storage.getSystemSetting('openai_api_key'))?.value;
       if (!apiKey) { console.error('❌ No OpenAI API key'); return []; }
 
       const openai = new OpenAI({ apiKey });
       const snippet = content.substring(0, 3000);
-      const allSets: Array<Array<{ question: string; options: string[]; correctAnswer: number; explanation: string; }>> = [];
+      const allSets: any[] = [];
 
       for (let i = 0; i < 5; i++) {
         try {
           const resp = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o-mini', // Using gpt-4o-mini for better logic in complex questions
             messages: [
-              { role: 'system', content: 'Te egy szakértő oktató vagy. Válaszolj KIZÁRÓLAG érvényes JSON formátumban.' },
-              { role: 'user', content: `Generálj PONTOSAN 10 feleletválasztós tesztkérdést magyar nyelven a következő tananyagból.\n\nModulcím: "${title}"\nTananyag: ${snippet}\n\nEz a(z) ${i + 1}. tesztsor. Minden kérdéshez 4 opció, 1 helyes (correctAnswer: 0-3), és magyarázat kell.\nVálasz JSON: {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"explanation":"..."}]}` }
+              { 
+                role: 'system', 
+                content: `Te egy szakértő oktató vagy. A feladatod, hogy változatos, szakmai tesztkérdéseket készíts egy tananyaghoz. 
+                HASZNÁLJ KÜLÖNBÖZŐ KÉRDÉSTÍPUSOKAT vegyesen:
+                1. 'single': Sima feleletválasztós (1 jó válasz).
+                2. 'multiple': Több jó válasz is lehet (jelöld meg az összeset).
+                3. 'ordering': Sorrendbe állítás (pl. folyamat lépései).
+                4. 'icon': Válaszd ki a legmegfelelőbb ikont a fogalomhoz (Lucide-react ikon nevek: wrench, battery, zap, shield, alert-triangle, settings, cpu, hammer, activity, thermometer stb.).
+                5. 'find_incorrect': Melyik állítás HAMIS? (3 igaz, 1 hamis).
+                
+                Válaszolj KIZÁRÓLAG érvényes JSON formátumban.` 
+              },
+              { 
+                role: 'user', 
+                content: `Generálj PONTOSAN 10 változatos tesztkérdést magyar nyelven.
+                Modulcím: "${title}"
+                Tananyag: ${snippet}
+                
+                A 10 kérdés legyen vegyes típusú (single, multiple, ordering, icon, find_incorrect).
+                
+                Válasz JSON formátuma:
+                {"questions":[
+                  {"type":"single", "question":"...", "options":["A","B","C","D"], "correctAnswer":0, "explanation":"..."},
+                  {"type":"multiple", "question":"...", "options":["A","B","C","D"], "correctAnswers":[0, 2], "explanation":"..."},
+                  {"type":"ordering", "question":"Állítsd sorrendbe...", "options":["Lépés 1","Lépés 2","Lépés 3"], "correctOrder":[1, 0, 2], "explanation":"..."},
+                  {"type":"icon", "question":"Melyik ikon jelöli a hőt?", "options":["thermometer","zap","wrench","shield"], "correctAnswer":0, "explanation":"..."},
+                  {"type":"find_incorrect", "question":"Melyik állítás HAMIS?", "options":["Igaz 1","Igaz 2","Hamis","Igaz 3"], "correctAnswer":2, "explanation":"..."}
+                ]}` 
+              }
             ],
             response_format: { type: 'json_object' },
-            temperature: 0.8,
-            max_tokens: 3000,
+            temperature: 0.7,
+            max_tokens: 4000,
           });
+          
           let text = (resp.choices[0]?.message?.content || '').replace(/```json\n?|```/g, '').trim();
           const parsed = JSON.parse(text);
           const qs = parsed.questions || (Array.isArray(parsed) ? parsed : null);
+          
           if (qs && Array.isArray(qs) && qs.length >= 5) {
             allSets.push(qs);
-            console.log(`  ✅ Set ${i + 1}/5: ${qs.length} questions`);
-          } else { console.warn(`  ⚠️ Set ${i + 1}/5: invalid`); }
+            console.log(`  ✅ Set ${i + 1}/5: ${qs.length} mixed questions`);
+          } else { console.warn(`  ⚠️ Set ${i + 1}/5: invalid structure`); }
         } catch (err: any) { console.error(`  ❌ Set ${i + 1}/5:`, err.message?.substring(0, 80)); }
-        if (i < 4) await new Promise(r => setTimeout(r, 1500));
+        if (i < 4) await new Promise(r => setTimeout(r, 1000));
       }
-      console.log(`${allSets.length > 0 ? '✅' : '⚠️'} Generated ${allSets.length}/5 quiz sets.`);
+      console.log(`${allSets.length > 0 ? '✅' : '⚠️'} Generated ${allSets.length}/5 quiz sets with diverse types.`);
       return allSets;
     } catch (error) { console.error("❌ Quiz generation failed:", error); return []; }
   }
