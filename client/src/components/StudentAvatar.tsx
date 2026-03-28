@@ -25,6 +25,7 @@ export function StudentAvatar() {
   const [isWandering, setIsWandering] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Képernyőmérethez igazodás
   const [winSize, setWinSize] = useState({ w: 1000, h: 800 });
@@ -294,39 +295,44 @@ export function StudentAvatar() {
             background: 'transparent',
             filter: avatar.hunger < 30 ? 'grayscale(40%) sepia(20%)' : 'none'
           }}
-          initial={{ opacity: 0, x: winSize.w / 2, y: winSize.h / 2 }}
-          animate={{ 
+          animate={!isDragging ? { 
             opacity: 1,
             x: petPos.x, 
             y: petPos.y,
             scaleX: petScaleX,
             scaleY: isFeeding ? [1, 1.15, 0.9, 1] : 1,
             rotate: isFeeding ? [-5, 5, 0] : (avatar.hunger < 30 ? [-2, 2, -2, 2, 0] : 0)
-          }}
+          } : { opacity: 1, scaleX: petScaleX }}
           transition={{ 
             x: { type: "spring", stiffness: 30, damping: 20 },
             y: { type: "spring", stiffness: 30, damping: 20 },
             rotate: avatar.hunger < 30 ? { repeat: Infinity, duration: 2 } : { duration: 0.5 },
             opacity: { duration: 0.5 }
           }}
-          onMouseEnter={() => setIsWandering(false)}
-          onMouseLeave={() => setIsWandering(true)}
+          drag
+          dragConstraints={{ 
+            left: 20, 
+            right: winSize.w - 150, 
+            top: 20, 
+            bottom: winSize.h - 150 
+          }}
+          dragElastic={0.1}
+          dragMomentum={false}
+          onDragStart={() => {
+            setIsWandering(false);
+            setIsDragging(true);
+          }}
+          onDragEnd={(e, info) => {
+            setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
+            setIsDragging(false);
+            setIsWandering(true);
+          }}
+          onMouseEnter={() => !isDragging && setIsWandering(false)}
+          onMouseLeave={() => !isDragging && setIsWandering(true)}
         >
           <motion.div 
             className="w-full h-full relative cursor-grab active:cursor-grabbing transition-shadow duration-300 pointer-events-auto outline-none border-none ring-0 focus:ring-0 focus:outline-none !bg-transparent"
             style={{ background: 'transparent' }}
-            drag
-            dragConstraints={{ 
-              left: 20, 
-              right: winSize.w - 150, 
-              top: 20, 
-              bottom: winSize.h - 150 
-            }}
-            dragElastic={0.1}
-            dragMomentum={false}
-            onDragEnd={(e, info) => {
-              setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
-            }}
           >
             {isFBX ? (
               <FBXAvatar 
