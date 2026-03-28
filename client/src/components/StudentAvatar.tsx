@@ -170,8 +170,8 @@ export function StudentAvatar() {
 
   // Keresd meg a megfelelő fájlt
   const currentAvatarDef = avatar ? AVATARS.find(a => a.id === avatar.avatarType) : (null as AvatarDefinition | null);
-  const fileName = currentAvatarDef ? currentAvatarDef.filename : 'black-cat.riv';
-  const isFBX = currentAvatarDef?.type === 'fbx';
+  const fileName = currentAvatarDef ? currentAvatarDef.filename : AVATARS[0].filename;
+  const isFBX = (currentAvatarDef || AVATARS[0])?.type === 'fbx';
 
   const { RiveComponent, rive } = useRive({
     src: isFBX ? '' : `/avatars/${fileName}`,
