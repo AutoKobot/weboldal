@@ -53,7 +53,7 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
       const box = new THREE.Box3().setFromObject(fbx);
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = 3.8 / maxDim; // Kicsit nagyobb skálázás
+      const scale = 3.2 / maxDim; // Kicsit kisebb skálázás, hogy beférjen a dobozba
       fbx.scale.setScalar(scale);
       
       // Alapértelmezett pozíció: lábak a középpont közelében
@@ -113,10 +113,8 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
       const targetRotation = direction === 1 ? 0 : Math.PI;
       // Finom átmenet a két irány között
       groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotation, 0.1);
-
-      // Finom lebegés (csak ha nincs látható járás mozgás, vagy tetszés szerint)
+      
       const t = state.clock.getElapsedTime();
-      groupRef.current.position.y = Math.sin(t) * 0.05;
       
       // Etetési effekt (dobbanás)
       if (isFeeding) {
@@ -150,9 +148,7 @@ export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, curre
           <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4f46e5" />
           <directionalLight position={[0, 5, 5]} intensity={0.5} />
           
-          <Float speed={2} rotationIntensity={0.2} floatIntensity={isMoving ? 0.2 : 0.5}>
-            <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} />
-          </Float>
+          <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} />
           
           <Environment preset="city" />
           <ContactShadows 
@@ -166,8 +162,6 @@ export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, curre
           <OrbitControls 
             enableZoom={false} 
             enablePan={false}
-            autoRotate
-            autoRotateSpeed={1}
             enableRotate={false}
           />
         </Suspense>

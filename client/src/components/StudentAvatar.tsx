@@ -22,7 +22,8 @@ export function StudentAvatar() {
   // Bolyongás állapota
   const [petPos, setPetPos] = useState({ x: -1000, y: -1000 }); // Kezdetben képernyőn kívül, amíg a méret nincs kiszámolva
   const [petScaleX, setPetScaleX] = useState(1);
-  const [isWandering, setIsWandering] = useState(true);
+  const [isWandering, setIsWandering] = useState(false);
+  const [isWanderingEnabled, setIsWanderingEnabled] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -43,28 +44,24 @@ export function StudentAvatar() {
     }
   }, []);
 
-  // Időszakos bóklászás logika
+  // Időszakos bóklászás logika - RITKÍTVA ÉS LASSÍTVA
   useEffect(() => {
-    if (!isWandering) return;
+    if (!isWandering || !isWanderingEnabled) return;
     
     const interval = setInterval(() => {
-      // 30% eséllyel megáll pihenni
-      if (Math.random() < 0.3) return;
+      // 70% eséllyel inkább marad egy helyben
+      if (Math.random() < 0.7) return; 
       
-      // Véletlenszerű X pozíció
-      const newX = Math.max(20, Math.random() * (winSize.w - 150));
-      // Véletlenszerű Y pozíció az alsó szegmensben (képernyő alsó 30%-a)
+      const newX = Math.max(20, Math.random() * (winSize.w - 340));
       const bottomArea = winSize.h * 0.3;
-      const newY = winSize.h - 150 - (Math.random() * bottomArea);
+      const newY = winSize.h - 340 - (Math.random() * bottomArea);
       
-      // Forduljon abba az irányba, amerre megy
       setPetScaleX(newX > petPos.x ? 1 : -1);
-      
       setPetPos({ x: newX, y: newY });
-    }, 4000 + Math.random() * 4000);
+    }, 15000 + Math.random() * 25000); 
     
     return () => clearInterval(interval);
-  }, [petPos.x, winSize.w, winSize.h, isWandering]);
+  }, [petPos.x, winSize.w, winSize.h, isWandering, isWanderingEnabled]);
 
   // Mozgás detektálása az animációhoz
   useEffect(() => {
@@ -283,12 +280,20 @@ export function StudentAvatar() {
         <div className="text-4xl mb-2 opacity-50">🧭</div>
         <p className="text-xs text-neutral-500 font-medium whitespace-pre-wrap">A kiválasztott segítőd jelenleg a képernyőn vándorol!</p>
         <p className="text-[10px] text-neutral-400 mt-2">Itt bármikor pihentetheted.</p>
+        <Button 
+          variant="secondary" 
+          size="sm" 
+          className="mt-3 text-[10px] h-7 px-3" 
+          onClick={() => setIsWanderingEnabled(!isWanderingEnabled)}
+        >
+          {isWanderingEnabled ? "Séta leállítása" : "Séta engedélyezése"}
+        </Button>
       </div>
 
       {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
       {isReady && avatar.isAlive && (
         <motion.div 
-          className="fixed z-[100000] w-[220px] h-[220px] pointer-events-none select-none outline-none border-none !bg-transparent"
+          className="fixed z-[100000] w-[320px] h-[320px] pointer-events-none select-none outline-none border-none !bg-transparent"
           style={{ 
             left: 0, 
             top: 0,
@@ -312,9 +317,9 @@ export function StudentAvatar() {
           drag
           dragConstraints={{ 
             left: 20, 
-            right: winSize.w - 240, 
+            right: winSize.w - 340, 
             top: 20, 
-            bottom: winSize.h - 240 
+            bottom: winSize.h - 340 
           }}
           dragElastic={0.1}
           dragMomentum={false}
@@ -323,9 +328,9 @@ export function StudentAvatar() {
             setIsDragging(true);
           }}
           onDragEnd={(e, info) => {
-            setPetPos({ x: info.point.x - 110, y: info.point.y - 110 });
+            setPetPos({ x: info.point.x - 160, y: info.point.y - 160 });
             setIsDragging(false);
-            setIsWandering(true);
+            if (isWanderingEnabled) setIsWandering(true);
           }}
           onMouseEnter={() => !isDragging && setIsWandering(false)}
           onMouseLeave={() => !isDragging && setIsWandering(true)}
