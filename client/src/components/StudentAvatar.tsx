@@ -292,10 +292,11 @@ export function StudentAvatar() {
 
       {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
       {isReady && avatar.isAlive && (
-        <motion.div 
-          className="fixed z-[100000] w-[320px] h-[320px] pointer-events-none select-none outline-none border-none !bg-transparent"
-          style={{ 
-            left: 0, 
+        <>
+          <motion.div 
+            className="fixed z-[100000] w-[150px] h-[200px] pointer-events-none select-none outline-none border-none !bg-transparent"
+            style={{ 
+              left: 0, 
             top: 0,
             background: 'transparent',
             filter: avatar.hunger < 30 ? 'grayscale(40%) sepia(20%)' : 'none'
@@ -315,11 +316,14 @@ export function StudentAvatar() {
             opacity: { duration: 0.5 }
           }}
           drag
+          onDrag={(e, info) => {
+            setPetPos({ x: info.point.x - 75, y: info.point.y - 100 });
+          }}
           dragConstraints={{ 
             left: 20, 
-            right: winSize.w - 340, 
+            right: winSize.w - 170, 
             top: 20, 
-            bottom: winSize.h - 340 
+            bottom: winSize.h - 220 
           }}
           dragElastic={0.1}
           dragMomentum={false}
@@ -328,7 +332,7 @@ export function StudentAvatar() {
             setIsDragging(true);
           }}
           onDragEnd={(e, info) => {
-            setPetPos({ x: info.point.x - 160, y: info.point.y - 160 });
+            setPetPos({ x: info.point.x - 75, y: info.point.y - 100 });
             setIsDragging(false);
             if (isWanderingEnabled) setIsWandering(true);
           }}
@@ -339,25 +343,14 @@ export function StudentAvatar() {
             className="w-full h-full relative cursor-grab active:cursor-grabbing transition-shadow duration-300 pointer-events-auto outline-none border-none ring-0 focus:ring-0 focus:outline-none !bg-transparent"
             style={{ background: 'transparent' }}
           >
-            {isFBX ? (
-              <FBXAvatar 
-                url={`/avatars/${fileName}`} 
-                className="w-full h-full cursor-pointer !bg-transparent" 
-                isFeeding={isFeeding}
-                isMoving={isMoving}
-                isHungry={avatar.hunger < 30}
-                currentAction={currentAction}
-                animationUrls={currentAvatarDef?.animations}
-                direction={petScaleX}
-              />
-            ) : (
+            {!isFBX ? (
               <RiveComponent 
                 className="w-full h-full cursor-pointer !bg-transparent" 
                 style={{ background: 'transparent' }} 
               />
-            )}
+            ) : null}
             
-            {/* Éhezés ikon a feje felett, ha baj van */}
+            {/* Éhezés ikon a feje felett, ha baj van (Hitboxban marad) */}
             {avatar.hunger < 30 && (
               <div className="absolute -top-4 -right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-bounce shadow-sm font-bold border border-white">
                 Éhes! 🍖
@@ -371,6 +364,24 @@ export function StudentAvatar() {
             )}
           </motion.div>
         </motion.div>
+
+        {/* Teljes képernyős, átkattintható 3D Canvas az FBX modelleknek (NINCS DOBOZ) */}
+        {isFBX && (
+          <div className="fixed inset-0 z-[99998] pointer-events-none overflow-hidden">
+            <FBXAvatar 
+              url={`/avatars/${fileName}`} 
+              className="w-full h-full !bg-transparent" 
+              isFeeding={isFeeding}
+              isMoving={isMoving}
+              isHungry={avatar.hunger < 30}
+              currentAction={currentAction}
+              animationUrls={currentAvatarDef?.animations}
+              direction={petScaleX}
+              petPos={petPos}
+            />
+          </div>
+        )}
+      </>
       )}
 
       <div className="w-full space-y-4">

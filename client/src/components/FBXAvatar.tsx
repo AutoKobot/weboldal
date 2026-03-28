@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useFBX, OrbitControls, Environment, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
@@ -13,10 +13,12 @@ interface FBXAvatarProps {
   currentAction?: string | null;
   animationUrls?: Record<string, string>;
   direction?: number;
+  petPos?: { x: number; y: number };
 }
 
-function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1 }: FBXAvatarProps) {
+function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1, petPos }: FBXAvatarProps) {
   const fbx = useFBX(url);
+  const { viewport } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const clipsRef = useRef<Record<string, THREE.AnimationClip>>({});
@@ -109,6 +111,19 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
     }
 
     if (groupRef.current) {
+      if (petPos) {
+        // Képernyő (pixel) koordináta átalakítása 3D világ szerinti koordinátává
+        const centerX = petPos.x + 75; // 150px széles doboz közepe
+        const centerY = petPos.y + 100; // 200px magas doboz közepe
+        
+        const x = (centerX / window.innerWidth) * viewport.width - (viewport.width / 2);
+        const y = -(centerY / window.innerHeight) * viewport.height + (viewport.height / 2);
+        
+        // Simított követés (így folyamatos az egér/drag után is)
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, x, 0.2);
+        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, y - (viewport.height * 0.15), 0.2);
+      }
+      
       // Valódi 3D-s elfordulás kezelése (Y tengely körüli forgatás)
       const targetRotation = direction === 1 ? 0 : Math.PI;
       // Finom átmenet a két irány között
@@ -133,9 +148,9 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
   );
 }
 
-export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction }: FBXAvatarProps) {
+export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction, petPos }: FBXAvatarProps) {
   return (
-    <div className={className} style={{ width: '100%', height: '100%', perspective: '1000px' }}>
+    <div className={className} style={{ width: '100%', height: '100%', perspective: '1000px', pointerEvents: 'none' }}>
       <Canvas
         shadows
         camera={{ position: [0, 0, 5], fov: 45 }}
@@ -148,7 +163,7 @@ export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, curre
           <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4f46e5" />
           <directionalLight position={[0, 5, 5]} intensity={0.5} />
           
-          <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} />
+          <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} petPos={petPos} />
           
           <Environment preset="city" />
           <ContactShadows 
