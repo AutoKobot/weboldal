@@ -7,8 +7,9 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Ghost, Lock, Zap } from 'lucide-react';
-import { AVATARS } from '@/lib/avatars';
+import { AVATARS, AvatarDefinition } from '@/lib/avatars';
 import { useAuth } from '@/hooks/useAuth';
+import { FBXAvatar } from './FBXAvatar';
 
 export function StudentAvatar() {
   const { toast } = useToast();
@@ -16,12 +17,14 @@ export function StudentAvatar() {
   const { user } = useAuth();
   const userXp = user?.xp || 0;
   const [isFeeding, setIsFeeding] = useState(false);
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
   
   // Bolyongás állapota
   const [petPos, setPetPos] = useState({ x: -1000, y: -1000 }); // Kezdetben képernyőn kívül, amíg a méret nincs kiszámolva
   const [petScaleX, setPetScaleX] = useState(1);
   const [isWandering, setIsWandering] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
 
   // Képernyőmérethez igazodás
   const [winSize, setWinSize] = useState({ w: 1000, h: 800 });
@@ -61,6 +64,14 @@ export function StudentAvatar() {
     
     return () => clearInterval(interval);
   }, [petPos.x, winSize.w, winSize.h, isWandering]);
+
+  // Mozgás detektálása az animációhoz
+  useEffect(() => {
+    if (!isReady) return;
+    setIsMoving(true);
+    const timer = setTimeout(() => setIsMoving(false), 4000); // A rugós animáció kb ennyi ideig tart
+    return () => clearTimeout(timer);
+  }, [petPos, isReady]);
 
   const { data: avatar, isLoading } = useQuery({
     queryKey: ['/api/student/avatar'],
@@ -150,12 +161,19 @@ export function StudentAvatar() {
     }
   });
 
-  // Keresd meg a megfelelő Rive fájlt, vagy fallback a 'test.riv'
-  const currentAvatarDef = avatar ? AVATARS.find(a => a.id === avatar.avatarType) : null;
-  const riveFileName = currentAvatarDef ? currentAvatarDef.filename : 'test.riv';
+  const triggerAction = (action: string) => {
+    setCurrentAction(action);
+    // Visszaállás idle-be az animáció hossza után (kb 5 mp)
+    setTimeout(() => setCurrentAction(null), 5000);
+  };
+
+  // Keresd meg a megfelelő fájlt
+  const currentAvatarDef = avatar ? AVATARS.find(a => a.id === avatar.avatarType) : (null as AvatarDefinition | null);
+  const fileName = currentAvatarDef ? currentAvatarDef.filename : 'black-cat.riv';
+  const isFBX = currentAvatarDef?.type === 'fbx';
 
   const { RiveComponent, rive } = useRive({
-    src: `/avatars/${riveFileName}`,
+    src: isFBX ? '' : `/avatars/${fileName}`,
     autoplay: true,
   });
 
@@ -310,7 +328,22 @@ export function StudentAvatar() {
               setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
             }}
           >
-            <RiveComponent className="w-full h-full cursor-pointer !bg-transparent" style={{ background: 'transparent' }} />
+            {isFBX ? (
+              <FBXAvatar 
+                url={`/avatars/${fileName}`} 
+                className="w-full h-full cursor-pointer !bg-transparent" 
+                isFeeding={isFeeding}
+                isMoving={isMoving}
+                isHungry={avatar.hunger < 30}
+                currentAction={currentAction}
+                animationUrls={currentAvatarDef?.animations}
+              />
+            ) : (
+              <RiveComponent 
+                className="w-full h-full cursor-pointer !bg-transparent" 
+                style={{ background: 'transparent' }} 
+              />
+            )}
             
             {/* Éhezés ikon a feje felett, ha baj van */}
             {avatar.hunger < 30 && (
@@ -319,7 +352,7 @@ export function StudentAvatar() {
               </div>
             )}
             
-            {!rive && (
+            {!rive && !isFBX && (
               <div className="absolute inset-0 flex items-center justify-center text-center p-2 bg-black/60 text-white flex-col rounded-xl pointer-events-none">
                 <span className="text-[9px] opacity-80">Fájl hiba</span>
               </div>
@@ -352,6 +385,41 @@ export function StudentAvatar() {
              Főétel (50 XP)
            </Button>
         </div>
+
+        {isFBX && currentAvatarDef?.animations && (
+          <div className="w-full mt-4 pt-4 border-t border-neutral-100">
+            <div className="flex items-center justify-between mb-3 text-left">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex items-center">
+                <Zap size={10} className="mr-1 text-orange-400" />
+                Extra Mozdulatok
+              </span>
+              {user?.username === 'BorgaI74' && (
+                <span className="text-[9px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded font-bold">VIP ACCESS</span>
+              )}
+            </div>
+            
+            <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto pr-1">
+              {Object.keys(currentAvatarDef.animations).map(key => {
+                if (['idle', 'walk', 'feed', 'sad'].includes(key)) return null;
+                const isLocked = user?.username !== 'BorgaI74' && userXp < 500;
+                const isActive = currentAction === key;
+                return (
+                  <Button 
+                    key={key} 
+                    size="sm" 
+                    variant={isActive ? "default" : "outline"}
+                    className={`text-[9px] h-7 px-2 flex-grow min-w-[60px] ${isActive ? 'bg-primary text-white border-primary' : 'bg-white text-neutral-600'}`}
+                    onClick={() => triggerAction(key)}
+                    disabled={isLocked}
+                  >
+                    {isLocked ? <Lock size={8} className="mr-1 opacity-50" /> : null}
+                    {key.split('_').pop()?.toUpperCase() || key.toUpperCase()}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <Button 
           variant="ghost" 
           size="sm" 

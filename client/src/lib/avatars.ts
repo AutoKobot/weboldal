@@ -4,43 +4,37 @@ export interface AvatarDefinition {
   filename: string;
   unlockXP: number;
   description: string;
+  type: 'rive' | 'fbx';
+  animations?: Record<string, string>; // Például: { walk: 'Taunt_Walk.fbx', idle: 'Taunt_Idle.fbx' }
 }
 
-// Ide tölthetitek fel a Rive fájlokat, és adhattok hozzá újakat a jövőben!
+// Ide tölthetitek fel a Rive vagy FBX fájlokat, és adhattok hozzá újakat a jövőben!
+// Mostantól csak 3D-s avatáraink lesznek!
 export const AVATARS: AvatarDefinition[] = [
   { 
-    id: "fekete_macska", 
-    name: "Fekete Kiber-Macska", 
-    filename: "black-cat.riv", 
+    id: "lany_3d", 
+    name: "Lány Karakter (3D)", 
+    filename: "lány/Taunt.fbx", 
     unlockXP: 0, 
-    description: "Egy misztikus digitális macska, amit Te tölöttél fel!" 
-  },
-  { 
-    id: "alap_robot", 
-    name: "Kezdő Robot", 
-    filename: "robot.riv", 
-    unlockXP: 500, 
-    description: "Egy fém barát, ami mindig veled tanul." 
-  },
-  { 
-    id: "kis_sarkany", 
-    name: "Tűzsárkány", 
-    filename: "dragon.riv", 
-    unlockXP: 1000, 
-    description: "Heves és forrófejű jószág haladóknak." 
-  },
-  { 
-    id: "tudas_bagoly", 
-    name: "Bölcs Bagoly", 
-    filename: "owl.riv", 
-    unlockXP: 2500, 
-    description: "Kíváncsi madárka, szereti a tudományt." 
-  },
-  { 
-    id: "kiber_kutyus", 
-    name: "Kiber Kutyus", 
-    filename: "dog.riv", 
-    unlockXP: 5000, 
-    description: "Hűséges jószág, igazi veterán diákoknak." 
+    description: "Egy interaktív 3D-s lány karakter, aki elkísér a tanulásban!",
+    type: 'fbx',
+    animations: {
+      idle: "lány/Taunt.fbx",
+      walk: "lány/Martelo 2.fbx",
+      feed: "lány/Petting Animal.fbx",
+      happy: "lány/Sitting Clap.fbx",
+      sad: "lány/Sad Walk.fbx",
+      rejected: "lány/Rejected.fbx",
+      argue: "lány/Standing Arguing.fbx",
+      strong: "lány/Strong Gesture.fbx",
+      dance_hiphop: "lány/Hip Hop Dancing.fbx",
+      dance_break: "lány/Breakdance Uprock Var 2.fbx",
+      dance_chicken: "lány/Chicken Dance.fbx",
+      dance_twerk: "lány/Dancing Twerk.fbx",
+      dance_maraschino: "lány/Dancing Maraschino Step.fbx",
+      sitting: "lány/Female Sitting Pose.fbx",
+      standing: "lány/Female Standing Pose.fbx",
+      climbing: "lány/Climbing.fbx"
+    }
   }
 ];
