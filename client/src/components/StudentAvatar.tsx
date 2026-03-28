@@ -280,15 +280,15 @@ export function StudentAvatar() {
       
       {/* Játékos "Bázis" a Dashboardon */}
       <div className="w-full max-w-[200px] aspect-square bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-primary/30 flex flex-col items-center justify-center mb-4 text-center p-4">
-        <div className="text-4xl mb-2 opacity-50">🏠</div>
-        <p className="text-xs text-neutral-500 font-medium">Az állatkád jelenleg a képernyőn bóklászik!</p>
-        <p className="text-[10px] text-neutral-400 mt-2">Itt várjuk vissza.</p>
+        <div className="text-4xl mb-2 opacity-50">🧭</div>
+        <p className="text-xs text-neutral-500 font-medium whitespace-pre-wrap">A kiválasztott segítőd jelenleg a képernyőn vándorol!</p>
+        <p className="text-[10px] text-neutral-400 mt-2">Itt bármikor pihentetheted.</p>
       </div>
 
       {/* Szabadon Lebegegő (Fixed) Kiber-Macska / Avatár */}
       {isReady && avatar.isAlive && (
         <motion.div 
-          className="fixed z-[100000] w-[130px] h-[130px] pointer-events-none select-none outline-none border-none !bg-transparent"
+          className="fixed z-[100000] w-[220px] h-[220px] pointer-events-none select-none outline-none border-none !bg-transparent"
           style={{ 
             left: 0, 
             top: 0,
@@ -312,9 +312,9 @@ export function StudentAvatar() {
           drag
           dragConstraints={{ 
             left: 20, 
-            right: winSize.w - 150, 
+            right: winSize.w - 240, 
             top: 20, 
-            bottom: winSize.h - 150 
+            bottom: winSize.h - 240 
           }}
           dragElastic={0.1}
           dragMomentum={false}
@@ -323,7 +323,7 @@ export function StudentAvatar() {
             setIsDragging(true);
           }}
           onDragEnd={(e, info) => {
-            setPetPos({ x: info.point.x - 65, y: info.point.y - 65 });
+            setPetPos({ x: info.point.x - 110, y: info.point.y - 110 });
             setIsDragging(false);
             setIsWandering(true);
           }}
