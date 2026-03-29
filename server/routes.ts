@@ -445,15 +445,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function syncUserActivity(userId: string, user: any) {
     if (!user) return user;
     
-    const nowTimestamp = Date.now();
-    const lastSync = userSyncTracker.get(userId);
-    
-    // Csak 10 percenként szinkronizáljuk a streak-eket és XP-t
-    if (lastSync && (nowTimestamp - lastSync) < 10 * 60 * 1000) {
-      return user;
-    }
-    
-    userSyncTracker.set(userId, nowTimestamp);
     try {
       const { db } = await import('./db');
       const { users, testResults } = await import('@shared/schema');
@@ -462,30 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      let lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
-      if (lastActive) {
-        lastActive = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
-      }
-
-      let newStreak = user.currentStreak || 0;
-      let shouldUpdateLastActive = false;
-
-      if (!lastActive || lastActive.getTime() < today.getTime()) {
-        shouldUpdateLastActive = true;
-        if (lastActive) {
-          const diffTime = today.getTime() - lastActive.getTime();
-          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-          if (diffDays === 1) {
-            newStreak += 1;
-          } else if (diffDays > 1) {
-            newStreak = 1;
-          }
-        } else {
-          newStreak = 1;
-        }
-      }
-
-      // Calculate XP
+      // 1. Point calculation - always calculate current values from data
       const modulesXP = (user.completedModules?.length || 0) * 100;
       const tests = await db.select().from(testResults).where(eq(testResults.userId, userId));
       let testXP = 0;
@@ -494,29 +462,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const totalXP = modulesXP + testXP;
 
-      let updateData: any = {};
-      const fiveMinsAgo = new Date(now.getTime() - 5 * 60 * 1000);
-      let shouldUpdateSeenOnline = !user.lastActiveDate || new Date(user.lastActiveDate).getTime() < fiveMinsAgo.getTime();
+      // 2. Activity and Streak logic with throttling
+      const nowTimestamp = Date.now();
+      const lastSync = userSyncTracker.get(userId);
+      const isThrottled = lastSync && (nowTimestamp - lastSync) < 10 * 60 * 1000;
 
-      if (shouldUpdateLastActive) {
-        updateData.currentStreak = newStreak;
-        updateData.lastActiveDate = now;
-        user.currentStreak = newStreak;
-        user.lastActiveDate = now;
-      } else if (shouldUpdateSeenOnline) {
-        updateData.lastActiveDate = now;
-        user.lastActiveDate = now;
+      let updateData: any = {};
+      
+      if (!isThrottled) {
+        userSyncTracker.set(userId, nowTimestamp);
+        
+        let lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
+        if (lastActive) {
+          lastActive = new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate());
+        }
+
+        let newStreak = user.currentStreak || 0;
+        let shouldUpdateLastActive = false;
+
+        if (!lastActive || lastActive.getTime() < today.getTime()) {
+          shouldUpdateLastActive = true;
+          if (lastActive) {
+            const diffTime = today.getTime() - lastActive.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+              newStreak += 1;
+            } else if (diffDays > 1) {
+              newStreak = 1;
+            }
+          } else {
+            newStreak = 1;
+          }
+        }
+
+        const fiveMinsAgo = new Date(now.getTime() - 5 * 60 * 1000);
+        let shouldUpdateSeenOnline = !user.lastActiveDate || new Date(user.lastActiveDate).getTime() < fiveMinsAgo.getTime();
+
+        if (shouldUpdateLastActive) {
+          updateData.currentStreak = newStreak;
+          updateData.lastActiveDate = now;
+          user.currentStreak = newStreak;
+          user.lastActiveDate = now;
+        } else if (shouldUpdateSeenOnline) {
+          updateData.lastActiveDate = now;
+          user.lastActiveDate = now;
+        }
       }
 
+      // Sync points if they don't match (independent of throttle)
       if (totalXP !== user.xp) {
         updateData.xp = totalXP;
         user.xp = totalXP;
       }
 
+      // Persist changes if any
       if (Object.keys(updateData).length > 0) {
         await db.update(users).set(updateData).where(eq(users.id, userId));
       }
-    } catch (e) { console.error("Error syncing user activity", e) }
+    } catch (e) { 
+      console.error("Error syncing user activity", e);
+    }
 
     return user;
   }

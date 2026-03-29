@@ -1348,16 +1348,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addStudentToClass(studentId: string, classId: number): Promise<void> {
+    const [classData] = await db.select().from(classes).where(eq(classes.id, classId));
+    
+    const updateData: any = { classId, updatedAt: new Date() };
+    if (classData?.professionId) updateData.selectedProfessionId = classData.professionId;
+    if (classData?.assignedTeacherId) updateData.assignedTeacherId = classData.assignedTeacherId;
+
     await db
       .update(users)
-      .set({ classId, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(users.id, studentId));
   }
 
   async removeStudentFromClass(studentId: string): Promise<void> {
     await db
       .update(users)
-      .set({ classId: null, updatedAt: new Date() })
+      .set({ 
+        classId: null, 
+        assignedTeacherId: null,
+        updatedAt: new Date() 
+      })
       .where(eq(users.id, studentId));
   }
 
