@@ -748,6 +748,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid role" });
       }
 
+      // Megakadályozzuk az utolsó admin lefokozását
+      if (role !== 'admin') {
+        const allUsers = await storage.getAllUsers();
+        const adminCount = allUsers.filter((u: any) => u.role === 'admin').length;
+        const targetUser = await storage.getUser(targetUserId);
+        if (targetUser?.role === 'admin' && adminCount <= 1) {
+          return res.status(400).json({ message: "Nem távolítható el az utolsó adminisztrátor szerepköre" });
+        }
+      }
+
       await storage.updateUserRole(targetUserId, role);
       res.json({ message: "User role updated successfully" });
     } catch (error) {
@@ -1021,6 +1031,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/school-admin/assign-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
       const { studentId, teacherId } = req.body;
+      const schoolAdminId = req.user.id;
+
+      if (!studentId || !teacherId) {
+        return res.status(400).json({ message: "Student ID and teacher ID are required" });
+      }
+
+      // Ellenőrizzük, hogy a diák az iskolai adminhoz tartozik
+      const student = await storage.getUser(studentId);
+      if (!student || (student.schoolAdminId !== schoolAdminId && req.user.role !== 'admin')) {
+        return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanulóhoz" });
+      }
+
+      // Ellenőrizzük, hogy a tanár az iskolai adminhoz tartozik
+      const teacher = await storage.getUser(teacherId);
+      if (!teacher || (teacher.schoolAdminId !== schoolAdminId && req.user.role !== 'admin')) {
+        return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanárhoz" });
+      }
+
       await storage.assignStudentToTeacher(studentId, teacherId);
       res.json({ message: "Assigned successfully" });
     } catch (e) { res.status(500).json({ message: "Assignment failed" }); }
@@ -1029,6 +1057,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/school-admin/remove-student', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
       const { studentId } = req.body;
+      const schoolAdminId = req.user.id;
+
+      if (!studentId) {
+        return res.status(400).json({ message: "Student ID is required" });
+      }
+
+      const student = await storage.getUser(studentId);
+      if (!student || (student.schoolAdminId !== schoolAdminId && req.user.role !== 'admin')) {
+        return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanulóhoz" });
+      }
+
       await storage.removeStudentFromTeacher(studentId);
       res.json({ message: "Removed successfully" });
     } catch (e) { res.status(500).json({ message: "Removal failed" }); }
@@ -6005,458 +6044,6 @@ Platform funkciók és navigáció:
     } catch (error) {
       console.error("Logout error:", error);
       res.status(500).json({ message: "Kijelentkezési hiba" });
-    }
-  });
-
-  // Iskolai admin middleware
-  const schoolAdminAuth = (req: any, res: any, next: any) => {
-    if (!req.session?.schoolAdminUser || req.session.schoolAdminUser.role !== 'school_admin') {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    next();
-  };
-
-  // Tanulók listája az iskolai admin számára
-  app.get('/api/school-admin/students', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const schoolAdminId = req.session.schoolAdminUser.id;
-      console.log("Fetching students for school admin ID:", schoolAdminId);
-      const students = await storage.getStudentsBySchoolAdmin(schoolAdminId);
-      console.log("Found students count:", students.length);
-      res.json(students);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      res.status(500).json({ message: "Failed to fetch students" });
-    }
-  });
-
-  // Tanárok listája az iskolai admin számára
-  app.get('/api/school-admin/teachers', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const schoolAdminId = req.session.schoolAdminUser.id;
-      console.log("Fetching teachers for school admin ID:", schoolAdminId);
-      const teachers = await storage.getTeachersBySchoolAdmin(schoolAdminId);
-      console.log("Found teachers count:", teachers.length);
-      res.json(teachers);
-    } catch (error) {
-      console.error("Error fetching teachers:", error);
-      res.status(500).json({ message: "Failed to fetch teachers" });
-    }
-  });
-
-  // Osztályok listája az iskolai admin számára
-  app.get('/api/school-admin/classes', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const schoolAdminId = req.session.schoolAdminUser.id;
-      const classes = await storage.getClassesBySchoolAdmin(schoolAdminId);
-      res.json(classes);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-      res.status(500).json({ message: "Failed to fetch classes" });
-    }
-  });
-
-  // Új osztály létrehozása
-  app.post('/api/school-admin/classes', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      // Use schema validation if available, otherwise manual validation with strict types
-      const { name, description, professionId, scheduleGroup } = req.body;
-
-      if (!name) {
-        return res.status(400).json({ message: "Az osztály neve kötelező" });
-      }
-
-      // Convert professionId to number or null explicitly
-      const parsedProfessionId = professionId ? parseInt(professionId) : null;
-
-      const classData = {
-        name,
-        description: description || null,
-        schoolAdminId,
-        professionId: parsedProfessionId,
-        scheduleGroup: scheduleGroup || 'morning'
-      };
-
-      const newClass = await storage.createClass(classData);
-
-      // If profession was selected, we might want to fetch profession details to return complete object
-      const classWithProfession = await storage.getClassWithProfession(newClass.id);
-
-      res.json({ message: "Osztály sikeresen létrehozva", class: classWithProfession || newClass });
-    } catch (error) {
-      console.error("Error creating class:", error);
-      res.status(500).json({ message: "Hiba történt az osztály létrehozása során" });
-    }
-  });
-
-  // Szakma hozzárendelése osztályhoz
-  app.post('/api/school-admin/classes/:classId/assign-profession', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { classId } = req.params;
-      const { professionId } = req.body;
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      if (!professionId || professionId === "none") {
-        return res.status(400).json({ message: "Szakma kiválasztása kötelező" });
-      }
-
-      // Ellenőrizzük, hogy az osztály az iskolai adminhoz tartozik
-      const classes = await storage.getClassesBySchoolAdmin(schoolAdminId);
-      const classExists = classes.find(c => c.id === parseInt(classId));
-
-      if (!classExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez az osztályhoz" });
-      }
-
-      await storage.assignProfessionToClass(parseInt(classId), professionId);
-      res.json({ message: "Szakma sikeresen hozzárendelve az osztályhoz és a diákokhoz" });
-    } catch (error) {
-      console.error("Error assigning profession to class:", error);
-      res.status(500).json({ message: "Hiba történt a szakma hozzárendelése során" });
-    }
-  });
-
-  // Tanár hozzárendelése osztályhoz
-  app.post('/api/school-admin/classes/:classId/assign-teacher', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { classId } = req.params;
-      const { teacherId } = req.body;
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      // Ellenőrizzük, hogy az osztály az iskolai adminhoz tartozik
-      const classes = await storage.getClassesBySchoolAdmin(schoolAdminId);
-      const classExists = classes.find(c => c.id === parseInt(classId));
-
-      if (!classExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez az osztályhoz" });
-      }
-
-      // Ellenőrizzük, hogy a tanár az iskolai adminhoz tartozik
-      const teachers = await storage.getTeachersBySchoolAdmin(schoolAdminId);
-      const teacherExists = teachers.find(t => t.id === teacherId);
-
-      if (!teacherExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanárhoz" });
-      }
-
-      await storage.assignTeacherToClassById(parseInt(classId), teacherId);
-      res.json({ message: "Tanár sikeresen hozzárendelve az osztályhoz" });
-    } catch (error) {
-      console.error("Error assigning teacher to class:", error);
-      res.status(500).json({ message: "Hiba történt a tanár hozzárendelése során" });
-    }
-  });
-
-  // Diák hozzáadása osztályhoz
-  app.post('/api/school-admin/classes/:classId/add-student', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { classId } = req.params;
-      const { studentId } = req.body;
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      // Ellenőrizzük, hogy az osztály az iskolai adminhoz tartozik
-      const classes = await storage.getClassesBySchoolAdmin(schoolAdminId);
-      const classExists = classes.find(c => c.id === parseInt(classId));
-
-      if (!classExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez az osztályhoz" });
-      }
-
-      // Ellenőrizzük, hogy a diák az iskolai adminhoz tartozik
-      const students = await storage.getStudentsBySchoolAdmin(schoolAdminId);
-      const studentExists = students.find(s => s.id === studentId);
-
-      if (!studentExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez a diákhoz" });
-      }
-
-      await storage.addStudentToClass(studentId, parseInt(classId));
-      res.json({ message: "Diák sikeresen hozzáadva az osztályhoz" });
-    } catch (error) {
-      console.error("Error adding student to class:", error);
-      res.status(500).json({ message: "Hiba történt a diák hozzáadása során" });
-    }
-  });
-
-  // Diák eltávolítása osztályból
-  app.post('/api/school-admin/classes/:classId/remove-student', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { classId } = req.params;
-      const { studentId } = req.body;
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      // Ellenőrizzük, hogy az osztály az iskolai adminhoz tartozik
-      const classes = await storage.getClassesBySchoolAdmin(schoolAdminId);
-      const classExists = classes.find(c => c.id === parseInt(classId));
-
-      if (!classExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez az osztályhoz" });
-      }
-
-      // Ellenőrizzük, hogy a diák az iskolai adminhoz tartozik
-      const students = await storage.getStudentsBySchoolAdmin(schoolAdminId);
-      const studentExists = students.find(s => s.id === studentId);
-
-      if (!studentExists) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez a diákhoz" });
-      }
-
-      await storage.removeStudentFromClass(studentId);
-      res.json({ message: "Diák sikeresen eltávolítva az osztályból" });
-    } catch (error) {
-      console.error("Error removing student from class:", error);
-      res.status(500).json({ message: "Hiba történt a diák eltávolítása során" });
-    }
-  });
-
-  // Tanuló hozzárendelése tanárhoz
-  app.post('/api/school-admin/assign-student', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { studentId, teacherId } = req.body;
-
-      if (!studentId || !teacherId) {
-        return res.status(400).json({ message: "Student ID and teacher ID are required" });
-      }
-
-      await storage.assignStudentToTeacher(studentId, teacherId);
-      res.json({ success: true, message: "Student assigned to teacher successfully" });
-    } catch (error) {
-      console.error("Error assigning student to teacher:", error);
-      res.status(500).json({ message: "Failed to assign student to teacher" });
-    }
-  });
-
-  // Tanuló eltávolítása tanártól
-  app.post('/api/school-admin/remove-student', schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { studentId } = req.body;
-
-      if (!studentId) {
-        return res.status(400).json({ message: "Student ID is required" });
-      }
-
-      await storage.removeStudentFromTeacher(studentId);
-      res.json({ success: true, message: "Student removed from teacher successfully" });
-    } catch (error) {
-      console.error("Error removing student from teacher:", error);
-      res.status(500).json({ message: "Failed to remove student from teacher" });
-    }
-  });
-
-  // Tanár regisztráció iskolai admin által
-  app.post("/api/school-admin/register-teacher", schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { firstName, lastName, username, email, password } = req.body;
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Felhasználónév és jelszó kötelező" });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({ message: "A jelszónak legalább 6 karakterből kell állnia" });
-      }
-
-      // Ellenőrizzük, hogy a felhasználónév egyedi-e
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Ez a felhasználónév már foglalt" });
-      }
-
-      // Tanár regisztrálása az iskolai admin alatt
-      const teacherData = {
-        firstName: firstName || null,
-        lastName: lastName || null,
-        username,
-        email: email || null,
-        password,
-        role: "teacher" as const,
-        schoolAdminId
-      };
-
-      const newTeacher = await storage.createUser(teacherData);
-
-      res.json({
-        message: "Tanár sikeresen regisztrálva",
-        teacher: {
-          id: newTeacher.id,
-          username: newTeacher.username,
-          firstName: newTeacher.firstName,
-          lastName: newTeacher.lastName,
-          email: newTeacher.email
-        }
-      });
-    } catch (error) {
-      console.error("Teacher registration error:", error);
-      res.status(500).json({ message: "Szerver hiba történt a tanár regisztráció során" });
-    }
-  });
-
-  // Diák regisztráció iskolai admin által
-  app.post("/api/school-admin/register-student", schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { firstName, lastName, username, email, password } = req.body;
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Felhasználónév és jelszó kötelező" });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({ message: "A jelszónak legalább 6 karakterből kell állnia" });
-      }
-
-      // Ellenőrizzük, hogy a felhasználónév egyedi-e
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Ez a felhasználónév már foglalt" });
-      }
-
-      // Diák regisztrálása az iskolai admin alatt
-      const studentData = {
-        firstName: firstName || null,
-        lastName: lastName || null,
-        username,
-        email: email || null,
-        password,
-        role: "student" as const,
-        schoolAdminId
-      };
-
-      const newStudent = await storage.createUser(studentData);
-
-      res.json({
-        message: "Diák sikeresen regisztrálva",
-        student: {
-          id: newStudent.id,
-          username: newStudent.username,
-          firstName: newStudent.firstName,
-          lastName: newStudent.lastName,
-          email: newStudent.email
-        }
-      });
-    } catch (error) {
-      console.error("Student registration error:", error);
-      res.status(500).json({ message: "Szerver hiba történt a diák regisztráció során" });
-    }
-  });
-
-
-  // Tömeges diák importálás osztályba
-  app.post("/api/school-admin/classes/:classId/bulk-import", schoolAdminAuth, async (req: any, res) => {
-    try {
-      const { classId } = req.params;
-      const { students } = req.body; // Array of { name, email? }
-      const schoolAdminId = req.session.schoolAdminUser.id;
-
-      if (!students || !Array.isArray(students) || students.length === 0) {
-        return res.status(400).json({ message: "Érvényes diákhallgató lista szükséges" });
-      }
-
-      const targetClass = await storage.getClassById(parseInt(classId));
-      if (!targetClass) {
-        return res.status(404).json({ message: "Osztály nem található" });
-      }
-
-      if (targetClass.schoolAdminId !== schoolAdminId) {
-        return res.status(403).json({ message: "Nincs jogosultsága ehhez az osztályhoz" });
-      }
-
-      const results = {
-        success: 0,
-        failed: 0,
-        errors: [] as string[]
-      };
-
-      for (const student of students) {
-        try {
-          if (!student.name || student.name.trim() === "") {
-            results.failed++;
-            results.errors.push("Érvénytelen vagy hiányzó név");
-            continue;
-          }
-
-          const nameParts = student.name.trim().split(" ");
-          const lastName = nameParts[0] || "";
-          const firstName = nameParts.slice(1).join(" ") || "";
-
-          // Hungarian name normalization for username
-          const normalizeForUsername = (str: string) => {
-            return str.toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "") // Remove most accents
-              .replace(/ö/g, "o").replace(/ő/g, "o")
-              .replace(/ü/g, "u").replace(/ű/g, "u")
-              .replace(/[^a-z0-9]/g, ""); // Final safety check
-          };
-
-          const cleanLastName = normalizeForUsername(lastName);
-          const cleanFirstName = normalizeForUsername(firstName);
-
-          let username = "";
-          let password = "";
-          let isUnique = false;
-          let retries = 0;
-
-          while (!isUnique && retries < 10) {
-            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-            username = `${cleanLastName}.${cleanFirstName}${randomSuffix}`;
-
-            // Check uniqueness
-            const existing = await storage.getUserByUsername(username);
-            if (!existing) {
-              isUnique = true;
-              password = `Diak${randomSuffix}`;
-            }
-            retries++;
-          }
-
-          if (!isUnique) {
-            throw new Error("Nem sikerült egyedi felhasználónevet generálni");
-          }
-
-          const userData = {
-            firstName,
-            lastName,
-            username,
-            email: student.email || null,
-            role: "student" as const,
-            password,
-            schoolAdminId
-          };
-
-          // Create User
-          const newUser = await storage.createUser({
-            ...userData,
-            email: userData.email || `${username}@school.local`
-          });
-
-          // Add to Class
-          await storage.addStudentToClass(newUser.id, parseInt(classId));
-
-          // Set Profession if class has one
-          if (targetClass.professionId) {
-            await storage.updateUserProfession(newUser.id, targetClass.professionId);
-          }
-
-          results.success++;
-        } catch (err: any) {
-          console.error(`Failed to import student ${student.name}:`, err);
-          results.failed++;
-          results.errors.push(`${student.name}: ${err.message}`);
-        }
-      }
-
-      res.json({
-        message: "Importálás befejeződött",
-        results
-      });
-
-    } catch (error) {
-      console.error("Bulk import error:", error);
-      res.status(500).json({ message: "Szerver hiba történt az importálás során" });
     }
   });
 
