@@ -764,6 +764,7 @@ export default function AdminDashboard() {
   const [bulkImportParsed, setBulkImportParsed] = useState<{ number: number; title: string; content: string }[]>([]);
   const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const [bulkImportProgress, setBulkImportProgress] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   // Additional subject assignments for module linking
   const [additionalSubjectIds, setAdditionalSubjectIds] = useState<number[]>([]);
 
@@ -814,6 +815,17 @@ export default function AdminDashboard() {
   const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
+
+  const filteredUsers = users?.filter(user => {
+    const term = searchTerm.toLowerCase();
+    return (
+      user.username?.toLowerCase().includes(term) ||
+      user.firstName?.toLowerCase().includes(term) ||
+      user.lastName?.toLowerCase().includes(term) ||
+      user.email?.toLowerCase().includes(term) ||
+      (user as any).schoolName?.toLowerCase().includes(term)
+    );
+  }) || [];
 
   // Osztályok lekérdezése a csoportosításhoz
   const { data: allClasses = [] } = useQuery<{ id: number; name: string; schoolAdminId: string }[]>({
@@ -2632,7 +2644,7 @@ export default function AdminDashboard() {
 
           <TabsContent value="users" className="space-y-6">
             {/* Fejléc */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold">Felhasználók kezelése</h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -2641,6 +2653,15 @@ export default function AdminDashboard() {
                   <span className="text-green-600">● Tanár: {teacherUsers}</span> &nbsp;|&nbsp;
                   <span className="text-purple-600">● Diák: {studentUsers}</span>
                 </p>
+              </div>
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Keresés név, email vagy iskola alapján..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
 
@@ -2660,7 +2681,7 @@ export default function AdminDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {users.filter((u: User) => u.role === 'admin').map((user: User) => (
+                    {filteredUsers.filter(u => u.role === 'admin').map((user: User) => (
                       <UserRow key={user.id} user={user}
                         onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
                         onResetPassword={() => { setResetPasswordUserId(user.id); setIsPasswordResetDialogOpen(true); }}
@@ -2675,8 +2696,8 @@ export default function AdminDashboard() {
 
               {/* ── ISKOLAI ADMIN ÉS TANÁROK – iskola szerint csoportosítva ── */}
               {(() => {
-                const schoolAdmins = users.filter((u: User) => u.role === 'school_admin');
-                const teachers = users.filter((u: User) => u.role === 'teacher');
+                const schoolAdmins = filteredUsers.filter((u: User) => u.role === 'school_admin');
+                const teachers = filteredUsers.filter((u: User) => u.role === 'teacher');
                 // Minden iskola azonosító (schoolAdminId) összegyűjtése
                 const schoolIds = Array.from(new Set([
                   ...schoolAdmins.map((u: User) => u.id),
@@ -2757,8 +2778,8 @@ export default function AdminDashboard() {
               })()}
 
               {/* ── DIÁKOK – iskola → osztály szerint csoportosítva ── */}
-              {users.filter((u: User) => u.role === 'student').length > 0 && (() => {
-                const students = users.filter((u: User) => u.role === 'student');
+              {filteredUsers.filter((u: User) => u.role === 'student').length > 0 && (() => {
+                const students = filteredUsers.filter((u: User) => u.role === 'student');
                 const schoolAdmins = users.filter((u: User) => u.role === 'school_admin');
 
                 // Csoportosítás: schoolAdminId → classId

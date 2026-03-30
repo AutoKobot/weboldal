@@ -772,11 +772,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
+      console.log(`[DELETE USER] Initiated deletion for userId: ${targetUserId} by admin: ${user.username}`);
       await storage.deleteUser(targetUserId);
+      console.log(`[DELETE USER] Successfully deleted userId: ${targetUserId}`);
       res.json({ message: "User deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
+    } catch (error: any) {
+      console.error(`[DELETE USER] Error deleting userId: ${req.params.id}:`, error);
+      res.status(500).json({ message: error.message || "Failed to delete user" });
     }
   });
 
