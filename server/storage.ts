@@ -593,7 +593,6 @@ export class DatabaseStorage implements IStorage {
       
       // 13.8 Handle fields with references to this user in other tables
       await db.execute(sql`UPDATE system_settings SET updated_by = NULL WHERE updated_by = ${id}`);
-      await db.execute(sql`UPDATE api_pricing SET updated_by = NULL WHERE updated_by = ${id}`);
 
       // 14. Finally delete the user
       const deletedUser = await db.delete(users).where(eq(users.id, id));
