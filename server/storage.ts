@@ -423,20 +423,14 @@ export class DatabaseStorage implements IStorage {
     try {
       // If changing FROM teacher role, clean up teacher relationships
       if (oldRole === 'teacher' && newRole !== 'teacher') {
-        console.log('Removing teacher-student relationships');
-        await db.execute(sql`DELETE FROM teacher_students WHERE teacher_id = ${userId}`);
-
-        // Update classes where this user was assigned teacher
-        await db.execute(sql`UPDATE classes SET assigned_teacher_id = NULL WHERE assigned_teacher_id = ${userId}`);
+        console.log('No specific teacher relationships table exists, skipping deletion');
       }
 
       // If changing FROM student role, clean up student relationships  
       if (oldRole === 'student' && newRole !== 'student') {
-        console.log('Removing student-teacher relationships');
-        await db.execute(sql`DELETE FROM teacher_students WHERE student_id = ${userId}`);
-
-        // Clean up student progress data if needed
-        await db.execute(sql`DELETE FROM module_progress WHERE user_id = ${userId}`);
+        console.log('Cleaning up student specific data');
+        // Clean up from users table where this student was assigned
+        await db.update(users).set({ assignedTeacherId: null, classId: null }).where(eq(users.id, userId));
       }
 
       // If changing FROM admin/school_admin, clean up admin-specific data
@@ -535,17 +529,14 @@ export class DatabaseStorage implements IStorage {
       const deletedMessages = await db.delete(chatMessages).where(eq(chatMessages.userId, id));
       console.log(`Deleted ${deletedMessages.rowCount || 0} chat messages`);
 
-      // 2. Delete module progress
-      await db.execute(sql`DELETE FROM module_progress WHERE user_id = ${id}`);
-
       // 3. Delete API calls
       await db.execute(sql`DELETE FROM api_calls WHERE user_id = ${id}`);
 
       // 4. Delete admin messages (as sender)
       await db.execute(sql`DELETE FROM admin_messages WHERE sender_id = ${id}`);
 
-      // 5. Delete teacher-student relationships (both directions)
-      await db.execute(sql`DELETE FROM teacher_students WHERE teacher_id = ${id} OR student_id = ${id}`);
+      // 5. Update assigned status in users table
+      await db.update(users).set({ assignedTeacherId: null }).where(eq(users.assignedTeacherId, id));
 
       // 5.5 Delete attendance records and daily notes (both as student or teacher)
       await db.execute(sql`DELETE FROM attendance WHERE student_id = ${id} OR teacher_id = ${id}`);
@@ -568,11 +559,7 @@ export class DatabaseStorage implements IStorage {
       // 9. Delete peer reviews (both as reviewer and reviewed)
       await db.execute(sql`DELETE FROM peer_reviews WHERE reviewer_id = ${id} OR reviewed_user_id = ${id}`);
 
-      // 10. Delete equipment manuals uploaded by user
-      await db.execute(sql`DELETE FROM equipment_manuals WHERE uploaded_by = ${id}`);
-
-      // 11. Delete equipment models manufactured by user
-      await db.execute(sql`DELETE FROM equipment_models WHERE manufacturer_id = ${id}`);
+      // 10. (No equipment manuals or models in this schema)
 
       // 12. Handle community groups created by user (cascade delete)
       const userGroups = await db.execute(sql`SELECT id FROM community_groups WHERE created_by = ${id}`);
