@@ -383,6 +383,7 @@ export class DatabaseStorage implements IStorage {
         authType: 'local',
         schoolName: userData.schoolName,
         schoolAdminId: userData.schoolAdminId,
+        phone: userData.phone ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -523,79 +524,96 @@ export class DatabaseStorage implements IStorage {
     console.log(`🗑️ Starting comprehensive user deletion for: ${id}`);
 
     try {
-      // Delete in reverse dependency order to avoid foreign key violations
+      // ── Lépés 1: Értesítések törlése (notifications) ──────────────────────────
+      await db.execute(sql`DELETE FROM notifications WHERE user_id = ${id} OR actor_id = ${id}`);
 
-      // 1. Delete chat messages
-      const deletedMessages = await db.delete(chatMessages).where(eq(chatMessages.userId, id));
-      console.log(`Deleted ${deletedMessages.rowCount || 0} chat messages`);
+      // ── Lépés 2: Bejelentési visszaigazolások törlése ────────────────────────
+      await db.execute(sql`DELETE FROM announcement_acknowledgements WHERE student_id = ${id}`);
 
-      // 3. Delete API calls
+      // ── Lépés 3: Osztálybejelentések törlése (tanár által létrehozottak) ─────
+      await db.execute(sql`DELETE FROM class_announcements WHERE teacher_id = ${id}`);
+
+      // ── Lépés 4: Avatar törlése ───────────────────────────────────────────────
+      await db.execute(sql`DELETE FROM student_avatars WHERE user_id = ${id}`);
+
+      // ── Lépés 5: Chat üzenetek törlése ───────────────────────────────────────
+      await db.delete(chatMessages).where(eq(chatMessages.userId, id));
+
+      // ── Lépés 6: API hívások törlése ─────────────────────────────────────────
       await db.execute(sql`DELETE FROM api_calls WHERE user_id = ${id}`);
 
-      // 4. Delete admin messages (as sender)
+      // ── Lépés 7: Admin üzenetek törlése (küldőként) ───────────────────────────
       await db.execute(sql`DELETE FROM admin_messages WHERE sender_id = ${id}`);
 
-      // 5. Update assigned status in users table
-      await db.update(users).set({ assignedTeacherId: null }).where(eq(users.assignedTeacherId, id));
-
-      // 5.5 Delete attendance records and daily notes (both as student or teacher)
+      // ── Lépés 8: Jelenlét adatok törlése ─────────────────────────────────────
       await db.execute(sql`DELETE FROM attendance WHERE student_id = ${id} OR teacher_id = ${id}`);
+
+      // ── Lépés 9: Napi megjegyzések törlése ───────────────────────────────────
       await db.execute(sql`DELETE FROM student_daily_notes WHERE student_id = ${id} OR teacher_id = ${id}`);
 
-      // 6. Delete group memberships
-      await db.execute(sql`DELETE FROM group_members WHERE user_id = ${id}`);
-
-      // 7. Delete project participations
-      await db.execute(sql`DELETE FROM project_participants WHERE user_id = ${id}`);
-
-      // 8. Delete discussions authored by user
-      // First handle replies to avoid foreign key violations in case children reference user posts
-      await db.execute(sql`UPDATE discussions SET parent_id = NULL WHERE parent_id IN (SELECT id FROM discussions WHERE author_id = ${id})`);
-      await db.execute(sql`DELETE FROM discussions WHERE author_id = ${id}`);
-
-      // 8.5 Delete discussion reactions
-      await db.execute(sql`DELETE FROM discussion_reactions WHERE user_id = ${id}`);
-
-      // 9. Delete peer reviews (both as reviewer and reviewed)
-      await db.execute(sql`DELETE FROM peer_reviews WHERE reviewer_id = ${id} OR reviewed_user_id = ${id}`);
-
-      // 10. (No equipment manuals or models in this schema)
-
-      // 12. Handle community groups created by user (cascade delete)
-      const userGroups = await db.execute(sql`SELECT id FROM community_groups WHERE created_by = ${id}`);
-      for (const group of userGroups.rows) {
-        const groupId = group.id;
-        // Delete group members first
-        await db.execute(sql`DELETE FROM group_members WHERE group_id = ${groupId}`);
-        // Delete group projects and their participants
-        const groupProjects = await db.execute(sql`SELECT id FROM community_projects WHERE created_by = ${id}`);
-        for (const project of groupProjects.rows) {
-          await db.execute(sql`DELETE FROM project_participants WHERE project_id = ${project.id}`);
-        }
-        // Delete community projects
-        await db.execute(sql`DELETE FROM community_projects WHERE created_by = ${id}`);
-        // Finally delete the group
-        await db.execute(sql`DELETE FROM community_groups WHERE id = ${groupId}`);
-      }
-
-      // 13. Update classes where user is assigned teacher (set to null)
-      await db.execute(sql`UPDATE classes SET assigned_teacher_id = NULL WHERE assigned_teacher_id = ${id}`);
-
-      // 13.5 Delete test results
+      // ── Lépés 10: Teszt eredmények törlése ───────────────────────────────────
       await db.execute(sql`DELETE FROM test_results WHERE user_id = ${id}`);
 
-      // 13.6 Delete privacy requests and user consents
+      // ── Lépés 11: Adatvédelem – kérelmek és beleegyezések törlése ────────────
       await db.execute(sql`DELETE FROM privacy_requests WHERE user_id = ${id}`);
       await db.execute(sql`DELETE FROM user_consents WHERE user_id = ${id}`);
 
-      // 13.7 Remove school_admin_id references if this user is a school admin
-      await db.execute(sql`UPDATE users SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
-      
-      // 13.8 Handle fields with references to this user in other tables
-      await db.execute(sql`UPDATE system_settings SET updated_by = NULL WHERE updated_by = ${id}`);
+      // ── Lépés 12: Discussion reakciók törlése ────────────────────────────────
+      await db.execute(sql`DELETE FROM discussion_reactions WHERE user_id = ${id}`);
 
-      // 14. Finally delete the user
-      const deletedUser = await db.delete(users).where(eq(users.id, id));
+      // ── Lépés 13: Peer reviews törlése ───────────────────────────────────────
+      await db.execute(sql`DELETE FROM peer_reviews WHERE reviewer_id = ${id} OR reviewed_user_id = ${id}`);
+
+      // ── Lépés 14: Projekt résztvevők törlése ─────────────────────────────────
+      await db.execute(sql`DELETE FROM project_participants WHERE user_id = ${id}`);
+
+      // ── Lépés 15: Csoport tagságok törlése ───────────────────────────────────
+      await db.execute(sql`DELETE FROM group_members WHERE user_id = ${id}`);
+
+      // ── Lépés 16: Discussion bejegyzések törlése (szülő hivatkozások nullázása előbb) ──
+      await db.execute(sql`UPDATE discussions SET parent_id = NULL WHERE parent_id IN (SELECT id FROM discussions WHERE author_id = ${id})`);
+      await db.execute(sql`DELETE FROM discussions WHERE author_id = ${id}`);
+
+      // ── Lépés 17: Közösségi projektek törlése (felhasználó által létrehozottak) ──
+      const userProjects = await db.execute(sql`SELECT id FROM community_projects WHERE created_by = ${id}`);
+      for (const project of userProjects.rows) {
+        await db.execute(sql`DELETE FROM project_participants WHERE project_id = ${project.id}`);
+        await db.execute(sql`DELETE FROM peer_reviews WHERE project_id = ${project.id}`);
+        await db.execute(sql`DELETE FROM discussions WHERE project_id = ${project.id}`);
+      }
+      await db.execute(sql`DELETE FROM community_projects WHERE created_by = ${id}`);
+
+      // ── Lépés 18: Közösségi csoportok törlése (felhasználó által létrehozottak) ──
+      const userGroups = await db.execute(sql`SELECT id FROM community_groups WHERE created_by = ${id}`);
+      for (const group of userGroups.rows) {
+        // Csoporthoz tartozó projektek törlése (group_id NOT NULL, ezért DELETE szükséges)
+        const groupProjectIds = await db.execute(sql`SELECT id FROM community_projects WHERE group_id = ${group.id}`);
+        for (const proj of groupProjectIds.rows) {
+          await db.execute(sql`DELETE FROM project_participants WHERE project_id = ${proj.id}`);
+          await db.execute(sql`DELETE FROM peer_reviews WHERE project_id = ${proj.id}`);
+          await db.execute(sql`DELETE FROM discussions WHERE project_id = ${proj.id}`);
+        }
+        await db.execute(sql`DELETE FROM community_projects WHERE group_id = ${group.id}`);
+        await db.execute(sql`DELETE FROM group_members WHERE group_id = ${group.id}`);
+        await db.execute(sql`DELETE FROM discussions WHERE group_id = ${group.id}`);
+        await db.execute(sql`DELETE FROM community_groups WHERE id = ${group.id}`);
+      }
+
+      // ── Lépés 19: Osztályhoz rendelt tanár hivatkozás törlése ─────────────────
+      await db.execute(sql`UPDATE classes SET assigned_teacher_id = NULL WHERE assigned_teacher_id = ${id}`);
+
+      // ── Lépés 20: Rendszerszintű hivatkozások nullázása ───────────────────────
+      await db.execute(sql`UPDATE system_settings SET updated_by = NULL WHERE updated_by = ${id}`);
+      await db.execute(sql`UPDATE ai_settings SET updated_by = NULL WHERE updated_by = ${id}`);
+
+      // ── Lépés 21: Iskola admin hivatkozások törlése ───────────────────────────
+      await db.update(users).set({ schoolAdminId: null }).where(eq(users.schoolAdminId, id));
+
+      // ── Lépés 22: Tanár hozzárendelés eltávolítása diákoktól ─────────────────
+      await db.update(users).set({ assignedTeacherId: null }).where(eq(users.assignedTeacherId, id));
+
+      // ── Lépés 23: Felhasználó végleges törlése ────────────────────────────────
+      await db.delete(users).where(eq(users.id, id));
 
       console.log(`✅ User ${id} and all related data successfully deleted`);
 
