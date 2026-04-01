@@ -7316,7 +7316,7 @@ export function setupPrivacyRoutes(app: Express) {
       };
 
       // Send to Make.com Webhook
-      await fetch('https://hook.eu1.make.com/jm0jvic55ak8yyzpzs6v5fekt6bxfaq6', {
+      await fetch('https://hook.eu1.make.com/4yficm7cephhzvwsy8szjg4aohx5ktjd', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
