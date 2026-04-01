@@ -7285,5 +7285,75 @@ export function setupPrivacyRoutes(app: Express) {
       res.status(500).json({ message: 'Failed to release avatar' });
     }
   });
+
+  // Make.com Automation Trigger Endpoint
+  app.post('/api/admin/modules/:id/trigger-make', combinedAuth, async (req: any, res) => {
+    try {
+      if (req.user?.role !== 'admin' && req.user?.role !== 'school_admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const moduleId = parseInt(req.params.id);
+      const module = await storage.getModule(moduleId);
+      
+      if (!module) {
+        return res.status(404).json({ message: "Module not found" });
+      }
+
+      // Fetch subject and profession for context
+      const subject = await storage.getSubject(module.subjectId);
+      const profession = subject ? await storage.getProfession(subject.professionId) : null;
+
+      // Prepare payload for Make.com
+      const payload = {
+        moduleId: module.id,
+        title: module.title,
+        content: module.detailedContent || module.conciseContent || "",
+        subjectName: subject?.name || "Ismeretlen",
+        professionName: profession?.name || "Ismeretlen",
+        moduleNumber: module.moduleNumber,
+        callbackUrl: `${req.protocol}://${req.get('host')}/api/callback/make-automation`
+      };
+
+      // Send to Make.com Webhook
+      await fetch('https://hook.eu1.make.com/jm0jvic55ak8yyzpzs6v5fekt6bxfaq6', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      res.json({ message: "Automation triggered successfully", status: "pending" });
+    } catch (error: any) {
+      console.error('Make.com Trigger Error:', error);
+      res.status(500).json({ message: "Failed to trigger automation", error: error.message });
+    }
+  });
+
+  // Make.com Callback Endpoint - Updates module with AI generated content
+  app.post('/api/callback/make-automation', async (req, res) => {
+    try {
+      const { moduleId, audioUrl, presentationUrl, imageUrl, generatedQuizzes, keyConceptsData } = req.body;
+      
+      if (!moduleId) {
+        return res.status(400).json({ message: "Missing moduleId" });
+      }
+
+      console.log(`Received automation callback for module ${moduleId}`);
+
+      const updateData: any = {};
+      if (audioUrl) updateData.audioUrl = audioUrl;
+      if (presentationUrl) updateData.presentationUrl = presentationUrl;
+      if (imageUrl) updateData.imageUrl = imageUrl;
+      if (generatedQuizzes) updateData.generatedQuizzes = generatedQuizzes;
+      if (keyConceptsData) updateData.keyConceptsData = keyConceptsData;
+
+      await storage.updateModule(moduleId, updateData);
+      
+      res.json({ success: true, message: "Module updated from automation" });
+    } catch (error: any) {
+      console.error('Make.com Callback Error:', error);
+      res.status(500).json({ message: "Failed to process callback", error: error.message });
+    }
+  });
 }
 

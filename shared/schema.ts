@@ -336,7 +336,7 @@ export const classes = pgTable("classes", {
   id: serial("id").primaryKey(),
   name: varchar("name").notNull(), // pl. "9.A", "Hegesztő 2024"
   description: text("description"), // Osztály leírása
-  schoolId: integer("school_id").references(() => schools.id).notNull(), // Melyik iskolához tartozik
+  schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
   schoolAdminId: varchar("school_admin_id").references(() => users.id), // Legacy / Melyik admin hozta létre
   assignedTeacherId: varchar("assigned_teacher_id").references(() => users.id), // Osztályfőnök
   professionId: integer("profession_id").references(() => professions.id), // Osztályhoz rendelt szakma
@@ -697,7 +697,6 @@ export const insertClassSchema = createInsertSchema(classes).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  schoolAdminId: true,
 });
 
 // Types
@@ -793,11 +792,13 @@ export const userConsents = pgTable("user_consents", {
 export const privacyRequests = pgTable("privacy_requests", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
-  type: varchar("type").notNull(), // "access", "rectification", "erasure", "portability", "objection"
-  status: varchar("status").default("pending"), // "pending", "processing", "completed", "rejected"
-  details: text("details"),
+  email: varchar("email"),
+  requestType: varchar("request_type").notNull(), // "access", "erasure", etc.
+  requestData: jsonb("request_data").default({}),
+  responseData: jsonb("response_data").default({}),
+  status: varchar("status").default("pending"),
   adminNotes: text("admin_notes"),
-  processedBy: varchar("processed_by"), // Admin who processed the request
+  processedBy: varchar("processed_by"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });

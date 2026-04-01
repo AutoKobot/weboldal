@@ -1826,6 +1826,36 @@ export default function AdminDashboard() {
     },
   });
 
+  const [triggeringAutomation, setTriggeringAutomation] = useState<Set<number>>(new Set());
+
+  const triggerMakeAutomationMutation = useMutation({
+    mutationFn: async (moduleId: number) => {
+      setTriggeringAutomation(prev => new Set(prev).add(moduleId));
+      const res = await apiRequest("POST", `/api/admin/modules/${moduleId}/trigger-make`, {});
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Automatizálás elindítva",
+        description: "A folyamat a háttérben fut a Make.com-on. Hamarosan frissülnek az anyagok.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: (data, error, variables) => {
+      setTriggeringAutomation(prev => {
+        const next = new Set(prev);
+        next.delete(variables);
+        return next;
+      });
+    }
+  });
+
 
 
 
@@ -2503,6 +2533,20 @@ export default function AdminDashboard() {
                                 </div>
                               ) : (
                                 <Wand2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600"
+                              onClick={() => triggerMakeAutomationMutation.mutate(module.id)}
+                              disabled={triggeringAutomation.has(module.id)}
+                              title="Vizuális és Audio automatizálás (Make.com)"
+                            >
+                              {triggeringAutomation.has(module.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                              ) : (
+                                <Sparkles className="h-4 w-4 text-orange-500" />
                               )}
                             </Button>
                             <Button
