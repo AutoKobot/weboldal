@@ -813,6 +813,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/admin/school-admin/:id', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.updateSchoolAdmin(req.params.id, req.body);
+      res.json({ message: "School admin updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating school admin:", error);
+      res.status(500).json({ message: error.message || "Failed to update school admin" });
+    }
+  });
+
+
   app.put('/api/users/:id/password', customAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

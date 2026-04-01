@@ -1771,6 +1771,22 @@ export default function AdminDashboard() {
     },
   });
 
+  const updateSchoolAdminMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<User> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/school-admin/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Siker", description: "Iskola adatai frissítve" });
+      setIsSchoolEditOpen(false);
+      setEditingSchoolAdmin(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+    },
+  });
+
 
 
   // Stats
@@ -2721,160 +2737,196 @@ export default function AdminDashboard() {
                 </Card>
               )}
 
-              {/* ── ISKOLAI ADMIN ÉS TANÁROK – iskola szerint csoportosítva ── */}
-              {(() => {
-                const schoolAdmins = filteredUsers.filter((u: User) => u.role === 'school_admin');
-                const teachers = filteredUsers.filter((u: User) => u.role === 'teacher');
-                // Minden iskola azonosító (schoolAdminId) összegyűjtése
-                const schoolIds = Array.from(new Set([
-                  ...schoolAdmins.map((u: User) => u.id),
-                  ...teachers.map((u: User) => (u as any).schoolAdminId).filter(Boolean),
-                ]));
-                if (schoolAdmins.length === 0 && teachers.length === 0) return null;
-                return (
-                  <div className="space-y-4">
-                    {schoolAdmins.map((schoolAdmin: User) => {
-                      const schoolTeachers = teachers.filter((t: User) => (t as any).schoolAdminId === schoolAdmin.id);
-                      const schoolName = (schoolAdmin as any).schoolName || schoolAdmin.firstName || schoolAdmin.username || schoolAdmin.id;
-                      return (
-                        <Card key={schoolAdmin.id}>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base flex items-center gap-2">
-                              <span className="h-3 w-3 rounded-full bg-blue-500 inline-block" />
-                              🏫 {schoolName}
-                              <Badge variant="outline" className="ml-1 text-xs">Iskola admin</Badge>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            {/* Iskolai admin sora */}
-                            <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-1">
-                              <p className="text-xs font-medium text-blue-700 dark:text-blue-300 px-2 pt-1 mb-1">Iskolai adminisztrátor</p>
-                              <UserRow user={schoolAdmin}
-                                onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: schoolAdmin.id, role: r })}
-                                onResetPassword={() => { setResetPasswordUserId(schoolAdmin.id); setIsPasswordResetDialogOpen(true); }}
-                                onDelete={() => { if (confirm(`Töröljük: ${schoolAdmin.firstName || schoolAdmin.username}?`)) deleteUserMutation.mutate(schoolAdmin.id); }}
-                                onUnlockModules={() => { }}
-                                unlockPending={false}
-                              />
-                            </div>
-                            {/* Tanárok */}
-                            {schoolTeachers.length > 0 && (
-                              <div className="bg-green-50 dark:bg-green-950 rounded-lg p-1">
-                                <p className="text-xs font-medium text-green-700 dark:text-green-300 px-2 pt-1 mb-1">Tanárok ({schoolTeachers.length})</p>
-                                <div className="space-y-1">
-                                  {schoolTeachers.map((teacher: User) => (
-                                    <UserRow key={teacher.id} user={teacher}
-                                      onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: teacher.id, role: r })}
-                                      onResetPassword={() => { setResetPasswordUserId(teacher.id); setIsPasswordResetDialogOpen(true); }}
-                                      onDelete={() => { if (confirm(`Töröljük: ${teacher.firstName || teacher.username}?`)) deleteUserMutation.mutate(teacher.id); }}
-                                      onUnlockModules={() => { }}
-                                      unlockPending={false}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                    {/* Tanárok akiknek nincs schoolAdminId-jük */}
-                    {teachers.filter((t: User) => !(t as any).schoolAdminId).length > 0 && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full bg-green-500 inline-block" />
-                            Tanárok (iskola nélkül)
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-1">
-                          {teachers.filter((t: User) => !(t as any).schoolAdminId).map((teacher: User) => (
-                            <UserRow key={teacher.id} user={teacher}
-                              onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: teacher.id, role: r })}
-                              onResetPassword={() => { setResetPasswordUserId(teacher.id); setIsPasswordResetDialogOpen(true); }}
-                              onDelete={() => { if (confirm(`Töröljük: ${teacher.firstName || teacher.username}?`)) deleteUserMutation.mutate(teacher.id); }}
-                              onUnlockModules={() => { }}
-                              unlockPending={false}
-                            />
-                          ))}
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* ── DIÁKOK – iskola → osztály szerint csoportosítva ── */}
-              {filteredUsers.filter((u: User) => u.role === 'student').length > 0 && (() => {
-                const students = filteredUsers.filter((u: User) => u.role === 'student');
-                const schoolAdmins = users.filter((u: User) => u.role === 'school_admin');
-
-                // Csoportosítás: schoolAdminId → classId
-                type SchoolGroup = { schoolAdmin: User | null; schoolName: string; classes: { classId: number | null; className: string; students: User[] }[] };
-                const schoolMap = new Map<string, SchoolGroup>();
-
-                students.forEach((student: User) => {
-                  const saId = (student as any).schoolAdminId || '__no_school__';
-                  if (!schoolMap.has(saId)) {
-                    const sa = schoolAdmins.find((a: User) => a.id === saId) || null;
-                    schoolMap.set(saId, {
-                      schoolAdmin: sa,
-                      schoolName: (sa as any)?.schoolName || sa?.firstName || sa?.username || (saId === '__no_school__' ? 'Iskolához nem rendelt' : saId),
-                      classes: [],
-                    });
-                  }
-                  const school = schoolMap.get(saId)!;
-                  const classId = (student as any).classId ?? null;
-                  const className = classId
-                    ? (allClasses.find(c => c.id === classId)?.name || `Osztály #${classId}`)
-                    : 'Osztályba nem sorolt';
-                  let cls = school.classes.find(c => c.classId === classId);
-                  if (!cls) { cls = { classId, className, students: [] }; school.classes.push(cls); }
-                  cls.students.push(student);
-                });
-
-                return (
-                  <div className="space-y-4">
-                    {Array.from(schoolMap.values()).map((school) => (
-                      <Card key={school.schoolName}>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full bg-purple-500 inline-block" />
-                            🎓 {school.schoolName}
-                            <Badge variant="secondary" className="ml-1 text-xs">
-                              {school.classes.reduce((n, c) => n + c.students.length, 0)} diák
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          {school.classes.sort((a, b) => (a.className > b.className ? 1 : -1)).map((cls) => (
-                            <details key={String(cls.classId)} className="group">
-                              <summary className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 text-sm font-medium text-purple-800 dark:text-purple-200 list-none">
-                                <span className="transition-transform group-open:rotate-90">▶</span>
-                                📚 {cls.className}
-                                <Badge variant="outline" className="ml-auto text-xs">{cls.students.length} tanuló</Badge>
-                              </summary>
-                              <div className="mt-2 space-y-1 pl-2">
-                                {cls.students.map((student: User) => (
-                                  <UserRow key={student.id} user={student}
-                                    onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: student.id, role: r })}
-                                    onResetPassword={() => { setResetPasswordUserId(student.id); setIsPasswordResetDialogOpen(true); }}
-                                    onDelete={() => { if (confirm(`Töröljük: ${student.firstName || student.username}?`)) deleteUserMutation.mutate(student.id); }}
-                                    onUnlockModules={() => { if (confirm('Minden modul feloldása?')) unlockAllModulesMutation.mutate(student.id); }}
-                                    unlockPending={unlockAllModulesMutation.isPending}
-                                    professions={professions}
-                                  />
-                                ))}
-                              </div>
-                            </details>
-                          ))}
-                        </CardContent>
-                      </Card>
+              {/* ── TANÁROK ── */}
+              {filteredUsers.filter((u: User) => u.role === 'teacher').length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2 text-green-600">
+                      <span className="h-3 w-3 rounded-full bg-green-500 inline-block" />
+                      Tanárok ({filteredUsers.filter((u: User) => u.role === 'teacher').length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {filteredUsers.filter(u => u.role === 'teacher').map((user: User) => (
+                      <UserRow key={user.id} user={user}
+                        onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
+                        onResetPassword={() => { setResetPasswordUserId(user.id); setIsPasswordResetDialogOpen(true); }}
+                        onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
+                        onUnlockModules={() => { }}
+                        unlockPending={false}
+                      />
                     ))}
-                  </div>
-                );
-              })()}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ── DIÁKOK ── */}
+              {filteredUsers.filter((u: User) => u.role === 'student').length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2 text-purple-600">
+                      <span className="h-3 w-3 rounded-full bg-purple-500 inline-block" />
+                      Hallgatók ({filteredUsers.filter((u: User) => u.role === 'student').length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {filteredUsers.filter(u => u.role === 'student').map((user: User) => (
+                      <UserRow key={user.id} user={user}
+                        onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
+                        onResetPassword={() => { setResetPasswordUserId(user.id); setIsPasswordResetDialogOpen(true); }}
+                        onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
+                        onUnlockModules={() => { if (confirm('Minden modul feloldása?')) unlockAllModulesMutation.mutate(user.id); }}
+                        unlockPending={unlockAllModulesMutation.isPending}
+                        professions={professions}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </>)}
+          </TabsContent>
+
+          <TabsContent value="school-admins" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Iskolák kezelése</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Rendszerben regisztrált iskolák és intézmények
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6">
+              {users.filter(u => u.role === 'school_admin').map((admin: User) => {
+                const schoolTeachers = users.filter(t => t.role === 'teacher' && (t as any).schoolAdminId === admin.id);
+                const schoolStudents = users.filter(s => s.role === 'student' && (s as any).schoolAdminId === admin.id);
+                
+                return (
+                  <Card key={admin.id} className="overflow-hidden border-l-4 border-l-blue-500">
+                    <CardHeader className="bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                            <Building2 className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">{(admin as any).schoolName || "Névtelen Iskola"}</CardTitle>
+                            <CardDescription className="flex items-center gap-2">
+                              <UserIcon className="h-3 w-3" />
+                              Admin: {admin.firstName} {admin.lastName} ({admin.username})
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setEditingSchoolAdmin(admin);
+                            setIsSchoolEditOpen(true);
+                          }}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Szerkesztés
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => {
+                            if (confirm(`Biztosan törölni akarod az iskolát: ${(admin as any).schoolName}?\nMinden hozzá tartozó adat (osztályok stb.) elveszik.`)) {
+                              deleteUserMutation.mutate(admin.id);
+                            }
+                          }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="flex flex-col p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">Tanárok</span>
+                          <span className="text-2xl font-bold text-blue-600">{schoolTeachers.length}</span>
+                        </div>
+                        <div className="flex flex-col p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30">
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">Tanulók</span>
+                          <span className="text-2xl font-bold text-purple-600">{schoolStudents.length}</span>
+                        </div>
+                        <div className="flex flex-col p-3 rounded-lg bg-muted/50 col-span-2">
+                          <span className="text-xs text-muted-foreground uppercase font-semibold">Kapcsolat</span>
+                          <div className="text-sm truncate">
+                            <p>📧 {admin.email || "Nincs megadva"}</p>
+                            <p>📞 {admin.phone || "Nincs megadva"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {users.filter(u => u.role === 'school_admin').length === 0 && (
+                <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
+                  <Building2 className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-4" />
+                  <p className="text-muted-foreground">Még nincsenek regisztrált iskolák a rendszerben.</p>
+                </div>
+              )}
+            </div>
+
+            <Dialog open={isSchoolEditOpen} onOpenChange={(open) => {
+              setIsSchoolEditOpen(open);
+              if (!open) setEditingSchoolAdmin(null);
+            }}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Iskola adatainak szerkesztése</DialogTitle>
+                  <DialogDescription>
+                    Módosítsd az intézmény és az adminisztrátor adatait.
+                  </DialogDescription>
+                </DialogHeader>
+                {editingSchoolAdmin && (
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const data = {
+                      schoolName: formData.get('schoolName') as string,
+                      firstName: formData.get('firstName') as string,
+                      lastName: formData.get('lastName') as string,
+                      email: formData.get('email') as string,
+                      phone: formData.get('phone') as string,
+                      username: formData.get('username') as string,
+                    };
+                    updateSchoolAdminMutation.mutate({ id: editingSchoolAdmin.id, data });
+                  }} className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2 col-span-2">
+                        <Label htmlFor="schoolName">Iskola neve</Label>
+                        <Input id="schoolName" name="schoolName" defaultValue={(editingSchoolAdmin as any).schoolName || ""} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Vezetéknév</Label>
+                        <Input id="lastName" name="lastName" defaultValue={editingSchoolAdmin.lastName || ""} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Keresztnév</Label>
+                        <Input id="firstName" name="firstName" defaultValue={editingSchoolAdmin.firstName || ""} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="username">Felhasználónév</Label>
+                        <Input id="username" name="username" defaultValue={editingSchoolAdmin.username || ""} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" name="email" type="email" defaultValue={editingSchoolAdmin.email || ""} />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <Label htmlFor="phone">Telefonszám</Label>
+                        <Input id="phone" name="phone" defaultValue={editingSchoolAdmin.phone || ""} />
+                      </div>
+                    </div>
+                    <DialogFooter className="pt-4">
+                      <Button type="button" variant="outline" onClick={() => setIsSchoolEditOpen(false)}>Mégse</Button>
+                      <Button type="submit" disabled={updateSchoolAdminMutation.isPending}>
+                        {updateSchoolAdminMutation.isPending ? "Mentés..." : "Módosítások mentése"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="costs" className="space-y-6">
