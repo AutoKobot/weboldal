@@ -14,9 +14,12 @@ import {
   peerReviews,
   adminMessages,
   classes,
+  schools,
   moduleSubjectAssignments,
   type User,
   type UpsertUser,
+  type School,
+  type InsertSchool,
   type Profession,
   type InsertProfession,
   type Subject,
@@ -138,6 +141,17 @@ export interface IStorage {
   deleteApiPricing(id: number): Promise<void>;
   getUniqueApiProviders(): Promise<{ provider: string, service: string, model?: string }[]>;
   getTeachersBySchoolAdmin(schoolAdminId: string): Promise<User[]>;
+  
+  // School operations
+  getSchools(): Promise<School[]>;
+  getSchool(id: number): Promise<School | undefined>;
+  createSchool(school: InsertSchool): Promise<School>;
+  updateSchool(id: number, data: Partial<School>): Promise<School>;
+  deleteSchool(id: number): Promise<void>;
+  assignUserToSchool(userId: string, schoolId: number | null): Promise<void>;
+  assignClassToSchool(classId: number, schoolId: number): Promise<void>;
+  getSchoolAdminBySchool(schoolId: number): Promise<User | undefined>;
+
   createClass(classData: InsertClass): Promise<Class>;
   updateClass(id: number, classData: Partial<InsertClass>): Promise<Class>;
   deleteClass(id: number): Promise<void>;
@@ -700,6 +714,59 @@ export class DatabaseStorage implements IStorage {
       .returning();
     if (!updated) throw new Error("School admin not found");
     return updated;
+  }
+
+  // School operations
+  async getSchools(): Promise<School[]> {
+    return await db.select().from(schools).orderBy(asc(schools.name));
+  }
+
+  async getSchool(id: number): Promise<School | undefined> {
+    const [school] = await db.select().from(schools).where(eq(schools.id, id));
+    return school;
+  }
+
+  async createSchool(school: InsertSchool): Promise<School> {
+    const [newSchool] = await db.insert(schools).values(school).returning();
+    return newSchool;
+  }
+
+  async updateSchool(id: number, data: Partial<School>): Promise<School> {
+    const [updatedSchool] = await db.update(schools)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schools.id, id))
+      .returning();
+    if (!updatedSchool) throw new Error("School not found");
+    return updatedSchool;
+  }
+
+  async deleteSchool(id: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      // Unlink users
+      await tx.update(users).set({ schoolId: null }).where(eq(users.schoolId, id));
+      // Delete classes belonging to this school
+      await tx.delete(classes).where(eq(classes.schoolId, id));
+      // Unlink shared content
+      await tx.update(professions).set({ schoolId: null }).where(eq(professions.schoolId, id));
+      await tx.update(subjects).set({ schoolId: null }).where(eq(subjects.schoolId, id));
+      await tx.update(modules).set({ schoolId: null }).where(eq(modules.schoolId, id));
+      
+      // Delete the school
+      await tx.delete(schools).where(eq(schools.id, id));
+    });
+  }
+
+  async assignUserToSchool(userId: string, schoolId: number | null): Promise<void> {
+    await db.update(users).set({ schoolId }).where(eq(users.id, userId));
+  }
+
+  async assignClassToSchool(classId: number, schoolId: number): Promise<void> {
+    await db.update(classes).set({ schoolId }).where(eq(classes.id, classId));
+  }
+
+  async getSchoolAdminBySchool(schoolId: number): Promise<User | undefined> {
+    const [admin] = await db.select().from(users).where(and(eq(users.schoolId, schoolId), eq(users.role, "school_admin")));
+    return admin;
   }
 
   // Profession operations

@@ -27,6 +27,27 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Iskolák tábla - ÚJ
+export const schools = pgTable("schools", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: varchar("address", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  website: varchar("website", { length: 255 }),
+  imageUrl: varchar("image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type School = typeof schools.$inferSelect;
+export type InsertSchool = typeof schools.$inferInsert;
+export const insertSchoolSchema = createInsertSchema(schools).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // User storage table (supports both Replit Auth and local auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
@@ -41,8 +62,9 @@ export const users = pgTable("users", {
   selectedProfessionId: integer("selected_profession_id").references((): AnyPgColumn => professions.id),
   assignedProfessionIds: jsonb("assigned_profession_ids").default([]).$type<number[]>(), // Admin által hozzárendelt szakmák
   assignedTeacherId: varchar("assigned_teacher_id"), // Iskolai admin által hozzárendelt tanár
-  schoolName: varchar("school_name"), // Iskola neve (csak iskolai adminoknak)
-  schoolAdminId: varchar("school_admin_id"), // Melyik iskolai admin hozta létre
+  schoolId: integer("school_id").references(() => schools.id), // Iskola azonosító
+  schoolName: varchar("school_name"), // Iskola neve (legacy / redundáns de megtartjuk a kompatibilitásért)
+  schoolAdminId: varchar("school_admin_id"), // Melyik iskolai admin hozta létre (preferáltan schoolId használatával váltsuk ki)
   classId: integer("class_id"), // Melyik osztályhoz tartozik
   phone: varchar("phone"), // Telefonszám
   currentStreak: integer("current_streak").default(0), // Folytonos bejelentkezések
@@ -60,7 +82,8 @@ export const professions = pgTable("professions", {
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name (pl. "wrench", "hammer", "cpu")
   iconUrl: varchar("icon_url"), // Feltöltött kép URL
-  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // ÚJ: melyik iskolához tartozik (null = admin által globális)
+  schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik (null = admin által globális)
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -72,7 +95,8 @@ export const subjects = pgTable("subjects", {
   name: varchar("name").notNull(),
   description: text("description"),
   orderIndex: integer("order_index").notNull().default(0),
-  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // ÚJ: melyik iskolához tartozik
+  schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -95,7 +119,8 @@ export const modules = pgTable("modules", {
   presentationUrl: varchar("presentation_url"), // Feltöltött prezentáció URL (pl. pptx)
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
-  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // ÚJ: melyik iskolához tartozik
+  schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -143,9 +168,18 @@ export const testResults = pgTable("test_results", {
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   selectedProfession: one(professions, { fields: [users.selectedProfessionId], references: [professions.id] }),
+  school: one(schools, { fields: [users.schoolId], references: [schools.id] }),
   chatMessages: many(chatMessages),
   assignedClass: one(classes, { fields: [users.classId], references: [classes.id] }),
   testResults: many(testResults),
+}));
+
+export const schoolsRelations = relations(schools, ({ many }) => ({
+  users: many(users),
+  classes: many(classes),
+  professions: many(professions),
+  subjects: many(subjects),
+  modules: many(modules),
 }));
 
 export const professionsRelations = relations(professions, ({ many }) => ({
@@ -302,7 +336,8 @@ export const classes = pgTable("classes", {
   id: serial("id").primaryKey(),
   name: varchar("name").notNull(), // pl. "9.A", "Hegesztő 2024"
   description: text("description"), // Osztály leírása
-  schoolAdminId: varchar("school_admin_id").references(() => users.id).notNull(), // Melyik iskolai admin hozta létre
+  schoolId: integer("school_id").references(() => schools.id).notNull(), // Melyik iskolához tartozik
+  schoolAdminId: varchar("school_admin_id").references(() => users.id), // Legacy / Melyik admin hozta létre
   assignedTeacherId: varchar("assigned_teacher_id").references(() => users.id), // Osztályfőnök
   professionId: integer("profession_id").references(() => professions.id), // Osztályhoz rendelt szakma
   scheduleGroup: varchar("schedule_group").notNull().default("morning"), // pl. "morning", "afternoon"
@@ -340,7 +375,8 @@ export const announcementAcknowledgements = pgTable("announcement_acknowledgemen
 // Lesson schedule table – iskolai órarend (tanórák kezdési/befejezési ideje)
 export const lessonSchedules = pgTable("lesson_schedules", {
   id: serial("id").primaryKey(),
-  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id).notNull(),
+  schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
+  schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   periodNumber: integer("period_number").notNull(), // 1, 2, 3, ... (hányadik tanóra)
   startHour: integer("start_hour").notNull(),   // pl. 8  (08:00)
   startMinute: integer("start_minute").notNull().default(0), // pl. 0
@@ -352,7 +388,7 @@ export const lessonSchedules = pgTable("lesson_schedules", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (t) => ({
-  lessonScheduleUnique: uniqueIndex("lesson_schedule_unique").on(t.schoolAdminId, t.periodNumber, t.scheduleGroup),
+  lessonScheduleUnique: uniqueIndex("lesson_schedule_unique").on(t.schoolId, t.periodNumber, t.scheduleGroup),
 }));
 
 // Attendance table – jelenlét nyilvántartás (tanóránkénti, automatikus login alapján)
@@ -414,6 +450,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   role: true,
   authType: true,
   phone: true,
+  schoolId: true,
   schoolName: true,
   schoolAdminId: true,
 });
@@ -660,15 +697,17 @@ export const insertClassSchema = createInsertSchema(classes).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  schoolAdminId: true,
 });
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+// Performed deduplication and added missing type exports
+export type Profession = typeof professions.$inferSelect;
 export type InsertProfession = z.infer<typeof insertProfessionSchema>;
 export type Class = typeof classes.$inferSelect;
 export type InsertClass = z.infer<typeof insertClassSchema>;
-export type Profession = typeof professions.$inferSelect;
 export type InsertSubject = z.infer<typeof insertSubjectSchema>;
 export type Subject = typeof subjects.$inferSelect;
 export type InsertModule = z.infer<typeof insertModuleSchema>;
@@ -754,11 +793,10 @@ export const userConsents = pgTable("user_consents", {
 export const privacyRequests = pgTable("privacy_requests", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
-  email: varchar("email").notNull(),
-  requestType: varchar("request_type").notNull(), // "data_export", "data_deletion", "data_correction", "restrict_processing"
-  status: varchar("status").notNull().default("pending"), // "pending", "in_progress", "completed", "rejected"
-  requestData: jsonb("request_data"), // Additional request details
-  responseData: jsonb("response_data"), // Response/completion details
+  type: varchar("type").notNull(), // "access", "rectification", "erasure", "portability", "objection"
+  status: varchar("status").default("pending"), // "pending", "processing", "completed", "rejected"
+  details: text("details"),
+  adminNotes: text("admin_notes"),
   processedBy: varchar("processed_by"), // Admin who processed the request
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
@@ -808,8 +846,9 @@ export const insertTestResultSchema = createInsertSchema(testResults).omit({
   createdAt: true,
 });
 
-// ── Jelenlét Relations ────────────────────────────────────────────────────────
+// ── Relations ────────────────────────────────────────────────────────
 export const lessonSchedulesRelations = relations(lessonSchedules, ({ one }) => ({
+  school: one(schools, { fields: [lessonSchedules.schoolId], references: [schools.id] }),
   schoolAdmin: one(users, { fields: [lessonSchedules.schoolAdminId], references: [users.id] }),
 }));
 

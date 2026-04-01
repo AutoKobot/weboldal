@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { FlashcardImport } from "@/components/flashcard-import";
-import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User as UserIcon, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2 } from "lucide-react";
 import FileUpload, { UrlInput } from "@/components/file-upload";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
 import { LinkEditor } from "@/components/link-editor";
@@ -31,6 +31,7 @@ import {
   type Profession,
   type Subject,
   type User,
+  type School,
   type KeyConceptsData
 } from "@shared/schema";
 
@@ -769,6 +770,8 @@ export default function AdminDashboard() {
   const [additionalSubjectIds, setAdditionalSubjectIds] = useState<number[]>([]);
   const [editingSchoolAdmin, setEditingSchoolAdmin] = useState<User | null>(null);
   const [isSchoolEditOpen, setIsSchoolEditOpen] = useState(false);
+  const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState(false);
+  const [editingSchool, setEditingSchool] = useState<School | null>(null);
 
   // Queries
   const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
@@ -816,6 +819,11 @@ export default function AdminDashboard() {
 
   const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
+  });
+
+  const { data: schools = [], isLoading: schoolsLoading } = useQuery<School[]>({
+    queryKey: ["/api/admin/schools"],
+    enabled: isAdmin,
   });
 
   const filteredUsers = users?.filter(user => {
@@ -1438,6 +1446,53 @@ export default function AdminDashboard() {
         variant: "destructive",
       });
     },
+  });
+
+  const createSchoolMutation = useMutation({
+    mutationFn: async (data: Partial<School>) => {
+      const res = await apiRequest("POST", "/api/admin/schools", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/schools"] });
+      setIsSchoolDialogOpen(false);
+      toast({ title: "Sikeres mentés", description: "Az iskola létrehozva." });
+    }
+  });
+
+  const updateSchoolMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<School> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/schools/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/schools"] });
+      setIsSchoolDialogOpen(false);
+      setEditingSchool(null);
+      toast({ title: "Sikeres frissítés", description: "Az iskola adatai frissültek." });
+    }
+  });
+
+  const deleteSchoolMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/admin/schools/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/schools"] });
+      toast({ title: "Iskola törölve", description: "Az intézmény eltávolítva a rendszerből." });
+    }
+  });
+
+  const assignUserToSchoolMutation = useMutation({
+    mutationFn: async ({ userId, schoolId }: { userId: string, schoolId: number | string }) => {
+      const sId = schoolId === "none" ? "none" : schoolId;
+      const res = await apiRequest("PATCH", `/api/users/${userId}/school`, { schoolId: sId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Sikeres hozzárendelés", description: "A felhasználó iskolája frissítve lett." });
+    }
   });
 
   // API kulcsok és AI beállítások mutációi
@@ -2780,137 +2835,162 @@ export default function AdminDashboard() {
                   Rendszerben regisztrált iskolák és intézmények
                 </p>
               </div>
+              <Button onClick={() => {
+                setEditingSchool(null);
+                setIsSchoolDialogOpen(true);
+              }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Új Iskola
+              </Button>
             </div>
 
-            <div className="grid gap-6">
-              {users.filter(u => u.role === 'school_admin').map((admin: User) => {
-                const schoolTeachers = users.filter(t => t.role === 'teacher' && (t as any).schoolAdminId === admin.id);
-                const schoolStudents = users.filter(s => s.role === 'student' && (s as any).schoolAdminId === admin.id);
-                
-                return (
-                  <Card key={admin.id} className="overflow-hidden border-l-4 border-l-blue-500">
-                    <CardHeader className="bg-muted/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300">
-                            <Building2 className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">{(admin as any).schoolName || "Névtelen Iskola"}</CardTitle>
-                            <CardDescription className="flex items-center gap-2">
-                              <User className="h-3 w-3" />
-                              Admin: {admin.firstName} {admin.lastName} ({admin.username})
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => {
-                            setEditingSchoolAdmin(admin);
-                            setIsSchoolEditOpen(true);
-                          }}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Szerkesztés
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => {
-                            if (confirm(`Biztosan törölni akarod az iskolát: ${(admin as any).schoolName}?\nMinden hozzá tartozó adat (osztályok stb.) elveszik.`)) {
-                              deleteUserMutation.mutate(admin.id);
-                            }
-                          }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="flex flex-col p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                          <span className="text-xs text-muted-foreground uppercase font-semibold">Tanárok</span>
-                          <span className="text-2xl font-bold text-blue-600">{schoolTeachers.length}</span>
-                        </div>
-                        <div className="flex flex-col p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30">
-                          <span className="text-xs text-muted-foreground uppercase font-semibold">Tanulók</span>
-                          <span className="text-2xl font-bold text-purple-600">{schoolStudents.length}</span>
-                        </div>
-                        <div className="flex flex-col p-3 rounded-lg bg-muted/50 col-span-2">
-                          <span className="text-xs text-muted-foreground uppercase font-semibold">Kapcsolat</span>
-                          <div className="text-sm truncate">
-                            <p>📧 {admin.email || "Nincs megadva"}</p>
-                            <p>📞 {admin.phone || "Nincs megadva"}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              {users.filter(u => u.role === 'school_admin').length === 0 && (
-                <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
+            <div className="grid gap-6 md:grid-cols-2">
+              {schoolsLoading ? (
+                <div className="col-span-full text-center py-12 text-muted-foreground">
+                  Iskolák betöltése...
+                </div>
+              ) : schools.length === 0 ? (
+                <div className="col-span-full text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
                   <Building2 className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-4" />
                   <p className="text-muted-foreground">Még nincsenek regisztrált iskolák a rendszerben.</p>
                 </div>
+              ) : (
+                schools.map((school: School) => {
+                  const schoolAdmins = users.filter(u => u.role === 'school_admin' && u.schoolId === school.id);
+                  const schoolTeachers = users.filter(u => u.role === 'teacher' && u.schoolId === school.id);
+                  const schoolStudents = users.filter(u => u.role === 'student' && u.schoolId === school.id);
+                  
+                  return (
+                    <Card key={school.id} className="overflow-hidden border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                      <CardHeader className="bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {school.imageUrl ? (
+                              <img src={school.imageUrl} alt={school.name} className="w-12 h-12 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                                <Building2 className="h-6 w-6" />
+                              </div>
+                            )}
+                            <div>
+                              <CardTitle className="text-lg">{school.name}</CardTitle>
+                              <CardDescription className="flex items-center gap-1">
+                                {school.address || "Nincs cím megadva"}
+                                {school.website && (
+                                  <a href={school.website} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-500 hover:underline">
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => {
+                              setEditingSchool(school);
+                              setIsSchoolDialogOpen(true);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => {
+                              if (confirm(`Biztosan törölni akarod az iskolát: ${school.name}?`)) {
+                                deleteSchoolMutation.mutate(school.id);
+                              }
+                            }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30">
+                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Adminok</p>
+                            <p className="text-xl font-bold text-red-600">{schoolAdmins.length}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/30">
+                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Tanárok</p>
+                            <p className="text-xl font-bold text-green-600">{schoolTeachers.length}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/30">
+                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Diákok</p>
+                            <p className="text-xl font-bold text-purple-600">{schoolStudents.length}</p>
+                          </div>
+                        </div>
+                        
+                        {(school.email || school.phone) && (
+                          <div className="mt-4 pt-4 border-t text-sm text-muted-foreground space-y-1">
+                            {school.email && <p className="flex items-center gap-2">📧 {school.email}</p>}
+                            {school.phone && <p className="flex items-center gap-2">📞 {school.phone}</p>}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
 
-            <Dialog open={isSchoolEditOpen} onOpenChange={(open) => {
-              setIsSchoolEditOpen(open);
-              if (!open) setEditingSchoolAdmin(null);
+            <Dialog open={isSchoolDialogOpen} onOpenChange={(open) => {
+              setIsSchoolDialogOpen(open);
+              if (!open) setEditingSchool(null);
             }}>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>Iskola adatainak szerkesztése</DialogTitle>
+                  <DialogTitle>{editingSchool ? "Iskola szerkesztése" : "Új iskola regisztrálása"}</DialogTitle>
                   <DialogDescription>
-                    Módosítsd az intézmény és az adminisztrátor adatait.
+                    Add meg az intézmény alapvető adatait.
                   </DialogDescription>
                 </DialogHeader>
-                {editingSchoolAdmin && (
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    const data = {
-                      schoolName: formData.get('schoolName') as string,
-                      firstName: formData.get('firstName') as string,
-                      lastName: formData.get('lastName') as string,
-                      email: formData.get('email') as string,
-                      phone: formData.get('phone') as string,
-                      username: formData.get('username') as string,
-                    };
-                    updateSchoolAdminMutation.mutate({ id: editingSchoolAdmin.id, data });
-                  }} className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2 col-span-2">
-                        <Label htmlFor="schoolName">Iskola neve</Label>
-                        <Input id="schoolName" name="schoolName" defaultValue={(editingSchoolAdmin as any).schoolName || ""} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Vezetéknév</Label>
-                        <Input id="lastName" name="lastName" defaultValue={editingSchoolAdmin.lastName || ""} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">Keresztnév</Label>
-                        <Input id="firstName" name="firstName" defaultValue={editingSchoolAdmin.firstName || ""} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="username">Felhasználónév</Label>
-                        <Input id="username" name="username" defaultValue={editingSchoolAdmin.username || ""} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" name="email" type="email" defaultValue={editingSchoolAdmin.email || ""} />
-                      </div>
-                      <div className="space-y-2 col-span-2">
-                        <Label htmlFor="phone">Telefonszám</Label>
-                        <Input id="phone" name="phone" defaultValue={editingSchoolAdmin.phone || ""} />
-                      </div>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const data = {
+                    name: formData.get('name') as string,
+                    address: formData.get('address') as string,
+                    phone: formData.get('phone') as string,
+                    email: formData.get('email') as string,
+                    website: formData.get('website') as string,
+                    imageUrl: formData.get('imageUrl') as string,
+                  };
+                  if (editingSchool) {
+                    updateSchoolMutation.mutate({ id: editingSchool.id, data });
+                  } else {
+                    createSchoolMutation.mutate(data);
+                  }
+                }} className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Iskola neve *</Label>
+                    <Input id="name" name="name" defaultValue={editingSchool?.name || ""} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Cím</Label>
+                    <Input id="address" name="address" defaultValue={editingSchool?.address || ""} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" name="email" type="email" defaultValue={editingSchool?.email || ""} />
                     </div>
-                    <DialogFooter className="pt-4">
-                      <Button type="button" variant="outline" onClick={() => setIsSchoolEditOpen(false)}>Mégse</Button>
-                      <Button type="submit" disabled={updateSchoolAdminMutation.isPending}>
-                        {updateSchoolAdminMutation.isPending ? "Mentés..." : "Módosítások mentése"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                )}
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Telefonszám</Label>
+                      <Input id="phone" name="phone" defaultValue={editingSchool?.phone || ""} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Weboldal</Label>
+                    <Input id="website" name="website" placeholder="https://..." defaultValue={editingSchool?.website || ""} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Logó URL</Label>
+                    <Input id="imageUrl" name="imageUrl" placeholder="https://..." defaultValue={editingSchool?.imageUrl || ""} />
+                  </div>
+                  <DialogFooter className="pt-4">
+                    <Button type="button" variant="outline" onClick={() => setIsSchoolDialogOpen(false)}>Mégse</Button>
+                    <Button type="submit" disabled={createSchoolMutation.isPending || updateSchoolMutation.isPending}>
+                      {editingSchool ? "Frissítés" : "Létrehozás"}
+                    </Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </TabsContent>
@@ -4191,9 +4271,12 @@ function UserRow({
   const schoolAdmins = usersData?.filter(u => u.role === 'school_admin') || [];
   const { toast } = useToast();
 
-  const updateSchoolAdminMutation = useMutation({
-    mutationFn: async ({ userId, schoolAdminId }: { userId: string, schoolAdminId: string | null }) => {
-      const res = await apiRequest("PUT", `/api/users/${userId}/school-admin`, { schoolAdminId });
+  const { data: schools = [] } = useQuery<School[]>({ queryKey: ["/api/admin/schools"] });
+  const { toast } = useToast();
+
+  const updateUserSchoolMutation = useMutation({
+    mutationFn: async ({ userId, schoolId }: { userId: string, schoolId: number | null }) => {
+      const res = await apiRequest("PATCH", `/api/users/${userId}/school`, { schoolId });
       return await res.json();
     },
     onSuccess: () => {
@@ -4204,6 +4287,9 @@ function UserRow({
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
     },
   });
+
+  const assignedSchool = schools.find(s => s.id === user.schoolId);
+  const schoolDisplayName = assignedSchool?.name || schoolName;
 
   const displayName = user.lastName && user.firstName
     ? `${user.lastName} ${user.firstName}`
@@ -4219,7 +4305,7 @@ function UserRow({
           <p className="font-medium text-sm truncate">{displayName}</p>
           <p className="text-xs text-muted-foreground truncate">
             {user.email || user.username || "—"}
-            {schoolName && <span className="ml-2 px-1 rounded bg-blue-50 text-blue-600 font-medium border border-blue-100">🏫 {schoolName}</span>}
+            {schoolDisplayName && <span className="ml-2 px-1 rounded bg-blue-50 text-blue-600 font-medium border border-blue-100">🏫 {schoolDisplayName}</span>}
           </p>
           <p className="text-xs text-muted-foreground">
             Regisztráció: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('hu-HU') : "–"}
@@ -4239,12 +4325,12 @@ function UserRow({
           </SelectContent>
         </Select>
 
-        {(user.role === 'teacher' || user.role === 'student') && (
+        {(user.role === 'teacher' || user.role === 'student' || user.role === 'school_admin') && (
           <Select 
-            value={(user as any).schoolAdminId || "none"} 
+            value={user.schoolId?.toString() || "none"} 
             onValueChange={(val) => {
-              const newValue = val === "none" ? null : val;
-              updateSchoolAdminMutation.mutate({ userId: user.id, schoolAdminId: newValue });
+              const newValue = val === "none" ? null : parseInt(val);
+              updateUserSchoolMutation.mutate({ userId: user.id, schoolId: newValue });
             }}
           >
             <SelectTrigger className="w-36 h-8 text-xs">
@@ -4252,9 +4338,9 @@ function UserRow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">-- Nincs iskola --</SelectItem>
-              {schoolAdmins.map(sa => (
-                <SelectItem key={sa.id} value={sa.id}>
-                  {(sa as any).schoolName || sa.firstName || sa.username || sa.id}
+              {schools.map(school => (
+                <SelectItem key={school.id} value={school.id.toString()}>
+                  {school.name}
                 </SelectItem>
               ))}
             </SelectContent>

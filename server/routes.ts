@@ -830,6 +830,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- School API Endpoints ---
+  app.get('/api/admin/schools', customAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const schools = await storage.getSchools();
+      res.json(schools);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch schools" });
+    }
+  });
+
+  app.post('/api/admin/schools', customAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const school = await storage.createSchool(req.body);
+      res.json(school);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create school" });
+    }
+  });
+
+  app.patch('/api/admin/schools/:id', customAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const school = await storage.updateSchool(Number(req.params.id), req.body);
+      res.json(school);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update school" });
+    }
+  });
+
+  app.delete('/api/admin/schools/:id', customAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      await storage.deleteSchool(Number(req.params.id));
+      res.json({ message: "School deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete school" });
+    }
+  });
+
+  app.patch('/api/users/:id/school', customAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const schoolId = (req.body.schoolId === "none" || req.body.schoolId === null) ? null : Number(req.body.schoolId);
+      await storage.assignUserToSchool(req.params.id, schoolId);
+      res.json({ message: "User assigned to school successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to assign user to school" });
+    }
+  });
+
 
   app.put('/api/users/:id/password', customAuth, async (req: any, res) => {
     try {
