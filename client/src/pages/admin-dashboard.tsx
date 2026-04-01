@@ -768,7 +768,7 @@ export default function AdminDashboard() {
   // Additional subject assignments for module linking
   const [additionalSubjectIds, setAdditionalSubjectIds] = useState<number[]>([]);
   const [editingSchoolAdmin, setEditingSchoolAdmin] = useState<User | null>(null);
-  const [isSchoolAdminEditOpen, setIsSchoolAdminEditOpen] = useState(false);
+  const [isSchoolEditOpen, setIsSchoolEditOpen] = useState(false);
 
   // Queries
   const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
@@ -1428,7 +1428,7 @@ export default function AdminDashboard() {
         title: "Sikeres frissítés",
         description: "Az iskola adatai frissítve lettek.",
       });
-      setIsSchoolAdminEditOpen(false);
+      setIsSchoolEditOpen(false);
       setEditingSchoolAdmin(null);
     },
     onError: (error: Error) => {
@@ -1771,21 +1771,6 @@ export default function AdminDashboard() {
     },
   });
 
-  const updateSchoolAdminMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<User> }) => {
-      const res = await apiRequest("PATCH", `/api/admin/school-admin/${id}`, data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({ title: "Siker", description: "Iskola adatai frissítve" });
-      setIsSchoolEditOpen(false);
-      setEditingSchoolAdmin(null);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Hiba", description: error.message, variant: "destructive" });
-    },
-  });
 
 
 
@@ -2754,6 +2739,7 @@ export default function AdminDashboard() {
                         onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
                         onUnlockModules={() => { }}
                         unlockPending={false}
+                        schoolName={(users.find(u => u.id === (user as any).schoolAdminId) as any)?.schoolName}
                       />
                     ))}
                   </CardContent>
@@ -4471,6 +4457,7 @@ function UserRow({
   onUnlockModules,
   unlockPending,
   professions = [],
+  schoolName,
 }: {
   user: User;
   onRoleChange: (role: string) => void;
@@ -4479,6 +4466,7 @@ function UserRow({
   onUnlockModules: () => void;
   unlockPending: boolean;
   professions?: Profession[];
+  schoolName?: string;
 }) {
   const { data: usersData } = useQuery<User[]>({ queryKey: ["/api/users"] });
   const schoolAdmins = usersData?.filter(u => u.role === 'school_admin') || [];
@@ -4512,6 +4500,7 @@ function UserRow({
           <p className="font-medium text-sm truncate">{displayName}</p>
           <p className="text-xs text-muted-foreground truncate">
             {user.email || user.username || "—"}
+            {schoolName && <span className="ml-2 px-1 rounded bg-blue-50 text-blue-600 font-medium border border-blue-100">🏫 {schoolName}</span>}
           </p>
           <p className="text-xs text-muted-foreground">
             Regisztráció: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('hu-HU') : "–"}
