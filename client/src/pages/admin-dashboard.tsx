@@ -4272,7 +4272,6 @@ function UserRow({
   const { toast } = useToast();
 
   const { data: schools = [] } = useQuery<School[]>({ queryKey: ["/api/admin/schools"] });
-  const { toast } = useToast();
 
   const updateUserSchoolMutation = useMutation({
     mutationFn: async ({ userId, schoolId }: { userId: string, schoolId: number | null }) => {
