@@ -2405,6 +2405,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Iskolai admin/Iskola szerkesztése
+  app.patch('/api/admin/school-admin/:id', combinedAuth, async (req: any, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { firstName, lastName, schoolName, email, username } = req.body;
+      const updatedUser = await storage.updateSchoolAdmin(req.params.id, {
+        firstName,
+        lastName,
+        schoolName,
+        email,
+        username
+      });
+
+      res.json({
+        message: "Sikeres frissítés",
+        user: updatedUser
+      });
+    } catch (error: any) {
+      console.error('Error updating school admin:', error);
+      res.status(500).json({ message: error.message || "Failed to update school admin" });
+    }
+  });
+
   // AI Module Update Message Management
   app.post('/api/admin/settings/module-update-message', combinedAuth, async (req: any, res) => {
     try {

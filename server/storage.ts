@@ -117,6 +117,7 @@ export interface IStorage {
   assignStudentToTeacher(studentId: string, teacherId: string): Promise<void>;
   removeStudentFromTeacher(studentId: string): Promise<void>;
   deleteUser(id: string): Promise<void>;
+  updateSchoolAdmin(id: string, data: Partial<User>): Promise<User>;
 
   // Class operations
   getClassesBySchoolAdmin(schoolAdminId: string): Promise<Class[]>;
@@ -614,8 +615,15 @@ export class DatabaseStorage implements IStorage {
       await db.execute(sql`UPDATE system_settings SET updated_by = NULL WHERE updated_by = ${id}`);
       await db.execute(sql`UPDATE ai_settings SET updated_by = NULL WHERE updated_by = ${id}`);
 
-      // ── Lépés 21: Iskola admin hivatkozások törlése ───────────────────────────
-      await db.update(users).set({ schoolAdminId: null }).where(eq(users.schoolAdminId, id));
+      // ── Lépés 21: Iskola admin hivatkozások törlése minden táblából ───────────
+      await db.execute(sql`UPDATE users SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
+      await db.execute(sql`UPDATE professions SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
+      await db.execute(sql`UPDATE subjects SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
+      await db.execute(sql`UPDATE modules SET school_admin_id = NULL WHERE school_admin_id = ${id}`);
+      
+      // ── Lépés 21.B: Iskolához tartozó osztályok törlése (school_admin_id NOT NULL) ──
+      // Megjegyzés: Ez törli az iskola összes osztályát, ha az iskola admint töröljük.
+      await db.execute(sql`DELETE FROM classes WHERE school_admin_id = ${id}`);
 
       // ── Lépés 22: Tanár hozzárendelés eltávolítása diákoktól ─────────────────
       await db.update(users).set({ assignedTeacherId: null }).where(eq(users.assignedTeacherId, id));
@@ -629,6 +637,18 @@ export class DatabaseStorage implements IStorage {
       console.error(`❌ Error during user deletion:`, error);
       throw error;
     }
+  }
+
+  async updateSchoolAdmin(id: string, data: Partial<User>): Promise<User> {
+    const [updated] = await db.update(users)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    if (!updated) throw new Error("School admin not found");
+    return updated;
   }
 
   // Profession operations

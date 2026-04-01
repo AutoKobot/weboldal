@@ -767,6 +767,8 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   // Additional subject assignments for module linking
   const [additionalSubjectIds, setAdditionalSubjectIds] = useState<number[]>([]);
+  const [editingSchoolAdmin, setEditingSchoolAdmin] = useState<User | null>(null);
+  const [isSchoolAdminEditOpen, setIsSchoolAdminEditOpen] = useState(false);
 
   // Queries
   const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
@@ -1414,6 +1416,30 @@ export default function AdminDashboard() {
     createSchoolAdminMutation.mutate(data);
   };
 
+  const updateSchoolAdminMutation = useMutation({
+    mutationFn: async (data: { id: string; firstName: string; lastName: string; schoolName: string; email?: string; username: string }) => {
+      const { id, ...rest } = data;
+      const res = await apiRequest("PATCH", `/api/admin/school-admin/${id}`, rest);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Sikeres frissítés",
+        description: "Az iskola adatai frissítve lettek.",
+      });
+      setIsSchoolAdminEditOpen(false);
+      setEditingSchoolAdmin(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hiba",
+        description: error.message || "Nem sikerült frissíteni az iskola adatait.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // API kulcsok és AI beállítások mutációi
   const updateOpenAIKeyMutation = useMutation({
     mutationFn: async (openaiApiKey: string) => {
@@ -1750,6 +1776,7 @@ export default function AdminDashboard() {
   // Stats
   const publishedModules = modules?.filter((m: Module) => m.isPublished).length || 0;
   const adminUsers = users?.filter((u: User) => u.role === 'admin').length || 0;
+  const schoolAdminUsers = users?.filter((u: User) => u.role === 'school_admin').length || 0;
   const teacherUsers = users?.filter((u: User) => u.role === 'teacher').length || 0;
   const studentUsers = users?.filter((u: User) => u.role === 'student').length || 0;
 
@@ -1812,7 +1839,7 @@ export default function AdminDashboard() {
               AI Modulok
             </TabsTrigger>
             {isAdmin && (<TabsTrigger value="users">Felhasználók</TabsTrigger>)}
-            {isAdmin && (<TabsTrigger value="school-admins">Iskolai Adminok</TabsTrigger>)}
+            {isAdmin && (<TabsTrigger value="school-admins">Iskolák</TabsTrigger>)}
             {isAdmin && (<TabsTrigger value="costs" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
               <BarChart3 className="h-4 w-4 mr-1" />
               Költségek
@@ -1857,7 +1884,7 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="text-2xl font-bold">{users.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    {adminUsers} admin, {teacherUsers} tanár, {studentUsers} hallgató
+                    {adminUsers} admin, {schoolAdminUsers} iskola, {teacherUsers} tanár, {studentUsers} hallgató
                   </p>
                 </CardContent>
               </Card>
@@ -3655,9 +3682,9 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle>Iskolai adminisztrátorok kezelése</CardTitle>
+                    <CardTitle>Iskolák kezelése</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Iskolai adminisztrátorok létrehozása és kezelése
+                      Iskolai adminisztrátorok (iskolák) létrehozása és kezelése
                     </p>
                   </div>
                   <Dialog open={isSchoolAdminDialogOpen} onOpenChange={setIsSchoolAdminDialogOpen}>
@@ -3792,26 +3819,41 @@ export default function AdminDashboard() {
                                 </p>
                               )}
                             </div>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setResetPasswordUserId(admin.id);
-                                  setIsPasswordResetDialogOpen(true);
-                                }}
-                              >
-                                <Key className="h-4 w-4 mr-1" />
-                                Jelszó visszaállítás
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => deleteUserMutation.mutate(admin.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                             <div className="flex space-x-2">
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => {
+                                   setEditingSchoolAdmin(admin);
+                                   setIsSchoolAdminEditOpen(true);
+                                 }}
+                               >
+                                 <Edit className="h-4 w-4 mr-1" />
+                                 Szerkesztés
+                               </Button>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => {
+                                   setResetPasswordUserId(admin.id);
+                                   setIsPasswordResetDialogOpen(true);
+                                 }}
+                               >
+                                 <Key className="h-4 w-4 mr-1" />
+                                 Jelszó visszaállítás
+                               </Button>
+                               <Button
+                                 variant="destructive"
+                                 size="sm"
+                                 onClick={() => {
+                                   if (confirm(`Biztosan törlöd az iskolát: ${admin.schoolName || admin.username}?`)) {
+                                     deleteUserMutation.mutate(admin.id);
+                                   }
+                                 }}
+                               >
+                                 <Trash2 className="h-4 w-4" />
+                               </Button>
+                             </div>
                           </div>
                         ))}
                       </div>
@@ -3825,6 +3867,97 @@ export default function AdminDashboard() {
               </Card>
             </TabsContent>
           )}
+
+          <Dialog open={isSchoolAdminEditOpen} onOpenChange={setIsSchoolAdminEditOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Iskola szerkesztése</DialogTitle>
+                <DialogDescription>
+                  Iskola adatainak módosítása: {editingSchoolAdmin?.schoolName}
+                </DialogDescription>
+              </DialogHeader>
+              {editingSchoolAdmin && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    updateSchoolAdminMutation.mutate({
+                      id: editingSchoolAdmin.id,
+                      firstName: formData.get('firstName') as string,
+                      lastName: formData.get('lastName') as string,
+                      schoolName: formData.get('schoolName') as string,
+                      email: formData.get('email') as string,
+                      username: formData.get('username') as string,
+                    });
+                  }}
+                  className="space-y-4 pt-4"
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-lastName">Vezetéknév</Label>
+                      <Input
+                        id="edit-lastName"
+                        name="lastName"
+                        defaultValue={editingSchoolAdmin.lastName || ''}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-firstName">Keresztnév</Label>
+                      <Input
+                        id="edit-firstName"
+                        name="firstName"
+                        defaultValue={editingSchoolAdmin.firstName || ''}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-schoolName">Iskola neve</Label>
+                    <Input
+                      id="edit-schoolName"
+                      name="schoolName"
+                      defaultValue={editingSchoolAdmin.schoolName || ''}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-username">Felhasználónév</Label>
+                    <Input
+                      id="edit-username"
+                      name="username"
+                      defaultValue={editingSchoolAdmin.username || ''}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-email">Email (opcionális)</Label>
+                    <Input
+                      id="edit-email"
+                      name="email"
+                      type="email"
+                      defaultValue={editingSchoolAdmin.email || ''}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsSchoolAdminEditOpen(false)}
+                    >
+                      Mégse
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={updateSchoolAdminMutation.isPending}
+                    >
+                      {updateSchoolAdminMutation.isPending ? 'Mentés...' : 'Mentés'}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
         </Tabs>
 
         {/* Module Dialog */}
