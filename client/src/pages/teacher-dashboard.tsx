@@ -89,6 +89,7 @@ interface Module {
   title: string;
   subjectId: number;
   subjectName?: string;
+  moduleNumber: number;
 }
 
 interface Profession {
@@ -888,12 +889,16 @@ export default function TeacherDashboard() {
                                                     </h4>
                                                     {student.completedModules && student.completedModules.length > 0 ? (
                                                       <div className="flex flex-wrap gap-2">
-                                                        {student.completedModules.map((moduleId: number) => (
-                                                          <Badge key={`completed-${moduleId}`} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 py-1">
-                                                            <CheckCircle className="h-3 w-3 mr-1" />
-                                                            {getModuleName(moduleId)}
-                                                          </Badge>
-                                                        ))}
+                                                        {student.completedModules
+                                                          .map((id: number) => modules.find((m: Module) => m.id === id))
+                                                          .filter((m: Module | undefined): m is Module => !!m)
+                                                          .sort((a: Module, b: Module) => a.moduleNumber - b.moduleNumber)
+                                                          .map((module: Module) => (
+                                                            <Badge key={`completed-${module.id}`} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 py-1">
+                                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                                              {module.title}
+                                                            </Badge>
+                                                          ))}
                                                       </div>
                                                     ) : (
                                                       <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md border border-gray-100">

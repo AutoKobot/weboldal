@@ -93,7 +93,7 @@ export default function Learning() {
         }}>
           <TabsList className="grid w-full grid-cols-auto mb-6">
             <TabsTrigger value="overview">Áttekintés</TabsTrigger>
-            {subjects?.map((subject: any) => (
+            {subjects?.sort((a,b) => (a.orderIndex || 0) - (b.orderIndex || 0)).map((subject: any) => (
               <TabsTrigger key={subject.id} value={subject.id.toString()}>
                 {subject.name}
               </TabsTrigger>
@@ -103,7 +103,7 @@ export default function Learning() {
           {/* Overview Tab */}
           <TabsContent value="overview">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {subjects?.map((subject: any) => (
+              {subjects?.sort((a,b) => (a.orderIndex || 0) - (b.orderIndex || 0)).map((subject: any) => (
                 <Card key={subject.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -162,7 +162,9 @@ export default function Learning() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {modules?.filter((module: any) => module.subjectId === subject.id).map((module: any) => (
+                  {modules?.filter((module: any) => module.subjectId === subject.id)
+                    .sort((a, b) => a.moduleNumber - b.moduleNumber)
+                    .map((module: any) => (
                     <Card key={module.id} className="hover:shadow-lg transition-shadow">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
