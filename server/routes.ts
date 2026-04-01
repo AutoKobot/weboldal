@@ -778,10 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const targetUserId = req.params.id;
       const { schoolAdminId } = req.body;
 
-      await db
-        .update(users)
-        .set({ schoolAdminId: schoolAdminId || null, updatedAt: new Date() })
-        .where(eq(users.id, targetUserId));
+      await storage.updateUserSchoolAdmin(targetUserId, schoolAdminId || null);
 
       res.json({ message: "School admin assigned successfully" });
     } catch (error) {
@@ -3035,7 +3032,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: module.content ? fixMermaidSyntax(module.content) : module.content,
         conciseContent: module.conciseContent ? fixMermaidSyntax(module.conciseContent) : module.conciseContent,
         detailedContent: module.detailedContent ? fixMermaidSyntax(module.detailedContent) : module.detailedContent,
-      }));
+      })).sort((a, b) => {
+        if (a.subjectId !== b.subjectId) return (Number(a.subjectId) || 0) - (Number(b.subjectId) || 0);
+        return (Number(a.moduleNumber) || 0) - (Number(b.moduleNumber) || 0);
+      });
 
       // --- Demo mode restriction ---
       if (user.authType === 'demo') {

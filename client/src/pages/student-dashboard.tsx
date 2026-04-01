@@ -257,7 +257,7 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {modules.map((module: Module) => (
+                {[...modules].sort((a, b) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
                   <ModuleCard
                     key={module.id}
                     module={module}

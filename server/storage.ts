@@ -93,7 +93,7 @@ import {
   type InsertAnnouncementAcknowledgement,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -113,6 +113,7 @@ export interface IStorage {
   updateUserAssignedProfessions(id: string, professionIds: number[]): Promise<void>;
   updateUserCompletedModules(id: string, moduleIds: number[]): Promise<void>;
   updateUserPassword(id: string, password: string): Promise<void>;
+  updateUserSchoolAdmin(id: string, schoolAdminId: string | null): Promise<void>;
   assignStudentToTeacher(studentId: string, teacherId: string): Promise<void>;
   removeStudentFromTeacher(studentId: string): Promise<void>;
   deleteUser(id: string): Promise<void>;
@@ -499,6 +500,13 @@ export class DatabaseStorage implements IStorage {
       .set({ password: hashedPassword, updatedAt: new Date() })
       .where(eq(users.id, userId));
   }
+  
+  async updateUserSchoolAdmin(id: string, schoolAdminId: string | null): Promise<void> {
+    await db
+      .update(users)
+      .set({ schoolAdminId, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
 
   async assignStudentToTeacher(studentId: string, teacherId: string): Promise<void> {
     await db
@@ -783,9 +791,9 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      return await db.select().from(modules).where(and(...conditions)).orderBy(modules.moduleNumber, modules.title);
+      return await db.select().from(modules).where(and(...conditions)).orderBy(asc(modules.moduleNumber), asc(modules.title));
     }
-    return await db.select().from(modules).orderBy(modules.moduleNumber, modules.title);
+    return await db.select().from(modules).orderBy(asc(modules.moduleNumber), asc(modules.title));
   }
 
   async getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
@@ -820,7 +828,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(modules)
       .where(and(...conditions))
-      .orderBy(modules.moduleNumber, modules.title);
+      .orderBy(asc(modules.moduleNumber), asc(modules.title));
   }
 
   async getModule(id: number): Promise<Module | undefined> {

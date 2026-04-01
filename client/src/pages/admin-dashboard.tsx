@@ -2345,7 +2345,7 @@ export default function AdminDashboard() {
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {filteredModules && filteredModules.length > 0 ? (
-                  filteredModules.map((module: Module) => (
+                  [...filteredModules].sort((a, b) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
                     <Card key={module.id} className="relative">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
