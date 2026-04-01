@@ -4295,6 +4295,24 @@ function UserRow({
   unlockPending: boolean;
   professions?: Profession[];
 }) {
+  const { data: usersData } = useQuery<User[]>({ queryKey: ["/api/users"] });
+  const schoolAdmins = usersData?.filter(u => u.role === 'school_admin') || [];
+  const { toast } = useToast();
+
+  const updateSchoolAdminMutation = useMutation({
+    mutationFn: async ({ userId, schoolAdminId }: { userId: string, schoolAdminId: string | null }) => {
+      const res = await apiRequest("PUT", `/api/users/${userId}/school-admin`, { schoolAdminId });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Siker", description: "Iskola sikeresen hozzárendelve" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+    },
+  });
+
   const displayName = user.lastName && user.firstName
     ? `${user.lastName} ${user.firstName}`
     : user.email || user.username || user.id;
@@ -4327,6 +4345,28 @@ function UserRow({
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
+
+        {(user.role === 'teacher' || user.role === 'student') && (
+          <Select 
+            value={(user as any).schoolAdminId || "none"} 
+            onValueChange={(val) => {
+              const newValue = val === "none" ? null : val;
+              updateSchoolAdminMutation.mutate({ userId: user.id, schoolAdminId: newValue });
+            }}
+          >
+            <SelectTrigger className="w-36 h-8 text-xs">
+              <SelectValue placeholder="Nincs iskola" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">-- Nincs iskola --</SelectItem>
+              {schoolAdmins.map(sa => (
+                <SelectItem key={sa.id} value={sa.id}>
+                  {(sa as any).schoolName || sa.firstName || sa.username || sa.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {user.role === 'student' && professions.length > 0 && (
           <Dialog>

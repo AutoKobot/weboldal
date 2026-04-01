@@ -766,6 +766,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/users/:id/school-admin', customAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const targetUserId = req.params.id;
+      const { schoolAdminId } = req.body;
+
+      await db
+        .update(users)
+        .set({ schoolAdminId: schoolAdminId || null, updatedAt: new Date() })
+        .where(eq(users.id, targetUserId));
+
+      res.json({ message: "School admin assigned successfully" });
+    } catch (error) {
+      console.error("Error updating user schoolAdminId:", error);
+      res.status(500).json({ message: "Failed to update school admin assignment" });
+    }
+  });
+
   app.delete('/api/users/:id', customAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
