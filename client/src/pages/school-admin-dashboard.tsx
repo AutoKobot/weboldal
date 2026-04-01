@@ -719,6 +719,8 @@ export default function SchoolAdminDashboard() {
   const [selectedTeacher, setSelectedTeacher] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [editingClass, setEditingClass] = useState<number | null>(null);
+  const [editClassName, setEditClassName] = useState("");
+  const [editClassDescription, setEditClassDescription] = useState("");
   const [managingStudents, setManagingStudents] = useState<number | null>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
@@ -901,6 +903,34 @@ export default function SchoolAdminDashboard() {
         description: "Hálózati hiba történt",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleEditClass = (classItem: Class) => {
+    setEditingClass(classItem.id);
+    setEditClassName(classItem.name);
+    setEditClassDescription(classItem.description || "");
+  };
+
+  const saveClassDetails = async (classId: number) => {
+    try {
+      const response = await fetch(`/api/school-admin/classes/${classId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: editClassName, description: editClassDescription }),
+      });
+
+      if (response.ok) {
+        toast({ title: "Siker", description: "Osztály adatai frissítve" });
+        setEditingClass(null);
+        fetchData();
+      } else {
+        const error = await response.json();
+        toast({ title: "Hiba", description: error.message || "Nem sikerült frissíteni", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Hiba", description: "Hálózati hiba történt", variant: "destructive" });
     }
   };
 
@@ -1275,10 +1305,29 @@ export default function SchoolAdminDashboard() {
                       {classes.map((classItem) => (
                         <div key={classItem.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium text-lg">{classItem.name}</h4>
-                              {classItem.description && (
-                                <p className="text-sm text-gray-600 mt-1">{classItem.description}</p>
+                            <div className="flex-1 w-full mr-4">
+                              {editingClass === classItem.id ? (
+                                <div className="space-y-2 mb-2 w-full max-w-md">
+                                  <Input
+                                    value={editClassName}
+                                    onChange={(e) => setEditClassName(e.target.value)}
+                                    placeholder="Osztály neve"
+                                    className="font-medium text-lg h-9"
+                                  />
+                                  <Input
+                                    value={editClassDescription}
+                                    onChange={(e) => setEditClassDescription(e.target.value)}
+                                    placeholder="Osztály leírása"
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <h4 className="font-medium text-lg">{classItem.name}</h4>
+                                  {classItem.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{classItem.description}</p>
+                                  )}
+                                </>
                               )}
                               <div className="flex items-center space-x-4 mt-2">
                                 {classItem.professionId ? (
@@ -1336,8 +1385,11 @@ export default function SchoolAdminDashboard() {
                                       <SelectItem value="afternoon">Délután</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  <Button size="sm" onClick={() => setEditingClass(null)}>
+                                  <Button size="sm" onClick={() => saveClassDetails(classItem.id)}>
                                     <Save size={16} />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => setEditingClass(null)}>
+                                    <X size={16} />
                                   </Button>
                                 </div>
                               ) : (
@@ -1373,7 +1425,7 @@ export default function SchoolAdminDashboard() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => setEditingClass(classItem.id)}
+                                    onClick={() => handleEditClass(classItem)}
                                   >
                                     <Edit size={16} />
                                   </Button>

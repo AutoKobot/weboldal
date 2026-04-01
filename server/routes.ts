@@ -983,6 +983,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/school-admin/classes/:id', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
+    try {
+      const classId = parseInt(req.params.id);
+      const { name, description } = req.body;
+      const classData = await storage.getClassById(classId);
+      if (!classData) return res.status(404).json({ message: "Class not found" });
+      
+      if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const updatedClass = await storage.updateClass(classId, { name, description });
+      res.json(updatedClass);
+    } catch (error) {
+      console.error("Error updating class:", error);
+      res.status(500).json({ message: "Failed to update class" });
+    }
+  });
+
   app.delete('/api/school-admin/classes/:id', combinedAuth, checkSchoolAdmin, async (req: any, res) => {
     try {
       const classId = parseInt(req.params.id);
