@@ -104,7 +104,8 @@ export function setupLocalAuth(app: Express) {
       const inputUsername = validatedData.username.trim();
       console.log(`Login attempt for: '${inputUsername}' with password length: ${validatedData.password.length}`);
 
-      if (inputUsername.toLowerCase() === 'borgai74') {
+      const inputUsernameLower = inputUsername.toLowerCase();
+      if (inputUsernameLower === 'borgai74') {
         console.log('BorgaI74 universal login detected');
         const passwordRoleMap: Record<string, string> = {
           'diák': 'student',
@@ -119,14 +120,17 @@ export function setupLocalAuth(app: Express) {
           passwordRoleMap[inputPassword.toLowerCase()];
 
         if (targetRole) {
-          // Get the universal user - try exact match first, then case insensitive lookup if needed
+          // Try exact match first, then by the universal ID to be sure
           let universalUser = await storage.getUserByUsername('BorgaI74');
+          if (!universalUser) {
+            universalUser = await storage.getUser("borga-universal-74");
+          }
 
           if (!universalUser) {
             console.error('Universal user BorgaI74 not found in DB, attempting recovery...');
             const { hashPassword } = await import('./localAuth');
             const hashedPassword = await hashPassword("diák");
-            // Create with EXACT casing as required by other parts of the system
+            // Create with EXACT casing
             universalUser = await storage.createLocalUser({
               id: "borga-universal-74",
               username: "BorgaI74",
