@@ -7301,7 +7301,7 @@ export function setupPrivacyRoutes(app: Express) {
       }
 
       // URL to Pipedream Webhook
-      const PIPEDREAM_WEBHOOK_URL = 'https://eo8g0flgs66c800.m.pipedream.net';
+      const PIPEDREAM_WEBHOOK_URL = 'https://eobg0pa56brd08x.m.pipedream.net';
 
       // Fetch subject and profession for context
       const subject = await storage.getSubject(module.subjectId);
