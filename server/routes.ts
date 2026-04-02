@@ -7300,23 +7300,42 @@ export function setupPrivacyRoutes(app: Express) {
         return res.status(404).json({ message: "Module not found" });
       }
 
+      // URL to Pipedream Webhook
+      const PIPEDREAM_WEBHOOK_URL = 'https://eo8g0flgs66c800.m.pipedream.net';
+
       // Fetch subject and profession for context
       const subject = await storage.getSubject(module.subjectId);
       const profession = subject ? await storage.getProfession(subject.professionId) : null;
 
-      // Prepare payload for Make.com
+      // Prepare payload for automation
       const payload = {
         moduleId: module.id,
         title: module.title,
-        content: module.detailedContent || module.conciseContent || "",
+        content: module.detailedContent || module.conciseContent || module.content || "",
         subjectName: subject?.name || "Ismeretlen",
         professionName: profession?.name || "Ismeretlen",
         moduleNumber: module.moduleNumber,
-        callbackUrl: `${req.protocol}://${req.get('host')}/api/callback/make-automation`
+        callbackUrl: `${req.protocol}://${req.get('host')}/api/callback/make-automation`,
+        systemPrompt: `Te egy profi tananyagkészítő asszisztens vagy. 
+Készíts tananyagot a következő modulhoz: "${module.title}"
+Téma: ${module.detailedContent || module.content}
+Szakma: ${profession?.name || "Ismeretlen"}
+
+Feladatod:
+1. Készíts egy 6 diából álló prezentációs vázlatot.
+2. Készíts 5 interaktív tesztkérdést (3 válaszlehetőséggel, jelöld a helyeset).
+
+VÁLASZ FORMÁTUMA (Kizárólag érvényes JSON, Markdown kódblokkok nélkül!):
+{
+  "presentation_outline": ["Dia 1 szövege", "Dia 2 szövege", "Dia 3 szövege", "Dia 4 szövege", "Dia 5 szövege", "Dia 6 szövege"],
+  "quizzes": [
+    {"question": "Kérdés 1?", "options": ["A válasz", "B válasz", "C válasz"], "correctAnswer": 0}
+  ]
+}`
       };
 
-      // Send to Make.com Webhook
-      await fetch('https://hook.eu1.make.com/4yficm7cephhzvwsy8szjg4aohx5ktjd', {
+      // Send to Pipedream Webhook
+      await fetch(PIPEDREAM_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
