@@ -55,12 +55,16 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
 
       const box = new THREE.Box3().setFromObject(fbx);
       const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      
       const maxDim = Math.max(size.x, size.y, size.z);
       const scale = 3.2 / maxDim; // Kicsit kisebb skálázás, hogy beférjen a dobozba
       fbx.scale.setScalar(scale);
       
-      // Alapértelmezett pozíció: lábak a középpont közelében
-      fbx.position.y = -size.y * scale / 2;
+      // Tökéletes centrálás: a modell saját eltolódásait kompenzáljuk
+      fbx.position.x = -center.x * scale;
+      fbx.position.y = -center.y * scale;
+      fbx.position.z = -center.z * scale;
 
       // Csontok kikeresése a lip-sync-hez
       fbx.traverse((child) => {
@@ -73,7 +77,6 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
         const name = child.name.toLowerCase();
         if (name.includes('jaw') || name.includes('mouth')) {
           jawRef.current = child;
-          console.log('Jaw bone megtalálva:', child.name);
         }
         if (name.includes('head')) {
           headRef.current = child;
@@ -123,8 +126,6 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
 
     // Lip Sync (Jaw movement based on volume)
     if (jawRef.current && volume > 0.01) {
-      // Nyitjuk az állkapcsot a hangerő függvényében
-      // A 0.2 - 0.5 radián közötti tartomány általában látható nyitást eredményez
       jawRef.current.rotation.x = THREE.MathUtils.lerp(jawRef.current.rotation.x, volume * 1.5, 0.4);
     } else if (jawRef.current) {
       jawRef.current.rotation.x = THREE.MathUtils.lerp(jawRef.current.rotation.x, 0, 0.2);
@@ -147,6 +148,10 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
         // Simított követés (így folyamatos az egér/drag után is)
         groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, x, 0.2);
         groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, y - (viewport.height * 0.15), 0.2);
+      } else {
+        // Ha nincs petPos (pl. prezentáció), kényszerített alaphelyzet!
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, 0, 0.2);
+        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, 0, 0.2);
       }
       
       // Valódi 3D-s elfordulás kezelése (Y tengely körüli forgatás)
