@@ -14,15 +14,18 @@ interface FBXAvatarProps {
   animationUrls?: Record<string, string>;
   direction?: number;
   petPos?: { x: number; y: number };
+  volume?: number; // 0-1 híváserősség az audio analizerből
 }
 
-function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1, petPos }: FBXAvatarProps) {
+function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1, petPos, volume = 0 }: FBXAvatarProps) {
   const fbx = useFBX(url);
   const { viewport } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const clipsRef = useRef<Record<string, THREE.AnimationClip>>({});
   const [loadedAnimsCount, setLoadedAnimsCount] = useState(0);
+  const jawRef = useRef<THREE.Object3D | null>(null);
+  const headRef = useRef<THREE.Object3D | null>(null);
   
   // Extra animációk betöltése
   useEffect(() => {
@@ -49,8 +52,6 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
   useEffect(() => {
     if (fbx) {
       console.log('FBX model betöltve:', url);
-      console.log('Animációk száma:', fbx.animations.length);
-      fbx.animations.forEach((anim, i) => console.log(`Animáció ${i}: ${anim.name}`));
 
       const box = new THREE.Box3().setFromObject(fbx);
       const size = box.getSize(new THREE.Vector3());
@@ -61,11 +62,21 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
       // Alapértelmezett pozíció: lábak a középpont közelében
       fbx.position.y = -size.y * scale / 2;
 
-      // Árnyékok bekapcsolása minden gyerekre
+      // Csontok kikeresése a lip-sync-hez
       fbx.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+        }
+        
+        // Száj/Állkerapcs csont keresése (Common names: Jaw, Head, Neck)
+        const name = child.name.toLowerCase();
+        if (name.includes('jaw') || name.includes('mouth')) {
+          jawRef.current = child;
+          console.log('Jaw bone megtalálva:', child.name);
+        }
+        if (name.includes('head')) {
+          headRef.current = child;
         }
       });
 
@@ -110,6 +121,20 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
       mixerRef.current.update(delta);
     }
 
+    // Lip Sync (Jaw movement based on volume)
+    if (jawRef.current && volume > 0.01) {
+      // Nyitjuk az állkapcsot a hangerő függvényében
+      // A 0.2 - 0.5 radián közötti tartomány általában látható nyitást eredményez
+      jawRef.current.rotation.x = THREE.MathUtils.lerp(jawRef.current.rotation.x, volume * 1.5, 0.4);
+    } else if (jawRef.current) {
+      jawRef.current.rotation.x = THREE.MathUtils.lerp(jawRef.current.rotation.x, 0, 0.2);
+    }
+
+    // Head bobbing when speaking (Fej bólintgatás beszéd közben)
+    if (headRef.current && volume > 0.01) {
+      headRef.current.rotation.x += Math.sin(state.clock.getElapsedTime() * 15) * 0.05 * volume;
+    }
+
     if (groupRef.current) {
       if (petPos) {
         // Képernyő (pixel) koordináta átalakítása 3D világ szerinti koordinátává
@@ -148,7 +173,7 @@ function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrl
   );
 }
 
-export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction, petPos }: FBXAvatarProps) {
+export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction, petPos, volume }: FBXAvatarProps) {
   return (
     <div className={className} style={{ width: '100%', height: '100%', perspective: '1000px', pointerEvents: 'none' }}>
       <Canvas
@@ -158,12 +183,12 @@ export function FBXAvatar({ url, className, isFeeding, isMoving, isHungry, curre
         style={{ background: 'transparent', pointerEvents: 'none' }}
       >
         <Suspense fallback={null}>
-          <ambientLight intensity={0.5} />
+          <ambientLight intensity={1.5} />
           <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-          <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4f46e5" />
-          <directionalLight position={[0, 5, 5]} intensity={0.5} />
+          <pointLight position={[-10, -10, -10]} intensity={1} color="#4f46e5" />
+          <directionalLight position={[0, 5, 5]} intensity={1.5} />
           
-          <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} petPos={petPos} />
+          <Model url={url} isFeeding={isFeeding} isMoving={isMoving} isHungry={isHungry} currentAction={currentAction} animationUrls={animationUrls} direction={direction} petPos={petPos} volume={volume} />
           
           <Environment preset="city" />
           <ContactShadows 
