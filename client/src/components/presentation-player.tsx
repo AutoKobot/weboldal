@@ -69,7 +69,7 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
   const audioRef = useRef<HTMLAudioElement>(null);
   const volume = useAudioAnalyzer(audioRef);
 
-  const currentSlide = slides[currentSlideIndex];
+  const currentSlide = slides?.[currentSlideIndex];
   const currentAvatarDef = AVATARS[0];
   const avatarUrl = `/avatars/${currentAvatarDef.filename}`;
 
