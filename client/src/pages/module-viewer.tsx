@@ -20,6 +20,7 @@ import { FlashcardQuiz } from "@/components/flashcard-quiz";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';
+import { PresentationPlayer } from "@/components/presentation-player";
 
 
 export default function ModuleViewer() {
@@ -90,6 +91,7 @@ export default function ModuleViewer() {
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showPodcastModal, setShowPodcastModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
+  const [showInteractivePresentationModal, setShowInteractivePresentationModal] = useState(false);
   const [selectedYoutubeVideo, setSelectedYoutubeVideo] = useState<{ title: string, videoId: string } | null>(null);
   const [contentVersion, setContentVersion] = useState<'concise' | 'detailed'>('concise');
   const [showFlashcards, setShowFlashcards] = useState(false);
@@ -748,6 +750,18 @@ export default function ModuleViewer() {
                     title="Prezentáció (PPTX/PDF) megtekintése"
                   >
                     <Presentation size={18} className="text-blue-500" />
+                  </Button>
+                )}
+
+                {module.presentationData && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowInteractivePresentationModal(true)}
+                    className="w-12 h-12 rounded-full bg-slate-900 shadow-lg hover:shadow-xl border-2 border-blue-600 hover:border-blue-400 animate-pulse"
+                    title="Interaktív AI Prezentáció megtekintése"
+                  >
+                    <MonitorPlay size={18} className="text-blue-400" />
                   </Button>
                 )}
               </div>
@@ -1413,6 +1427,13 @@ export default function ModuleViewer() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PresentationPlayer
+        open={showInteractivePresentationModal}
+        onOpenChange={setShowInteractivePresentationModal}
+        slides={module.presentationData as any[]}
+        moduleTitle={module.title}
+      />
     </div>
   );
 }
