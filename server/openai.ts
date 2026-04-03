@@ -933,13 +933,15 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
 
     const prompt = `Te egy profi digitális tananyagfejlesztő, pedagógus és UI/UX dizájner vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
-Tananyag: ${moduleContent.substring(0, 4000)}
+Tananyag (MINDENT DOLGOZZ FEL): ${moduleContent.substring(0, 40000)}
 
-A prezentációnak annyi diából kell állnia, amennyi szükséges a teljes tananyag RÉSZLETES lefedéséhez (min. 5, max. 15 dia). 
+A prezentációnak 10-15 diából kell állnia, hogy a teljes tananyagot MÉLYSÉGÉBEN és RÉSZLETESEN lefedje.
+FONTOS SZABÁLY: Tilos a tömörítés! Minden szakmai fogalmat és fontosabb mondatot külön dián vagy önálló pontban dolgozz fel. A diák száma tükrözze a tananyag komplexitását.
+
 Minden diának legyen:
 1. Egyértelmű fókusza (Cím, Alcím).
 2. Strukturált, lényegre törő tartalma (Használj felsorolásokat, markdown formázást).
-3. SZUPER-RELEVÁNS vizualizációs javaslata: Az 'imagePrompt' ne csak dekoráció legyen, hanem egy pontos szakmai illusztráció leírása, ami segít megérteni a dián szereplő konkrét fogalmat. (pl. ha a szenzorokról van szó, akkor a szenzor belső felépítését vagy működési elvét írd le).
+3. SZUPER-RELEVÁNS vizualizációs javaslata (imagePrompt): Írj le részletesen egy szakmai ábrát, ami segít megérteni az adott dia fókusztémáját. 
 4. Egy interaktív elem javaslata (quiz, flashcard, stepper, hotspot vagy diagram).
 
 A prezentációnak az alábbi JSON struktúrában kell megjelennie:
@@ -965,7 +967,7 @@ Válaszolj KIZÁRÓLAG érvényes JSON-ban, Markdown kódblokkok nélkül!`;
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 4000,
+      max_tokens: 8000,
       temperature: 0.7,
       response_format: { type: "json_object" }
     });
