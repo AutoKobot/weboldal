@@ -1,10 +1,14 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Serve uploads directory statically so audio/images are accessible
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // CORS middleware for proper cookie handling
 app.use((req, res, next) => {

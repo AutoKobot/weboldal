@@ -969,7 +969,7 @@ FONTOS: A tartalom legyen szakmailag pontos, magyar nyelvű. A 'layout' értéke
 Válaszolj KIZÁRÓLAG érvényes JSON-ban, Markdown kódblokkok nélkül!`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini", // Cost-effective model for structuring slides
       messages: [{ role: "user", content: prompt }],
       max_tokens: 8000,
       temperature: 0.7,
