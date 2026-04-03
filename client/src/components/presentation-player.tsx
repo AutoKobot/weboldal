@@ -97,7 +97,7 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
               <div className={`h-full grid gap-8 ${currentSlide.layout.includes('split') ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
                 
                 {/* Text Side */}
-                <div className={`flex flex-col justify-center space-y-6 ${currentSlide.layout === 'split-right-image' ? 'order-1' : 'order-1 md:order-2'}`}>
+                <div className={`flex flex-col justify-center space-y-6 ${(!currentSlide.imageUrl || !currentSlide.layout.includes('image')) ? 'col-span-full max-w-3xl mx-auto' : (currentSlide.layout === 'split-right-image' ? 'order-1' : 'order-1 md:order-2')}`}>
                   <div className="space-y-2">
                     <Badge variant="outline" className="text-blue-400 border-blue-900/50 bg-blue-900/10">
                       Slide {currentSlideIndex + 1}
@@ -108,9 +108,14 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                   </div>
                   
                   <div className="prose prose-invert prose-slate max-w-none prose-p:text-lg prose-p:text-slate-300 prose-li:text-slate-300">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {currentSlide.content}
-                    </ReactMarkdown>
+                    {/* Handle both Markdown and raw HTML content */}
+                    {currentSlide.content.includes('<li>') || currentSlide.content.includes('<p>') ? (
+                      <div dangerouslySetInnerHTML={{ __html: currentSlide.content }} />
+                    ) : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {currentSlide.content}
+                      </ReactMarkdown>
+                    )}
                   </div>
 
                   {/* Interactive Hint */}
@@ -126,7 +131,7 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                   )}
                 </div>
 
-                {/* Media/Image Side */}
+                {/* Media/Image Side - Only show if image exists */}
                 {currentSlide.layout.includes('image') && currentSlide.imageUrl && (
                   <div className={`flex items-center justify-center ${currentSlide.layout === 'split-right-image' ? 'order-2' : 'order-1 md:order-1'}`}>
                     <div className="relative group w-full aspect-square rounded-3xl overflow-hidden shadow-2xl border-8 border-slate-900">
