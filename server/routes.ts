@@ -7316,19 +7316,51 @@ export function setupPrivacyRoutes(app: Express) {
 
       const slides = await generatePresentationData(module.title, fullContext);
 
-      // 2. Generate images for slides (parallelized for speed, up to 15 slides)
-      const slidesWithImages = await Promise.all(slides.map(async (slide, index) => {
-        if (slide.imagePrompt && index < 15) { // Support up to 15 slides with images
+      // 2. Generate images and audio for slides (parallelized for speed, up to 15 slides)
+      const slidesWithMedia = await Promise.all(slides.map(async (slide, index) => {
+        const updatedSlide = { ...slide };
+
+        // Generate Image if needed
+        if (slide.imagePrompt && index < 15) {
           console.log(`Generating image for slide ${slide.id}...`);
-          const imageUrl = await generatePresentationImage(slide.imagePrompt);
-          return { ...slide, imageUrl };
+          try {
+            updatedSlide.imageUrl = await generatePresentationImage(slide.imagePrompt);
+          } catch (imgErr) {
+            console.error(`Image generation failed for slide ${slide.id}:`, imgErr);
+          }
         }
-        return slide;
+
+        // Generate Audio Narration if narration text exists
+        if (slide.narration) {
+          console.log(`Generating narration audio for slide ${slide.id}...`);
+          try {
+            const audioBuffer = await generateSpeech(slide.narration);
+            
+            // Save audio file to disk
+            const fileName = `narration_${moduleId}_${slide.id}_${Date.now()}.mp3`;
+            const uploadDir = path.join(process.cwd(), 'uploads', 'presentations');
+            
+            // Ensure directory exists
+            if (!fs.existsSync(uploadDir)) {
+              fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            const filePath = path.join(uploadDir, fileName);
+            fs.writeFileSync(filePath, audioBuffer);
+            
+            // Set the audio URL for the frontend
+            updatedSlide.narrationAudioUrl = `/uploads/presentations/${fileName}`;
+          } catch (audioErr) {
+            console.error(`Audio generation failed for slide ${slide.id}:`, audioErr);
+          }
+        }
+
+        return updatedSlide;
       }));
 
       // 3. Update module with the new JSON data
       await storage.updateModule(moduleId, {
-        presentationData: slidesWithImages
+        presentationData: slidesWithMedia
       });
 
       res.json({ 

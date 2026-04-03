@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Maximize2, MonitorPlay, HelpCircle, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
@@ -13,6 +13,8 @@ interface Slide {
   title: string;
   subtitle?: string;
   content: string;
+  narration?: string;
+  narrationAudioUrl?: string;
   layout: string;
   imageUrl?: string;
   interactiveType?: string;
@@ -28,10 +30,54 @@ interface PresentationPlayerProps {
 
 export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: PresentationPlayerProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-
-  if (!slides || slides.length === 0) return null;
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentSlide = slides[currentSlideIndex];
+
+  // Audio handling logic
+  useEffect(() => {
+    if (!open) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      return;
+    }
+
+    if (currentSlide?.narrationAudioUrl && isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      const audio = new Audio(currentSlide.narrationAudioUrl);
+      audio.muted = isMuted;
+      audioRef.current = audio;
+
+      audio.play().catch(err => console.error("Audio playback failed:", err));
+
+      audio.onended = () => {
+        if (autoAdvance && currentSlideIndex < slides.length - 1) {
+          // Kis szünet a diák között az élményért
+          setTimeout(() => {
+            setCurrentSlideIndex(prev => prev + 1);
+          }, 1500); 
+        } else if (currentSlideIndex === slides.length - 1) {
+          setIsPlaying(false);
+        }
+      };
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [currentSlideIndex, open, isPlaying, isMuted]);
+
+  if (!slides || slides.length === 0) return null;
 
   const nextSlide = () => {
     if (currentSlideIndex < slides.length - 1) {
@@ -45,6 +91,15 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
     }
   };
 
+  const togglePlay = () => {
+    if (isPlaying) {
+      audioRef.current?.pause();
+    } else {
+      audioRef.current?.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl w-[95vw] h-[85vh] p-0 overflow-hidden bg-slate-950 border-slate-800 shadow-2xl flex flex-col">
@@ -56,14 +111,28 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
             </div>
             <div>
               <h3 className="font-bold text-slate-100 leading-none">{moduleTitle}</h3>
-              <p className="text-xs text-slate-400 mt-1">Interaktív AI Prezentáció</p>
+              <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">Automata Narrált Prezentáció</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center bg-slate-800 rounded-full px-2 py-1 gap-1">
+              <Button variant="ghost" size="icon" onClick={togglePlay} className="h-8 w-8 text-slate-300 hover:text-white">
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="h-8 w-8 text-slate-300 hover:text-white">
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+              <div className="h-4 w-[1px] bg-slate-700 mx-1" />
+              <Button variant="ghost" size="icon" onClick={() => { setCurrentSlideIndex(0); setIsPlaying(true); }} className="h-8 w-8 text-slate-300 hover:text-white">
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <span className="text-sm font-medium text-slate-400 bg-slate-800 px-3 py-2 rounded-full hidden sm:inline">
               {currentSlideIndex + 1} / {slides.length}
             </span>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-slate-400 hover:text-white hover:bg-slate-800">
+            
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-slate-400 hover:text-white hover:bg-slate-800 ml-2">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -94,13 +163,13 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
               </div>
             ) : (
               /* Standard Slide Layouts */
-              <div className={`h-full grid gap-8 ${currentSlide.layout.includes('split') ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+              <div className={`h-full grid gap-8 ${(!currentSlide.imageUrl || !currentSlide.layout.includes('image')) ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
                 
                 {/* Text Side */}
                 <div className={`flex flex-col justify-center space-y-6 ${(!currentSlide.imageUrl || !currentSlide.layout.includes('image')) ? 'col-span-full max-w-3xl mx-auto' : (currentSlide.layout === 'split-right-image' ? 'order-1' : 'order-1 md:order-2')}`}>
                   <div className="space-y-2">
-                    <Badge variant="outline" className="text-blue-400 border-blue-900/50 bg-blue-900/10">
-                      Slide {currentSlideIndex + 1}
+                    <Badge variant="outline" className="text-blue-400 border-blue-900/50 bg-blue-900/10 uppercase tracking-widest text-[10px]">
+                      Dia {currentSlideIndex + 1}
                     </Badge>
                     <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
                       {currentSlide.title}
@@ -157,16 +226,16 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
             onClick={prevSlide} 
             disabled={currentSlideIndex === 0}
             variant="outline"
-            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white min-w-[12rem]"
+            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white min-w-[8rem] md:min-w-[12rem]"
           >
-            <ChevronLeft className="mr-2 w-5 h-5" /> Előző dia
+            <ChevronLeft className="mr-2 w-5 h-5" /> <span className="hidden sm:inline">Előző dia</span>
           </Button>
 
-          <div className="hidden md:flex gap-1.5">
+          <div className="flex gap-1.5 px-4">
             {slides.map((_, i) => (
               <div 
                 key={i} 
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === currentSlideIndex ? 'w-8 bg-blue-500' : 'w-2 bg-slate-800'}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === currentSlideIndex ? 'w-6 md:w-8 bg-blue-500' : 'w-1.5 md:w-2 bg-slate-800'}`}
               />
             ))}
           </div>
@@ -174,9 +243,9 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
           <Button 
             onClick={nextSlide} 
             disabled={currentSlideIndex === slides.length - 1}
-            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[12rem]"
+            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[8rem] md:min-w-[12rem]"
           >
-            {currentSlideIndex === slides.length - 1 ? 'Vége' : 'Következő dia'}
+            <span className="hidden sm:inline">{currentSlideIndex === slides.length - 1 ? 'Vége' : 'Következő dia'}</span>
             <ChevronRight className="ml-2 w-5 h-5" />
           </Button>
         </div>

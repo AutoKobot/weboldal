@@ -920,6 +920,8 @@ export interface PresentationSlide {
   title: string;
   subtitle?: string;
   content: string; // Markdown or HTML-like
+  narration?: string; // NEW: Detailed narration script for audio
+  narrationAudioUrl?: string; // NEW: URL to the generated audio file
   layout: "centered" | "split-left-image" | "split-right-image" | "full-text" | "interactive-focus";
   imagePrompt?: string; // Prompt for image generation
   imageUrl?: string; // URL of generated image
@@ -936,13 +938,14 @@ Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezent�
 Tananyag (MINDENT DOLGOZZ FEL): ${moduleContent.substring(0, 40000)}
 
 A prezentációnak 10-15 diából kell állnia, hogy a teljes tananyagot MÉLYSÉGÉBEN és RÉSZLETESEN lefedje.
-FONTOS SZABÁLY: Tilos a tömörítés! Minden szakmai fogalmat és fontosabb mondatot külön dián vagy önálló pontban dolgozz fel. A diák száma tükrözze a tananyag komplexitását.
+FONTOS SZABÁLY: Tilos a tömörítés! Minden szakmai fogalmat és fontosabb mondatot külön dián vagy önálló pontban dolgozz fel. 
 
 Minden diának legyen:
 1. Egyértelmű fókusza (Cím, Alcím).
-2. Strukturált, lényegre törő tartalma (Használj felsorolásokat, markdown formázást).
-3. SZUPER-RELEVÁNS vizualizációs javaslata (imagePrompt): Írj le részletesen egy szakmai ábrát, ami segít megérteni az adott dia fókusztémáját. 
-4. Egy interaktív elem javaslata (quiz, flashcard, stepper, hotspot vagy diagram).
+2. Strukturált, lényegre törő tartalma (A dián megjelenő szöveg).
+3. NARRÁCIÓ (narration): Írj egy részletes, élvezetes, tanári stílusú magyarázatot (hanganyag forgatókönyv), ami minden pontot kifejt, összefüggéseket mutat és elmagyarázza a dián látható képet is. Legalább 3-4 mondat legyen!
+4. SZUPER-RELEVÁNS vizualizációs javaslata (imagePrompt).
+5. Egy interaktív elem javaslata.
 
 A prezentációnak az alábbi JSON struktúrában kell megjelennie:
 {
@@ -951,10 +954,11 @@ A prezentációnak az alábbi JSON struktúrában kell megjelennie:
       "id": 1,
       "type": "title",
       "title": "Cím",
-      "subtitle": "Alcím vagy rövid leírás",
+      "subtitle": "Alcím",
       "content": "...",
+      "narration": "Isten hozott ebben a fejezetben! Ebben a részben átvesszük a...",
       "layout": "centered",
-      "imagePrompt": "Pontos szakmai illusztráció leírása az adott témához..."
+      "imagePrompt": "..."
     },
     ...
   ]
