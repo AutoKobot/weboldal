@@ -107,15 +107,17 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                     </h2>
                   </div>
                   
-                  <div className="prose prose-invert prose-slate max-w-none prose-p:text-lg prose-p:text-slate-300 prose-li:text-slate-300">
-                    {/* Handle both Markdown and raw HTML content */}
-                    {currentSlide.content.includes('<li>') || currentSlide.content.includes('<p>') ? (
-                      <div dangerouslySetInnerHTML={{ __html: currentSlide.content }} />
-                    ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {currentSlide.content}
-                      </ReactMarkdown>
-                    )}
+                  <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar" style={{ maxHeight: '55vh' }}>
+                    <div className="prose prose-invert prose-slate max-w-none prose-p:text-lg prose-p:text-slate-300 prose-li:text-slate-300">
+                      {/* Handle both Markdown and raw HTML content */}
+                      {currentSlide.content.includes('<li>') || currentSlide.content.includes('<p>') ? (
+                        <div dangerouslySetInnerHTML={{ __html: currentSlide.content }} />
+                      ) : (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {currentSlide.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
                   </div>
 
                   {/* Interactive Hint */}
