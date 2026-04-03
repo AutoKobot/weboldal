@@ -2480,6 +2480,16 @@ export default function AdminDashboard() {
                                   AI Enhanced
                                 </span>
                               )}
+                              {module.presentationData && (
+                                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 flex items-center gap-1">
+                                  <MonitorPlay className="h-3 w-3" /> Prezi
+                                </span>
+                              )}
+                              {module.generatedQuizzes && (
+                                <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3" /> Teszt
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
                               {subjects.find(s => s.id === module.subjectId)?.name}
