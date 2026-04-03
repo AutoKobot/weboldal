@@ -7337,10 +7337,11 @@ export function setupPrivacyRoutes(app: Express) {
             }
 
             const filePath = path.join(uploadDir, fileName);
-            fs.writeFileSync(filePath, audioBuffer);
+            fs.writeFileSync(filePath, Buffer.from(audioBuffer));
             
             // Set the audio URL for the frontend
             updatedSlide.narrationAudioUrl = `/uploads/presentations/${fileName}`;
+            console.log(`Audio saved for slide ${slide.id}: ${updatedSlide.narrationAudioUrl}`);
           } catch (audioErr) {
             console.error(`Audio generation failed for slide ${slide.id}:`, audioErr);
           }
@@ -7357,7 +7358,7 @@ export function setupPrivacyRoutes(app: Express) {
       res.json({ 
         success: true, 
         message: "Presentation generated successfully", 
-        data: slidesWithImages 
+        data: slidesWithMedia // Fixed: variable name corrected from slidesWithImages
       });
     } catch (error: any) {
       console.error('Presentation Generation Error:', error);
