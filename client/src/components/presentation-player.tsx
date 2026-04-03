@@ -155,13 +155,12 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
         <div className="flex-1 relative overflow-hidden flex flex-col md:flex-row p-4 md:p-8 gap-6">
           
           {/* Avatar Container (Positioned in lower left but relative to content) */}
-          <div className="absolute bottom-6 left-6 w-56 h-72 z-20 pointer-events-none drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="absolute bottom-4 left-4 w-48 h-64 z-20 pointer-events-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             <FBXAvatar 
               url={avatarUrl} 
               className="w-full h-full"
               volume={volume}
               isMoving={false}
-              petPos={{ x: 0, y: 0 }}
               direction={1}
             />
             {/* Speaker Indicator */}
