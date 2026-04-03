@@ -933,43 +933,39 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő, pedagógus és UI/UX dizájner vagy. 
+    const prompt = `Te egy profi digitális tananyagfejlesztő és UI/UX dizájner vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
-Tananyag (MINDENT DOLGOZZ FEL): ${moduleContent.substring(0, 40000)}
+Tananyag: ${moduleContent.substring(0, 40000)}
 
-A prezentációnak 10-15 diából kell állnia, hogy a teljes tananyagot MÉLYSÉGÉBEN és RÉSZLETESEN lefedje.
-FONTOS SZABÁLY: Tilos a tömörítés! Minden szakmai fogalmat és fontosabb mondatot külön dián vagy önálló pontban dolgozz fel. 
+A prezentációnak 12-18 diából kell állnia. Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
 
-Minden diának legyen:
-1. Egyértelmű fókusza (Cím, Alcím).
-2. Strukturált, lényegre törő tartalma (A dián megjelenő szöveg).
-3. NARRÁCIÓ (narration): Írj egy részletes, élvezetes, tanári stílusú magyarázatot (hanganyag forgatókönyv), ami minden pontot kifejt, összefüggéseket mutat és elmagyarázza a dián látható képet is. Legalább 3-4 mondat legyen!
-4. SZUPER-RELEVÁNS vizualizációs javaslata (imagePrompt).
-5. Egy interaktív elem javaslata.
+Interaktív típusok és adataik:
+- "quiz": { "question": "...", "options": ["A", "B", "C"], "correctAnswer": "...", "explanation": "..." }
+- "drag-drop": { "pairs": [ { "item": "Fogalom", "match": "Definíció" } ], "instructions": "Párosítsd a fogalmakat!" }
+- "hotspot": { "points": [ { "x": 50, "y": 50, "label": "Leírás", "title": "Cím" } ] }
 
-A prezentációnak az alábbi JSON struktúrában kell megjelennie:
+JSON struktúra:
 {
   "slides": [
     {
       "id": 1,
-      "type": "title",
+      "type": "title | content | interactive",
       "title": "Cím",
       "subtitle": "Alcím",
       "content": "...",
-      "narration": "Isten hozott ebben a fejezetben! Ebben a részben átvesszük a...",
-      "layout": "centered",
-      "imagePrompt": "..."
-    },
-    ...
+      "narration": "Részletes tanári magyarázat (min 3-4 mondat).",
+      "layout": "centered | split-left-image | split-right-image | full-text",
+      "imagePrompt": "Leírás a dia illusztrációjához.",
+      "interactiveType": "quiz | drag-drop | hotspot",
+      "interactiveData": { ... }
+    }
   ]
 }
 
-FONTOS: A tartalom legyen szakmailag pontos, magyar nyelvű. A 'layout' értéke legyen az alábbiak közül: centered, split-left-image, split-right-image, full-text, interactive-focus. 
-
-Válaszolj KIZÁRÓLAG érvényes JSON-ban, Markdown kódblokkok nélkül!`;
+Válaszolj KIZÁRÓLAG érvényes JSON-ban!`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Cost-effective model for structuring slides
+      model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 8000,
       temperature: 0.7,
