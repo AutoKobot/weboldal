@@ -2558,16 +2558,6 @@ export default function AdminDashboard() {
                                 <HelpCircle className="h-4 w-4" />
                               )}
                             </Button>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-green-600"
-                                  title="Tanulókártyák importálása"
-                                >
-                                  <FileUp className="h-4 w-4" />
-                                </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -2582,6 +2572,16 @@ export default function AdminDashboard() {
                                 <MonitorPlay className="h-4 w-4 text-blue-500" />
                               )}
                             </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-green-600"
+                                  title="Tanulókártyák importálása"
+                                >
+                                  <FileUp className="h-4 w-4" />
+                                </Button>
                               </DialogTrigger>
                               <DialogContent>
                                 <FlashcardImport
