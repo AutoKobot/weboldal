@@ -7302,19 +7302,10 @@ export function setupPrivacyRoutes(app: Express) {
 
       console.log(`Generating interactive presentation for module ${moduleId}...`);
 
-      // 1. Generate JSON structure for slides using ALL available context
-      const fullContext = `
-        ALAP TARTALOM:
-        ${module.content}
-        
-        TÖMÖR ÖSSZEFOGLALÓ:
-        ${module.conciseContent || ''}
-        
-        RÉSZLETES KIEGÉSZÍTÉS:
-        ${module.detailedContent || ''}
-      `.trim();
+      // 1. Generate JSON structure for slides using the most detailed available context
+      const presentationContext = module.detailedContent || module.content;
 
-      const slides = await generatePresentationData(module.title, fullContext);
+      const slides = await generatePresentationData(module.title, presentationContext);
 
       // 2. Generate images and audio for slides (parallelized for speed, up to 15 slides)
       const slidesWithMedia = await Promise.all(slides.map(async (slide, index) => {
