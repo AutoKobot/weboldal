@@ -7286,7 +7286,7 @@ export function setupPrivacyRoutes(app: Express) {
     }
   });
 
-  // AI Presentation Generation Endpoint
+  // AI Presentation Generation Endpoint (QUEUED)
   app.post('/api/admin/modules/:id/generate-presentation', combinedAuth, async (req: any, res) => {
     try {
       if (req.user?.role !== 'admin' && req.user?.role !== 'school_admin') {
@@ -7300,69 +7300,24 @@ export function setupPrivacyRoutes(app: Express) {
         return res.status(404).json({ message: "Module not found" });
       }
 
-      console.log(`Generating interactive presentation for module ${moduleId}...`);
+      console.log(`Queueing presentation generation for module ${moduleId}...`);
 
-      // 1. Generate JSON structure for slides using the most detailed available context
       const presentationContext = module.detailedContent || module.content;
 
-      const slides = await generatePresentationData(module.title, presentationContext);
+      // Add to AI Queue
+      const { aiQueueManager } = await import('./ai-queue-manager');
+      aiQueueManager.queueAIPresentationGeneration(module.id, module.title, presentationContext)
+        .catch(err => console.error(`Background presentation error for module ${moduleId}:`, err));
 
-      // 2. Generate images and audio for slides (parallelized for speed, up to 15 slides)
-      const slidesWithMedia = await Promise.all(slides.map(async (slide, index) => {
-        const updatedSlide = { ...slide };
-
-        // Generate Image if needed
-        if (slide.imagePrompt && index < 15) {
-          console.log(`Generating image for slide ${slide.id}...`);
-          try {
-            updatedSlide.imageUrl = await generatePresentationImage(slide.imagePrompt);
-          } catch (imgErr) {
-            console.error(`Image generation failed for slide ${slide.id}:`, imgErr);
-          }
-        }
-
-        // Generate Audio Narration if narration text exists
-        if (slide.narration) {
-          console.log(`Generating narration audio for slide ${slide.id}...`);
-          try {
-            const audioBuffer = await generateSpeech(slide.narration);
-            
-            // Save audio file to disk
-            const fileName = `narration_${moduleId}_${slide.id}_${Date.now()}.mp3`;
-            const uploadDir = path.join(process.cwd(), 'uploads', 'presentations');
-            
-            // Ensure directory exists
-            if (!fs.existsSync(uploadDir)) {
-              fs.mkdirSync(uploadDir, { recursive: true });
-            }
-
-            const filePath = path.join(uploadDir, fileName);
-            fs.writeFileSync(filePath, Buffer.from(audioBuffer));
-            
-            // Set the audio URL for the frontend
-            updatedSlide.narrationAudioUrl = `/uploads/presentations/${fileName}`;
-            console.log(`Audio saved for slide ${slide.id}: ${updatedSlide.narrationAudioUrl}`);
-          } catch (audioErr) {
-            console.error(`Audio generation failed for slide ${slide.id}:`, audioErr);
-          }
-        }
-
-        return updatedSlide;
-      }));
-
-      // 3. Update module with the new JSON data
-      await storage.updateModule(moduleId, {
-        presentationData: slidesWithMedia
-      });
-
-      res.json({ 
+      // Immediate response
+      res.status(202).json({ 
         success: true, 
-        message: "Presentation generated successfully", 
-        data: slidesWithMedia // Fixed: variable name corrected from slidesWithImages
+        message: "A prezentáció generálása hozzáadva a háttérfolyamatokhoz. Ez eltarthat néhány percig.",
+        status: "queued"
       });
     } catch (error: any) {
-      console.error('Presentation Generation Error:', error);
-      res.status(500).json({ message: "Failed to generate presentation", error: error.message });
+      console.error('Presentation Queue Error:', error);
+      res.status(500).json({ message: "Failed to queue presentation", error: error.message });
     }
   });
 

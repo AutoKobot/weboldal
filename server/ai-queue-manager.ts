@@ -12,7 +12,7 @@ interface QueueItem {
   professionName?: string;
   moduleNumber?: number;
   customSystemMessage?: string;
-  type?: 'full' | 'quiz';
+  type?: 'full' | 'quiz' | 'presentation';
   timestamp: number;
   resolve: (result: any) => void;
   reject: (error: any) => void;
@@ -180,6 +180,34 @@ export class AIQueueManager {
   }
 
   /**
+   * Add AI presentation generation task to queue
+   */
+  async queueAIPresentationGeneration(
+    moduleId: number,
+    title: string,
+    content: string
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const id = `ai-pres-regen-${moduleId}-${Date.now()}`;
+
+      const queueItem: QueueItem = {
+        id,
+        moduleId,
+        title,
+        content,
+        subjectId: '0', // Required by interface
+        type: 'presentation',
+        timestamp: Date.now(),
+        resolve,
+        reject
+      };
+
+      this.queue.push(queueItem);
+      console.log(`📝 Added presentation to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
+    });
+  }
+
+  /**
    * Get queue status
    */
   getQueueStatus() {
@@ -262,6 +290,71 @@ export class AIQueueManager {
         };
       } catch (error) {
         console.error(`Quiz generation error for module ${item.moduleId}:`, error);
+        throw error;
+      }
+    }
+
+    if (item.type === 'presentation') {
+      try {
+        console.log(`Generating presentation for module ${item.moduleId}: ${item.title}`);
+        const { generatePresentationData, generatePresentationImage, generateSpeech } = await import('./openai');
+        
+        // 1. Generáljuk a dia adatokat
+        const slideData = await generatePresentationData(item.title, item.content);
+        
+        // 2. Minden diához képek és hangok
+        const slidesWithMedia = [];
+        for (const slide of slideData) {
+          console.log(`Processing slide ${slide.id}: ${slide.title}`);
+          
+          let imageUrl = null;
+          if (slide.imagePrompt) {
+            try {
+              imageUrl = await generatePresentationImage(slide.imagePrompt);
+              await this.recordAIGenerationCost('openai', 'dalle3_image', 0.04);
+            } catch (e) {
+              console.error(`Image generation failed for slide ${slide.id}:`, e);
+            }
+          }
+ 
+          let narrationAudioUrl = null;
+          if (slide.narration) {
+            try {
+              const audioBuffer = await generateSpeech(slide.narration);
+              const audioFileName = `narration_${item.moduleId}_${slide.id}_${Date.now()}.mp3`;
+              const path = await import('path');
+              const audioFilePath = path.join(process.cwd(), "public", "uploads", audioFileName);
+              
+              const fs = await import("fs/promises");
+              // Verify uploads directory exists
+              const uploadsDir = path.dirname(audioFilePath);
+              await fs.mkdir(uploadsDir, { recursive: true });
+              
+              await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
+              narrationAudioUrl = `/uploads/${audioFileName}`;
+              await this.recordAIGenerationCost('elevenlabs', 'tts_audio', 0.02);
+            } catch (e) {
+              console.error(`Audio generation failed for slide ${slide.id}:`, e);
+            }
+          }
+ 
+          slidesWithMedia.push({
+            ...slide,
+            imageUrl,
+            narrationAudioUrl
+          });
+        }
+        
+        const updateData = { presentationData: slidesWithMedia };
+        const updatedModule = await storage.updateModule(item.moduleId, updateData);
+        
+        return {
+          success: true,
+          module: updatedModule,
+          message: 'Prezentáció sikeresen legenerálva'
+        };
+      } catch (error) {
+        console.error(`Presentation generation error for module ${item.moduleId}:`, error);
         throw error;
       }
     }
