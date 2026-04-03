@@ -49,7 +49,12 @@ export function SlideHotspots({ data, imageUrl }: HotspotProps) {
                className={`absolute w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-all duration-300 ${selectedPoint?.title === p.title ? 'bg-blue-500 scale-125 z-20' : 'bg-blue-600/60 hover:bg-blue-500 z-10'}`}
                style={{ left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)' }}
              >
-               <span className="animate-ping absolute inset-0 rounded-full bg-white/40 duration-[2000ms]" />
+               <motion.span 
+                 initial={{ scale: 1, opacity: 0.8 }}
+                 animate={{ scale: 2.2, opacity: 0 }}
+                 transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
+                 className="absolute inset-0 rounded-full bg-white/60"
+               />
                <Info className="w-4 h-4 text-white" />
              </motion.button>
           ))}

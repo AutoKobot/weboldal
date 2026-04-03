@@ -58,6 +58,8 @@ function InteractiveContent({ slide }: { slide: Slide }) {
         </div>
       );
   }
+}
+
 export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: PresentationPlayerProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
