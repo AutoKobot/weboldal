@@ -98,6 +98,21 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
           setIsPlaying(false);
         }
       };
+
+      // Túlélő-kód: Ha a hangfájl hiányzik (pl. szerver újraindítás miatt), akkor 
+      // várjunk 4.5 másodpercet és ugorjunk automatikusan a következőre, hogy a prezi ne fagyjon le!
+      audio.onerror = () => {
+        console.warn("Audio hiányzik, automatikus ugrás a következő diára hamarosan:", fullUrl);
+        if (autoAdvance && isPlaying) {
+          setTimeout(() => {
+            if (currentSlideIndex < slides.length - 1) {
+              setCurrentSlideIndex(prev => prev + 1);
+            } else {
+              setIsPlaying(false);
+            }
+          }, 4500);
+        }
+      };
     } else {
       audio.pause();
     }

@@ -323,7 +323,7 @@ export class AIQueueManager {
               const audioBuffer = await generateSpeech(slide.narration);
               const audioFileName = `narration_${item.moduleId}_${slide.id}_${Date.now()}.mp3`;
               const path = await import('path');
-              const audioFilePath = path.join(process.cwd(), "public", "uploads", audioFileName);
+              const audioFilePath = path.join(process.cwd(), "uploads", "presentations", audioFileName);
               
               const fs = await import("fs/promises");
               // Verify uploads directory exists
@@ -331,7 +331,7 @@ export class AIQueueManager {
               await fs.mkdir(uploadsDir, { recursive: true });
               
               await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
-              narrationAudioUrl = `/uploads/${audioFileName}`;
+              narrationAudioUrl = `/uploads/presentations/${audioFileName}`;
               await this.recordAIGenerationCost('elevenlabs', 'tts_audio', 0.02);
             } catch (e) {
               console.error(`Audio generation failed for slide ${slide.id}:`, e);
