@@ -322,16 +322,32 @@ export class AIQueueManager {
             try {
               const audioBuffer = await generateSpeech(slide.narration);
               const audioFileName = `narration_${item.moduleId}_${slide.id}_${Date.now()}.mp3`;
-              const path = await import('path');
-              const audioFilePath = path.join(process.cwd(), "uploads", "presentations", audioFileName);
-              
-              const fs = await import("fs/promises");
-              // Verify uploads directory exists
-              const uploadsDir = path.dirname(audioFilePath);
-              await fs.mkdir(uploadsDir, { recursive: true });
-              
-              await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
-              narrationAudioUrl = `/uploads/presentations/${audioFileName}`;
+              // Új felhő alapú logika a Supabase Storage-al
+              const { uploadToSupabase } = await import("./supabase");
+              const cloudUrl = await uploadToSupabase(
+                  "presentations",
+                  audioFileName,
+                  Buffer.from(audioBuffer),
+                  "audio/mpeg"
+              );
+
+              if (cloudUrl) {
+                // Ha sikeres a Cloud mentés, akkor közvetlenül onnan töltjük be!
+                narrationAudioUrl = cloudUrl;
+                console.log(`Cloud audio successfully saved: ${narrationAudioUrl}`);
+              } else {
+                // Vész-tartalék, ha véletlenül a Supabase nem érhető el: 
+                // ideiglenesen mentsük a helyi tárhelyre, hogy a felhasználó ne érezze meg
+                const fs = await import("fs/promises");
+                const path = await import("path");
+                const audioFilePath = path.join(process.cwd(), "uploads", "presentations", audioFileName);
+                const uploadsDir = path.dirname(audioFilePath);
+                await fs.mkdir(uploadsDir, { recursive: true });
+                await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
+                narrationAudioUrl = `/uploads/presentations/${audioFileName}`;
+                console.warn(`Supabase fallback active! Saved to local filesystem: ${narrationAudioUrl}`);
+              }
+
               await this.recordAIGenerationCost('elevenlabs', 'tts_audio', 0.02);
             } catch (e) {
               console.error(`Audio generation failed for slide ${slide.id}:`, e);
