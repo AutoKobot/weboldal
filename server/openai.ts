@@ -931,14 +931,15 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és UI/UX dizájner vagy. 
-Készíts egy interaktív, vizuálisan gazdag HTML prezentációt a következő modulhoz: "${moduleTitle}"
-Tananyag: ${moduleContent.substring(0, 3000)}
+    const prompt = `Te egy profi digitális tananyagfejlesztő, pedagógus és UI/UX dizájner vagy. 
+Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
+Tananyag: ${moduleContent.substring(0, 4000)}
 
-A prezentációnak 6-8 diából kell állnia. Minden diának legyen:
+A prezentációnak annyi diából kell állnia, amennyi szükséges a teljes tananyag RÉSZLETES lefedéséhez (min. 5, max. 15 dia). 
+Minden diának legyen:
 1. Egyértelmű fókusza (Cím, Alcím).
-2. Strukturált, lényegre törő tartalma (nem hosszú bekezdések!).
-3. Vizualizációs javaslata (imagePrompt egy professzionális, tiszta, modern illusztrációhoz).
+2. Strukturált, lényegre törő tartalma (Használj felsorolásokat, markdown formázást).
+3. SZUPER-RELEVÁNS vizualizációs javaslata: Az 'imagePrompt' ne csak dekoráció legyen, hanem egy pontos szakmai illusztráció leírása, ami segít megérteni a dián szereplő konkrét fogalmat. (pl. ha a szenzorokról van szó, akkor a szenzor belső felépítését vagy működési elvét írd le).
 4. Egy interaktív elem javaslata (quiz, flashcard, stepper, hotspot vagy diagram).
 
 A prezentációnak az alábbi JSON struktúrában kell megjelennie:
@@ -951,34 +952,20 @@ A prezentációnak az alábbi JSON struktúrában kell megjelennie:
       "subtitle": "Alcím vagy rövid leírás",
       "content": "...",
       "layout": "centered",
-      "imagePrompt": "Leírás egy háttérképhez vagy illusztrációhoz..."
+      "imagePrompt": "Pontos szakmai illusztráció leírása az adott témához..."
     },
-    {
-      "id": 2,
-      "type": "content",
-      "title": "Szakmai rész",
-      "content": "<ul><li>Fontos pont</li></ul>",
-      "layout": "split-right-image",
-      "imagePrompt": "Leírás egy idevágó szakmai ábrához...",
-      "interactiveType": "stepper",
-      "interactiveData": { "steps": ["1. lépés", "2. lépés"] }
-    }
+    ...
   ]
 }
 
 FONTOS: A tartalom legyen szakmailag pontos, magyar nyelvű. A 'layout' értéke legyen az alábbiak közül: centered, split-left-image, split-right-image, full-text, interactive-focus. 
-Különösen figyelj az interaktív elemekre:
-- 'quiz': { "question": "...", "options": ["...", "..."], "correctIndex": 0 }
-- 'flashcard': { "front": "Kérdés/Fogalom", "back": "Válasz/Leírás" }
-- 'stepper': { "steps": ["...", "..."] }
-- 'diagram': { "code": "Mermaid diagram kód (pl. flowchart TD...)" }
 
 Válaszolj KIZÁRÓLAG érvényes JSON-ban, Markdown kódblokkok nélkül!`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 3000,
+      max_tokens: 4000,
       temperature: 0.7,
       response_format: { type: "json_object" }
     });
@@ -997,7 +984,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
     const response = await openai.images.generate({
       model: "dall-e-3",
-      prompt: `A professional, clean, modern educational illustration for a learning platform. Style: 3D isometric or high-quality vector art, minimalistic, vibrant colors, neutral background. Context: ${prompt}`,
+      prompt: `A high-quality, professional educational illustration for a digital learning platform. Style: Clean, detailed technical illustration or modern 3D isometric view, professional colors, neutral background. Context: ${prompt}. No text in the image. Final image should look like a premium textbook graphic.`,
       n: 1,
       size: "1024x1024",
       quality: "hd",

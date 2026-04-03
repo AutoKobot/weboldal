@@ -7305,9 +7305,9 @@ export function setupPrivacyRoutes(app: Express) {
       // 1. Generate JSON structure for slides
       const slides = await generatePresentationData(module.title, module.detailedContent || module.content);
 
-      // 2. Generate images for slides (parallelized for speed, up to 8 slides)
+      // 2. Generate images for slides (parallelized for speed, up to 15 slides)
       const slidesWithImages = await Promise.all(slides.map(async (slide, index) => {
-        if (slide.imagePrompt && index < 8) { // Increased to 8 slides for full visual coverage
+        if (slide.imagePrompt && index < 15) { // Support up to 15 slides with images
           console.log(`Generating image for slide ${slide.id}...`);
           const imageUrl = await generatePresentationImage(slide.imagePrompt);
           return { ...slide, imageUrl };
