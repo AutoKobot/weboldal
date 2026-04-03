@@ -254,7 +254,7 @@ async function generateOpenAIChatResponse(
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages,
       max_tokens: 4000,
       temperature: 0.7,
@@ -368,7 +368,7 @@ async function generateGeminiChatResponse(
     try {
       const openai = await getOpenAIClient();
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // Fallback to GPT-4o for high quality
+        model: "gpt-4o-mini", // Use mini for cost optimization
         messages: [
           { role: "system", content: "Te egy professzionális tananyag-fejlesztő AI vagy. Kezeld a bemenetet ALAPANYAGKÉNT." },
           { role: "user", content: fullPrompt }
@@ -483,10 +483,10 @@ export async function generateChatResponse(
     messages.push({ role: "user", content: userMessage });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // Upgraded to GPT-4o for better performance and reasoning
+      model: "gpt-4o-mini", // Cost-effective model
       messages,
-      max_tokens: 4000, // Increased for more comprehensive responses
-      temperature: 0.7, // Better for educational explanations
+      max_tokens: 4000, 
+      temperature: 0.7, 
       stream: false,
       presence_penalty: 0,
       frequency_penalty: 0,
@@ -521,7 +521,7 @@ export async function explainConcept(
 Provide a concise but comprehensive explanation with examples where helpful.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 500,
     });
@@ -595,7 +595,7 @@ export async function generateSynchronizedStreamingResponse(
     messages.push({ role: "user", content: userMessage });
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages,
       max_tokens: 1000, // Rövidebb válaszok = gyorsabb
       temperature: 0.5, // Kevesebb kreativitás = gyorsabb
@@ -881,7 +881,7 @@ Válaszolj JSON formátumban:
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
