@@ -117,6 +117,7 @@ export const modules = pgTable("modules", {
   youtubeUrl: varchar("youtube_url"), // YouTube videó URL
   podcastUrl: varchar("podcast_url"), // Külső podcast URL
   presentationUrl: varchar("presentation_url"), // Feltöltött prezentáció URL (pl. pptx)
+  presentationData: jsonb("presentation_data"), // Új: Strukturált JSON az interaktív HTML prezentációhoz
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik

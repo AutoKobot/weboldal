@@ -89,7 +89,7 @@ const combinedAuth = async (req: any, res: any, next: any) => {
   }
 };
 import { insertModuleSchema, insertChatMessageSchema, insertProfessionSchema, insertSubjectSchema, insertAdminMessageSchema, insertClassAnnouncementSchema } from "@shared/schema";
-import { generateChatResponse, generateQuizQuestions, explainConcept, generateSpeech } from "./openai";
+import { generateChatResponse, generateQuizQuestions, explainConcept, generateSpeech, generatePresentationData, generatePresentationImage } from "./openai";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -7286,8 +7286,8 @@ export function setupPrivacyRoutes(app: Express) {
     }
   });
 
-  // Make.com Automation Trigger Endpoint
-  app.post('/api/admin/modules/:id/trigger-make', combinedAuth, async (req: any, res) => {
+  // AI Presentation Generation Endpoint
+  app.post('/api/admin/modules/:id/generate-presentation', combinedAuth, async (req: any, res) => {
     try {
       if (req.user?.role !== 'admin' && req.user?.role !== 'school_admin') {
         return res.status(403).json({ message: "Admin access required" });
@@ -7300,79 +7300,36 @@ export function setupPrivacyRoutes(app: Express) {
         return res.status(404).json({ message: "Module not found" });
       }
 
-      // URL to Pipedream Webhook
-      const PIPEDREAM_WEBHOOK_URL = 'https://eobg0pa56brd08x.m.pipedream.net';
+      console.log(`Generating interactive presentation for module ${moduleId}...`);
 
-      // Fetch subject and profession for context
-      const subject = await storage.getSubject(module.subjectId);
-      const profession = subject ? await storage.getProfession(subject.professionId) : null;
+      // 1. Generate JSON structure for slides
+      const slides = await generatePresentationData(module.title, module.detailedContent || module.content);
 
-      // Prepare payload for automation
-      const payload = {
-        moduleId: module.id,
-        title: module.title,
-        content: module.detailedContent || module.conciseContent || module.content || "",
-        subjectName: subject?.name || "Ismeretlen",
-        professionName: profession?.name || "Ismeretlen",
-        moduleNumber: module.moduleNumber,
-        callbackUrl: `${req.protocol}://${req.get('host')}/api/callback/make-automation`,
-        systemPrompt: `Te egy profi tananyagkészítő asszisztens vagy. 
-Készíts tananyagot a következő modulhoz: "${module.title}"
-Téma: ${module.detailedContent || module.content}
-Szakma: ${profession?.name || "Ismeretlen"}
+      // 2. Generate images for slides (parallelized for speed, but limit to first 3 to avoid high costs during testing)
+      const slidesWithImages = await Promise.all(slides.map(async (slide, index) => {
+        if (slide.imagePrompt && index < 4) { // Only first 4 slides get AI images to start
+          console.log(`Generating image for slide ${slide.id}...`);
+          const imageUrl = await generatePresentationImage(slide.imagePrompt);
+          return { ...slide, imageUrl };
+        }
+        return slide;
+      }));
 
-Feladatod:
-1. Készíts egy 6 diából álló prezentációs vázlatot.
-2. Készíts 5 interaktív tesztkérdést (3 válaszlehetőséggel, jelöld a helyeset).
-
-VÁLASZ FORMÁTUMA (Kizárólag érvényes JSON, Markdown kódblokkok nélkül!):
-{
-  "presentation_outline": ["Dia 1 szövege", "Dia 2 szövege", "Dia 3 szövege", "Dia 4 szövege", "Dia 5 szövege", "Dia 6 szövege"],
-  "quizzes": [
-    {"question": "Kérdés 1?", "options": ["A válasz", "B válasz", "C válasz"], "correctAnswer": 0}
-  ]
-}`
-      };
-
-      // Send to Pipedream Webhook
-      await fetch(PIPEDREAM_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // 3. Update module with the new JSON data
+      await storage.updateModule(moduleId, {
+        presentationData: slidesWithImages
       });
 
-      res.json({ message: "Automation triggered successfully", status: "pending" });
+      res.json({ 
+        success: true, 
+        message: "Presentation generated successfully", 
+        data: slidesWithImages 
+      });
     } catch (error: any) {
-      console.error('Make.com Trigger Error:', error);
-      res.status(500).json({ message: "Failed to trigger automation", error: error.message });
+      console.error('Presentation Generation Error:', error);
+      res.status(500).json({ message: "Failed to generate presentation", error: error.message });
     }
   });
 
-  // Make.com Callback Endpoint - Updates module with AI generated content
-  app.post('/api/callback/make-automation', async (req, res) => {
-    try {
-      const { moduleId, audioUrl, presentationUrl, imageUrl, generatedQuizzes, keyConceptsData } = req.body;
-      
-      if (!moduleId) {
-        return res.status(400).json({ message: "Missing moduleId" });
-      }
-
-      console.log(`Received automation callback for module ${moduleId}`);
-
-      const updateData: any = {};
-      if (audioUrl) updateData.audioUrl = audioUrl;
-      if (presentationUrl) updateData.presentationUrl = presentationUrl;
-      if (imageUrl) updateData.imageUrl = imageUrl;
-      if (generatedQuizzes) updateData.generatedQuizzes = generatedQuizzes;
-      if (keyConceptsData) updateData.keyConceptsData = keyConceptsData;
-
-      await storage.updateModule(moduleId, updateData);
-      
-      res.json({ success: true, message: "Module updated from automation" });
-    } catch (error: any) {
-      console.error('Make.com Callback Error:', error);
-      res.status(500).json({ message: "Failed to process callback", error: error.message });
-    }
-  });
 }
 

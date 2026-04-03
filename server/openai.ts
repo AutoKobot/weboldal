@@ -913,3 +913,103 @@ Válaszolj JSON formátumban:
     };
   }
 }
+
+export interface PresentationSlide {
+  id: number;
+  type: "title" | "content" | "interactive" | "summary";
+  title: string;
+  subtitle?: string;
+  content: string; // Markdown or HTML-like
+  layout: "centered" | "split-left-image" | "split-right-image" | "full-text" | "interactive-focus";
+  imagePrompt?: string; // Prompt for image generation
+  imageUrl?: string; // URL of generated image
+  interactiveType?: "quiz" | "flashcard" | "stepper" | "hotspot" | "diagram";
+  interactiveData?: any; // Structured data for the specific interactive component
+}
+
+export async function generatePresentationData(moduleTitle: string, moduleContent: string): Promise<PresentationSlide[]> {
+  try {
+    const openai = await getOpenAIClient();
+
+    const prompt = `Te egy profi digitális tananyagfejlesztő és UI/UX dizájner vagy. 
+Készíts egy interaktív, vizuálisan gazdag HTML prezentációt a következő modulhoz: "${moduleTitle}"
+Tananyag: ${moduleContent.substring(0, 3000)}
+
+A prezentációnak 6-8 diából kell állnia. Minden diának legyen:
+1. Egyértelmű fókusza (Cím, Alcím).
+2. Strukturált, lényegre törő tartalma (nem hosszú bekezdések!).
+3. Vizualizációs javaslata (imagePrompt egy professzionális, tiszta, modern illusztrációhoz).
+4. Egy interaktív elem javaslata (quiz, flashcard, stepper, hotspot vagy diagram).
+
+A prezentációnak az alábbi JSON struktúrában kell megjelennie:
+{
+  "slides": [
+    {
+      "id": 1,
+      "type": "title",
+      "title": "Cím",
+      "subtitle": "Alcím vagy rövid leírás",
+      "content": "...",
+      "layout": "centered",
+      "imagePrompt": "Leírás egy háttérképhez vagy illusztrációhoz..."
+    },
+    {
+      "id": 2,
+      "type": "content",
+      "title": "Szakmai rész",
+      "content": "<ul><li>Fontos pont</li></ul>",
+      "layout": "split-right-image",
+      "imagePrompt": "Leírás egy idevágó szakmai ábrához...",
+      "interactiveType": "stepper",
+      "interactiveData": { "steps": ["1. lépés", "2. lépés"] }
+    }
+  ]
+}
+
+FONTOS: A tartalom legyen szakmailag pontos, magyar nyelvű. A 'layout' értéke legyen az alábbiak közül: centered, split-left-image, split-right-image, full-text, interactive-focus. 
+Különösen figyelj az interaktív elemekre:
+- 'quiz': { "question": "...", "options": ["...", "..."], "correctIndex": 0 }
+- 'flashcard': { "front": "Kérdés/Fogalom", "back": "Válasz/Leírás" }
+- 'stepper': { "steps": ["...", "..."] }
+- 'diagram': { "code": "Mermaid diagram kód (pl. flowchart TD...)" }
+
+Válaszolj KIZÁRÓLAG érvényes JSON-ban, Markdown kódblokkok nélkül!`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 3000,
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    const data = JSON.parse(response.choices[0].message.content || '{"slides": []}');
+    return data.slides;
+  } catch (error) {
+    console.error("Presentation generation error:", error);
+    throw new Error("Failed to generate presentation data");
+  }
+}
+
+export async function generatePresentationImage(prompt: string): Promise<string> {
+  try {
+    const openai = await getOpenAIClient();
+
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: `A professional, clean, modern educational illustration for a learning platform. Style: 3D isometric or high-quality vector art, minimalistic, vibrant colors, neutral background. Context: ${prompt}`,
+      n: 1,
+      size: "1024x1024",
+      quality: "hd",
+      style: "vivid",
+    });
+
+    if (response.data && response.data[0]) {
+      return response.data[0].url || "";
+    }
+    return "";
+  } catch (error) {
+    console.error("Image generation error:", error);
+    return "";
+  }
+}

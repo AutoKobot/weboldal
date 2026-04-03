@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { FlashcardImport } from "@/components/flashcard-import";
-import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User as UserIcon, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User as UserIcon, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2, MonitorPlay } from "lucide-react";
 import FileUpload, { UrlInput } from "@/components/file-upload";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
 import { LinkEditor } from "@/components/link-editor";
@@ -1825,36 +1825,37 @@ export default function AdminDashboard() {
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
     },
   });
+  const [generatingPresentation, setGeneratingPresentation] = useState<Set<number>>(new Set());
 
-  const [triggeringAutomation, setTriggeringAutomation] = useState<Set<number>>(new Set());
-
-  const triggerMakeAutomationMutation = useMutation({
+  const generatePresentationMutation = useMutation({
     mutationFn: async (moduleId: number) => {
-      setTriggeringAutomation(prev => new Set(prev).add(moduleId));
-      const res = await apiRequest("POST", `/api/admin/modules/${moduleId}/trigger-make`, {});
+      setGeneratingPresentation(prev => new Set(prev).add(moduleId));
+      const res = await apiRequest("POST", `/api/admin/modules/${moduleId}/generate-presentation`, {});
       return await res.json();
     },
     onSuccess: () => {
       toast({
-        title: "Automatizálás elindítva",
-        description: "A folyamat a háttérben fut a Make.com-on. Hamarosan frissülnek az anyagok.",
+        title: "Interaktív prezentáció kész!",
+        description: "Az AI sikeresen felépítette a diákat és legenerálta az illusztrációkat.",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Hiba",
+        title: "Hiba a generálás során",
         description: error.message,
         variant: "destructive",
       });
     },
     onSettled: (data, error, variables) => {
-      setTriggeringAutomation(prev => {
+      setGeneratingPresentation(prev => {
         const next = new Set(prev);
         next.delete(variables);
         return next;
       });
     }
   });
+
 
 
 
@@ -2535,20 +2536,7 @@ export default function AdminDashboard() {
                                 <Wand2 className="h-4 w-4" />
                               )}
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600"
-                              onClick={() => triggerMakeAutomationMutation.mutate(module.id)}
-                              disabled={triggeringAutomation.has(module.id)}
-                              title="Vizuális és Audio automatizálás (Make.com)"
-                            >
-                              {triggeringAutomation.has(module.id) ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                              ) : (
-                                <Sparkles className="h-4 w-4 text-orange-500" />
-                              )}
-                            </Button>
+
                             <Button
                               variant="ghost"
                               size="sm"
@@ -2580,6 +2568,20 @@ export default function AdminDashboard() {
                                 >
                                   <FileUp className="h-4 w-4" />
                                 </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600"
+                              onClick={() => generatePresentationMutation.mutate(module.id)}
+                              disabled={generatingPresentation.has(module.id)}
+                              title="Interaktív HTML Prezentáció Generálása (AI)"
+                            >
+                              {generatingPresentation.has(module.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                              ) : (
+                                <MonitorPlay className="h-4 w-4 text-blue-500" />
+                              )}
+                            </Button>
                               </DialogTrigger>
                               <DialogContent>
                                 <FlashcardImport
