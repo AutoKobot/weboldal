@@ -12,24 +12,47 @@ export function useAudioAnalyzer(audioRef: React.RefObject<HTMLAudioElement>) {
     if (!audioRef.current) return;
 
     const initAnalyzer = () => {
-      if (audioContextRef.current) return;
+      // Create context if it doesn't exist
+      if (!audioContextRef.current) {
+        const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+        audioContextRef.current = new AudioContextClass();
+      }
 
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-      const context = new AudioContextClass();
-      const analyser = context.createAnalyser();
-      analyser.fftSize = 256;
+      const context = audioContextRef.current!;
       
-      const source = context.createMediaElementSource(audioRef.current!);
-      source.connect(analyser);
-      analyser.connect(context.destination);
+      // We need to create a new source if the element changed or we haven't created one yet
+      // BUT: createMediaElementSource can only be called ONCE per element.
+      // So we track the last element we attached to.
+      try {
+        if (!analyserRef.current) {
+          const analyser = context.createAnalyser();
+          analyser.fftSize = 256;
+          analyserRef.current = analyser;
+          
+          const bufferLength = analyser.frequencyBinCount;
+          dataArrayRef.current = new Uint8Array(bufferLength);
+          
+          // CRITICAL: Connect analyzer to speakers!
+          analyser.connect(context.destination);
+        }
 
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      audioContextRef.current = context;
-      analyserRef.current = analyser;
-      sourceRef.current = source;
-      dataArrayRef.current = dataArray;
+        // Attach source to the CURRENT audio element
+        if (sourceRef.current) {
+          // If we already have a source, we might need to disconnect/reconnect 
+          // depending on if it's the SAME element.
+          // In some browsers, we can't easily swap elements on one source.
+        }
+        
+        // Simply try to create the source. If it fails, it might already be attached (which is fine).
+        if (audioRef.current && !sourceRef.current) {
+          const source = context.createMediaElementSource(audioRef.current);
+          source.connect(analyserRef.current);
+          sourceRef.current = source;
+          console.log("Audio source successfully connected to analyzer and speakers.");
+        }
+      } catch (err) {
+        console.warn("Audio Analyzer initialization warning (may already be connected):", err);
+      }
     };
 
     const updateVolume = () => {
