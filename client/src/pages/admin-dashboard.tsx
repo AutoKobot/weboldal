@@ -3223,7 +3223,7 @@ export default function AdminDashboard() {
                         <SelectValue placeholder="Válassz modellt" />
                       </SelectTrigger>
                       <SelectContent>
-                        {aiSettingsData?.imageProvider === 'openai' ? (
+                        {(aiSettingsData?.imageProvider || 'openai') === 'openai' ? (
                           <SelectItem value="dall-e-3">DALL-E 3 (~18 Ft / kép)</SelectItem>
                         ) : (
                           <>

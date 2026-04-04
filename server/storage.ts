@@ -2683,34 +2683,82 @@ export class DatabaseStorage implements IStorage {
 
   // AI settings implementation
   async getAISettings(): Promise<AISetting | undefined> {
-    const [settings] = await db.select().from(aiSettings).limit(1);
-    return settings;
+    try {
+      const [settings] = await db.select().from(aiSettings).limit(1);
+      if (settings) return settings;
+      
+      // If table exists but empty, try to get from system_settings fallback
+      const provider = await this.getSystemSetting("fallback_ai_image_provider");
+      const model = await this.getSystemSetting("fallback_ai_image_model");
+      const gptModel = await this.getSystemSetting("fallback_ai_model");
+      
+      if (provider || model || gptModel) {
+        return {
+          id: 0,
+          imageProvider: provider?.value || 'openai',
+          imageModel: model?.value || 'dall-e-3',
+          model: gptModel?.value || 'gpt-4o-mini',
+          maxTokens: 2000,
+          temperature: '0.7',
+          updatedAt: new Date(),
+          updatedBy: 'system'
+        } as AISetting;
+      }
+      return undefined;
+    } catch (error) {
+      console.log("aiSettings table may be missing, using defaults");
+      return undefined;
+    }
   }
 
-  async updateAISettings(data: InsertAISetting, updatedBy: string): Promise<AISetting> {
-    const existing = await this.getAISettings();
-    
-    if (existing) {
-      const [updated] = await db
-        .update(aiSettings)
-        .set({
-          ...data,
-          updatedBy,
-          updatedAt: new Date()
-        })
-        .where(eq(aiSettings.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [inserted] = await db
-        .insert(aiSettings)
-        .values({
-          ...data,
-          updatedBy,
-          updatedAt: new Date()
-        })
-        .returning();
-      return inserted;
+  async updateAISettings(data: any, updatedBy: string): Promise<AISetting> {
+    try {
+      const existing = await this.getAISettings();
+      
+      if (existing && existing.id !== 0) {
+        const [updated] = await db
+          .update(aiSettings)
+          .set({
+            ...data,
+            updatedBy,
+            updatedAt: new Date()
+          })
+          .where(eq(aiSettings.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        // Try to insert
+        const [inserted] = await db
+          .insert(aiSettings)
+          .values({
+            maxTokens: 2000,
+            temperature: "0.7",
+            model: "gpt-4o-mini",
+            imageProvider: "openai",
+            imageModel: "dall-e-3",
+            ...data,
+            updatedBy,
+            updatedAt: new Date()
+          })
+          .returning();
+        return inserted;
+      }
+    } catch (error) {
+      console.error("Database update failed for ai_settings, using system_settings fallback:", error);
+      
+      // Fallback: Save to system_settings individually
+      if (data.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", data.imageProvider, updatedBy);
+      if (data.imageModel) await this.setSystemSetting("fallback_ai_image_model", data.imageModel, updatedBy);
+      if (data.model) await this.setSystemSetting("fallback_ai_model", data.model, updatedBy);
+      
+      return {
+        id: 0,
+        imageProvider: data.imageProvider || 'openai',
+        imageModel: data.imageModel || 'dall-e-3',
+        model: data.model || 'gpt-4o-mini',
+        updatedBy,
+        updatedAt: new Date()
+      } as any;
     }
   }
 }

@@ -982,21 +982,122 @@ Válaszolj KIZÁRÓLAG érvényes JSON-ban!`;
 
 export async function generatePresentationImage(prompt: string): Promise<string> {
   try {
-    const openai = await getOpenAIClient();
+    const settings = await storage.getAISettings();
+    const provider = settings?.imageProvider || 'openai';
+    const modelKey = settings?.imageModel || 'dall-e-3';
+    
+    let imageUrl = "";
+    let providerName = provider;
+    let modelName = modelKey;
+    let costUsd = 0;
 
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: `A high-quality, professional educational illustration for a digital learning platform. Style: Clean, detailed technical illustration or modern 3D isometric view, professional colors, neutral background. Context: ${prompt}. No text in the image. Final image should look like a premium textbook graphic.`,
-      n: 1,
-      size: "1024x1024",
-      quality: "hd",
-      style: "vivid",
-    });
+    if (provider === 'openai') {
+      const openai = await getOpenAIClient();
+      modelName = "dall-e-3";
+      costUsd = 0.06; // $0.04 base * 1.5 margin
 
-    if (response.data && response.data[0]) {
-      return response.data[0].url || "";
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: `A high-quality, professional educational illustration for a digital learning platform. Style: Clean, detailed technical illustration or modern 3D isometric view, professional colors, neutral background. Context: ${prompt}. No text in the image. Final image should look like a premium textbook graphic.`,
+        n: 1,
+        size: "1024x1024",
+        quality: "hd",
+        style: "vivid",
+      });
+
+      imageUrl = response.data?.[0]?.url || "";
+    } else if (provider === 'together') {
+      const apiKey = process.env.TOGETHER_API_KEY || (await storage.getSystemSetting('together_api_key'))?.value;
+      if (!apiKey) throw new Error("Together AI API key not configured");
+      
+      // Mapping for Together AI
+      const mapping: Record<string, string> = {
+        'flux-pro': 'black-forest-labs/FLUX.1-pro',
+        'flux-dev': 'black-forest-labs/FLUX.1-dev',
+        'flux-schnell': 'black-forest-labs/FLUX.1-schnell'
+      };
+      modelName = mapping[modelKey] || mapping['flux-pro'];
+      
+      // Costs (estimated with 1.5x margin)
+      const costMap: Record<string, number> = {
+        'flux-pro': 0.045,
+        'flux-dev': 0.015,
+        'flux-schnell': 0.003
+      };
+      costUsd = costMap[modelKey] || 0.045;
+
+      const response = await fetch("https://api.together.xyz/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          prompt: `Educational illustration: ${prompt}. Clean, high-quality, professional colors, no text, premium look.`,
+          model: modelName,
+          n: 1,
+          size: "1024x1024"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        imageUrl = data.data?.[0]?.url || "";
+      }
+    } else if (provider === 'deepinfra') {
+      const apiKey = process.env.DEEPINFRA_API_KEY || (await storage.getSystemSetting('deepinfra_api_key'))?.value;
+      if (!apiKey) throw new Error("DeepInfra API key not configured");
+      
+      // Mapping for DeepInfra
+      const mapping: Record<string, string> = {
+        'flux-pro': 'black-forest-labs/FLUX.1-pro',
+        'flux-dev': 'black-forest-labs/FLUX.1-dev',
+        'flux-schnell': 'black-forest-labs/FLUX.1-schnell'
+      };
+      modelName = mapping[modelKey] || mapping['flux-schnell'];
+
+      // Costs (estimated with 1.5x margin)
+      const costMap: Record<string, number> = {
+        'flux-pro': 0.045,
+        'flux-dev': 0.015,
+        'flux-schnell': 0.003
+      };
+      costUsd = costMap[modelKey] || 0.003;
+
+      const response = await fetch("https://api.deepinfra.com/v1/openai/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          prompt: `Educational illustration: ${prompt}. Clean, high-quality, professional colors, no text, premium look.`,
+          model: modelName,
+          n: 1,
+          size: "1024x1024"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        imageUrl = data.data?.[0]?.url || "";
+      }
     }
-    return "";
+
+    // Log the API call for cost tracking
+    if (imageUrl) {
+      await storage.logApiCall({
+        provider: providerName,
+        service: "image_generation",
+        model: modelName,
+        tokenCount: 0,
+        costUsd: costUsd.toString(),
+        requestData: { prompt },
+        responseData: { imageUrl: "URL_GEN" } // Don't store full URL to save space
+      });
+    }
+
+    return imageUrl;
   } catch (error) {
     console.error("Image generation error:", error);
     return "";
