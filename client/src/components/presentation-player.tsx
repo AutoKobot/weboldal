@@ -63,6 +63,7 @@ function InteractiveContent({ slide }: { slide: Slide }) {
 export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: PresentationPlayerProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [autoAdvance, setAutoAdvance] = useState(true);
   
@@ -155,10 +156,11 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
   useEffect(() => {
     if (open) {
       setCurrentSlideIndex(0);
-      // Kis késleltetés, hogy a DOM és az audio elem felálljon
-      setTimeout(() => setIsPlaying(true), 300);
+      setHasStarted(false);
+      setIsPlaying(false);
     } else {
       setIsPlaying(false);
+      setHasStarted(false);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -205,6 +207,36 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 m-0 overflow-hidden bg-slate-950 border-none shadow-none rounded-none flex flex-col focus:outline-none z-[999]">
         
+        {/* Start Screen Overlay */}
+        {!hasStarted && (
+          <div className="absolute inset-0 z-[1000] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center space-y-8 p-12 bg-slate-900 border border-slate-700/50 rounded-3xl shadow-2xl max-w-lg"
+            >
+              <div className="w-24 h-24 bg-blue-600/20 text-blue-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(37,99,235,0.3)]">
+                <Play className="w-10 h-10 ml-2" />
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-bold text-white tracking-tight">Készen állsz?</h2>
+                <p className="text-slate-400 text-lg">A prezentáció hanggal és interaktív elemekkel felszerelve indul.</p>
+              </div>
+              <Button 
+                size="lg"
+                className="w-full text-lg h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 font-semibold transition-all hover:scale-105 active:scale-95"
+                onClick={async () => {
+                  await resumeAudioContext();
+                  setHasStarted(true);
+                  setIsPlaying(true);
+                }}
+              >
+                <Play className="w-5 h-5 mr-3" /> Prezentáció indítása
+              </Button>
+            </motion.div>
+          </div>
+        )}
+
         <audio ref={audioRef} style={{ display: 'none' }} crossOrigin="anonymous" />
 
         {/* Header - Compact */}
