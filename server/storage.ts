@@ -2684,58 +2684,72 @@ export class DatabaseStorage implements IStorage {
   // AI settings implementation
   async getAISettings(): Promise<AISetting | undefined> {
     try {
-      const [settings] = await db.select().from(aiSettings).limit(1);
-      if (settings) return settings;
-      
-      // If table exists but empty, try to get from system_settings fallback
-      const provider = await this.getSystemSetting("fallback_ai_image_provider");
-      const model = await this.getSystemSetting("fallback_ai_image_model");
-      const gptModel = await this.getSystemSetting("fallback_ai_model");
-      
-      if (provider || model || gptModel) {
-        return {
-          id: 0,
-          imageProvider: provider?.value || 'openai',
-          imageModel: model?.value || 'dall-e-3',
-          model: gptModel?.value || 'gpt-4o-mini',
-          maxTokens: 2000,
-          temperature: '0.7',
-          updatedAt: new Date(),
-          updatedBy: 'system'
-        } as AISetting;
+      // 1. Megpróbáljuk betölteni a táblából
+      let dbSettings: any = null;
+      try {
+        const [row] = await db.select().from(aiSettings).limit(1);
+        dbSettings = row;
+      } catch (e) {
+        console.log("aiSettings table table access failed, skipping...");
       }
-      return undefined;
+
+      // 2. Betöltjük a manuális/fallback beállításokat a system_settingsből
+      const fallbackProvider = (await this.getSystemSetting("fallback_ai_image_provider"))?.value;
+      const fallbackModel = (await this.getSystemSetting("fallback_ai_image_model"))?.value;
+      const fallbackGptModel = (await this.getSystemSetting("fallback_ai_model"))?.value;
+
+      // Ha nincs semmi az adatbázisban és a fallbackben se, adjunk alapértelmezettet
+      if (!dbSettings && !fallbackProvider && !fallbackModel && !fallbackGptModel) {
+        return undefined;
+      }
+
+      // 3. Összefésülés (A fallback/system_settings erősebb, ha létezik)
+      return {
+        id: dbSettings?.id || 0,
+        maxTokens: dbSettings?.maxTokens || 2000,
+        temperature: dbSettings?.temperature || "0.7",
+        model: fallbackGptModel || dbSettings?.model || "gpt-4o-mini",
+        imageProvider: fallbackProvider || dbSettings?.imageProvider || "openai",
+        imageModel: fallbackModel || dbSettings?.imageModel || "dall-e-3",
+        updatedAt: dbSettings?.updatedAt || new Date(),
+        updatedBy: dbSettings?.updatedBy || "system"
+      } as AISetting;
     } catch (error) {
-      console.log("aiSettings table may be missing, using defaults");
       return undefined;
     }
   }
 
   async updateAISettings(data: any, updatedBy: string): Promise<AISetting> {
-    const existing = await this.getAISettings();
-    // Merge existing settings with new data to prevent accidental resets of fields not in the partial update
+    // 1. Ellenőrizzük a jelenlegi állapotot
+    const current = await this.getAISettings();
+    
+    // 2. Összefésüljük a meglévő beállításokat az újakkal (hogy ne vesszen el a választott modell)
     const merged = {
       maxTokens: 2000,
       temperature: "0.7",
       model: "gpt-4o-mini",
       imageProvider: "openai",
       imageModel: "dall-e-3",
-      ...existing,
+      ...current,
       ...data,
       updatedBy,
       updatedAt: new Date()
     };
 
+    // 3. Mentés a fallback táblába (mindig biztosra megyünk)
+    if (merged.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", merged.imageProvider, updatedBy);
+    if (merged.imageModel) await this.setSystemSetting("fallback_ai_image_model", merged.imageModel, updatedBy);
+    if (merged.model) await this.setSystemSetting("fallback_ai_model", merged.model, updatedBy);
+
     try {
-      if (existing && existing.id !== 0) {
+      if (current && current.id !== 0) {
         const [updated] = await db
           .update(aiSettings)
           .set(merged)
-          .where(eq(aiSettings.id, existing.id))
+          .where(eq(aiSettings.id, current.id))
           .returning();
         return updated;
       } else {
-        // Try to insert
         const [inserted] = await db
           .insert(aiSettings)
           .values(merged)
@@ -2743,17 +2757,8 @@ export class DatabaseStorage implements IStorage {
         return inserted;
       }
     } catch (error) {
-      console.error("Database update failed for ai_settings, using system_settings fallback:", error);
-      
-      // Fallback: Save to system_settings individually using merged data
-      if (merged.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", merged.imageProvider, updatedBy);
-      if (merged.imageModel) await this.setSystemSetting("fallback_ai_image_model", merged.imageModel, updatedBy);
-      if (merged.model) await this.setSystemSetting("fallback_ai_model", merged.model, updatedBy);
-      
-      return {
-        ...merged,
-        id: 0
-      } as any;
+      console.warn("Could not save to aiSettings table, but saved to fallback.");
+      return { ...merged, id: 0 } as any;
     }
   }
 }

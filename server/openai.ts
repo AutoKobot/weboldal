@@ -986,6 +986,9 @@ export async function generatePresentationImage(prompt: string): Promise<string>
     const provider = settings?.imageProvider || 'openai';
     const modelKey = settings?.imageModel || 'dall-e-3';
     
+    // LOGGING TO CONSOLE FOR DEBUGGING (Visible in Render Logs)
+    console.log(`[IMAGE GENERATION DEBUG] Selected Provider: ${provider}, Model Key: ${modelKey}`);
+    
     let imageUrl = "";
     let providerName = provider;
     let modelName = modelKey;
