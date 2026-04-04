@@ -3201,7 +3201,11 @@ export default function AdminDashboard() {
                     <Label>Képgeneráló Szolgáltató</Label>
                     <Select
                       value={aiSettingsData?.imageProvider || 'openai'}
-                      onValueChange={(val) => updateAISettingsMutation.mutate({ imageProvider: val })}
+                      onValueChange={(val) => {
+                        // When provider changes, select a compatible default model
+                        const defaultModel = val === 'openai' ? 'dall-e-3' : (val === 'together' ? 'flux-pro' : 'flux-dev');
+                        updateAISettingsMutation.mutate({ imageProvider: val, imageModel: defaultModel });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Válassz szolgáltatót" />

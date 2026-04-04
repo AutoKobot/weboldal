@@ -2712,17 +2712,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAISettings(data: any, updatedBy: string): Promise<AISetting> {
+    const existing = await this.getAISettings();
+    // Merge existing settings with new data to prevent accidental resets of fields not in the partial update
+    const merged = {
+      maxTokens: 2000,
+      temperature: "0.7",
+      model: "gpt-4o-mini",
+      imageProvider: "openai",
+      imageModel: "dall-e-3",
+      ...existing,
+      ...data,
+      updatedBy,
+      updatedAt: new Date()
+    };
+
     try {
-      const existing = await this.getAISettings();
-      
       if (existing && existing.id !== 0) {
         const [updated] = await db
           .update(aiSettings)
-          .set({
-            ...data,
-            updatedBy,
-            updatedAt: new Date()
-          })
+          .set(merged)
           .where(eq(aiSettings.id, existing.id))
           .returning();
         return updated;
@@ -2730,34 +2738,21 @@ export class DatabaseStorage implements IStorage {
         // Try to insert
         const [inserted] = await db
           .insert(aiSettings)
-          .values({
-            maxTokens: 2000,
-            temperature: "0.7",
-            model: "gpt-4o-mini",
-            imageProvider: "openai",
-            imageModel: "dall-e-3",
-            ...data,
-            updatedBy,
-            updatedAt: new Date()
-          })
+          .values(merged)
           .returning();
         return inserted;
       }
     } catch (error) {
       console.error("Database update failed for ai_settings, using system_settings fallback:", error);
       
-      // Fallback: Save to system_settings individually
-      if (data.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", data.imageProvider, updatedBy);
-      if (data.imageModel) await this.setSystemSetting("fallback_ai_image_model", data.imageModel, updatedBy);
-      if (data.model) await this.setSystemSetting("fallback_ai_model", data.model, updatedBy);
+      // Fallback: Save to system_settings individually using merged data
+      if (merged.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", merged.imageProvider, updatedBy);
+      if (merged.imageModel) await this.setSystemSetting("fallback_ai_image_model", merged.imageModel, updatedBy);
+      if (merged.model) await this.setSystemSetting("fallback_ai_model", merged.model, updatedBy);
       
       return {
-        id: 0,
-        imageProvider: data.imageProvider || 'openai',
-        imageModel: data.imageModel || 'dall-e-3',
-        model: data.model || 'gpt-4o-mini',
-        updatedBy,
-        updatedAt: new Date()
+        ...merged,
+        id: 0
       } as any;
     }
   }
