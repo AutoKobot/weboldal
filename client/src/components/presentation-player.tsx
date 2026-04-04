@@ -67,18 +67,42 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
   const [autoAdvance, setAutoAdvance] = useState(true);
   
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const volume = useAudioAnalyzer(audioRef);
 
   const currentSlide = slides?.[currentSlideIndex];
   const currentAvatarDef = AVATARS[0];
   const avatarUrl = `/avatars/${currentAvatarDef.filename}`;
 
+  // AudioContext resume segédfüggvény – böngésző autoplay policy megkerülése
+  const resumeAudioContext = async () => {
+    try {
+      if (!audioContextRef.current) {
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        audioContextRef.current = new Ctx() as AudioContext;
+      }
+      const ctx = audioContextRef.current;
+      if (ctx && ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+    } catch (e) {
+      console.warn('AudioContext resume failed:', e);
+    }
+  };
+
+  // Audio lejátszó logika – slide váltáskor és play/pause állapotkor fut le
   useEffect(() => {
     if (!open || !audioRef.current || !currentSlide) return;
     const audio = audioRef.current;
 
     if (currentSlide.narrationAudioUrl) {
-      const fullUrl = `${window.location.protocol}//${window.location.host}${currentSlide.narrationAudioUrl}`;
+      // Ha a URL relatív, adjuk hozzá a host-ot
+      const rawUrl = currentSlide.narrationAudioUrl;
+      const fullUrl = rawUrl.startsWith('http')
+        ? rawUrl
+        : `${window.location.protocol}//${window.location.host}${rawUrl}`;
+
+      // Csak akkor töltjük újra, ha más a forrás
       if (audio.src !== fullUrl) {
         audio.src = fullUrl;
         audio.load();
@@ -86,23 +110,27 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
       audio.muted = isMuted;
 
       if (isPlaying) {
-        audio.play().catch(err => console.warn("Autoplay was prevented."));
+        // Mindig próbáljuk resume-olni az AudioContext-et lejátszás előtt
+        resumeAudioContext().then(() => {
+          audio.play().catch(err => {
+            console.warn("Audio lejátszás megakadályozva (autoplay policy):", err);
+          });
+        });
       } else {
         audio.pause();
       }
 
       audio.onended = () => {
         if (autoAdvance && currentSlideIndex < slides.length - 1) {
-          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500); 
+          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500);
         } else if (currentSlideIndex === slides.length - 1) {
           setIsPlaying(false);
         }
       };
 
-      // Túlélő-kód: Ha a hangfájl hiányzik (pl. szerver újraindítás miatt), akkor 
-      // várjunk 4.5 másodpercet és ugorjunk automatikusan a következőre, hogy a prezi ne fagyjon le!
+      // Hangfájl hiba esetén: 4.5 mp után következő dia
       audio.onerror = () => {
-        console.warn("Audio hiányzik, automatikus ugrás a következő diára hamarosan:", fullUrl);
+        console.warn("Hangfájl nem töltődött be, automatikus továbblépés:", fullUrl);
         if (autoAdvance && isPlaying) {
           setTimeout(() => {
             if (currentSlideIndex < slides.length - 1) {
@@ -114,16 +142,27 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
         }
       };
     } else {
+      // Nincs hangfájl: ha auto-advance be van kapcsolva, időzítővel lépünk tovább
       audio.pause();
+      if (isPlaying && autoAdvance && currentSlideIndex < slides.length - 1) {
+        const timer = setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 5000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [currentSlideIndex, open, isPlaying, isMuted, currentSlide?.narrationAudioUrl]);
+  }, [currentSlideIndex, open, isPlaying, isMuted, currentSlide?.narrationAudioUrl, autoAdvance]);
 
+  // Megnyitáskor: nullázzuk a prezit és indítjuk a lejátszást
   useEffect(() => {
     if (open) {
       setCurrentSlideIndex(0);
-      setIsPlaying(true);
+      // Kis késleltetés, hogy a DOM és az audio elem felálljon
+      setTimeout(() => setIsPlaying(true), 300);
     } else {
       setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
     }
   }, [open]);
 
@@ -157,7 +196,10 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
 
   const nextSlide = () => currentSlideIndex < slides.length - 1 && setCurrentSlideIndex(currentSlideIndex + 1);
   const prevSlide = () => currentSlideIndex > 0 && setCurrentSlideIndex(currentSlideIndex - 1);
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  const togglePlay = async () => {
+    await resumeAudioContext(); // Böngésző autoplay policy feloldása user interactionnál
+    setIsPlaying(prev => !prev);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
