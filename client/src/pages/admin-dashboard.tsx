@@ -16,9 +16,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { FlashcardImport } from "@/components/flashcard-import";
-import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User as UserIcon, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2, MonitorPlay } from "lucide-react";
+import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User as UserIcon, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, XCircle, Database, AlertTriangle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2, MonitorPlay } from "lucide-react";
+
 import FileUpload, { UrlInput } from "@/components/file-upload";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
 import { LinkEditor } from "@/components/link-editor";
@@ -733,6 +735,10 @@ export default function AdminDashboard() {
   const [selectedSubjectForFilter, setSelectedSubjectForFilter] = useState<number | null>(null);
   const [openaiKey, setOpenaiKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
+  const [supabaseStatus, setSupabaseStatus] = useState<any>(null);
+  const [checkingSupabase, setCheckingSupabase] = useState(false);
   const [togetherKey, setTogetherKey] = useState("");
   const [deepinfraKey, setDeepinfraKey] = useState("");
   const [dataForSeoLogin, setDataForSeoLogin] = useState("");
@@ -740,6 +746,30 @@ export default function AdminDashboard() {
   const [youtubeApiKey, setYoutubeApiKey] = useState("");
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [aiProvider, setAiProvider] = useState("openai");
+
+  // Sync Supabase keys when settings load
+  useEffect(() => {
+    if (aiSettingsData) {
+      if (aiSettingsData.supabaseUrl) setSupabaseUrl(aiSettingsData.supabaseUrl);
+      if (aiSettingsData.supabaseAnonKey) setSupabaseAnonKey(aiSettingsData.supabaseAnonKey);
+    }
+  }, [aiSettingsData]);
+
+  const checkSupabaseStatus = async () => {
+    setCheckingSupabase(true);
+    setSupabaseStatus(null);
+    try {
+      const res = await fetch("/api/admin/supabase-status");
+      const data = await res.json();
+      setSupabaseStatus(data);
+    } catch (error) {
+      console.error("Supabase status check failed:", error);
+      setSupabaseStatus({ status: "error", message: "Kapcsolódási hiba az ellenőrzés közben" });
+    } finally {
+      setCheckingSupabase(false);
+    }
+  };
+
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showTogetherKey, setShowTogetherKey] = useState(false);
@@ -3362,8 +3392,102 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
+                    {/* Supabase Persistence Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-indigo-50/10 border-indigo-200/50 md:col-span-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="flex items-center gap-2">
+                          <Database className="h-5 w-5 text-indigo-500" />
+                          <Label className="font-semibold text-indigo-800">Supabase Perzisztens Tárolás (Hangfájlok)</Label>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="bg-white"
+                            onClick={checkSupabaseStatus}
+                            disabled={checkingSupabase}
+                          >
+                            {checkingSupabase ? "Ellenőrzés..." : "Kapcsolat tesztelése"}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="bg-indigo-600 hover:bg-indigo-700" 
+                            onClick={() => updateAISettingsMutation.mutate({ 
+                              supabaseUrl: supabaseUrl.trim(), 
+                              supabaseAnonKey: supabaseAnonKey.trim() 
+                            })}
+                            disabled={!supabaseUrl || !supabaseAnonKey}
+                          >
+                            Konfiguráció Mentése
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Supabase Projekt URL</Label>
+                          <Input
+                            placeholder="https://abc.supabase.co"
+                            value={supabaseUrl}
+                            onChange={(e) => setSupabaseUrl(e.target.value)}
+                            className="bg-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Anon Public Key</Label>
+                          <Input
+                            type="password"
+                            placeholder="eyJh..."
+                            value={supabaseAnonKey}
+                            onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                            className="bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {supabaseStatus && (
+                        <Alert className={supabaseStatus.status === 'success' ? "mt-2 bg-green-50 border-green-200" : "mt-2 bg-red-50 border-red-200"}>
+                          <div className="text-sm">
+                            {supabaseStatus.status === 'success' ? (
+                              <div className="flex flex-col gap-1">
+                                <p className="font-bold text-green-800 flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4" /> Supabase Kapcsolat Rendben!
+                                </p>
+                                <div className="text-[10px] grid grid-cols-2 gap-x-4 gap-y-1">
+                                  <span>Bucketek: {supabaseStatus.buckets?.join(', ') || 'Nincs'}</span>
+                                  <span>'presentations' bucket: {supabaseStatus.presentationsBucketExists ? '✅ Van' : '❌ HIÁNYZIK'}</span>
+                                  <span>Konfiguráció helye: {supabaseStatus.configSource === 'database' ? '📁 Adatbázis (Perzisztens)' : '🌍 Környezeti változó (Ideiglenes)'}</span>
+                                  <span>Minta fájlszám: {supabaseStatus.fileCountSample} db</span>
+                                </div>
+                                {supabaseStatus.presentationsBucketExists === false && (
+                                  <p className="text-[10px] text-amber-700 mt-1">
+                                    Figyelem: A 'presentations' nevű bucket nem létezik. Kérlek hozd létre a Supabase felületén (Public hozzáféréssel)!
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-1">
+                                <p className="font-bold text-red-800 flex items-center gap-2">
+                                  <XCircle className="h-4 w-4" /> Kapcsolódási hiba
+                                </p>
+                                <p className="text-[11px]">{supabaseStatus.message}</p>
+                              </div>
+                            )}
+                          </div>
+                        </Alert>
+                      )}
+                      
+                      <Alert className="bg-amber-50 border-amber-200 py-2">
+                        <div className="flex items-center gap-2 text-[10px] text-amber-800">
+                          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                          <span><b>FONTOS:</b> A SupabaseURL és AnonKey az adatbázisban lesz tárolva, így a Render.com redeploy-ok után is megmaradnak. A hangfájlok perzisztenciájához legalább egy 'presentations' nevű public bucket szükséges.</span>
+                        </div>
+                      </Alert>
+                    </div>
+
                     {/* DataForSEO Section */}
                     <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+
                       <div className="flex justify-between items-center mb-1">
                         <Label className="font-semibold">DataForSEO (Google Keresés)</Label>
                         <Badge variant={apiStatus?.dataForSeo ? "outline" : "destructive"} className={apiStatus?.dataForSeo ? "bg-green-50 text-green-700 border-green-200" : ""}>

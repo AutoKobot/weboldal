@@ -2740,6 +2740,11 @@ export class DatabaseStorage implements IStorage {
     if (merged.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", merged.imageProvider, updatedBy);
     if (merged.imageModel) await this.setSystemSetting("fallback_ai_image_model", merged.imageModel, updatedBy);
     if (merged.model) await this.setSystemSetting("fallback_ai_model", merged.model, updatedBy);
+    
+    // Szinkronizálás a system_settings táblába a redundancia és a Render-biztos perzisztencia miatt
+    if (merged.supabaseUrl) await this.setSystemSetting("SUPABASE_URL", merged.supabaseUrl, updatedBy);
+    if (merged.supabaseAnonKey) await this.setSystemSetting("SUPABASE_ANON_KEY", merged.supabaseAnonKey, updatedBy);
+
 
     try {
       if (current && current.id !== 0) {

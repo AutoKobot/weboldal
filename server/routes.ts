@@ -5415,6 +5415,71 @@ Platform funkciók és navigáció:
     }
   });
 
+  // Supabase Status Diagnostic Route
+  app.get('/api/admin/supabase-status', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      // Dinamikusan importáljuk a storage-ot és a klienst
+      const { createClient } = await import('@supabase/supabase-js');
+      const dbUrl = await storage.getSystemSetting("SUPABASE_URL");
+      const dbKey = await storage.getSystemSetting("SUPABASE_ANON_KEY");
+      
+      const url = dbUrl || process.env.SUPABASE_URL;
+      const key = dbKey || process.env.SUPABASE_ANON_KEY;
+
+      if (!url || !key) {
+        return res.json({ 
+          status: "error", 
+          message: "Supabase configuration missing (URL or Key not found in DB or ENV)",
+          configSource: dbUrl ? "database" : "environment"
+        });
+      }
+
+      const supabase = createClient(url, key);
+      
+      // Test storage connection
+      const { data, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        return res.json({ 
+          status: "error", 
+          message: `Supabase connection failed: ${error.message}`,
+          url: url.substring(0, 20) + "..."
+        });
+      }
+
+      // Check for 'presentations' bucket
+      const bucket = data?.find(b => b.name === 'presentations');
+      
+      // List a few items if bucket exists
+      let fileCount = 0;
+      if (bucket) {
+        const { data: files } = await supabase.storage.from('presentations').list('', { limit: 5 });
+        fileCount = files?.length || 0;
+      }
+
+      res.json({
+        status: "success",
+        message: "Supabase connection OK",
+        buckets: data?.map(b => b.name),
+        presentationsBucketExists: !!bucket,
+        fileCountSample: fileCount,
+        configSource: dbUrl ? "database" : "environment",
+        url: url.substring(0, 25) + "..."
+      });
+    } catch (error) {
+      console.error("Supabase status check error:", error);
+      res.status(500).json({ message: "Internal error during status check" });
+    }
+  });
+
+
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
 
