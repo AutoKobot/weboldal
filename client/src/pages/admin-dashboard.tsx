@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { FlashcardImport } from "@/components/flashcard-import";
 import { Plus, Trash2, Users, BookOpen, GraduationCap, BarChart3, Edit, LogOut, Settings, MessageSquare, Eye, EyeOff, Key, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Building2, User as UserIcon, Upload, Wand2, Brain, Youtube, Globe, Search, Clock, Sparkles, Target, CheckCircle, XCircle, Database, AlertTriangle, ExternalLink, FileUp, ArrowLeft, HelpCircle, Loader2, MonitorPlay } from "lucide-react";
@@ -3446,7 +3446,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {supabaseStatus && (
-                        <Alert className={supabaseStatus.status === 'success' ? "mt-2 bg-green-50 border-green-200" : "mt-2 bg-red-50 border-red-200"}>
+                        <div className={`mt-2 p-3 rounded-lg border ${supabaseStatus.status === 'success' ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
                           <div className="text-sm">
                             {supabaseStatus.status === 'success' ? (
                               <div className="flex flex-col gap-1">
@@ -3454,14 +3454,14 @@ export default function AdminDashboard() {
                                   <CheckCircle className="h-4 w-4" /> Supabase Kapcsolat Rendben!
                                 </p>
                                 <div className="text-[10px] grid grid-cols-2 gap-x-4 gap-y-1">
-                                  <span>Bucketek: {supabaseStatus.buckets?.join(', ') || 'Nincs'}</span>
+                                  <span>Bucketek: {Array.isArray(supabaseStatus.buckets) ? supabaseStatus.buckets.join(', ') : 'Nincs'}</span>
                                   <span>'presentations' bucket: {supabaseStatus.presentationsBucketExists ? '✅ Van' : '❌ HIÁNYZIK'}</span>
-                                  <span>Konfiguráció helye: {supabaseStatus.configSource === 'database' ? '📁 Adatbázis (Perzisztens)' : '🌍 Környezeti változó (Ideiglenes)'}</span>
+                                  <span>Konfiguráció helye: {supabaseStatus.configSource === 'database' ? '📁 Adatbázis' : '🌍 Környezeti változó'}</span>
                                   <span>Minta fájlszám: {supabaseStatus.fileCountSample} db</span>
                                 </div>
                                 {supabaseStatus.presentationsBucketExists === false && (
                                   <p className="text-[10px] text-amber-700 mt-1">
-                                    Figyelem: A 'presentations' nevű bucket nem létezik. Kérlek hozd létre a Supabase felületén (Public hozzáféréssel)!
+                                    Figyelem: A 'presentations' nevű bucket nem létezik. Kérlek hozd létre a Supabase felületén!
                                   </p>
                                 )}
                               </div>
@@ -3474,15 +3474,15 @@ export default function AdminDashboard() {
                               </div>
                             )}
                           </div>
-                        </Alert>
+                        </div>
                       )}
                       
-                      <Alert className="bg-amber-50 border-amber-200 py-2">
-                        <div className="flex items-center gap-2 text-[10px] text-amber-800">
-                          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                          <span><b>FONTOS:</b> A SupabaseURL és AnonKey az adatbázisban lesz tárolva, így a Render.com redeploy-ok után is megmaradnak. A hangfájlok perzisztenciájához legalább egy 'presentations' nevű public bucket szükséges.</span>
-                        </div>
-                      </Alert>
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-[10px] text-amber-800 leading-tight">
+                          <b>FONTOS:</b> A SupabaseURL és AnonKey az adatbázisban lesz tárolva, így a Render.com redeploy-ok után is megmaradnak. A hangfájlok perzisztenciájához legalább egy 'presentations' nevű public bucket szükséges.
+                        </span>
+                      </div>
                     </div>
 
                     {/* DataForSEO Section */}
