@@ -3178,11 +3178,11 @@ export default function AdminDashboard() {
                         disabled={updateAIProviderMutation.isPending}
                         className="flex-1"
                       >
-                        Gemini 2.5 Pro
+                        Google Gemini 1.5 Pro
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Válaszd ki, melyik AI szolgáltatót használja a rendszer
+                      A rendszer általános szöveg- és tartalomgenerálásért felelős motorja
                     </p>
                   </div>
                 </CardContent>
@@ -3241,312 +3241,180 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="md:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    OpenAI API Kulcs
+                    <Key className="h-5 w-5 text-amber-500" />
+                    Globális API Kulcsok Kezelése
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="openai-key">OpenAI API Kulcs</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="openai-key"
-                        type={showOpenaiKey ? "text" : "password"}
-                        placeholder="sk-..."
-                        value={openaiKey}
-                        onChange={(e) => setOpenaiKey(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                      >
-                        {showOpenaiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (openaiKey.trim()) {
-                            updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() });
-                          }
-                        }}
-                        disabled={updateApiKeyMutation.isPending}
-                      >
-                        Mentés
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      OpenAI platformról szerezhető API kulcs
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    Összes API Kulcs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* OpenAI */}
-                  <div className="space-y-3 p-3 border rounded-md">
-                    <Label>OpenAI (GPT-4 / DALL-E)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type={showOpenaiKey ? "text" : "password"}
-                        placeholder="sk-..."
-                        value={openaiKey}
-                        onChange={(e) => setOpenaiKey(e.target.value)}
-                      />
-                      <Button size="sm" variant="outline" onClick={() => setShowOpenaiKey(!showOpenaiKey)}>
-                        {showOpenaiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() })} disabled={!openaiKey}>Mentés</Button>
-                    </div>
-                  </div>
-
-                  {/* Together AI */}
-                  <div className="space-y-3 p-3 border rounded-md">
-                    <Label>Together AI (Flux Pro)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type={showTogetherKey ? "text" : "password"}
-                        placeholder="Key..."
-                        value={togetherKey}
-                        onChange={(e) => setTogetherKey(e.target.value)}
-                      />
-                      <Button size="sm" variant="outline" onClick={() => setShowTogetherKey(!showTogetherKey)}>
-                        {showTogetherKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'together', key: togetherKey.trim() })} disabled={!togetherKey}>Mentés</Button>
-                    </div>
-                  </div>
-
-                  {/* DeepInfra */}
-                  <div className="space-y-3 p-3 border rounded-md">
-                    <Label>DeepInfra (Flux Dev/Schnell)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type={showDeepinfraKey ? "text" : "password"}
-                        placeholder="Key..."
-                        value={deepinfraKey}
-                        onChange={(e) => setDeepinfraKey(e.target.value)}
-                      />
-                      <Button size="sm" variant="outline" onClick={() => setShowDeepinfraKey(!showDeepinfraKey)}>
-                        {showDeepinfraKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'deepinfra', key: deepinfraKey.trim() })} disabled={!deepinfraKey}>Mentés</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    Gemini API Kulcs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="gemini-key">Gemini API Kulcs</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="gemini-key"
-                        type={showGeminiKey ? "text" : "password"}
-                        placeholder="AIza..."
-                        value={geminiKey}
-                        onChange={(e) => setGeminiKey(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      >
-                        {showGeminiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (geminiKey.trim()) {
-                            updateApiKeyMutation.mutate({ provider: 'gemini', key: geminiKey.trim() });
-                          }
-                        }}
-                        disabled={updateApiKeyMutation.isPending}
-                      >
-                        Mentés
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Google AI Studio-ból szerezhető API kulcs
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    SerpAPI - Internet Keresés
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="dataforseo-login">DataForSEO Felhasználónév</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="dataforseo-login"
-                        type={showDataForSeoLogin ? "text" : "password"}
-                        placeholder="login..."
-                        value={dataForSeoLogin}
-                        onChange={(e) => setDataForSeoLogin(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowDataForSeoLogin(!showDataForSeoLogin)}
-                      >
-                        {showDataForSeoLogin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (dataForSeoLogin.trim()) {
-                            updateDataForSeoLoginMutation.mutate(dataForSeoLogin.trim());
-                          }
-                        }}
-                        disabled={updateDataForSeoLoginMutation.isPending}
-                      >
-                        Mentés
-                      </Button>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* OpenAI Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">OpenAI (GPT-4o / DALL-E)</Label>
+                        <Badge variant={apiStatus?.openai ? "outline" : "destructive"} className={apiStatus?.openai ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                          {apiStatus?.openai ? "Csatlakoztatva" : "Hiányzik"}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showOpenaiKey ? "text" : "password"}
+                          placeholder="sk-..."
+                          value={openaiKey}
+                          onChange={(e) => setOpenaiKey(e.target.value)}
+                        />
+                        <Button size="icon" variant="outline" onClick={() => setShowOpenaiKey(!showOpenaiKey)}>
+                          {showOpenaiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() })} disabled={!openaiKey}>Mentés</Button>
+                      </div>
                     </div>
 
-                    <Label htmlFor="dataforseo-password">DataForSEO Jelszó</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="dataforseo-password"
-                        type={showDataForSeoPassword ? "text" : "password"}
-                        placeholder="password..."
-                        value={dataForSeoPassword}
-                        onChange={(e) => setDataForSeoPassword(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowDataForSeoPassword(!showDataForSeoPassword)}
-                      >
-                        {showDataForSeoPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (dataForSeoPassword.trim()) {
-                            updateDataForSeoPasswordMutation.mutate(dataForSeoPassword.trim());
-                          }
-                        }}
-                        disabled={updateDataForSeoPasswordMutation.isPending}
-                      >
-                        Mentés
-                      </Button>
+                    {/* Gemini Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">Google Gemini 1.5</Label>
+                        <Badge variant={apiStatus?.gemini ? "outline" : "destructive"} className={apiStatus?.gemini ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                          {apiStatus?.gemini ? "Csatlakoztatva" : "Hiányzik"}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showGeminiKey ? "text" : "password"}
+                          placeholder="AIza..."
+                          value={geminiKey}
+                          onChange={(e) => setGeminiKey(e.target.value)}
+                        />
+                        <Button size="icon" variant="outline" onClick={() => setShowGeminiKey(!showGeminiKey)}>
+                          {showGeminiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'gemini', key: geminiKey.trim() })} disabled={!geminiKey}>Mentés</Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Google keresési eredmények lekérdezéséhez
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    YouTube Data API
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="youtube-key">YouTube API Kulcs</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="youtube-key"
-                        type={showYoutubeKey ? "text" : "password"}
-                        placeholder="AIza..."
-                        value={youtubeApiKey}
-                        onChange={(e) => setYoutubeApiKey(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowYoutubeKey(!showYoutubeKey)}
-                      >
-                        {showYoutubeKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (youtubeApiKey.trim()) {
-                            updateYoutubeApiKeyMutation.mutate(youtubeApiKey.trim());
-                          }
-                        }}
-                        disabled={updateYoutubeApiKeyMutation.isPending}
-                      >
-                        Mentés
-                      </Button>
+                    {/* Together AI Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">Together AI (Flux.1 Pro/Dev)</Label>
+                        <Badge variant={togetherKey || apiStatus?.openai ? "outline" : "destructive"} className={togetherKey || apiStatus?.openai ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                          Konfigurálva
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showTogetherKey ? "text" : "password"}
+                          placeholder="Key..."
+                          value={togetherKey}
+                          onChange={(e) => setTogetherKey(e.target.value)}
+                        />
+                        <Button size="icon" variant="outline" onClick={() => setShowTogetherKey(!showTogetherKey)}>
+                          {showTogetherKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'together', key: togetherKey.trim() })} disabled={!togetherKey}>Mentés</Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      YouTube videók keresése és adatok lekérdezése
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    ElevenLabs - Szöveg → Beszéd
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="elevenlabs-key">ElevenLabs API Kulcs</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="elevenlabs-key"
-                        type={showElevenLabsKey ? "text" : "password"}
-                        placeholder="sk_..."
-                        value={elevenLabsKey}
-                        onChange={(e) => setElevenLabsKey(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}
-                      >
-                        {showElevenLabsKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (elevenLabsKey.trim()) {
-                            updateElevenLabsKeyMutation.mutate(elevenLabsKey.trim());
-                          }
-                        }}
-                        disabled={updateElevenLabsKeyMutation.isPending}
-                      >
-                        Mentés
-                      </Button>
+                    {/* DeepInfra Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">DeepInfra (Flux.1 Schnell)</Label>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Aktív</Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showDeepinfraKey ? "text" : "password"}
+                          placeholder="Key..."
+                          value={deepinfraKey}
+                          onChange={(e) => setDeepinfraKey(e.target.value)}
+                        />
+                        <Button size="icon" variant="outline" onClick={() => setShowDeepinfraKey(!showDeepinfraKey)}>
+                          {showDeepinfraKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'deepinfra', key: deepinfraKey.trim() })} disabled={!deepinfraKey}>Mentés</Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Magas minőségű hang szintézis
-                    </p>
+
+                    {/* ElevenLabs Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">ElevenLabs (Text-to-Speech)</Label>
+                        <Badge variant={apiStatus?.elevenLabs ? "outline" : "destructive"} className={apiStatus?.elevenLabs ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                          {apiStatus?.elevenLabs ? "Aktív" : "Hiányzik"}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showElevenLabsKey ? "text" : "password"}
+                          placeholder="sk_..."
+                          value={elevenLabsKey}
+                          onChange={(e) => setElevenLabsKey(e.target.value)}
+                        />
+                        <Button size="icon" variant="outline" onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}>
+                          {showElevenLabsKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'elevenlabs', key: elevenLabsKey.trim() })} disabled={!elevenLabsKey}>Mentés</Button>
+                      </div>
+                    </div>
+
+                    {/* DataForSEO Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">DataForSEO (Google Keresés)</Label>
+                        <Badge variant={apiStatus?.dataForSeo ? "outline" : "destructive"} className={apiStatus?.dataForSeo ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                          {apiStatus?.dataForSeo ? "Aktív" : "Hiányzik"}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            type={showDataForSeoLogin ? "text" : "password"}
+                            placeholder="Login..."
+                            value={dataForSeoLogin}
+                            onChange={(e) => setDataForSeoLogin(e.target.value)}
+                          />
+                          <Button size="icon" variant="outline" onClick={() => setShowDataForSeoLogin(!showDataForSeoLogin)}>
+                            {showDataForSeoLogin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button size="sm" onClick={() => updateDataForSeoLoginMutation.mutate(dataForSeoLogin.trim())} disabled={!dataForSeoLogin}>Mentés</Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            type={showDataForSeoPassword ? "text" : "password"}
+                            placeholder="Password..."
+                            value={dataForSeoPassword}
+                            onChange={(e) => setDataForSeoPassword(e.target.value)}
+                          />
+                          <Button size="icon" variant="outline" onClick={() => setShowDataForSeoPassword(!showDataForSeoPassword)}>
+                            {showDataForSeoPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button size="sm" onClick={() => updateDataForSeoPasswordMutation.mutate(dataForSeoPassword.trim())} disabled={!dataForSeoPassword}>Mentés</Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* YouTube Section */}
+                    <div className="space-y-3 p-4 border rounded-lg bg-background/50 md:col-span-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label className="font-semibold">YouTube Data API</Label>
+                        <Badge variant={apiStatus?.youtube ? "outline" : "destructive"} className={apiStatus?.youtube ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                          {apiStatus?.youtube ? "Aktív" : "Hiányzik"}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showYoutubeKey ? "text" : "password"}
+                          placeholder="AIza..."
+                          value={youtubeApiKey}
+                          onChange={(e) => setYoutubeApiKey(e.target.value)}
+                        />
+                        <Button size="icon" variant="outline" onClick={() => setShowYoutubeKey(!showYoutubeKey)}>
+                          {showYoutubeKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" onClick={() => updateYoutubeApiKeyMutation.mutate(youtubeApiKey.trim())} disabled={!youtubeApiKey}>Mentés</Button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
