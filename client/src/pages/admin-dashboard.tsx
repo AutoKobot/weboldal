@@ -733,6 +733,8 @@ export default function AdminDashboard() {
   const [selectedSubjectForFilter, setSelectedSubjectForFilter] = useState<number | null>(null);
   const [openaiKey, setOpenaiKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+  const [togetherKey, setTogetherKey] = useState("");
+  const [deepinfraKey, setDeepinfraKey] = useState("");
   const [dataForSeoLogin, setDataForSeoLogin] = useState("");
   const [dataForSeoPassword, setDataForSeoPassword] = useState("");
   const [youtubeApiKey, setYoutubeApiKey] = useState("");
@@ -740,6 +742,8 @@ export default function AdminDashboard() {
   const [aiProvider, setAiProvider] = useState("openai");
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [showTogetherKey, setShowTogetherKey] = useState(false);
+  const [showDeepinfraKey, setShowDeepinfraKey] = useState(false);
   const [showDataForSeoLogin, setShowDataForSeoLogin] = useState(false);
   const [showDataForSeoPassword, setShowDataForSeoPassword] = useState(false);
   const [showYoutubeKey, setShowYoutubeKey] = useState(false);
@@ -874,6 +878,10 @@ export default function AdminDashboard() {
 
   const { data: textExplanationPromptData } = useQuery<{ message: string }>({
     queryKey: ["/api/admin/settings/text-explanation-prompt"],
+  });
+
+  const { data: aiSettingsData, refetch: refetchAiSettings } = useQuery<any>({
+    queryKey: ["/api/admin/settings/ai"],
   });
 
   // Update state when data changes
@@ -1142,17 +1150,39 @@ export default function AdminDashboard() {
   });
 
   const updateApiKeyMutation = useMutation({
-    mutationFn: async (apiKey: string) => {
-      const res = await apiRequest("POST", "/api/admin/update-api-key", { openaiApiKey: apiKey });
+    mutationFn: async ({ provider, key }: { provider: string; key: string }) => {
+      const payload: any = {};
+      if (provider === 'openai') payload.openaiApiKey = key;
+      else if (provider === 'together') payload.togetherApiKey = key;
+      else if (provider === 'deepinfra') payload.deepinfraApiKey = key;
+      else payload.key = provider; payload.value = key; // fallback generic
+
+      const res = await apiRequest("POST", "/api/admin/update-api-key", payload);
       return await res.json();
     },
-    onSuccess: () => {
-      toast({ title: "Siker", description: "OpenAI API kulcs frissítve" });
-      setOpenaiKey("");
+    onSuccess: (_, variables) => {
+      toast({ title: "Siker", description: `${variables.provider} API kulcs frissítve` });
+      if (variables.provider === 'openai') setOpenaiKey("");
+      if (variables.provider === 'together') setTogetherKey("");
+      if (variables.provider === 'deepinfra') setDeepinfraKey("");
     },
     onError: (error: Error) => {
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
     },
+  });
+
+  const updateAISettingsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PATCH", "/api/admin/settings/ai", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      refetchAiSettings();
+      toast({ title: "Siker", description: "AI beállítások mentve" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+    }
   });
 
   const deleteModuleMutation = useMutation({
@@ -3158,6 +3188,59 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
 
+              {/* AI Image Generation Settings Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-purple-500" />
+                    AI Képgenerálás Beállítások
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <Label>Képgeneráló Szolgáltató</Label>
+                    <Select
+                      value={aiSettingsData?.imageProvider || 'openai'}
+                      onValueChange={(val) => updateAISettingsMutation.mutate({ imageProvider: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válassz szolgáltatót" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai">OpenAI (DALL-E 3)</SelectItem>
+                        <SelectItem value="together">Together AI (Flux Pro/Dev)</SelectItem>
+                        <SelectItem value="deepinfra">DeepInfra (Flux Dev/Schnell)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label>Képgeneráló Modell</Label>
+                    <Select
+                      value={aiSettingsData?.imageModel || 'dall-e-3'}
+                      onValueChange={(val) => updateAISettingsMutation.mutate({ imageModel: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válassz modellt" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {aiSettingsData?.imageProvider === 'openai' ? (
+                          <SelectItem value="dall-e-3">DALL-E 3 (~18 Ft / kép)</SelectItem>
+                        ) : (
+                          <>
+                            <SelectItem value="flux-pro">Flux.1 Pro (~14 Ft / kép)</SelectItem>
+                            <SelectItem value="flux-dev">Flux.1 Dev (~4 Ft / kép)</SelectItem>
+                            <SelectItem value="flux-schnell">Flux.1 Schnell (~1 Ft / kép)</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground italic">
+                      * Az árak 150%-os biztonsági szorzóval kalkulált becslések.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -3187,10 +3270,10 @@ export default function AdminDashboard() {
                         size="sm"
                         onClick={() => {
                           if (openaiKey.trim()) {
-                            updateOpenAIKeyMutation.mutate(openaiKey.trim());
+                            updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() });
                           }
                         }}
-                        disabled={updateOpenAIKeyMutation.isPending}
+                        disabled={updateApiKeyMutation.isPending}
                       >
                         Mentés
                       </Button>
@@ -3198,6 +3281,67 @@ export default function AdminDashboard() {
                     <p className="text-xs text-muted-foreground">
                       OpenAI platformról szerezhető API kulcs
                     </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Key className="h-5 w-5" />
+                    Összes API Kulcs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* OpenAI */}
+                  <div className="space-y-3 p-3 border rounded-md">
+                    <Label>OpenAI (GPT-4 / DALL-E)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type={showOpenaiKey ? "text" : "password"}
+                        placeholder="sk-..."
+                        value={openaiKey}
+                        onChange={(e) => setOpenaiKey(e.target.value)}
+                      />
+                      <Button size="sm" variant="outline" onClick={() => setShowOpenaiKey(!showOpenaiKey)}>
+                        {showOpenaiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() })} disabled={!openaiKey}>Mentés</Button>
+                    </div>
+                  </div>
+
+                  {/* Together AI */}
+                  <div className="space-y-3 p-3 border rounded-md">
+                    <Label>Together AI (Flux Pro)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type={showTogetherKey ? "text" : "password"}
+                        placeholder="Key..."
+                        value={togetherKey}
+                        onChange={(e) => setTogetherKey(e.target.value)}
+                      />
+                      <Button size="sm" variant="outline" onClick={() => setShowTogetherKey(!showTogetherKey)}>
+                        {showTogetherKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'together', key: togetherKey.trim() })} disabled={!togetherKey}>Mentés</Button>
+                    </div>
+                  </div>
+
+                  {/* DeepInfra */}
+                  <div className="space-y-3 p-3 border rounded-md">
+                    <Label>DeepInfra (Flux Dev/Schnell)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type={showDeepinfraKey ? "text" : "password"}
+                        placeholder="Key..."
+                        value={deepinfraKey}
+                        onChange={(e) => setDeepinfraKey(e.target.value)}
+                      />
+                      <Button size="sm" variant="outline" onClick={() => setShowDeepinfraKey(!showDeepinfraKey)}>
+                        {showDeepinfraKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'deepinfra', key: deepinfraKey.trim() })} disabled={!deepinfraKey}>Mentés</Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -3231,10 +3375,10 @@ export default function AdminDashboard() {
                         size="sm"
                         onClick={() => {
                           if (geminiKey.trim()) {
-                            updateGeminiKeyMutation.mutate(geminiKey.trim());
+                            updateApiKeyMutation.mutate({ provider: 'gemini', key: geminiKey.trim() });
                           }
                         }}
-                        disabled={updateGeminiKeyMutation.isPending}
+                        disabled={updateApiKeyMutation.isPending}
                       >
                         Mentés
                       </Button>

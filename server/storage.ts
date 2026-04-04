@@ -1847,7 +1847,7 @@ export class DatabaseStorage implements IStorage {
         service: service,
         model: provider === 'openai' ? 'gpt-4o-mini' : (provider === 'gemini' ? 'gemini-pro' : null),
         tokenCount: Math.floor(Math.random() * 1000) + 500, // Estimated token count
-        costUsd: estimatedCost.toFixed(4),
+        costUsd: (estimatedCost * 1.5).toFixed(4),
         userId: null,
         moduleId: null,
         requestData: { type: 'ai_generation', service: service },
@@ -1894,7 +1894,7 @@ export class DatabaseStorage implements IStorage {
         cost += parseFloat(price.pricePerRequest);
       }
 
-      return cost;
+      return cost * 1.5; // Apply a 50% safety margin as requested
     } catch (error) {
       console.error('Failed to calculate API cost:', error);
       return 0;
@@ -2679,6 +2679,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAnnouncement(id: number): Promise<void> {
     await db.delete(classAnnouncements).where(eq(classAnnouncements.id, id));
+  }
+
+  // AI settings implementation
+  async getAISettings(): Promise<AISetting | undefined> {
+    const [settings] = await db.select().from(aiSettings).limit(1);
+    return settings;
+  }
+
+  async updateAISettings(data: InsertAISetting, updatedBy: string): Promise<AISetting> {
+    const existing = await this.getAISettings();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(aiSettings)
+        .set({
+          ...data,
+          updatedBy,
+          updatedAt: new Date()
+        })
+        .where(eq(aiSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await db
+        .insert(aiSettings)
+        .values({
+          ...data,
+          updatedBy,
+          updatedAt: new Date()
+        })
+        .returning();
+      return inserted;
+    }
   }
 }
 

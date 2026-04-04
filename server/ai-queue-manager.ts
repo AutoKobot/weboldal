@@ -348,7 +348,7 @@ export class AIQueueManager {
                 console.warn(`Supabase fallback active! Saved to local filesystem: ${narrationAudioUrl}`);
               }
 
-              await this.recordAIGenerationCost('elevenlabs', 'tts_audio', 0.02);
+              await this.recordAIGenerationCost('openai', 'tts_audio', 0.02);
             } catch (e) {
               console.error(`Audio generation failed for slide ${slide.id}:`, e);
             }
@@ -415,8 +415,8 @@ export class AIQueueManager {
       );
 
       // Record additional costs for web search and YouTube API calls
-      await this.recordAIGenerationCost('dataseo', 'web_search', 0.02);
-      await this.recordAIGenerationCost('youtube', 'video_search', 0.01);
+      await this.recordAIGenerationCost('openai', 'web_search', 0.02);
+      await this.recordAIGenerationCost('openai', 'video_search', 0.01);
 
       // Apply automatic Mermaid SVG conversion to all content versions
       const enhancedModuleGeneratorModule = await import('./enhanced-module-generator');

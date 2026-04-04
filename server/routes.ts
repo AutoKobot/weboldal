@@ -2562,6 +2562,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Global Settings Management
+  app.get('/api/admin/settings/ai', combinedAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id || req.user?.claims?.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const settings = await storage.getAISettings();
+      res.json(settings || { 
+        imageProvider: 'openai', 
+        imageModel: 'dall-e-3',
+        model: 'gpt-4o-mini',
+        maxTokens: 2000,
+        temperature: '0.7'
+      });
+    } catch (error) {
+      console.error("Error fetching AI settings:", error);
+      res.status(500).json({ message: "Failed to fetch AI settings" });
+    }
+  });
+
+  app.patch('/api/admin/settings/ai', combinedAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id || req.user?.claims?.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const settings = await storage.updateAISettings(req.body, user.id);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating AI settings:", error);
+      res.status(500).json({ message: "Failed to update AI settings" });
+    }
+  });
+
+  // API Key Management Endpoint
+  app.post('/api/admin/update-api-key', combinedAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.id || req.user?.claims?.sub);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { openaiApiKey, togetherApiKey, deepinfraApiKey, key, value } = req.body;
+      
+      if (openaiApiKey) await storage.setSystemSetting('openai_api_key', openaiApiKey, user.id);
+      if (togetherApiKey) await storage.setSystemSetting('together_api_key', togetherApiKey, user.id);
+      if (deepinfraApiKey) await storage.setSystemSetting('deepinfra_api_key', deepinfraApiKey, user.id);
+      
+      if (key && value !== undefined) {
+        await storage.setSystemSetting(key, value, user.id);
+      }
+
+      res.json({ success: true, message: "API keys updated successfully" });
+    } catch (error) {
+      console.error("Error updating API keys:", error);
+      res.status(500).json({ message: "Failed to update API keys" });
+    }
+  });
+
   // YouTube Search Prompt Management
   app.post('/api/admin/settings/youtube-prompt', combinedAuth, async (req: any, res) => {
     try {

@@ -236,6 +236,8 @@ export const aiSettings = pgTable("ai_settings", {
   temperature: text("temperature").default("0.7").notNull(),
   model: varchar("model", { length: 100 }).default("gpt-4o-mini").notNull(),
   systemMessage: text("system_message"),
+  imageProvider: varchar("image_provider", { length: 50 }).default("openai").notNull(),
+  imageModel: varchar("image_model", { length: 100 }).default("dall-e-3").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: varchar("updated_by", { length: 255 }).notNull(),
 });
@@ -774,6 +776,8 @@ export const insertAISettingsSchema = z.object({
   temperature: z.string().default("0.7"),
   model: z.string().default("gpt-4o-mini"),
   systemMessage: z.string().optional(),
+  imageProvider: z.string().default("openai"),
+  imageModel: z.string().default("dall-e-3"),
 });
 
 // Privacy compliance tables
