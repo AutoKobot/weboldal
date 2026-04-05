@@ -314,27 +314,42 @@ export class AIQueueManager {
               const generatedUrl = await generatePresentationImage(slide.imagePrompt);
               
               // CRITICAL: DALL-E/FLUX URLs are temporary. We must save them to Supabase!
-              if (generatedUrl && generatedUrl.startsWith('http')) {
-                console.log(`[IMAGE] Permanent save starting for slide ${slide.id}...`);
-                const axios = (await import("axios")).default;
-                const imageResponse = await axios.get(generatedUrl, { responseType: 'arraybuffer' });
-                const arrayBuffer = imageResponse.data;
-                const imageFileName = `image_${item.moduleId}_${slide.id}_${Date.now()}.png`;
-                
-                const { uploadToSupabase } = await import("./supabase");
-                const cloudImageUrl = await uploadToSupabase(
-                  "presentations",
-                  imageFileName,
-                  Buffer.from(arrayBuffer),
-                  "image/png"
-                );
-                
-                if (cloudImageUrl) {
-                  currentSlideImageUrl = cloudImageUrl;
-                  console.log(`[IMAGE] Slide ${slide.id} permanent URL: ${currentSlideImageUrl}`);
+              if (generatedUrl) {
+                let imageBuffer: Buffer | null = null;
+                let mimeType = "image/png";
+
+                if (generatedUrl.startsWith('http')) {
+                  console.log(`[IMAGE] Downloading from URL for slide ${slide.id}...`);
+                  const axios = (await import("axios")).default;
+                  const imageResponse = await axios.get(generatedUrl, { responseType: 'arraybuffer' });
+                  imageBuffer = Buffer.from(imageResponse.data);
+                } else if (generatedUrl.startsWith('data:image')) {
+                  console.log(`[IMAGE] Processing Base64 data for slide ${slide.id}...`);
+                  const base64Data = generatedUrl.split(',')[1];
+                  imageBuffer = Buffer.from(base64Data, 'base64');
+                  const match = generatedUrl.match(/^data:(image\/[a-z]+);base64,/);
+                  if (match) mimeType = match[1];
+                } else if (generatedUrl.length > 500) {
+                  // Assume it's a raw base64 string
+                  console.log(`[IMAGE] Processing raw Base64 string for slide ${slide.id}...`);
+                  imageBuffer = Buffer.from(generatedUrl, 'base64');
                 }
-              } else if (generatedUrl) {
-                currentSlideImageUrl = generatedUrl;
+                
+                if (imageBuffer) {
+                  const imageFileName = `image_${item.moduleId}_${slide.id}_${Date.now()}.png`;
+                  const { uploadToSupabase } = await import("./supabase");
+                  const cloudImageUrl = await uploadToSupabase(
+                    "presentations",
+                    imageFileName,
+                    imageBuffer,
+                    mimeType
+                  );
+                  
+                  if (cloudImageUrl) {
+                    currentSlideImageUrl = cloudImageUrl;
+                    console.log(`[IMAGE] Slide ${slide.id} permanent URL: ${currentSlideImageUrl}`);
+                  }
+                }
               }
               
               await this.recordAIGenerationCost('openai', 'dalle3_image', 0.04);

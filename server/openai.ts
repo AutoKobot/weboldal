@@ -1088,8 +1088,14 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       if (response.ok) {
         const data = await response.json();
-        imageUrl = data.data?.[0]?.url || "";
-        console.log(`[DEEPINFRA] Image generated successfully: ${imageUrl.substring(0, 50)}...`);
+        // DeepInfra might return in OpenAI format OR their native format
+        imageUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json || data.images?.[0] || "";
+        
+        if (imageUrl) {
+          console.log(`[DEEPINFRA] Image generated successfully: ${imageUrl.substring(0, 50)}...`);
+        } else {
+          console.error(`[DEEPINFRA] Response OK, but no image found. Response: ${JSON.stringify(data).substring(0, 200)}...`);
+        }
       } else {
         const errorData = await response.text();
         console.error(`[DEEPINFRA] API Error: ${response.status} - ${errorData}`);
@@ -1098,7 +1104,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
     // Log the API call for cost tracking
     if (imageUrl) {
-      console.log(`[IMAGE] Final Image URL for slide: ${imageUrl.substring(0, 50)}...`);
+      console.log(`[IMAGE] Final Image URL result for slide: ${imageUrl.substring(0, 50)}...`);
       await storage.logApiCall({
         provider: providerName,
         service: "image_generation",
