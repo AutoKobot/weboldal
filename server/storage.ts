@@ -903,7 +903,6 @@ export class DatabaseStorage implements IStorage {
     const conditions = [];
 
     if (subjectId) {
-      // Modulok, amik közvetlenül a tantárgyhoz tartoznak, VAGY a junction táblán keresztül hozzá vannak rendelve
       const subjectFilter = or(
         eq(modules.subjectId, subjectId),
         exists(
@@ -928,10 +927,26 @@ export class DatabaseStorage implements IStorage {
       if (adminFilter) conditions.push(adminFilter);
     }
 
+    // Optimization: Select only necessary columns for listing to avoid heavy JSON/Text fields
+    const query = db
+      .select({
+        id: modules.id,
+        subjectId: modules.subjectId,
+        title: modules.title,
+        moduleNumber: modules.moduleNumber,
+        imageUrl: modules.imageUrl,
+        isPublished: modules.isPublished,
+        schoolId: modules.schoolId,
+        schoolAdminId: modules.schoolAdminId,
+        createdAt: modules.createdAt,
+        updatedAt: modules.updatedAt
+      })
+      .from(modules);
+
     if (conditions.length > 0) {
-      return await db.select().from(modules).where(and(...conditions)).orderBy(asc(modules.moduleNumber), asc(modules.title));
+      return (await query.where(and(...conditions)).orderBy(asc(modules.moduleNumber), asc(modules.title))) as any;
     }
-    return await db.select().from(modules).orderBy(asc(modules.moduleNumber), asc(modules.title));
+    return (await query.orderBy(asc(modules.moduleNumber), asc(modules.title))) as any;
   }
 
   async getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
@@ -962,11 +977,22 @@ export class DatabaseStorage implements IStorage {
       if (adminFilter) conditions.push(adminFilter);
     }
 
-    return await db
-      .select()
+    return (await db
+      .select({
+        id: modules.id,
+        subjectId: modules.subjectId,
+        title: modules.title,
+        moduleNumber: modules.moduleNumber,
+        imageUrl: modules.imageUrl,
+        isPublished: modules.isPublished,
+        schoolId: modules.schoolId,
+        schoolAdminId: modules.schoolAdminId,
+        createdAt: modules.createdAt,
+        updatedAt: modules.updatedAt
+      })
       .from(modules)
       .where(and(...conditions))
-      .orderBy(asc(modules.moduleNumber), asc(modules.title));
+      .orderBy(asc(modules.moduleNumber), asc(modules.title))) as any;
   }
 
   async getModule(id: number): Promise<Module | undefined> {

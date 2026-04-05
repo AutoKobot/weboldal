@@ -5,12 +5,12 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache user data (React Query v5)
+    staleTime: 60000, // Keep data fresh for 1 minute
+    gcTime: 300000, // Cache user data for 5 minutes
     refetchOnWindowFocus: false,
     refetchInterval: (query) => {
-      // Csak akkor frissítsen automatikusan, ha már be van jelentkezve
-      return query.state.data ? 60000 : false;
+      // Refresh every 2 minutes if logged in
+      return query.state.data ? 120000 : false;
     },
   });
 

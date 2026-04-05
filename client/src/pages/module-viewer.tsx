@@ -276,16 +276,16 @@ export default function ModuleViewer() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
+        title: "Nincs bejelentkezve",
+        description: "Kérjük jelentkezzen be a folytatáshoz.",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        setLocation("/");
       }, 500);
       return;
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading, toast, setLocation]);
 
   const { data: module, isLoading: moduleLoading } = useQuery<Module>({
     queryKey: [`/api/modules/${moduleId}`],

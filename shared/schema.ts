@@ -73,7 +73,11 @@ export const users = pgTable("users", {
   completedModules: jsonb("completed_modules").default([]).$type<number[]>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("users_school_id_idx").on(table.schoolId),
+  index("users_role_idx").on(table.role),
+  index("users_class_id_idx").on(table.classId),
+]);
 
 // Professions table - szakmák (pl. Hegesztő)
 export const professions = pgTable("professions", {
@@ -124,7 +128,11 @@ export const modules = pgTable("modules", {
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("modules_subject_id_idx").on(table.subjectId),
+  index("modules_is_published_idx").on(table.isPublished),
+  index("modules_school_admin_id_idx").on(table.schoolAdminId),
+]);
 
 // Junction table for many-to-many relationship between modules and subjects
 export const moduleSubjectAssignments = pgTable("module_subject_assignments", {
@@ -152,7 +160,10 @@ export const chatMessages = pgTable("chat_messages", {
   relatedModuleId: integer("related_module_id").references(() => modules.id),
   isSystemMessage: boolean("is_system_message").default(false), // jelzi, hogy rendszer üzenet-e
   timestamp: timestamp("timestamp").defaultNow(),
-});
+}, (table) => [
+  index("chat_messages_user_id_idx").on(table.userId),
+  index("chat_messages_related_module_id_idx").on(table.relatedModuleId),
+]);
 
 // Test results table - teszt eredmények
 export const testResults = pgTable("test_results", {
@@ -164,7 +175,10 @@ export const testResults = pgTable("test_results", {
   passed: boolean("passed").default(false).notNull(),
   details: jsonb("details"), // Store question/answer details
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("test_results_user_id_idx").on(table.userId),
+  index("test_results_module_id_idx").on(table.moduleId),
+]);
 
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -410,6 +424,9 @@ export const attendance = pgTable("attendance", {
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (t) => ({
   attendanceUnique: uniqueIndex("attendance_unique").on(t.studentId, t.classId, t.date, t.periodNumber),
+  studentIdIdx: index("attendance_student_id_idx").on(t.studentId),
+  classIdIdx: index("attendance_class_id_idx").on(t.classId),
+  dateIdx: index("attendance_date_idx").on(t.date),
 }));
 
 // Student daily notes – napi megjegyzések tanártól diákonként
