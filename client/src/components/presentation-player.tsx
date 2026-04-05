@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
@@ -37,9 +37,8 @@ interface PresentationPlayerProps {
   moduleTitle: string;
 }
 
-// Interactive Component Handler
 function InteractiveContent({ slide }: { slide: Slide }) {
-  if (!slide.interactiveType || slide.interactiveType === 'none' || !slide.interactiveData) return null;
+  if (!slide?.interactiveType || slide.interactiveType === 'none' || !slide.interactiveData) return null;
 
   switch (slide.interactiveType) {
     case 'quiz':
@@ -49,19 +48,11 @@ function InteractiveContent({ slide }: { slide: Slide }) {
     case 'hotspot':
       return <SlideHotspots data={slide.interactiveData} imageUrl={slide.imageUrl} />;
     default:
-      return (
-        <div className="p-6 bg-blue-900/10 border border-blue-900/30 rounded-2xl flex items-center gap-4">
-          <HelpCircle className="w-8 h-8 text-blue-400" />
-          <div>
-             <p className="font-bold text-blue-300 uppercase text-xs tracking-widest text-left">Elemezni való egység</p>
-             <p className="text-sm text-blue-100/60 text-left">Interaktív feladat: {slide.interactiveType}</p>
-          </div>
-        </div>
-      );
+      return null;
   }
 }
 
-export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: PresentationPlayerProps) {
+export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitle }: PresentationPlayerProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -72,9 +63,90 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
   const audioContextRef = useRef<AudioContext | null>(null);
   const volume = useAudioAnalyzer(audioRef);
 
+  const currentSlide = slides?.[currentSlideIndex];
+  const currentAvatarDef = AVATARS[0];
+  const avatarUrl = `/avatars/${currentAvatarDef.filename}`;
+
+  const resumeAudioContext = async () => {
+    try {
+      if (!audioContextRef.current) {
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        audioContextRef.current = new Ctx() as AudioContext;
+      }
+      const ctx = audioContextRef.current;
+      if (ctx && ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+    } catch (e) {
+      console.warn('AudioContext resume failed:', e);
+    }
+  };
+
+  // 1. Reset logic
+  useEffect(() => {
+    if (open) {
+      setCurrentSlideIndex(0);
+      setHasStarted(false);
+      setIsPlaying(false);
+    } else {
+      setIsPlaying(false);
+      setHasStarted(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    }
+  }, [open]);
+
+  // 2. Audio & Navigation Loop
+  useEffect(() => {
+    if (!open || !audioRef.current || !currentSlide || !hasStarted) return;
+    const audio = audioRef.current;
+
+    if (currentSlide.narrationAudioUrl) {
+      const rawUrl = currentSlide.narrationAudioUrl;
+      const fullUrl = rawUrl.startsWith('http')
+        ? rawUrl
+        : `${window.location.protocol}//${window.location.host}${rawUrl}`;
+
+      if (audio.src !== fullUrl) {
+        audio.src = fullUrl;
+        audio.load();
+      }
+      audio.muted = isMuted;
+
+      if (isPlaying) {
+        resumeAudioContext().then(() => {
+          audio.play().catch(err => console.warn("Autoplay blocked:", err));
+        });
+      } else {
+        audio.pause();
+      }
+
+      audio.onended = () => {
+        if (autoAdvance && currentSlideIndex < slides.length - 1) {
+          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500);
+        } else if (currentSlideIndex === slides.length - 1) {
+          setIsPlaying(false);
+        }
+      };
+
+      audio.onerror = () => {
+        if (autoAdvance && isPlaying && currentSlideIndex < slides.length - 1) {
+          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 4500);
+        }
+      };
+    } else {
+      if (isPlaying && autoAdvance && currentSlideIndex < slides.length - 1) {
+        const timer = setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 5000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [open, currentSlideIndex, isPlaying, isMuted, slides.length, currentSlide, autoAdvance, hasStarted]);
+
+  // Mandatory checks AFTER hooks
   if (!open) return null;
 
-  // BIZTONSÁGI VÉDELEM: Ha nincs dia (pl. generálás alatt vagy hiba), ne omladjon össze a React
   if (!slides || slides.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -99,135 +171,10 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
     );
   }
 
-  const currentSlide = slides?.[currentSlideIndex];
-  const currentAvatarDef = AVATARS[0];
-  const avatarUrl = `/avatars/${currentAvatarDef.filename}`;
-
-  // AudioContext resume segédfüggvény – böngésző autoplay policy megkerülése
-  const resumeAudioContext = async () => {
-    try {
-      if (!audioContextRef.current) {
-        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new Ctx() as AudioContext;
-      }
-      const ctx = audioContextRef.current;
-      if (ctx && ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-    } catch (e) {
-      console.warn('AudioContext resume failed:', e);
-    }
-  };
-
-  // Audio lejátszó logika – slide váltáskor és play/pause állapotkor fut le
-  useEffect(() => {
-    if (!open || !audioRef.current || !currentSlide) return;
-    const audio = audioRef.current;
-
-    if (currentSlide.narrationAudioUrl) {
-      // Ha a URL relatív, adjuk hozzá a host-ot
-      const rawUrl = currentSlide.narrationAudioUrl;
-      const fullUrl = rawUrl.startsWith('http')
-        ? rawUrl
-        : `${window.location.protocol}//${window.location.host}${rawUrl}`;
-
-      // Csak akkor töltjük újra, ha más a forrás
-      if (audio.src !== fullUrl) {
-        audio.src = fullUrl;
-        audio.load();
-      }
-      audio.muted = isMuted;
-
-      if (isPlaying) {
-        // Mindig próbáljuk resume-olni az AudioContext-et lejátszás előtt
-        resumeAudioContext().then(() => {
-          audio.play().catch(err => {
-            console.warn("Audio lejátszás megakadályozva (autoplay policy):", err);
-          });
-        });
-      } else {
-        audio.pause();
-      }
-
-      audio.onended = () => {
-        if (autoAdvance && currentSlideIndex < slides.length - 1) {
-          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500);
-        } else if (currentSlideIndex === slides.length - 1) {
-          setIsPlaying(false);
-        }
-      };
-
-      // Hangfájl hiba esetén: 4.5 mp után következő dia
-      audio.onerror = () => {
-        console.warn("Hangfájl nem töltődött be, automatikus továbblépés:", fullUrl);
-        if (autoAdvance && isPlaying) {
-          setTimeout(() => {
-            if (currentSlideIndex < slides.length - 1) {
-              setCurrentSlideIndex(prev => prev + 1);
-            } else {
-              setIsPlaying(false);
-            }
-          }, 4500);
-        }
-      };
-    } else {
-      // Nincs hangfájl: ha auto-advance be van kapcsolva, időzítővel lépünk tovább
-      audio.pause();
-      if (isPlaying && autoAdvance && currentSlideIndex < slides.length - 1) {
-        const timer = setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 5000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [currentSlideIndex, open, isPlaying, isMuted, currentSlide?.narrationAudioUrl, autoAdvance]);
-
-  // Megnyitáskor: nullázzuk a prezit és indítjuk a lejátszást
-  useEffect(() => {
-    if (open) {
-      setCurrentSlideIndex(0);
-      setHasStarted(false);
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(false);
-      setHasStarted(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    }
-  }, [open]);
-
-  if (!slides || slides.length === 0) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-none w-screen h-screen p-0 m-0 overflow-hidden bg-slate-950 border-none shadow-none rounded-none flex flex-col items-center justify-center text-center z-[999]">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="space-y-6 max-w-md p-8"
-          >
-            <div className="bg-slate-900 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-slate-800 shadow-2xl">
-              <MonitorPlay className="w-12 h-12 text-slate-600" />
-            </div>
-            <h3 className="text-3xl font-bold text-white">Nincs még prezentáció</h3>
-            <p className="text-slate-400 text-lg leading-relaxed">
-              Ehhez a modulhoz még nem generáltad le az AI alapú, interaktív prezentációt. Menj az Admin felületre és kattints az AI Újragenerálás gombra!
-            </p>
-            <Button 
-              onClick={() => onOpenChange(false)}
-              className="bg-blue-600 hover:bg-blue-500 rounded-xl mt-8 min-w-[12rem] h-12"
-            >
-              Bezárás
-            </Button>
-          </motion.div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   const nextSlide = () => currentSlideIndex < slides.length - 1 && setCurrentSlideIndex(currentSlideIndex + 1);
   const prevSlide = () => currentSlideIndex > 0 && setCurrentSlideIndex(currentSlideIndex - 1);
   const togglePlay = async () => {
-    await resumeAudioContext(); // Böngésző autoplay policy feloldása user interactionnál
+    await resumeAudioContext();
     setIsPlaying(prev => !prev);
   };
 
@@ -235,7 +182,6 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 m-0 overflow-hidden bg-slate-950 border-none shadow-none rounded-none flex flex-col focus:outline-none z-[999]">
         
-        {/* Start Screen Overlay */}
         {!hasStarted && (
           <div className="absolute inset-0 z-[1000] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center">
             <motion.div
@@ -266,127 +212,102 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
         )}
 
         <audio ref={audioRef} style={{ display: 'none' }} crossOrigin="anonymous" />
-
-        {/* Header - Compact */}
-        <div className="bg-slate-900/95 p-3 px-6 border-b border-slate-800 flex items-center justify-between z-10 backdrop-blur-md shrink-0 h-16">
-          <div className="flex items-center gap-3">
-            <MonitorPlay className="w-5 h-5 text-blue-500" />
+        
+        <div className="h-20 bg-slate-900/60 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-8 z-50 shrink-0">
+          <div className="flex items-center gap-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+              <MonitorPlay className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <h3 className="font-bold text-slate-200 text-sm leading-none">{moduleTitle}</h3>
-              <p className="text-[9px] text-slate-500 mt-1 uppercase tracking-wider font-light">Automata AI Narrált Prezentáció</p>
+              <h2 className="text-xl font-bold text-white tracking-tight leading-tight">{moduleTitle || "Szakmai Prezentáció"}</h2>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs py-0 px-2.5 h-5">AI Segédlet</Badge>
+                <span className="text-slate-500 text-xs font-medium">Modul {currentSlideIndex + 1} / {slides.length}</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-slate-800/50 rounded-lg px-2 py-1 gap-1 border border-slate-700/50">
-              <Button variant="ghost" size="icon" onClick={togglePlay} className="h-7 w-7 text-slate-400 hover:text-white rounded-md transition-all">
-                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="h-7 w-7 text-slate-400 hover:text-white rounded-md transition-all">
-                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              </Button>
-            </div>
-            
-            <Badge variant="outline" className="font-mono text-slate-500 border-slate-800">
-              {currentSlideIndex + 1} / {slides.length}
-            </Badge>
-            
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-slate-500 hover:text-white transition-colors">
+          
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsMuted(prev => !prev)}
+              className="w-11 h-11 rounded-xl bg-slate-800/40 border-slate-700/50 text-slate-400 hover:text-white"
+            >
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="w-11 h-11 rounded-xl bg-slate-800/40 border-slate-700/50 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition-all font-bold"
+            >
               <X className="w-5 h-5" />
             </Button>
           </div>
         </div>
 
-        {/* Slide Content Area */}
-        <div className="flex-1 relative overflow-hidden flex flex-col p-4 md:p-10 pt-6 bg-slate-950">
-          
-          {/* Avatar - Bottom Left Safe Position */}
-          <div className="absolute bottom-6 left-6 w-48 h-64 z-20 pointer-events-none overflow-visible">
-            <FBXAvatar 
-              url={avatarUrl} 
-              className="w-full h-full"
-              volume={volume}
-              isMoving={false}
-              direction={1}
-            />
-            {isPlaying && volume > 0.05 && (
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-1 items-end h-6">
-                <motion.div initial={{ height: 0 }} animate={{ height: '40%' }} className="w-1 bg-blue-500 rounded-full" transition={{ repeat: Infinity, duration: 0.3, repeatType: 'reverse' }} />
-                <motion.div initial={{ height: 0 }} animate={{ height: '80%' }} className="w-1 bg-blue-400 rounded-full" transition={{ repeat: Infinity, duration: 0.4, repeatType: 'reverse' }} />
-              </div>
-            )}
-          </div>
-
-          <div className="w-full h-full max-w-[1400px] mx-auto flex flex-col relative z-0">
+        <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-950/40">
             <AnimatePresence mode="wait">
-              <motion.div 
+              <motion.div
                 key={currentSlideIndex}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="h-full w-full flex flex-col justify-center"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="w-full h-full min-h-full px-8 py-10"
               >
-                {currentSlide.type === "title" ? (
-                  <div className="h-full w-full flex flex-col items-center justify-center text-center space-y-8">
-                    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-4xl">
-                      <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-tight">
-                        {currentSlide.title}
-                      </h1>
-                      {currentSlide.subtitle && (
-                        <p className="text-xl md:text-2xl text-blue-400 font-medium tracking-wide">
-                          {currentSlide.subtitle}
-                        </p>
-                      )}
-                    </motion.div>
-                  </div>
-                ) : (
-                  <div className={`h-full w-full grid gap-12 items-center ${(currentSlide.imageUrl || (currentSlide.imageUrls && currentSlide.imageUrls.length > 0)) ? 'grid-cols-1 lg:grid-cols-[1.1fr,1fr]' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
-                    
-                    {/* Content Section */}
-                    <div className={`flex flex-col justify-center space-y-8 ${(currentSlide.imageUrl || (currentSlide.imageUrls && currentSlide.imageUrls.length > 0)) ? (currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' || currentSlide.layout === 'grid' ? 'order-1 lg:pl-10' : 'order-2') : 'text-center'}`}>
-                      <div className="space-y-4">
-                        <Badge variant="outline" className="text-blue-500 border-blue-900/40 bg-blue-900/10 uppercase tracking-widest text-[10px] px-3 py-1 w-fit mx-auto lg:mx-0">
-                          Slide {currentSlideIndex + 1}
+                {currentSlide && (
+                  <div className={`grid h-full w-full gap-10 max-w-[1400px] mx-auto 
+                    ${currentSlide?.layout === 'split-right-image' || currentSlide?.layout === 'grid' ? 'lg:grid-cols-[1.1fr,1fr]' : 'grid-cols-1'}`}
+                  >
+                    <div className="flex flex-col justify-center min-w-0 order-1">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        <Badge className="mb-4 bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-xs">
+                          {currentSlide?.subtitle || "Interaktív Tananyag"}
                         </Badge>
-                        <h2 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight">
-                          {currentSlide.title}
-                        </h2>
-                      </div>
-                      
-                      <div className="prose prose-invert prose-xl max-w-none text-slate-300/90 leading-relaxed overflow-y-auto max-h-[35vh] custom-scrollbar pr-4 font-light">
-                        {currentSlide.content.includes('<li>') || currentSlide.content.includes('<p>') ? (
-                          <div dangerouslySetInnerHTML={{ __html: currentSlide.content }} />
-                        ) : (
+                        <h1 className="text-4xl lg:text-5xl font-black text-white mb-8 leading-[1.15] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                          {currentSlide?.title}
+                        </h1>
+                        <div className="prose prose-invert prose-lg max-w-none 
+                          prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-5
+                          prose-headings:text-white prose-headings:font-bold
+                          prose-strong:text-blue-400 prose-strong:font-bold
+                          prose-ul:my-6 prose-li:my-2 prose-li:text-slate-300"
+                        >
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {currentSlide.content}
+                            {currentSlide?.content || ""}
                           </ReactMarkdown>
-                        )}
-                      </div>
-
-                      <div className="pt-4 shrink-0">
+                        </div>
+                      </motion.div>
+                      
+                      <div className="mt-10">
                         <InteractiveContent slide={currentSlide} />
                       </div>
                     </div>
 
-                    {/* Image Section - Intelligent side positioning & Grid support */}
-                    {(currentSlide.imageUrl || (currentSlide.imageUrls && currentSlide.imageUrls.length > 0)) && (
+                    {(currentSlide?.imageUrl || (currentSlide?.imageUrls && currentSlide.imageUrls.length > 0)) && (
                       <motion.div 
                         initial={{ opacity: 0, x: 20, scale: 0.95 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
-                        className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' || currentSlide.layout === 'grid' ? 'order-2' : 'order-1'} min-w-0`}
+                        className={`h-full flex items-center justify-center order-2 min-w-0`}
                       >
                         <div className={`grid gap-4 w-full h-[60vh] lg:h-[65vh] max-w-full 
-                          ${((currentSlide as any)?.imageUrls?.length || 1) > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
+                          ${(currentSlide?.imageUrls?.length || 1) > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
                         >
-                          {((currentSlide as any)?.imageUrls && (currentSlide as any).imageUrls.length > 0) ? (
-                            (currentSlide as any).imageUrls.map((url: string, idx: number) => (
+                          {currentSlide?.imageUrls && currentSlide.imageUrls.length > 0 ? (
+                            currentSlide.imageUrls.map((url: string, idx: number) => (
                               <div key={idx} className="relative rounded-[2rem] overflow-hidden shadow-xl border-2 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
                                 <img 
                                   src={url} 
                                   alt={`Visual ${idx + 1}`} 
                                   className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
                                   onError={(e) => {
-                                    console.error("Image failed to load:", url);
                                     (e.target as HTMLImageElement).parentElement!.style.display = 'none';
                                   }}
                                 />
@@ -396,11 +317,10 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                           ) : (
                             <div className="relative rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
                               <img 
-                                src={currentSlide.imageUrl} 
+                                src={currentSlide?.imageUrl} 
                                 alt="Visual" 
                                 className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
                                 onError={(e) => {
-                                  console.error("Image failed to load:", currentSlide.imageUrl);
                                   (e.target as HTMLImageElement).parentElement!.style.display = 'none';
                                 }}
                               />
@@ -417,26 +337,33 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
           </div>
         </div>
 
-        {/* Footer - Compact */}
-        <div className="bg-slate-900/95 p-4 border-t border-slate-800 flex items-center justify-between backdrop-blur-md shrink-0 h-20 px-8">
+        <div className="bg-slate-900/95 p-4 border-t border-slate-800 flex items-center justify-between backdrop-blur-md shrink-0 h-24 px-8 relative">
+          <div className="absolute left-1/2 -top-40 -translate-x-1/2 w-48 h-48 pointer-events-none">
+             <FBXAvatar 
+               avatarUrl={avatarUrl}
+               volume={volume}
+               isPlaying={isPlaying}
+             />
+          </div>
+
           <Button 
             onClick={prevSlide} 
             disabled={currentSlideIndex === 0}
             variant="ghost"
-            className="text-slate-400 hover:text-white hover:bg-slate-800 min-w-[10rem] h-12 rounded-xl text-md font-semibold transition-all"
+            className="text-slate-400 hover:text-white hover:bg-slate-800 min-w-[10rem] h-14 rounded-2xl text-md font-semibold transition-all"
           >
-            <ChevronLeft className="mr-2 w-5 h-5" /> Előző
+            <ChevronLeft className="mr-2 w-6 h-6" /> Előző
           </Button>
 
-          <div className="flex gap-2.5 px-4">
+          <div className="flex gap-3 px-6">
             {slides.map((_, i) => (
               <motion.div 
                 key={i} 
                 animate={{ 
-                  width: i === currentSlideIndex ? '2.5rem' : '0.6rem',
-                  backgroundColor: i === currentSlideIndex ? '#3b82f6' : (i < currentSlideIndex ? '#2563eb44' : '#1e293b')
+                  width: i === currentSlideIndex ? '3rem' : '0.7rem',
+                  backgroundColor: i === currentSlideIndex ? '#3b82f6' : (i < currentSlideIndex ? '#2563eb66' : '#1e293b')
                 }}
-                className="h-1.5 rounded-full transition-all"
+                className="h-2 rounded-full transition-all"
               />
             ))}
           </div>
@@ -444,9 +371,9 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
           <Button 
             onClick={nextSlide} 
             disabled={currentSlideIndex === slides.length - 1}
-            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[10rem] h-12 rounded-xl shadow-lg shadow-blue-900/20 text-md font-semibold transition-all active:scale-95"
+            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[12rem] h-14 rounded-2xl shadow-xl shadow-blue-900/20 text-lg font-bold transition-all active:scale-95"
           >
-            {currentSlideIndex === slides.length - 1 ? 'Befejezés' : 'Következő'} <ChevronRight className="ml-2 w-5 h-5" />
+            {currentSlideIndex === slides.length - 1 ? 'Befejezés' : 'Következő'} <ChevronRight className="ml-2 w-6 h-6" />
           </Button>
         </div>
       </DialogContent>
