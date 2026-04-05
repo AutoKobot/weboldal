@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -151,6 +151,9 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[70vw] w-full h-[80vh] p-0 bg-slate-950 border-slate-800 overflow-hidden outline-none flex items-center justify-center">
+          <div className="sr-only">
+            <DialogTitle>Nincs tartalom</DialogTitle>
+          </div>
           <div className="text-center space-y-6 max-w-md p-12 bg-slate-900/50 rounded-[3rem] border border-slate-800 shadow-2xl backdrop-blur-xl">
              <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
                 <HelpCircle className="w-10 h-10 text-blue-500 animate-pulse" />
@@ -181,6 +184,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 m-0 overflow-hidden bg-slate-950 border-none shadow-none rounded-none flex flex-col focus:outline-none z-[999]">
+        {/* Accessibility Title (Required by Radix) */}
+        <div className="sr-only">
+          <DialogTitle>{moduleTitle || "Szakmai Prezentáció"}</DialogTitle>
+        </div>
         
         {!hasStarted && (
           <div className="absolute inset-0 z-[1000] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center">
@@ -340,9 +347,8 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
         <div className="bg-slate-900/95 p-4 border-t border-slate-800 flex items-center justify-between backdrop-blur-md shrink-0 h-24 px-8 relative">
           <div className="absolute left-1/2 -top-40 -translate-x-1/2 w-48 h-48 pointer-events-none">
              <FBXAvatar 
-               avatarUrl={avatarUrl}
+               url={avatarUrl}
                volume={volume}
-               isPlaying={isPlaying}
              />
           </div>
 

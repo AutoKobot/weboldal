@@ -17,7 +17,8 @@ interface FBXAvatarProps {
   volume?: number; // 0-1 híváserősség az audio analizerből
 }
 
-function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1, petPos, volume = 0 }: FBXAvatarProps) {
+function Model({ url, isFeeding, isMoving, isHungry, currentAction, animationUrls, direction = 1, petPos, volume = 0, isPlaying }: FBXAvatarProps & { isPlaying?: boolean }) {
+  if (!url) return null;
   const fbx = useFBX(url);
   const { viewport } = useThree();
   const groupRef = useRef<THREE.Group>(null);
