@@ -933,15 +933,14 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és mérnöki szintű oktató vagy. 
+    const prompt = `Te egy profi digitális tananyagfejlesztő és műszaki szakoktató vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS SZABÁLYOK A VIZUALITÁSHOZ:
-1. INFOGRAFIKA: A "imagePrompt" NE csak egy kép legyen, hanem egy MAGYARÁZÓ INFOGRAFIKA vagy TECHNIKAI DIAGRAM (pl: feliratozott metszeti rajz, folyamatábra, vagy jelölés-gyűjtemény).
-2. CÍMKÉZÉS: A képen szerepeljenek a dia tartalmához kapcsolódó magyar nyelvű feliratok és magyarázatok (labels), amik a kép egyes részeit azonosítják.
-3. PONTOSSÁG: Ha a tananyag szakkifejezéseket tartalmaz (pl: "Hegesztési rajzjelek"), akkor a kép konkrétan ezeket a rajzjeleket és azok magyar magyarázatát mutassa be mint egy technikai adatlapot.
-4. KÉPSTÍLUS: "High-quality educational medical/engineering infographic, labeled technical chart, clean white background or professional blueprint, sharp text rendering, informative and textbook-accurate."
+FONTOS VIZUÁLIS SZABÁLYOK:
+1. SZÓ SZERINTI ÁBRÁZOLÁS: A "imagePrompt" legyen SZIGORÚAN TÁRGYSZERŰ. Ha a szöveg egy tárgyról vagy alkatrészről szól, a képnek konkrétan AZT a tárgyat kell ábrázolnia (pl: hegesztőpisztoly metszete, pingponglabda alakja több nézetből). KERÜLD az absztrakt művészetet és metaforákat.
+2. TECHNIKAI STÍLUS: "Technical educational diagram, multi-view orthographic drawing or high-detail 3D technical isolate, white background, precise labels in Hungarian, clean engineering focus."
+3. TANESZKÖZ JELLEG: A kép úgy nézzen ki, mint egy tankönyvi ábra, ami magyarázza a tananyagot. Használj robbantott ábrákat (exploded view) vagy metszeteket ott, ahol szükséges.
 
 JSON struktúra:
 {
@@ -951,10 +950,10 @@ JSON struktúra:
       "type": "title | content | interactive",
       "title": "Dia címe",
       "subtitle": "Dia alcíme",
-      "content": "Szakmailag precíz, formázott Markdown tartalom",
+      "content": "Szakmailag precíz Markdown tartalom",
       "narration": "Natural Hungarian narration text.",
       "layout": "split-left-image | split-right-image",
-      "imagePrompt": "Detailed technical English description for an INFOGRAPHIC/DIAGRAM that lists and labels the slide concepts (MANDATORY).",
+      "imagePrompt": "Literal and technical English description of the EXACT objects in the content (MANDATORY). Use keywords like 'cross-section', 'multi-view', 'labeled diagram'.",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
