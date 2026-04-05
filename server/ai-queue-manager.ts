@@ -344,8 +344,8 @@ export class AIQueueManager {
                 }
                 
                 if (imageBuffer) {
-                  // MAPPÁBA RENDEZETT FÁJLNÉV
-                  const imageFileName = `module_${item.moduleId}/image_slide_${slideAny.id}_idx_${i}.png`;
+                  // V2-ES LAPOS FÁJLSZERKEZET: Kényszerítjük a frissítést
+                  const imageFileName = `v2_presentation_mod_${item.moduleId}_slide_${slideAny.id}_idx_${i}.png`;
                   const cloudImageUrl = await uploadToSupabase(
                     "presentations",
                     imageFileName,
@@ -358,7 +358,7 @@ export class AIQueueManager {
                     // Hozzáadunk egy verziót, hogy a böngésző azonnal lássa az újat
                     const freshUrl = `${cloudImageUrl}?v=${Date.now()}`;
                     imageUrls.push(freshUrl);
-                    console.log(`[STORAGE] Image saved and versioned: ${freshUrl}`);
+                    console.log(`[STORAGE-V2] Image success: ${freshUrl}`);
                   }
                 }
               }
@@ -375,8 +375,8 @@ export class AIQueueManager {
               console.log(`Generating speech for slide ${slideAny.id}...`);
               const audioBuffer = await generateSpeech(slideAny.narration);
               
-              // MAPPÁBA RENDEZETT FÁJLNÉV a hanghoz is!
-              const audioFileName = `module_${item.moduleId}/audio_slide_${slideAny.id}.mp3`;
+              // V2-ES LAPOS FÁJLSZERKEZET a hanghoz is!
+              const audioFileName = `v2_audio_mod_${item.moduleId}_slide_${slideAny.id}.mp3`;
               const cloudUrl = await uploadToSupabase(
                   "presentations",
                   audioFileName,
@@ -386,7 +386,7 @@ export class AIQueueManager {
  
               if (cloudUrl) {
                 narrationAudioUrl = `${cloudUrl}?v=${Date.now()}`;
-                console.log(`Audio saved and versioned (overwritten): ${narrationAudioUrl}`);
+                console.log(`[STORAGE-V2] Audio success: ${narrationAudioUrl}`);
               } else {
                 const fs = await import("fs/promises");
                 const path = await import("path");
