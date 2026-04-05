@@ -354,8 +354,11 @@ export class AIQueueManager {
                   );
                   
                   if (cloudImageUrl) {
-                    imageUrls.push(cloudImageUrl);
-                    console.log(`[STORAGE] Image saved in folder: ${cloudImageUrl}`);
+                    // GYORSÍTÓTÁR-KERÜLÉS (Cache Busting): 
+                    // Hozzáadunk egy verziót, hogy a böngésző azonnal lássa az újat
+                    const freshUrl = `${cloudImageUrl}?v=${Date.now()}`;
+                    imageUrls.push(freshUrl);
+                    console.log(`[STORAGE] Image saved and versioned: ${freshUrl}`);
                   }
                 }
               }
@@ -382,8 +385,8 @@ export class AIQueueManager {
               );
  
               if (cloudUrl) {
-                narrationAudioUrl = cloudUrl;
-                console.log(`Audio saved (overwritten if existed): ${narrationAudioUrl}`);
+                narrationAudioUrl = `${cloudUrl}?v=${Date.now()}`;
+                console.log(`Audio saved and versioned (overwritten): ${narrationAudioUrl}`);
               } else {
                 const fs = await import("fs/promises");
                 const path = await import("path");
@@ -391,7 +394,7 @@ export class AIQueueManager {
                 const uploadsDir = path.dirname(audioFilePath);
                 await fs.mkdir(uploadsDir, { recursive: true });
                 await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
-                narrationAudioUrl = `/uploads/presentations/${audioFileName}`;
+                narrationAudioUrl = `/uploads/presentations/${audioFileName}?v=${Date.now()}`;
                 console.warn(`Supabase fallback active! Saved to local filesystem: ${narrationAudioUrl}`);
               }
  
