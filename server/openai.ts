@@ -933,32 +933,31 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és műszaki szakoktató vagy. 
-Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
+    const prompt = `Te egy profi digitális tananyagfejlesztő és műszaki szakértő vagy. 
+Készíts egy interaktív, vizuálisan gazdag HTML prezentációt a következőhöz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS VIZUÁLIS SZABÁLYOK (MULTIPLE IMAGES & STRUCTURE):
-1. TÖBB KÉP: Ha a téma összetett (pl: "Hegesztési rajzjelek"), ne egyetlen zsúfolt képet kérj. Használj több (2-4) különálló képet, amelyek különböző aspektusokat mutatnak be.
-2. JSON-LIKE PROMPT: A "imagePrompts" mező legyen egy tömb, ahol minden elem egy szigorúan strukturált angol leírás.
-3. STRUKTÚRA: Úgy írd le a képet, mint egy adatlapot:
-   "Subject: [Object Name], View: [Perspective], Details: [Lines and Symbols], Label: [Hungarian Text]."
-4. TÁRGYSZERŰSÉG: Csak konkrét, elmagyarázható szakmai ábrákat kérj!
+FONTOS VIZUÁLIS SZABÁLYOK (PRÉMIUM 3D & STRUKTÚRA):
+1. TÖBB KÉP: Minden diának KÖTELEZŐEN 2-4 képet kell tartalmaznia (listaként a "imagePrompts" mezőben). Bontsd fel a témát részletekre!
+2. STÍLUS: "High-fidelity professional 3D technical render, vibrant colors, premium studio lighting, isometric high-detail view, high contrast". TILOS az egyszerű vázlat vagy gyerekrajz stílus!
+3. SZÖVEGMENTESÍTÉS: TILOS bármilyen felirat a képre (spelling hibák elkerülése végett). HELYETTE használj jól látható számokat (1, 2, 3) a fontos alkatrészek megjelölésére.
+4. DEFINÍCIÓ: Minden prompt legyen egy konkrét tárgy leírása: "Topic: [Object], Style: [Vibrant 3D Technical Render], Colors: [Specific Colors], Labels: [Numeric markers 1, 2, 3 only]."
 
 JSON struktúra:
 {
   "slides": [
     {
       "id": 1,
-      "type": "title | content | interactive",
+      "type": "content",
       "title": "Dia címe",
-      "content": "Szakmailag precíz Markdown tartalom",
-      "narration": "Natural Hungarian narration text.",
-      "layout": "grid | split-left | split-right",
+      "content": "Szakmai Markdown tartalom",
+      "narration": "Hungarian narration.",
+      "layout": "grid",
       "imagePrompts": [
-        "Structured technical description for Image 1...",
-        "Structured technical description for Image 2..."
+        "Vibrant 3D technical render of [part A] with labels 1 and 2, white background...",
+        "Detailed 3D engineering render of [part B] with labels 3 and 4, professional lighting..."
       ],
-      "interactiveType": "quiz | drag-drop | hotspot",
+      "interactiveType": "quiz",
       "interactiveData": { ... }
     }
   ]
