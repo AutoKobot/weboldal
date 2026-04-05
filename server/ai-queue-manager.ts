@@ -298,6 +298,10 @@ export class AIQueueManager {
       try {
         console.log(`Generating presentation for module ${item.moduleId}: ${item.title}`);
         const { generatePresentationData, generatePresentationImage, generateSpeech } = await import('./openai');
+        const { uploadToSupabase, cleanupModuleStorage } = await import("./supabase");
+
+        // 0. TAKARÍTÁS: Töröljük a modul mappáját generálás előtt
+        await cleanupModuleStorage(item.moduleId);
         
         // 1. Generáljuk a dia adatokat
         const slideData = await generatePresentationData(item.title, item.content);
@@ -340,10 +344,8 @@ export class AIQueueManager {
                 }
                 
                 if (imageBuffer) {
-                  // DETERMINISZTIKUS FÁJLNÉV: moduleId + slideId + index
-                  // Ezáltal egy újragenerálás felülírja a régit (upsert: true), nem szemetelünk!
-                  const imageFileName = `image_mod_${item.moduleId}_slide_${slideAny.id}_idx_${i}.png`;
-                  const { uploadToSupabase } = await import("./supabase");
+                  // MAPPÁBA RENDEZETT FÁJLNÉV
+                  const imageFileName = `module_${item.moduleId}/image_slide_${slideAny.id}_idx_${i}.png`;
                   const cloudImageUrl = await uploadToSupabase(
                     "presentations",
                     imageFileName,
@@ -353,7 +355,7 @@ export class AIQueueManager {
                   
                   if (cloudImageUrl) {
                     imageUrls.push(cloudImageUrl);
-                    console.log(`[STORAGE] Image saved (overwritten if existed): ${cloudImageUrl}`);
+                    console.log(`[STORAGE] Image saved in folder: ${cloudImageUrl}`);
                   }
                 }
               }
@@ -370,9 +372,8 @@ export class AIQueueManager {
               console.log(`Generating speech for slide ${slideAny.id}...`);
               const audioBuffer = await generateSpeech(slideAny.narration);
               
-              // DETERMINISZTIKUS FÁJLNÉV a hanghoz is!
-              const audioFileName = `audio_mod_${item.moduleId}_slide_${slideAny.id}.mp3`;
-              const { uploadToSupabase } = await import("./supabase");
+              // MAPPÁBA RENDEZETT FÁJLNÉV a hanghoz is!
+              const audioFileName = `module_${item.moduleId}/audio_slide_${slideAny.id}.mp3`;
               const cloudUrl = await uploadToSupabase(
                   "presentations",
                   audioFileName,

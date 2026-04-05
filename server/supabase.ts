@@ -103,6 +103,48 @@ export async function uploadToSupabase(
   }
 }
 
+/**
+ * Törli egy adott modul összes korábbi médiafájlját a tárolóból generálás előtt.
+ */
+export async function cleanupModuleStorage(moduleId: number): Promise<void> {
+  const supabase = await getSupabaseClient();
+  if (!supabase) return;
+
+  try {
+    const folder = `module_${moduleId}`;
+    console.log(`[SUPABASE] Cleaning up storage for module ${moduleId}...`);
+
+    // 1. Kilistázunk minden fájlt a modul mappájában
+    const { data: files, error: listError } = await (supabase as any)
+      .storage
+      .from("presentations")
+      .list(folder);
+
+    if (listError) {
+      console.warn(`[SUPABASE] Cleanup list warning for ${folder}:`, listError.message);
+      return;
+    }
+
+    if (files && files.length > 0) {
+      const filesToDelete = files.map((f: any) => `${folder}/${f.name}`);
+      console.log(`[SUPABASE] Deleting ${filesToDelete.length} stale files for module ${moduleId}...`);
+      
+      const { error: deleteError } = await (supabase as any)
+        .storage
+        .from("presentations")
+        .remove(filesToDelete);
+
+      if (deleteError) {
+        console.error(`[SUPABASE] Cleanup delete error for ${folder}:`, deleteError.message);
+      } else {
+        console.log(`[SUPABASE] Cleanup successful for ${folder}.`);
+      }
+    }
+  } catch (error) {
+    console.error(`[SUPABASE] Error during cleanup for module ${moduleId}:`, error);
+  }
+}
+
 // Régebbi kódrészek miatt exportálunk egy (kezdetben null) supabase változót is, 
 // de bátorítjuk az uploadToSupabase használatát.
 export const supabase = null; 
