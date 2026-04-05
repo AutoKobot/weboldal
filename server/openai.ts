@@ -1000,7 +1000,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `A high-quality technical educational diagram or detailed engineering illustration for a digital learning platform. Style: Clean, professional, informative chart, technical isolate on white background. Context: ${prompt}. Any text must be rendered clearly as specified in the context.`,
+        prompt: `Technical educational diagram, high-quality engineering illustration, professional chart on white background: ${prompt}. Clean lines, informative, state-of-the-art educational quality. If text labels are required, render them clearly as specified.`,
         n: 1,
         size: "1024x1024",
         quality: "hd",
@@ -1035,7 +1035,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Technical educational diagram, high-detail: ${prompt}. Professional chart, white background, informative labels.`,
+          prompt: `Technical educational chart, high-detail engineering diagram: ${prompt}. Professional, clean white background, ISO standard style.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
@@ -1073,7 +1073,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Technical educational diagram, high-detail professional illustration: ${prompt}. White background, informative, labeled correctly.`,
+          prompt: `Technical educational infographic, professional engineering diagram: ${prompt}. Sharp text, white background, detailed informative illustration.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
