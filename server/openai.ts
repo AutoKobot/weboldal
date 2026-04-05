@@ -937,10 +937,10 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS: A NARRÁCIÓ (narration) legyen irodalmi szintű, természetes magyar szöveg. 
-- Kerüld az angolos tükörfordításokat (pl. "ez a dia megmutatja" helyett "ezen a dián láthatjuk").
-- Használj változatos kötőszavakat és szakszerű, de érthető magyar terminológiát.
-- A stílusod legyen barátságos, de professzionális tanári előadásmód.
+FONTOS: 
+- A NARRÁCIÓ (narration) legyen irodalmi szintű, természetes magyar szöveg.
+- MINDEN diának (slides) legyen "imagePrompt" adata egy angol nyelvű, részletes leírással a kép generálásához.
+- A "content" résznél használj gazdag Markdown formázást (vastagítás, listák, h3 címek), ne csak sima szöveget.
 
 A prezentációnak 12-18 diából kell állnia. Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
 
@@ -955,12 +955,12 @@ JSON struktúra:
     {
       "id": 1,
       "type": "title | content | interactive",
-      "title": "Cím",
-      "subtitle": "Alcím",
-      "content": "Kratív, formázott tartalom (markdown - vastagítás, listák)",
-      "narration": "Részletes, TERMÉSZETES MAGYAR nyelvű tanári magyarázat (min 3-4 mondat, 200-400 karakter).",
-      "layout": "centered | split-left-image | split-right-image | full-text",
-      "imagePrompt": "Detailed English description for DALL-E image generation (without text).",
+      "title": "Dia címe",
+      "subtitle": "Dia alcíme",
+      "content": "Rich Markdown content",
+      "narration": "Natural Hungarian narration text.",
+      "layout": "centered | split-left-image | split-right-image",
+      "imagePrompt": "Detailed English image description for DALL-E (MANDATORY for every slide)",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }

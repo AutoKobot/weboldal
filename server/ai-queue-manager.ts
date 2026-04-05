@@ -315,8 +315,9 @@ export class AIQueueManager {
               // CRITICAL: DALL-E URLs are temporary (1 hour). We must save them to Supabase!
               if (imageUrl && imageUrl.startsWith('http')) {
                 console.log(`[IMAGE] Temporary URL received, downloading and saving to Supabase...`);
-                const response = await fetch(imageUrl);
-                const arrayBuffer = await response.arrayBuffer();
+                const axios = (await import("axios")).default;
+                const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                const arrayBuffer = imageResponse.data;
                 const imageFileName = `image_${item.moduleId}_${slide.id}_${Date.now()}.png`;
                 
                 const { uploadToSupabase } = await import("./supabase");

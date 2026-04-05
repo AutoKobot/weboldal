@@ -339,17 +339,21 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                       </div>
                     </div>
 
-                    {currentSlide.layout.includes('image') && currentSlide.imageUrl && (
+                    {(currentSlide.imageUrl || currentSlide.layout.includes('image')) && currentSlide.imageUrl && (
                       <motion.div 
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' ? 'order-2' : 'order-1'}`}
+                        className={`h-full flex items-center justify-center ${(currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered') ? 'order-2' : 'order-1'}`}
                       >
-                        <div className="relative w-full h-[55vh] rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-slate-900">
+                        <div className="relative w-full h-[55vh] rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-slate-900 bg-slate-900/50">
                           <img 
                             src={currentSlide.imageUrl} 
                             alt="Visual" 
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error("Image failed to load:", currentSlide.imageUrl);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
                           />
                         </div>
                       </motion.div>
