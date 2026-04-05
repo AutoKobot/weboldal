@@ -933,14 +933,15 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és műszaki szakoktató vagy. 
+    const prompt = `Te egy profi digitális tananyagfejlesztő és SMT/Gépész szakoktató vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS VIZUÁLIS SZABÁLYOK:
-1. SZÓ SZERINTI ÁBRÁZOLÁS: A "imagePrompt" legyen SZIGORÚAN TÁRGYSZERŰ. Ha a szöveg egy tárgyról vagy alkatrészről szól, a képnek konkrétan AZT a tárgyat kell ábrázolnia (pl: hegesztőpisztoly metszete, pingponglabda alakja több nézetből). KERÜLD az absztrakt művészetet és metaforákat.
-2. TECHNIKAI STÍLUS: "Technical educational diagram, multi-view orthographic drawing or high-detail 3D technical isolate, white background, precise labels in Hungarian, clean engineering focus."
-3. TANESZKÖZ JELLEG: A kép úgy nézzen ki, mint egy tankönyvi ábra, ami magyarázza a tananyagot. Használj robbantott ábrákat (exploded view) vagy metszeteket ott, ahol szükséges.
+FONTOS VIZUÁLIS SZABÁLYOK (A KÉPGENERÁTOR TANÍTÁSA):
+1. TECHNIKAI PONTOSSÁG: Ha a tananyag egy szabványos jelölésről szól (pl. hegesztési jelölések, ISO szabványok, elektronikai rajzjelek), a "imagePrompt" NE csak a nevet tartalmazza. Írd le vizuálisan, LÉPÉSRŐL-LÉPÉSRE, hogyan néz ki a jel! (Pl: "A welding symbol consisting of a horizontal reference line, an arrow leader pointing to the joint, and a triangular fillet weld symbol placed above the line.")
+2. VIZUÁLIS SZÓTÁR: Úgy írd le a promptot, mintha egy rajzolónak magyaráznád el az ábra felépítését. Add meg a vonalak irányát, a nyilak helyét és a szimbólumok formáját.
+3. KERÜLD A METAFORÁKAT: Csak fizikai, látható tárgyakat és ábrákat írj le.
+4. KÉPSTÍLUS: "High-resolution technical engineering infographic, clean white background, ISO standard technical drawing, informative labels, professional educational chart."
 
 JSON struktúra:
 {
@@ -953,7 +954,7 @@ JSON struktúra:
       "content": "Szakmailag precíz Markdown tartalom",
       "narration": "Natural Hungarian narration text.",
       "layout": "split-left-image | split-right-image",
-      "imagePrompt": "Literal and technical English description of the EXACT objects in the content (MANDATORY). Use keywords like 'cross-section', 'multi-view', 'labeled diagram'.",
+      "imagePrompt": "A highly detailed visual 'tutorial' in English for the image generator, explaining EXACTLY how the technical symbols and objects in the content should be drawn (MANDATORY).",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
