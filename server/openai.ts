@@ -933,15 +933,16 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és műszaki szakértő vagy. 
-Készíts egy interaktív, vizuálisan lenyűgöző HTML prezentációt a következőhöz: "${moduleTitle}"
+    const prompt = `Te egy profi digitális tananyagfejlesztő és mérnök-pedagógus vagy. 
+Készíts egy interaktív, prémium TANKÖNYV minőségű HTML prezentációt: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS VIZUÁLIS SZABÁLYOK (PRÉMIUM 3D & STRUKTÚRA):
-1. TÖBB KÉP: Minden diának KÖTELEZŐEN 2-4 képet kell tartalmaznia (listaként a "imagePrompts" mezőben). Bontsd fel a témát részletekre!
-2. STÍLUS: "High-fidelity professional 3D technical render, vibrant colors, premium studio lighting, isometric high-detail view, high contrast". TILOS az egyszerű vázlat vagy gyerekrajz stílus!
-3. SZÖVEGMENTESÍTÉS (DRÁKÓI SZABÁLY): TILOS BÁRMILYEN LATIN KARAKTER (A-Z) A KÉPEN! AI hiba miatt tilos angol vagy magyar feliratokat tenni a képre. HELYETTE KIZÁRÓLAG jól látható számokat (1, 2, 3) használj a fontos alkatrészek megjelölésére.
-4. DEFINÍCIÓ: Minden prompt legyen egy konkrét tárgy leírása: "Topic: [Object], Style: [High-Detail 3D Technical Render], Colors: [Specific Colors], Labels: [Numeric markers 1, 2, 3 ONLY. NO TEXT]."
+PRÉMIUM VIZUÁLIS SZABÁLYOK (PROFESSZIONÁLIS INFOGRAFIKA):
+1. TANKÖNYV STÍLUS: "Professional educational infographic, textbook engineering illustration, high-fidelity 3D technical render, clean white background". 
+2. TÖBB KÉP (SZIGORÚ): Minden diának MINIMUM 2 és MAXIMUM 4 képet KELL tartalmaznia a "imagePrompts" listában. TILOS egyetlen képet használni!
+3. SZÖVEGEZÉS: A képeken szerepeljenek OLVASHATÓ MAGYAR FELIRATOK (pl. "Öblítőgáz", "Hegesztő pisztoly"). Az AI pontos magyar szakkifejezéseket írjon!
+4. GEOMETRIAI PONTOSSÁG: A technikai szimbólumokat írd le részletesen (vonalak, szögek), hogy a rajz precíz legyen.
+5. DEFINÍCIÓ: "Topic: [Object], Style: [Premium Educational Diagram], Labels: [Hungarian words to write], Geometric Detail: [Shapes and lines]."
 
 JSON struktúra:
 {
@@ -954,8 +955,8 @@ JSON struktúra:
       "narration": "Hungarian narration.",
       "layout": "grid",
       "imagePrompts": [
-        "Vibrant 3D technical render of [part A] with numeric labels 1 and 2, white background. NO TEXT.",
-        "Detailed 3D engineering render of [part B] with numeric labels 3 and 4, professional lighting. NO TEXT."
+        "Textbook quality 3D render of [detail 1] with Hungarian labels. No text except the specified labels.",
+        "Detailed 3D technical illustration of [detail 2] with clear Hungarian annotations."
       ],
       "interactiveType": "quiz",
       "interactiveData": { ... }
