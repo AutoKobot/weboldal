@@ -933,16 +933,15 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és mérnök-pedagógus vagy. 
-Készíts egy interaktív, prémium TANKÖNYV minőségű HTML prezentációt: "${moduleTitle}"
+    const prompt = `Te egy profi digitális tananyagfejlesztő vagy. 
+Készíts egy interaktív, prémium minőségű prezentációt: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-PRÉMIUM VIZUÁLIS SZABÁLYOK (PROFESSZIONÁLIS INFOGRAFIKA):
-1. TANKÖNYV STÍLUS: "Professional educational infographic, textbook engineering illustration, high-fidelity 3D technical render, clean white background". 
-2. TÖBB KÉP (SZIGORÚ): Minden diának MINIMUM 2 és MAXIMUM 4 képet KELL tartalmaznia a "imagePrompts" listában. TILOS egyetlen képet használni!
-3. SZÖVEGEZÉS: A képeken szerepeljenek OLVASHATÓ MAGYAR FELIRATOK (pl. "Öblítőgáz", "Hegesztő pisztoly"). Az AI pontos magyar szakkifejezéseket írjon!
-4. GEOMETRIAI PONTOSSÁG: A technikai szimbólumokat írd le részletesen (vonalak, szögek), hogy a rajz precíz legyen.
-5. DEFINÍCIÓ: "Topic: [Object], Style: [Premium Educational Diagram], Labels: [Hungarian words to write], Geometric Detail: [Shapes and lines]."
+PRÉMIUM VIZUÁLIS SZABÁLYOK:
+1. DESIGN STÍLUS: "Realistic, professional photograph or high-quality 3D cinematic render, clean and modern composition, appropriate for an educational slide".
+2. EGY KÉP (SZIGORÚ): Minden diának PONTOSAN 1 képet KELL tartalmaznia a "imagePrompts" listában.
+3. SZÖVEG TILOS: A képeken SEMMILYEN szöveg, felirat vagy írás nem szerepelhet! Az AI ne tegyen semmilyen karaktert a képre.
+4. TÉMAKÖR: A kép a dián szereplő tényleges témáról szóljon (élethűen ábrázolva), de ne legyen túlságosan technikai/részletes - a látvány és a dizájn a fontos.
 
 JSON struktúra:
 {
@@ -953,10 +952,9 @@ JSON struktúra:
       "title": "Dia címe",
       "content": "Szakmai Markdown tartalom",
       "narration": "Hungarian narration.",
-      "layout": "grid",
+      "layout": "split-right-image",
       "imagePrompts": [
-        "Textbook quality 3D render of [detail 1] with Hungarian labels. No text except the specified labels.",
-        "Detailed 3D technical illustration of [detail 2] with clear Hungarian annotations."
+        "Realistic professional photo of [the specific topic], cinematic lighting, no text, clean aesthetic"
       ],
       "interactiveType": "quiz",
       "interactiveData": { ... }
@@ -999,14 +997,14 @@ export async function generatePresentationImage(prompt: string): Promise<string>
     if (provider === 'openai') {
       const openai = await getOpenAIClient();
       modelName = "dall-e-3";
-      costUsd = 0.06; // $0.04 base * 1.5 margin
+      costUsd = 0.04;
 
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Technical educational diagram, high-quality engineering illustration, professional chart on white background: ${prompt}. Clean lines, informative, state-of-the-art educational quality. If text labels are required, render them clearly as specified.`,
+        prompt: `Realistic professional cinematic 3D render or high-quality photograph, NO TEXT, clean design, highly detailed: ${prompt}. No text on the image, cinematic lighting, professional composition.`,
         n: 1,
         size: "1024x1024",
-        quality: "hd",
+        quality: "standard",
         style: "vivid",
       });
 
@@ -1038,7 +1036,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Technical educational chart, high-detail engineering diagram: ${prompt}. Professional, clean white background, ISO standard style.`,
+          prompt: `Realistic professional cinematic photo or 3D render, high-quality, NO TEXT, clean modern aesthetic: ${prompt}. Completely text-free, cinematic lighting, realistic style.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
@@ -1076,7 +1074,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Technical educational infographic, professional engineering diagram: ${prompt}. Sharp text, white background, detailed informative illustration.`,
+          prompt: `Realistic high-quality photograph or 3D cinematic render, NO TEXT, professional design: ${prompt}. No text, characters or symbols on the image.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
