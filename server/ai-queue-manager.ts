@@ -340,7 +340,9 @@ export class AIQueueManager {
                 }
                 
                 if (imageBuffer) {
-                  const imageFileName = `image_${item.moduleId}_${slideAny.id}_${i}_${Date.now()}.png`;
+                  // DETERMINISZTIKUS FÁJLNÉV: moduleId + slideId + index
+                  // Ezáltal egy újragenerálás felülírja a régit (upsert: true), nem szemetelünk!
+                  const imageFileName = `image_mod_${item.moduleId}_slide_${slideAny.id}_idx_${i}.png`;
                   const { uploadToSupabase } = await import("./supabase");
                   const cloudImageUrl = await uploadToSupabase(
                     "presentations",
@@ -351,7 +353,7 @@ export class AIQueueManager {
                   
                   if (cloudImageUrl) {
                     imageUrls.push(cloudImageUrl);
-                    console.log(`[IMAGE] Slide ${slideAny.id} image ${i} permanent URL: ${cloudImageUrl}`);
+                    console.log(`[STORAGE] Image saved (overwritten if existed): ${cloudImageUrl}`);
                   }
                 }
               }
@@ -367,7 +369,9 @@ export class AIQueueManager {
             try {
               console.log(`Generating speech for slide ${slideAny.id}...`);
               const audioBuffer = await generateSpeech(slideAny.narration);
-              const audioFileName = `narration_${item.moduleId}_${slideAny.id}_${Date.now()}.mp3`;
+              
+              // DETERMINISZTIKUS FÁJLNÉV a hanghoz is!
+              const audioFileName = `audio_mod_${item.moduleId}_slide_${slideAny.id}.mp3`;
               const { uploadToSupabase } = await import("./supabase");
               const cloudUrl = await uploadToSupabase(
                   "presentations",
@@ -378,7 +382,7 @@ export class AIQueueManager {
  
               if (cloudUrl) {
                 narrationAudioUrl = cloudUrl;
-                console.log(`Cloud audio successfully saved: ${narrationAudioUrl}`);
+                console.log(`Audio saved (overwritten if existed): ${narrationAudioUrl}`);
               } else {
                 const fs = await import("fs/promises");
                 const path = await import("path");

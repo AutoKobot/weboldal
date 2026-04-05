@@ -25,6 +25,7 @@ interface Slide {
   narrationAudioUrl?: string;
   layout: string;
   imageUrl?: string;
+  imageUrls?: string[];
   interactiveType?: string;
   interactiveData?: any;
 }
