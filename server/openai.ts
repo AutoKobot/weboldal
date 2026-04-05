@@ -933,17 +933,15 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és irodalmi szintű magyar nyelvű oktató vagy. 
+    const prompt = `Te egy profi digitális tananyagfejlesztő és mérnöki szintű oktató vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS SZABÁLYOK:
-1. NARRÁCIÓ: Irodalmi szintű, természetes magyar szöveg.
-2. KÉP-RELEVANCIA: A "imagePrompt" legyen SZIGORÚAN a dia "content" részéhez kapcsolódó mérnöki/oktatói ábra leírása. Kerüld a művészi, elvont képeket. 
-3. SZÖVEG A KÉPEN: Ha a diának van egy kulcsszava, kérd a képre NAGY, TISZTA magyar betűkkel, idézőjelbe téve a promptban (pl: The image features the word "FŐNÉZET" in large readable letters). Csak 1-2 szót kérj maximum!
-4. KÉPSTÍLUS: "Professional educational photography or high-fidelity technical engineering render, clean lines, no background clutter, photorealistic focus on the subject."
-
-Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
+FONTOS SZABÁLYOK A VIZUALITÁSHOZ:
+1. INFOGRAFIKA: A "imagePrompt" NE csak egy kép legyen, hanem egy MAGYARÁZÓ INFOGRAFIKA vagy TECHNIKAI DIAGRAM (pl: feliratozott metszeti rajz, folyamatábra, vagy jelölés-gyűjtemény).
+2. CÍMKÉZÉS: A képen szerepeljenek a dia tartalmához kapcsolódó magyar nyelvű feliratok és magyarázatok (labels), amik a kép egyes részeit azonosítják.
+3. PONTOSSÁG: Ha a tananyag szakkifejezéseket tartalmaz (pl: "Hegesztési rajzjelek"), akkor a kép konkrétan ezeket a rajzjeleket és azok magyar magyarázatát mutassa be mint egy technikai adatlapot.
+4. KÉPSTÍLUS: "High-quality educational medical/engineering infographic, labeled technical chart, clean white background or professional blueprint, sharp text rendering, informative and textbook-accurate."
 
 JSON struktúra:
 {
@@ -956,7 +954,7 @@ JSON struktúra:
       "content": "Szakmailag precíz, formázott Markdown tartalom",
       "narration": "Natural Hungarian narration text.",
       "layout": "split-left-image | split-right-image",
-      "imagePrompt": "Technical English description for FLUX that DIRECTLY VISUALIZES the content text (MANDATORY).",
+      "imagePrompt": "Detailed technical English description for an INFOGRAPHIC/DIAGRAM that lists and labels the slide concepts (MANDATORY).",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
