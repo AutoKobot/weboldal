@@ -939,15 +939,11 @@ Tananyag: ${moduleContent.substring(0, 40000)}
 
 FONTOS: 
 - A NARRÁCIÓ (narration) legyen irodalmi szintű, természetes magyar szöveg.
-- MINDEN diának (slides) legyen "imagePrompt" adata egy angol nyelvű, részletes leírással a kép generálásához.
-- A "content" résznél használj gazdag Markdown formázást (vastagítás, listák, h3 címek), ne csak sima szöveget.
+- MINDEN diának (slides) legyen "imagePrompt" adata egy angol nyelvű, RÉSZLETES ÉS SZAKMAILAG PONTOS leírással.
+- A "imagePrompt" ne általános legyen, hanem KONKRÉTAN ÁBRÁZOLJA a dia "content" részében leírt fogalmakat (pl. ha vonalfajtákról van szó, a prompt írja le az adott vonalfajtákat egy műszaki rajzon).
+- Stílus elvárás: "High-quality technical educational illustration, professional blueprint style or clean 3D engineering render, informative and factually accurate, premium textbook quality, no text."
 
 A prezentációnak 12-18 diából kell állnia. Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
-
-Interaktív típusok és adataik:
-- "quiz": { "question": "...", "options": ["A", "B", "C"], "correctAnswer": "...", "explanation": "..." }
-- "drag-drop": { "pairs": [ { "item": "Fogalom", "match": "Definíció" } ], "instructions": "Párosítsd a fogalmakat!" }
-- "hotspot": { "points": [ { "x": 50, "y": 50, "label": "Leírás", "title": "Cím" } ] }
 
 JSON struktúra:
 {
@@ -957,10 +953,10 @@ JSON struktúra:
       "type": "title | content | interactive",
       "title": "Dia címe",
       "subtitle": "Dia alcíme",
-      "content": "Rich Markdown content",
+      "content": "Rich Markdown content (szakmailag mély tartalom)",
       "narration": "Natural Hungarian narration text.",
-      "layout": "centered | split-left-image | split-right-image",
-      "imagePrompt": "Detailed English image description for DALL-E (MANDATORY for every slide)",
+      "layout": "split-left-image | split-right-image",
+      "imagePrompt": "Detailed technical English description that VISUALLY EXPLAINS the slide's specific content (MANDATORY for every slide).",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
