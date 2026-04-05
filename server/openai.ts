@@ -1058,9 +1058,9 @@ export async function generatePresentationImage(prompt: string): Promise<string>
       
       // Mapping for DeepInfra
       const mapping: Record<string, string> = {
-        'flux-pro': 'black-forest-labs/FLUX.1-pro',
-        'flux-dev': 'black-forest-labs/FLUX.1-dev',
-        'flux-schnell': 'black-forest-labs/FLUX.1-schnell'
+        'flux-pro': 'black-forest-labs/FLUX-1-pro',
+        'flux-dev': 'black-forest-labs/FLUX-1-dev',
+        'flux-schnell': 'black-forest-labs/FLUX-1-schnell'
       };
       modelName = mapping[modelKey] || mapping['flux-schnell'];
 
