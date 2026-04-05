@@ -6,9 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useAudioAnalyzer } from "@/hooks/useAudioAnalyzer";
-import { FBXAvatar } from "./FBXAvatar";
-import { AVATARS } from "@/lib/avatars";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { SlideQuiz } from "./presentation-interactive/SlideQuiz";
@@ -61,11 +58,8 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const volume = useAudioAnalyzer(audioRef);
 
   const currentSlide = slides?.[currentSlideIndex];
-  const currentAvatarDef = AVATARS[0];
-  const avatarUrl = `/avatars/${currentAvatarDef.filename}`;
 
   const resumeAudioContext = async () => {
     try {
@@ -344,21 +338,14 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           </div>
         </div>
 
-        <div className="bg-slate-900/95 p-4 border-t border-slate-800 flex items-center justify-between backdrop-blur-md shrink-0 h-24 px-8 relative">
-          <div className="absolute left-1/2 -top-40 -translate-x-1/2 w-48 h-48 pointer-events-none">
-             <FBXAvatar 
-               url={avatarUrl}
-               volume={volume}
-             />
-          </div>
-
+        <div className="bg-slate-900/95 p-4 border-t border-slate-800 flex items-center justify-between backdrop-blur-md shrink-0 h-20 px-8">
           <Button 
             onClick={prevSlide} 
             disabled={currentSlideIndex === 0}
             variant="ghost"
-            className="text-slate-400 hover:text-white hover:bg-slate-800 min-w-[10rem] h-14 rounded-2xl text-md font-semibold transition-all"
+            className="text-slate-400 hover:text-white hover:bg-slate-800 min-w-[10rem] h-12 rounded-xl text-md font-semibold transition-all"
           >
-            <ChevronLeft className="mr-2 w-6 h-6" /> Előző
+            <ChevronLeft className="mr-2 w-5 h-5" /> Előző
           </Button>
 
           <div className="flex gap-3 px-6">
@@ -366,10 +353,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
               <motion.div 
                 key={i} 
                 animate={{ 
-                  width: i === currentSlideIndex ? '3rem' : '0.7rem',
+                  width: i === currentSlideIndex ? '2.5rem' : '0.6rem',
                   backgroundColor: i === currentSlideIndex ? '#3b82f6' : (i < currentSlideIndex ? '#2563eb66' : '#1e293b')
                 }}
-                className="h-2 rounded-full transition-all"
+                className="h-1.5 rounded-full transition-all"
               />
             ))}
           </div>
@@ -377,9 +364,9 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           <Button 
             onClick={nextSlide} 
             disabled={currentSlideIndex === slides.length - 1}
-            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[12rem] h-14 rounded-2xl shadow-xl shadow-blue-900/20 text-lg font-bold transition-all active:scale-95"
+            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[10rem] h-12 rounded-xl shadow-xl shadow-blue-900/20 text-md font-bold transition-all active:scale-95"
           >
-            {currentSlideIndex === slides.length - 1 ? 'Befejezés' : 'Következő'} <ChevronRight className="ml-2 w-6 h-6" />
+            {currentSlideIndex === slides.length - 1 ? 'Befejezés' : 'Következő'} <ChevronRight className="ml-2 w-5 h-5" />
           </Button>
         </div>
       </DialogContent>
