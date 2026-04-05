@@ -999,7 +999,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `A high-quality, ultra-realistic professional educational photo or detailed 3D render for a digital learning platform. Style: Photorealistic, cinematic lighting, sharp focus, professional colors, neutral background. Context: ${prompt}. If text is required, it must be represented clearly as described in the context. Final image should look premium and state-of-the-art.`,
+        prompt: `A high-quality technical educational diagram or detailed engineering illustration for a digital learning platform. Style: Clean, professional, informative chart, technical isolate on white background. Context: ${prompt}. Any text must be rendered clearly as specified in the context.`,
         n: 1,
         size: "1024x1024",
         quality: "hd",
@@ -1034,7 +1034,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Highly realistic professional educational photo: ${prompt}. Cinematic lighting, very detailed, sharp focus, include any required text clearly.`,
+          prompt: `Technical educational diagram, high-detail: ${prompt}. Professional chart, white background, informative labels.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
@@ -1072,7 +1072,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Ultra-realistic professional photo, high-detail: ${prompt}. Cinematic lighting, sharp focus, any text must be rendered exactly as specified in the prompt.`,
+          prompt: `Technical educational diagram, high-detail professional illustration: ${prompt}. White background, informative, labeled correctly.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
