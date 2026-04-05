@@ -39,7 +39,7 @@ interface PresentationPlayerProps {
 
 // Interactive Component Handler
 function InteractiveContent({ slide }: { slide: Slide }) {
-  if (!slide.interactiveType || !slide.interactiveData) return null;
+  if (!slide.interactiveType || slide.interactiveType === 'none' || !slide.interactiveData) return null;
 
   switch (slide.interactiveType) {
     case 'quiz':
@@ -313,10 +313,10 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                     </motion.div>
                   </div>
                 ) : (
-                  <div className={`h-full w-full grid gap-12 items-center ${!currentSlide.imageUrl ? 'grid-cols-1 max-w-4xl mx-auto' : 'grid-cols-1 lg:grid-cols-[1.2fr,1fr]'}`}>
+                  <div className={`h-full w-full grid gap-12 items-center ${(currentSlide.imageUrl || (currentSlide.imageUrls && currentSlide.imageUrls.length > 0)) ? 'grid-cols-1 lg:grid-cols-[1.1fr,1fr]' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
                     
                     {/* Content Section */}
-                    <div className={`flex flex-col justify-center space-y-8 ${(!currentSlide.imageUrl) ? 'text-center' : (currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' ? 'order-1 lg:pl-16' : 'order-2')}`}>
+                    <div className={`flex flex-col justify-center space-y-8 ${(currentSlide.imageUrl || (currentSlide.imageUrls && currentSlide.imageUrls.length > 0)) ? (currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' || currentSlide.layout === 'grid' ? 'order-1 lg:pl-10' : 'order-2') : 'text-center'}`}>
                       <div className="space-y-4">
                         <Badge variant="outline" className="text-blue-500 border-blue-900/40 bg-blue-900/10 uppercase tracking-widest text-[10px] px-3 py-1 w-fit mx-auto lg:mx-0">
                           Slide {currentSlideIndex + 1}
