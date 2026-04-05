@@ -72,6 +72,33 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
   const audioContextRef = useRef<AudioContext | null>(null);
   const volume = useAudioAnalyzer(audioRef);
 
+  if (!open) return null;
+
+  // BIZTONSÁGI VÉDELEM: Ha nincs dia (pl. generálás alatt vagy hiba), ne omladjon össze a React
+  if (!slides || slides.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[70vw] w-full h-[80vh] p-0 bg-slate-950 border-slate-800 overflow-hidden outline-none flex items-center justify-center">
+          <div className="text-center space-y-6 max-w-md p-12 bg-slate-900/50 rounded-[3rem] border border-slate-800 shadow-2xl backdrop-blur-xl">
+             <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
+                <HelpCircle className="w-10 h-10 text-blue-500 animate-pulse" />
+             </div>
+             <div className="space-y-3">
+               <h3 className="text-3xl font-black text-white tracking-tight">Nincs tartalom</h3>
+               <p className="text-slate-400 text-lg leading-relaxed">Ehhez a modulhoz még nem készült interaktív prezentáció. Próbáld meg az újragenerálást!</p>
+             </div>
+             <Button 
+               onClick={() => onOpenChange(false)} 
+               className="bg-blue-600 hover:bg-blue-500 text-white rounded-2xl px-10 py-6 text-lg font-bold transition-all shadow-lg shadow-blue-600/20"
+             >
+               Vissza a modulhoz
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const currentSlide = slides?.[currentSlideIndex];
   const currentAvatarDef = AVATARS[0];
   const avatarUrl = `/avatars/${currentAvatarDef.filename}`;
@@ -349,10 +376,10 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                         className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' || currentSlide.layout === 'grid' ? 'order-2' : 'order-1'} min-w-0`}
                       >
                         <div className={`grid gap-4 w-full h-[60vh] lg:h-[65vh] max-w-full 
-                          ${(currentSlide.imageUrls?.length || 1) > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
+                          ${((currentSlide as any)?.imageUrls?.length || 1) > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
                         >
-                          {(currentSlide.imageUrls && currentSlide.imageUrls.length > 0) ? (
-                            currentSlide.imageUrls.map((url: string, idx: number) => (
+                          {((currentSlide as any)?.imageUrls && (currentSlide as any).imageUrls.length > 0) ? (
+                            (currentSlide as any).imageUrls.map((url: string, idx: number) => (
                               <div key={idx} className="relative rounded-[2rem] overflow-hidden shadow-xl border-2 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
                                 <img 
                                   src={url} 

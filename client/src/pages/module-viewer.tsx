@@ -753,7 +753,7 @@ export default function ModuleViewer() {
                   </Button>
                 )}
 
-                {module.presentationData && (
+                {Boolean(module.presentationData) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -1015,14 +1015,14 @@ export default function ModuleViewer() {
                               <Youtube className="w-5 h-5 mr-2" />
                               Kulcsfogalmak videókkal
                             </h3>
-                            {keyConceptsData.map((concept: any, index: number) => (
+                            {keyConceptsData?.map((concept: any, index: number) => (
                               <div key={index} className="mb-6 p-4 bg-student-warm rounded-lg">
                                 <h4 className="font-semibold text-neutral-800 mb-2">{concept.concept}</h4>
                                 <p className="text-neutral-700 mb-3">{concept.definition}</p>
                                 {concept.youtubeVideos && concept.youtubeVideos.length > 0 && (
                                   <div className="space-y-2">
                                     <h5 className="text-sm font-medium text-neutral-600">Kapcsolódó videók:</h5>
-                                    {concept.youtubeVideos.map((video: any, videoIndex: number) => (
+                                    {concept.youtubeVideos?.map((video: any, videoIndex: number) => (
                                       <button
                                         key={videoIndex}
                                         onClick={() => {
@@ -1431,7 +1431,17 @@ export default function ModuleViewer() {
       <PresentationPlayer
         open={showInteractivePresentationModal}
         onOpenChange={setShowInteractivePresentationModal}
-        slides={module.presentationData as any[]}
+        slides={(() => {
+          if (!module.presentationData) return [];
+          try {
+            return typeof module.presentationData === 'string' 
+              ? JSON.parse(module.presentationData) 
+              : module.presentationData;
+          } catch (e) {
+            console.error("Error parsing presentationData:", e);
+            return [];
+          }
+        })() as any[]}
         moduleTitle={module.title}
       />
     </div>
