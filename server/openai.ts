@@ -937,11 +937,11 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS VIZUÁLIS SZABÁLYOK (A KÉPGENERÁTOR TANÍTÁSA):
-1. TECHNIKAI PONTOSSÁG: Ha a tananyag egy szabványos jelölésről szól (pl. hegesztési jelölések, ISO szabványok, elektronikai rajzjelek), a "imagePrompt" NE csak a nevet tartalmazza. Írd le vizuálisan, LÉPÉSRŐL-LÉPÉSRE, hogyan néz ki a jel! (Pl: "A welding symbol consisting of a horizontal reference line, an arrow leader pointing to the joint, and a triangular fillet weld symbol placed above the line.")
-2. VIZUÁLIS SZÓTÁR: Úgy írd le a promptot, mintha egy rajzolónak magyaráznád el az ábra felépítését. Add meg a vonalak irányát, a nyilak helyét és a szimbólumok formáját.
-3. KERÜLD A METAFORÁKAT: Csak fizikai, látható tárgyakat és ábrákat írj le.
-4. KÉPSTÍLUS: "High-resolution technical engineering infographic, clean white background, ISO standard technical drawing, informative labels, professional educational chart."
+FONTOS VIZUÁLIS SZABÁLYOK (LOGIKAI FORDÍTÁS):
+1. GEOMETRIAI LEÍRÁS: Ha a szakmai kifejezés megtévesztő (pl. a rajzjel "villája"), ne a szót használd ("fork"), hanem írd le a GEOMETRIÁT (pl: "Horizontal reference line with a V-shaped tail at the end"). 
+2. SZÖVEG MINIMALIZÁLÁS: A FLUX Schnell nem tud hosszú szöveget. A "imagePrompt" tartalmazhat MAXIMUM 1-2 fontos magyar szót (pl: "WPS", "BIZTONSÁG"). TILTS meg minden egyéb kamu feliratot!
+3. IKONOK ÉS SZIMBÓLUMOK: Szöveges magyarázat helyett kérj tiszta technikai szimbólumokat és ikonokat.
+4. KÉPSTÍLUS: "Clean, minimalist technical infographic, white background, precise geometric shapes, professional blueprint aesthetic, absolutely no gibberish text."
 
 JSON struktúra:
 {
@@ -954,7 +954,7 @@ JSON struktúra:
       "content": "Szakmailag precíz Markdown tartalom",
       "narration": "Natural Hungarian narration text.",
       "layout": "split-left-image | split-right-image",
-      "imagePrompt": "A highly detailed visual 'tutorial' in English for the image generator, explaining EXACTLY how the technical symbols and objects in the content should be drawn (MANDATORY).",
+      "imagePrompt": "A geometrical and physical description in English for FLUX. Describe SHAPES, LINES, and SYMBOLS instead of abstract terms. Only use 1-2 specific Hungarian words in quotes.",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
