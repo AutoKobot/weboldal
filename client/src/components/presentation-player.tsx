@@ -347,17 +347,17 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' ? 'order-2' : 'order-1'}`}
                       >
-                        <div className="relative w-full aspect-[4/5] lg:aspect-square max-h-[65vh] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.6)] border-4 border-slate-800/50 bg-slate-900/20 group">
+                        <div className="relative w-full h-[60vh] lg:h-[65vh] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group">
                           <img 
                             src={currentSlide.imageUrl} 
                             alt="Visual" 
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
                             onError={(e) => {
                               console.error("Image failed to load:", currentSlide.imageUrl);
                               (e.target as HTMLImageElement).parentElement!.style.display = 'none';
                             }}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-60" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
                         </div>
                       </motion.div>
                     )}

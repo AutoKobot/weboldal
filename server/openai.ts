@@ -937,13 +937,13 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS: 
-- A NARRÁCIÓ (narration) legyen irodalmi szintű, természetes magyar szöveg.
-- MINDEN diának (slides) legyen "imagePrompt" adata egy angol nyelvű, RÉSZLETES ÉS SZAKMAILAG PONTOS leírással.
-- A "imagePrompt" ne általános legyen, hanem KONKRÉTAN ÁBRÁZOLJA a dia "content" részében leírt fogalmakat (pl. ha vonalfajtákról van szó, a prompt írja le az adott vonalfajtákat egy műszaki rajzon).
-- Stílus elvárás: "High-quality technical educational illustration, professional blueprint style or clean 3D engineering render, informative and factually accurate, premium textbook quality, no text."
+FONTOS SZABÁLYOK:
+1. NARRÁCIÓ: Irodalmi szintű, természetes magyar szöveg.
+2. KÉP-RELEVANCIA: A "imagePrompt" legyen SZIGORÚAN a dia "content" részéhez kapcsolódó mérnöki/oktatói ábra leírása. Kerüld a művészi, elvont képeket. 
+3. SZÖVEG A KÉPEN: Ha a diának van egy kulcsszava, kérd a képre NAGY, TISZTA magyar betűkkel, idézőjelbe téve a promptban (pl: The image features the word "FŐNÉZET" in large readable letters). Csak 1-2 szót kérj maximum!
+4. KÉPSTÍLUS: "Professional educational photography or high-fidelity technical engineering render, clean lines, no background clutter, photorealistic focus on the subject."
 
-A prezentációnak 12-18 diából kell állnia. Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
+Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
 
 JSON struktúra:
 {
@@ -953,10 +953,10 @@ JSON struktúra:
       "type": "title | content | interactive",
       "title": "Dia címe",
       "subtitle": "Dia alcíme",
-      "content": "Rich Markdown content (szakmailag mély tartalom)",
+      "content": "Szakmailag precíz, formázott Markdown tartalom",
       "narration": "Natural Hungarian narration text.",
       "layout": "split-left-image | split-right-image",
-      "imagePrompt": "Detailed technical English description that VISUALLY EXPLAINS the slide's specific content (MANDATORY for every slide).",
+      "imagePrompt": "Technical English description for FLUX that DIRECTLY VISUALIZES the content text (MANDATORY).",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
