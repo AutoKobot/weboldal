@@ -1002,14 +1002,14 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `A high-quality, professional educational illustration for a digital learning platform. Style: Clean, detailed technical illustration or modern 3D isometric view, professional colors, neutral background. Context: ${prompt}. No text in the image. Final image should look like a premium textbook graphic.`,
+        prompt: `A high-quality, ultra-realistic professional educational photo or detailed 3D render for a digital learning platform. Style: Photorealistic, cinematic lighting, sharp focus, professional colors, neutral background. Context: ${prompt}. If text is required, it must be represented clearly as described in the context. Final image should look premium and state-of-the-art.`,
         n: 1,
         size: "1024x1024",
         quality: "hd",
         style: "vivid",
       });
 
-      imageUrl = response.data?.[0]?.url || "";
+      imageUrl = response.data?.[0]?.url || response.data?.[0]?.b64_json || "";
     } else if (provider === 'together') {
       const apiKey = process.env.TOGETHER_API_KEY || (await storage.getSystemSetting('together_api_key'))?.value;
       if (!apiKey) throw new Error("Together AI API key not configured");
@@ -1037,7 +1037,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Educational illustration: ${prompt}. Clean, high-quality, professional colors, no text, premium look.`,
+          prompt: `Highly realistic professional educational photo: ${prompt}. Cinematic lighting, very detailed, sharp focus, include any required text clearly.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
@@ -1046,7 +1046,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       if (response.ok) {
         const data = await response.json();
-        imageUrl = data.data?.[0]?.url || "";
+        imageUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json || "";
       }
     } else if (provider === 'deepinfra') {
       const apiKey = process.env.DEEPINFRA_API_KEY || (await storage.getSystemSetting('deepinfra_api_key'))?.value;
@@ -1075,7 +1075,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Educational illustration: ${prompt}. Clean, high-quality, professional colors, no text, premium look.`,
+          prompt: `Ultra-realistic professional photo, high-detail: ${prompt}. Cinematic lighting, sharp focus, any text must be rendered exactly as specified in the prompt.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
