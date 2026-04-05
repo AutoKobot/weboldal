@@ -310,8 +310,10 @@ export class AIQueueManager {
           let currentSlideImageUrl: string | null = null;
           if (slide.imagePrompt) {
             try {
-              console.log(`[AI-QUEUE] Generating image for slide ${slide.id} with prompt: ${slide.imagePrompt.substring(0, 30)}...`);
-              const generatedUrl = await generatePresentationImage(slide.imagePrompt);
+              console.log(`[AI-QUEUE] Generating image for slide ${slide.id}...`);
+              // Provide more context: Title + Content for better relevance
+              const fullContext = `${slide.title}: ${slide.imagePrompt || slide.content.substring(0, 500)}`;
+              const generatedUrl = await generatePresentationImage(fullContext);
               
               // CRITICAL: DALL-E/FLUX URLs are temporary. We must save them to Supabase!
               if (generatedUrl) {
