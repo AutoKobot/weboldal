@@ -1089,11 +1089,16 @@ export async function generatePresentationImage(prompt: string): Promise<string>
       if (response.ok) {
         const data = await response.json();
         imageUrl = data.data?.[0]?.url || "";
+        console.log(`[DEEPINFRA] Image generated successfully: ${imageUrl.substring(0, 50)}...`);
+      } else {
+        const errorData = await response.text();
+        console.error(`[DEEPINFRA] API Error: ${response.status} - ${errorData}`);
       }
     }
 
     // Log the API call for cost tracking
     if (imageUrl) {
+      console.log(`[IMAGE] Final Image URL for slide: ${imageUrl.substring(0, 50)}...`);
       await storage.logApiCall({
         provider: providerName,
         service: "image_generation",
@@ -1103,6 +1108,8 @@ export async function generatePresentationImage(prompt: string): Promise<string>
         requestData: { prompt },
         responseData: { imageUrl: "URL_GEN" } // Don't store full URL to save space
       });
+    } else {
+      console.error(`[IMAGE] Failed to produce imageUrl for provider: ${providerName}`);
     }
 
     return imageUrl;
