@@ -41,7 +41,12 @@ export default function CookieBanner() {
     if (!storedConsent) {
       setShowBanner(true);
     } else {
-      setConsent(JSON.parse(storedConsent));
+      try {
+        setConsent(JSON.parse(storedConsent));
+      } catch (error) {
+        console.error('Failed to parse cookie consent from localStorage:', error);
+        setShowBanner(true);
+      }
     }
   }, []);
 

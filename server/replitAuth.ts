@@ -16,10 +16,21 @@ import { storage } from "./storage";
 
 const getOidcConfig = memoize(
   async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
+    try {
+      return await client.discovery(
+        new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+        process.env.REPL_ID!
+      );
+    } catch (error) {
+      console.warn("OIDC configuration discovery failed:", error);
+      // Return a minimal config to prevent hanging, though Replit Auth won't work
+      return { 
+        issuer: process.env.ISSUER_URL ?? "https://replit.com/oidc",
+        authorization_endpoint: `${process.env.ISSUER_URL ?? "https://replit.com/oidc"}/auth`,
+        token_endpoint: `${process.env.ISSUER_URL ?? "https://replit.com/oidc"}/token`,
+        jwks_uri: `${process.env.ISSUER_URL ?? "https://replit.com/oidc"}/jwks`
+      } as any;
+    }
   },
   { maxAge: 3600 * 1000 }
 );
@@ -82,29 +93,33 @@ export async function setupAuth(app: Express) {
 
   // Only setup Replit Auth if REPLIT_DOMAINS is present
   if (process.env.REPLIT_DOMAINS) {
-    const config = await getOidcConfig();
+    try {
+      const config = await getOidcConfig();
 
-    const verify: VerifyFunction = async (
-      tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-      verified: passport.AuthenticateCallback
-    ) => {
-      const user = {};
-      updateUserSession(user, tokens);
-      await upsertUser(tokens.claims());
-      verified(null, user);
-    };
+      const verify: VerifyFunction = async (
+        tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
+        verified: passport.AuthenticateCallback
+      ) => {
+        const user = {};
+        updateUserSession(user, tokens);
+        await upsertUser(tokens.claims());
+        verified(null, user);
+      };
 
-    for (const domain of process.env.REPLIT_DOMAINS.split(",")) {
-      const strategy = new Strategy(
-        {
-          name: `replitauth:${domain}`,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify,
-      );
-      passport.use(strategy);
+      for (const domain of process.env.REPLIT_DOMAINS.split(",")) {
+        const strategy = new Strategy(
+          {
+            name: `replitauth:${domain}`,
+            config,
+            scope: "openid email profile offline_access",
+            callbackURL: `https://${domain}/api/callback`,
+          },
+          verify,
+        );
+        passport.use(strategy);
+      }
+    } catch (err) {
+      console.error("Failed to setup Replit Auth:", err);
     }
   }
 
