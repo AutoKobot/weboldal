@@ -311,6 +311,28 @@ export class AIQueueManager {
           if (slide.imagePrompt) {
             try {
               imageUrl = await generatePresentationImage(slide.imagePrompt);
+              
+              // CRITICAL: DALL-E URLs are temporary (1 hour). We must save them to Supabase!
+              if (imageUrl && imageUrl.startsWith('http')) {
+                console.log(`[IMAGE] Temporary URL received, downloading and saving to Supabase...`);
+                const response = await fetch(imageUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                const imageFileName = `image_${item.moduleId}_${slide.id}_${Date.now()}.png`;
+                
+                const { uploadToSupabase } = await import("./supabase");
+                const cloudImageUrl = await uploadToSupabase(
+                  "presentations",
+                  imageFileName,
+                  Buffer.from(arrayBuffer),
+                  "image/png"
+                );
+                
+                if (cloudImageUrl) {
+                  imageUrl = cloudImageUrl;
+                  console.log(`[IMAGE] Permanent cloud URL: ${imageUrl}`);
+                }
+              }
+              
               await this.recordAIGenerationCost('openai', 'dalle3_image', 0.04);
             } catch (e) {
               console.error(`Image generation failed for slide ${slide.id}:`, e);

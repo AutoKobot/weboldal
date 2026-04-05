@@ -540,10 +540,10 @@ export async function generateSpeech(
     const openai = await getOpenAIClient();
 
     const mp3 = await openai.audio.speech.create({
-      model: "tts-1", // tts-1 a leggyorsabb modell
-      voice: "nova", // Nova hang jobb magyar kiejtéshez
+      model: "tts-1-hd", // tts-1-hd a jobb minőségért
+      voice: "shimmer", // Shimmer hang természetesebb magyar kiejtéshez
       input: text,
-      speed: 1.0, // Normál sebesség a gyorsabb feldolgozásért
+      speed: 1.0, 
       response_format: "mp3",
     });
 
@@ -933,9 +933,14 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és UI/UX dizájner vagy. 
+    const prompt = `Te egy profi digitális tananyagfejlesztő és irodalmi szintű magyar nyelvű oktató vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
+
+FONTOS: A NARRÁCIÓ (narration) legyen irodalmi szintű, természetes magyar szöveg. 
+- Kerüld az angolos tükörfordításokat (pl. "ez a dia megmutatja" helyett "ezen a dián láthatjuk").
+- Használj változatos kötőszavakat és szakszerű, de érthető magyar terminológiát.
+- A stílusod legyen barátságos, de professzionális tanári előadásmód.
 
 A prezentációnak 12-18 diából kell állnia. Minden diának legyen NARRÁCIÓJA és egy ELEM (interactiveData).
 
@@ -952,10 +957,10 @@ JSON struktúra:
       "type": "title | content | interactive",
       "title": "Cím",
       "subtitle": "Alcím",
-      "content": "...",
-      "narration": "Részletes tanári magyarázat (min 3-4 mondat).",
+      "content": "Kratív, formázott tartalom (markdown - vastagítás, listák)",
+      "narration": "Részletes, TERMÉSZETES MAGYAR nyelvű tanári magyarázat (min 3-4 mondat, 200-400 karakter).",
       "layout": "centered | split-left-image | split-right-image | full-text",
-      "imagePrompt": "Leírás a dia illusztrációjához.",
+      "imagePrompt": "Detailed English description for DALL-E image generation (without text).",
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }
