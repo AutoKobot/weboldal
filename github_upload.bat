@@ -16,7 +16,7 @@ echo [GitHub Feltoltes] Feltoltes a GitHub-ra...
 git push -u origin main
 
 if %ERRORLEVEL% NEQ 0 (
-    echo.
+        echo.
     echo [PROBALJUK MASTER AGGYAL...]
     git push -u origin master
 )
