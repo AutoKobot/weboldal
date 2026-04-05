@@ -933,15 +933,16 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
   try {
     const openai = await getOpenAIClient();
 
-    const prompt = `Te egy profi digitális tananyagfejlesztő és SMT/Gépész szakoktató vagy. 
+    const prompt = `Te egy profi digitális tananyagfejlesztő és műszaki szakoktató vagy. 
 Készíts egy interaktív, vizuálisan gazdag és szakmailag mély HTML prezentációt a következő modulhoz: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
 
-FONTOS VIZUÁLIS SZABÁLYOK (LOGIKAI FORDÍTÁS):
-1. GEOMETRIAI LEÍRÁS: Ha a szakmai kifejezés megtévesztő (pl. a rajzjel "villája"), ne a szót használd ("fork"), hanem írd le a GEOMETRIÁT (pl: "Horizontal reference line with a V-shaped tail at the end"). 
-2. SZÖVEG MINIMALIZÁLÁS: A FLUX Schnell nem tud hosszú szöveget. A "imagePrompt" tartalmazhat MAXIMUM 1-2 fontos magyar szót (pl: "WPS", "BIZTONSÁG"). TILTS meg minden egyéb kamu feliratot!
-3. IKONOK ÉS SZIMBÓLUMOK: Szöveges magyarázat helyett kérj tiszta technikai szimbólumokat és ikonokat.
-4. KÉPSTÍLUS: "Clean, minimalist technical infographic, white background, precise geometric shapes, professional blueprint aesthetic, absolutely no gibberish text."
+FONTOS VIZUÁLIS SZABÁLYOK (MULTIPLE IMAGES & STRUCTURE):
+1. TÖBB KÉP: Ha a téma összetett (pl: "Hegesztési rajzjelek"), ne egyetlen zsúfolt képet kérj. Használj több (2-4) különálló képet, amelyek különböző aspektusokat mutatnak be.
+2. JSON-LIKE PROMPT: A "imagePrompts" mező legyen egy tömb, ahol minden elem egy szigorúan strukturált angol leírás.
+3. STRUKTÚRA: Úgy írd le a képet, mint egy adatlapot:
+   "Subject: [Object Name], View: [Perspective], Details: [Lines and Symbols], Label: [Hungarian Text]."
+4. TÁRGYSZERŰSÉG: Csak konkrét, elmagyarázható szakmai ábrákat kérj!
 
 JSON struktúra:
 {
@@ -950,11 +951,13 @@ JSON struktúra:
       "id": 1,
       "type": "title | content | interactive",
       "title": "Dia címe",
-      "subtitle": "Dia alcíme",
       "content": "Szakmailag precíz Markdown tartalom",
       "narration": "Natural Hungarian narration text.",
-      "layout": "split-left-image | split-right-image",
-      "imagePrompt": "A geometrical and physical description in English for FLUX. Describe SHAPES, LINES, and SYMBOLS instead of abstract terms. Only use 1-2 specific Hungarian words in quotes.",
+      "layout": "grid | split-left | split-right",
+      "imagePrompts": [
+        "Structured technical description for Image 1...",
+        "Structured technical description for Image 2..."
+      ],
       "interactiveType": "quiz | drag-drop | hotspot",
       "interactiveData": { ... }
     }

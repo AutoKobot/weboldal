@@ -340,24 +340,45 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                       </div>
                     </div>
 
-                    {/* Image Section - Intelligent side positioning */}
-                    {currentSlide.imageUrl && (
+                    {/* Image Section - Intelligent side positioning & Grid support */}
+                    {(currentSlide.imageUrl || (currentSlide.imageUrls && currentSlide.imageUrls.length > 0)) && (
                       <motion.div 
                         initial={{ opacity: 0, x: 20, scale: 0.95 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
-                        className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' ? 'order-2' : 'order-1'}`}
+                        className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' || currentSlide.layout === 'grid' ? 'order-2' : 'order-1'} min-w-0`}
                       >
-                        <div className="relative w-full h-[60vh] lg:h-[65vh] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group">
-                          <img 
-                            src={currentSlide.imageUrl} 
-                            alt="Visual" 
-                            className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
-                            onError={(e) => {
-                              console.error("Image failed to load:", currentSlide.imageUrl);
-                              (e.target as HTMLImageElement).parentElement!.style.display = 'none';
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
+                        <div className={`grid gap-4 w-full h-[60vh] lg:h-[65vh] max-w-full 
+                          ${(currentSlide.imageUrls?.length || 1) > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
+                        >
+                          {(currentSlide.imageUrls && currentSlide.imageUrls.length > 0) ? (
+                            currentSlide.imageUrls.map((url: string, idx: number) => (
+                              <div key={idx} className="relative rounded-[2rem] overflow-hidden shadow-xl border-2 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
+                                <img 
+                                  src={url} 
+                                  alt={`Visual ${idx + 1}`} 
+                                  className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
+                                  onError={(e) => {
+                                    console.error("Image failed to load:", url);
+                                    (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent pointer-events-none" />
+                              </div>
+                            ))
+                          ) : (
+                            <div className="relative rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
+                              <img 
+                                src={currentSlide.imageUrl} 
+                                alt="Visual" 
+                                className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
+                                onError={(e) => {
+                                  console.error("Image failed to load:", currentSlide.imageUrl);
+                                  (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}

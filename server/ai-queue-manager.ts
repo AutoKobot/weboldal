@@ -305,40 +305,42 @@ export class AIQueueManager {
         // 2. Minden diához képek és hangok
         const slidesWithMedia = [];
         for (const slide of slideData) {
-          console.log(`Processing slide ${slide.id}: ${slide.title}`);
+          const slideAny = slide as any;
+          console.log(`Processing slide ${slideAny.id}: ${slideAny.title}`);
           
-          let currentSlideImageUrl: string | null = null;
-          if (slide.imagePrompt) {
+          const imageUrls: string[] = [];
+          const prompts = slideAny.imagePrompts || (slideAny.imagePrompt ? [slideAny.imagePrompt] : []);
+          
+          for (let i = 0; i < prompts.length; i++) {
+            const prompt = prompts[i];
             try {
-              console.log(`[AI-QUEUE] Generating image for slide ${slide.id}...`);
-              // Provide more context: Title + Content for better relevance
-              const fullContext = `${slide.title}: ${slide.imagePrompt || slide.content.substring(0, 500)}`;
+              console.log(`[AI-QUEUE] Generating image ${i+1}/${prompts.length} for slide ${slideAny.id}...`);
+              // Provide more context: Title + the specific prompt
+              const fullContext = `${slideAny.title}: ${prompt}`;
               const generatedUrl = await generatePresentationImage(fullContext);
               
-              // CRITICAL: DALL-E/FLUX URLs are temporary. We must save them to Supabase!
               if (generatedUrl) {
                 let imageBuffer: Buffer | null = null;
                 let mimeType = "image/png";
 
                 if (generatedUrl.startsWith('http')) {
-                  console.log(`[IMAGE] Downloading from URL for slide ${slide.id}...`);
+                  console.log(`[IMAGE] Downloading from URL for slide ${slideAny.id} image ${i}...`);
                   const axios = (await import("axios")).default;
                   const imageResponse = await axios.get(generatedUrl, { responseType: 'arraybuffer' });
                   imageBuffer = Buffer.from(imageResponse.data);
                 } else if (generatedUrl.startsWith('data:image')) {
-                  console.log(`[IMAGE] Processing Base64 data for slide ${slide.id}...`);
+                  console.log(`[IMAGE] Processing Base64 data for slide ${slideAny.id} image ${i}...`);
                   const base64Data = generatedUrl.split(',')[1];
                   imageBuffer = Buffer.from(base64Data, 'base64');
                   const match = generatedUrl.match(/^data:(image\/[a-z]+);base64,/);
                   if (match) mimeType = match[1];
                 } else if (generatedUrl.length > 500) {
-                  // Assume it's a raw base64 string
-                  console.log(`[IMAGE] Processing raw Base64 string for slide ${slide.id}...`);
+                  console.log(`[IMAGE] Processing raw Base64 string for slide ${slideAny.id} image ${i}...`);
                   imageBuffer = Buffer.from(generatedUrl, 'base64');
                 }
                 
                 if (imageBuffer) {
-                  const imageFileName = `image_${item.moduleId}_${slide.id}_${Date.now()}.png`;
+                  const imageFileName = `image_${item.moduleId}_${slideAny.id}_${i}_${Date.now()}.png`;
                   const { uploadToSupabase } = await import("./supabase");
                   const cloudImageUrl = await uploadToSupabase(
                     "presentations",
@@ -348,24 +350,24 @@ export class AIQueueManager {
                   );
                   
                   if (cloudImageUrl) {
-                    currentSlideImageUrl = cloudImageUrl;
-                    console.log(`[IMAGE] Slide ${slide.id} permanent URL: ${currentSlideImageUrl}`);
+                    imageUrls.push(cloudImageUrl);
+                    console.log(`[IMAGE] Slide ${slideAny.id} image ${i} permanent URL: ${cloudImageUrl}`);
                   }
                 }
               }
               
               await this.recordAIGenerationCost('openai', 'dalle3_image', 0.04);
             } catch (e) {
-              console.error(`Image generation failed for slide ${slide.id}:`, e);
+              console.error(`Image generation failed for slide ${slideAny.id} image ${i}:`, e);
             }
           }
  
           let narrationAudioUrl = null;
-          if (slide.narration) {
+          if (slideAny.narration) {
             try {
-              const audioBuffer = await generateSpeech(slide.narration);
-              const audioFileName = `narration_${item.moduleId}_${slide.id}_${Date.now()}.mp3`;
-              // Új felhő alapú logika a Supabase Storage-al
+              console.log(`Generating speech for slide ${slideAny.id}...`);
+              const audioBuffer = await generateSpeech(slideAny.narration);
+              const audioFileName = `narration_${item.moduleId}_${slideAny.id}_${Date.now()}.mp3`;
               const { uploadToSupabase } = await import("./supabase");
               const cloudUrl = await uploadToSupabase(
                   "presentations",
@@ -373,14 +375,11 @@ export class AIQueueManager {
                   Buffer.from(audioBuffer),
                   "audio/mpeg"
               );
-
+ 
               if (cloudUrl) {
-                // Ha sikeres a Cloud mentés, akkor közvetlenül onnan töltjük be!
                 narrationAudioUrl = cloudUrl;
                 console.log(`Cloud audio successfully saved: ${narrationAudioUrl}`);
               } else {
-                // Vész-tartalék, ha véletlenül a Supabase nem érhető el: 
-                // ideiglenesen mentsük a helyi tárhelyre, hogy a felhasználó ne érezze meg
                 const fs = await import("fs/promises");
                 const path = await import("path");
                 const audioFilePath = path.join(process.cwd(), "uploads", "presentations", audioFileName);
@@ -390,16 +389,16 @@ export class AIQueueManager {
                 narrationAudioUrl = `/uploads/presentations/${audioFileName}`;
                 console.warn(`Supabase fallback active! Saved to local filesystem: ${narrationAudioUrl}`);
               }
-
+ 
               await this.recordAIGenerationCost('openai', 'tts_audio', 0.02);
             } catch (e) {
-              console.error(`Audio generation failed for slide ${slide.id}:`, e);
+              console.error(`Audio generation failed for slide ${slideAny.id}:`, e);
             }
           }
  
           slidesWithMedia.push({
-            ...slide,
-            imageUrl: currentSlideImageUrl,
+            ...slideAny,
+            imageUrls,
             narrationAudioUrl
           });
         }
