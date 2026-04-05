@@ -312,19 +312,20 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                     </motion.div>
                   </div>
                 ) : (
-                  <div className={`h-full w-full grid gap-10 items-center ${(!currentSlide.imageUrl || !currentSlide.layout.includes('image')) ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
+                  <div className={`h-full w-full grid gap-12 items-center ${!currentSlide.imageUrl ? 'grid-cols-1 max-w-4xl mx-auto' : 'grid-cols-1 lg:grid-cols-[1.2fr,1fr]'}`}>
                     
-                    <div className={`flex flex-col justify-center space-y-6 ${(!currentSlide.imageUrl || !currentSlide.layout.includes('image')) ? 'col-span-full max-w-4xl mx-auto' : (currentSlide.layout === 'split-right-image' ? 'order-1' : 'order-2')}`}>
-                      <div className="space-y-3">
-                        <Badge variant="outline" className="text-blue-500 border-blue-900/40 bg-blue-900/10 uppercase tracking-widest text-[10px] px-3 py-1">
+                    {/* Content Section */}
+                    <div className={`flex flex-col justify-center space-y-8 ${(!currentSlide.imageUrl) ? 'text-center' : (currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' ? 'order-1 lg:pl-16' : 'order-2')}`}>
+                      <div className="space-y-4">
+                        <Badge variant="outline" className="text-blue-500 border-blue-900/40 bg-blue-900/10 uppercase tracking-widest text-[10px] px-3 py-1 w-fit mx-auto lg:mx-0">
                           Slide {currentSlideIndex + 1}
                         </Badge>
-                        <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
+                        <h2 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight">
                           {currentSlide.title}
                         </h2>
                       </div>
                       
-                      <div className="prose prose-invert prose-lg max-w-none text-slate-300 leading-relaxed overflow-y-auto max-h-[30vh] custom-scrollbar pr-2">
+                      <div className="prose prose-invert prose-xl max-w-none text-slate-300/90 leading-relaxed overflow-y-auto max-h-[35vh] custom-scrollbar pr-4 font-light">
                         {currentSlide.content.includes('<li>') || currentSlide.content.includes('<p>') ? (
                           <div dangerouslySetInnerHTML={{ __html: currentSlide.content }} />
                         ) : (
@@ -334,27 +335,29 @@ export function PresentationPlayer({ slides, open, onOpenChange, moduleTitle }: 
                         )}
                       </div>
 
-                      <div className="shrink-0 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                      <div className="pt-4 shrink-0">
                         <InteractiveContent slide={currentSlide} />
                       </div>
                     </div>
 
-                    {(currentSlide.imageUrl || currentSlide.layout.includes('image')) && currentSlide.imageUrl && (
+                    {/* Image Section - Intelligent side positioning */}
+                    {currentSlide.imageUrl && (
                       <motion.div 
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className={`h-full flex items-center justify-center ${(currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered') ? 'order-2' : 'order-1'}`}
+                        initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        className={`h-full flex items-center justify-center ${currentSlide.layout === 'split-right-image' || currentSlide.layout === 'centered' ? 'order-2' : 'order-1'}`}
                       >
-                        <div className="relative w-full h-[55vh] rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-slate-900 bg-slate-900/50">
+                        <div className="relative w-full aspect-[4/5] lg:aspect-square max-h-[65vh] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.6)] border-4 border-slate-800/50 bg-slate-900/20 group">
                           <img 
                             src={currentSlide.imageUrl} 
                             alt="Visual" 
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             onError={(e) => {
                               console.error("Image failed to load:", currentSlide.imageUrl);
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.style.display = 'none';
                             }}
                           />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-60" />
                         </div>
                       </motion.div>
                     )}
