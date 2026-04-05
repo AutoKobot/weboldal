@@ -746,30 +746,6 @@ export default function AdminDashboard() {
   const [youtubeApiKey, setYoutubeApiKey] = useState("");
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [aiProvider, setAiProvider] = useState("openai");
-
-  // Sync Supabase keys when settings load
-  useEffect(() => {
-    if (aiSettingsData) {
-      if (aiSettingsData.supabaseUrl) setSupabaseUrl(aiSettingsData.supabaseUrl);
-      if (aiSettingsData.supabaseAnonKey) setSupabaseAnonKey(aiSettingsData.supabaseAnonKey);
-    }
-  }, [aiSettingsData]);
-
-  const checkSupabaseStatus = async () => {
-    setCheckingSupabase(true);
-    setSupabaseStatus(null);
-    try {
-      const res = await fetch("/api/admin/supabase-status");
-      const data = await res.json();
-      setSupabaseStatus(data);
-    } catch (error) {
-      console.error("Supabase status check failed:", error);
-      setSupabaseStatus({ status: "error", message: "Kapcsolódási hiba az ellenőrzés közben" });
-    } finally {
-      setCheckingSupabase(false);
-    }
-  };
-
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showTogetherKey, setShowTogetherKey] = useState(false);
@@ -800,24 +776,31 @@ export default function AdminDashboard() {
   const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const [bulkImportProgress, setBulkImportProgress] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  // Additional subject assignments for module linking
   const [additionalSubjectIds, setAdditionalSubjectIds] = useState<number[]>([]);
   const [editingSchoolAdmin, setEditingSchoolAdmin] = useState<User | null>(null);
   const [isSchoolEditOpen, setIsSchoolEditOpen] = useState(false);
   const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<School | null>(null);
 
+  const checkSupabaseStatus = async () => {
+    setCheckingSupabase(true);
+    setSupabaseStatus(null);
+    try {
+      const res = await fetch("/api/admin/supabase-status");
+      const data = await res.json();
+      setSupabaseStatus(data);
+    } catch (error) {
+      console.error("Supabase status check failed:", error);
+      setSupabaseStatus({ status: "error", message: "Kapcsolódási hiba az ellenőrzés közben" });
+    } finally {
+      setCheckingSupabase(false);
+    }
+  };
+
   // Queries
   const { data: aiChatEnabledData } = useQuery<{ enabled: boolean }>({
     queryKey: ['/api/settings/ai-chat-enabled'],
   });
-
-  // Sync aiChatEnabled state with server data
-  useEffect(() => {
-    if (aiChatEnabledData) {
-      setAiChatEnabled(aiChatEnabledData.enabled);
-    }
-  }, [aiChatEnabledData]);
 
   const { data: apiStatus } = useQuery<{
     openai: boolean;
@@ -837,19 +820,9 @@ export default function AdminDashboard() {
     queryKey: ["/api/public/subjects"],
   });
 
-  // Szűrt tantárgyak a kiválasztott szakma alapján
-  const filteredSubjects = selectedProfessionForFilter
-    ? subjects.filter(subject => subject.professionId === selectedProfessionForFilter)
-    : subjects;
-
   const { data: modules = [], isLoading: modulesLoading } = useQuery<Module[]>({
     queryKey: ["/api/public/modules"],
   });
-
-  // Szűrt modulok a kiválasztott tantárgy alapján
-  const filteredModules = selectedSubjectForFilter
-    ? modules.filter(module => module.subjectId === selectedSubjectForFilter)
-    : modules;
 
   const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -860,24 +833,11 @@ export default function AdminDashboard() {
     enabled: isAdmin,
   });
 
-  const filteredUsers = users?.filter(user => {
-    const term = searchTerm.toLowerCase();
-    return (
-      user.username?.toLowerCase().includes(term) ||
-      user.firstName?.toLowerCase().includes(term) ||
-      user.lastName?.toLowerCase().includes(term) ||
-      user.email?.toLowerCase().includes(term) ||
-      (user as any).schoolName?.toLowerCase().includes(term)
-    );
-  }) || [];
-
-  // Osztályok lekérdezése a csoportosításhoz
   const { data: allClasses = [] } = useQuery<{ id: number; name: string; schoolAdminId: string }[]>({
     queryKey: ["/api/admin/all-classes"],
     retry: false,
   });
 
-  // System message and module update message queries
   const { data: systemMessageData } = useQuery<{ message: string }>({
     queryKey: ["/api/admin/settings/system-message"],
   });
@@ -914,7 +874,50 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/settings/ai"],
   });
 
-  // Update state when data changes
+  const { data: queueStatus, refetch: refetchQueueStatus } = useQuery({
+    queryKey: ["/api/admin/queue-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/queue-status");
+      return res.json();
+    },
+    refetchInterval: (data) => (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000,
+    enabled: isAdmin,
+  });
+
+  // Derived filter logic
+  const filteredSubjects = selectedProfessionForFilter
+    ? subjects.filter(subject => subject.professionId === selectedProfessionForFilter)
+    : subjects;
+
+  const filteredModules = selectedSubjectForFilter
+    ? modules.filter(module => module.subjectId === selectedSubjectForFilter)
+    : modules;
+
+  const filteredUsers = users?.filter(user => {
+    const term = searchTerm.toLowerCase();
+    return (
+      user.username?.toLowerCase().includes(term) ||
+      user.firstName?.toLowerCase().includes(term) ||
+      user.lastName?.toLowerCase().includes(term) ||
+      user.email?.toLowerCase().includes(term) ||
+      (user as any).schoolName?.toLowerCase().includes(term)
+    );
+  }) || [];
+
+  // Effects
+  useEffect(() => {
+    if (aiSettingsData) {
+      if (aiSettingsData.supabaseUrl) setSupabaseUrl(aiSettingsData.supabaseUrl);
+      if (aiSettingsData.supabaseAnonKey) setSupabaseAnonKey(aiSettingsData.supabaseAnonKey);
+    }
+  }, [aiSettingsData]);
+
+  useEffect(() => {
+    if (aiChatEnabledData) {
+      setAiChatEnabled(aiChatEnabledData.enabled);
+    }
+  }, [aiChatEnabledData]);
+
   useEffect(() => {
     if (systemMessageData?.message && !systemMessage) {
       setSystemMessage(systemMessageData.message);
@@ -1267,15 +1270,6 @@ export default function AdminDashboard() {
     },
   });
 
-  const { data: queueStatus, refetch: refetchQueueStatus } = useQuery({
-    queryKey: ["/api/admin/queue-status"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/queue-status");
-      return res.json();
-    },
-    refetchInterval: (data) => (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000,
-    enabled: isAdmin,
-  });
 
   const regenerateQuizzesMutation = useMutation({
     mutationFn: async ({ moduleId }: { moduleId: number }) => {
