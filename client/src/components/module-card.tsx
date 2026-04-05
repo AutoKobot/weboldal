@@ -274,25 +274,25 @@ export default function ModuleCard({
                 } else if (previewVersion === 'detailed' && module.detailedContent) {
                   content = module.detailedContent;
                 } else {
-                  content = module.detailedContent || module.conciseContent || module.content;
+                  content = module.detailedContent || module.conciseContent || module.content || '';
                 }
                 // Remove HTML tags and Wikipedia links
                 const cleanContent = content
-                  .replace(/<[^>]*>/g, '') // Remove HTML tags
-                  .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove markdown links [text](url) -> text
-                  .replace(/https?:\/\/[^\s]+/g, '') // Remove standalone URLs
-                  .replace(/\s+/g, ' ') // Normalize whitespace
-                  .trim();
-                return cleanContent.substring(0, 150) + '...';
+                  ?.replace(/<[^>]*>/g, '') // Remove HTML tags
+                  ?.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove markdown links [text](url) -> text
+                  ?.replace(/https?:\/\/[^\s]+/g, '') // Remove standalone URLs
+                  ?.replace(/\s+/g, ' ') // Normalize whitespace
+                  ?.trim() || '';
+                return cleanContent.substring(0, 150) + (cleanContent.length > 150 ? '...' : '');
               }
               // Regular modules: use original content
-              const cleanContent = module.content
+              const cleanContent = (module.content || '')
                 .replace(/<[^>]*>/g, '') // Remove HTML tags
                 .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove markdown links
                 .replace(/https?:\/\/[^\s]+/g, '') // Remove standalone URLs
                 .replace(/\s+/g, ' ') // Normalize whitespace
                 .trim();
-              return cleanContent.substring(0, 150) + '...';
+              return cleanContent.substring(0, 150) + (cleanContent.length > 150 ? '...' : '');
             })()}
           </p>
 
