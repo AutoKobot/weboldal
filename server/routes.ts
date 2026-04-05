@@ -5430,14 +5430,14 @@ Platform funkciók és navigáció:
       const dbUrl = await storage.getSystemSetting("SUPABASE_URL");
       const dbKey = await storage.getSystemSetting("SUPABASE_ANON_KEY");
       
-      const url = dbUrl || process.env.SUPABASE_URL;
-      const key = dbKey || process.env.SUPABASE_ANON_KEY;
+      const url = dbUrl?.value || process.env.SUPABASE_URL;
+      const key = dbKey?.value || process.env.SUPABASE_ANON_KEY;
 
       if (!url || !key) {
         return res.json({ 
           status: "error", 
           message: "Supabase configuration missing (URL or Key not found in DB or ENV)",
-          configSource: dbUrl ? "database" : "environment"
+          configSource: dbUrl?.value ? "database" : "environment"
         });
       }
 
