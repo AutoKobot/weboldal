@@ -307,16 +307,17 @@ export class AIQueueManager {
         for (const slide of slideData) {
           console.log(`Processing slide ${slide.id}: ${slide.title}`);
           
-          let imageUrl = null;
+          let currentSlideImageUrl: string | null = null;
           if (slide.imagePrompt) {
             try {
-              imageUrl = await generatePresentationImage(slide.imagePrompt);
+              console.log(`[AI-QUEUE] Generating image for slide ${slide.id} with prompt: ${slide.imagePrompt.substring(0, 30)}...`);
+              const generatedUrl = await generatePresentationImage(slide.imagePrompt);
               
-              // CRITICAL: DALL-E URLs are temporary (1 hour). We must save them to Supabase!
-              if (imageUrl && imageUrl.startsWith('http')) {
-                console.log(`[IMAGE] Temporary URL received, downloading and saving to Supabase...`);
+              // CRITICAL: DALL-E/FLUX URLs are temporary. We must save them to Supabase!
+              if (generatedUrl && generatedUrl.startsWith('http')) {
+                console.log(`[IMAGE] Permanent save starting for slide ${slide.id}...`);
                 const axios = (await import("axios")).default;
-                const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                const imageResponse = await axios.get(generatedUrl, { responseType: 'arraybuffer' });
                 const arrayBuffer = imageResponse.data;
                 const imageFileName = `image_${item.moduleId}_${slide.id}_${Date.now()}.png`;
                 
@@ -329,9 +330,11 @@ export class AIQueueManager {
                 );
                 
                 if (cloudImageUrl) {
-                  imageUrl = cloudImageUrl;
-                  console.log(`[IMAGE] Permanent cloud URL: ${imageUrl}`);
+                  currentSlideImageUrl = cloudImageUrl;
+                  console.log(`[IMAGE] Slide ${slide.id} permanent URL: ${currentSlideImageUrl}`);
                 }
+              } else if (generatedUrl) {
+                currentSlideImageUrl = generatedUrl;
               }
               
               await this.recordAIGenerationCost('openai', 'dalle3_image', 0.04);
@@ -379,7 +382,7 @@ export class AIQueueManager {
  
           slidesWithMedia.push({
             ...slide,
-            imageUrl,
+            imageUrl: currentSlideImageUrl,
             narrationAudioUrl
           });
         }
