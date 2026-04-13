@@ -4133,11 +4133,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const announcementData = insertClassAnnouncementSchema.parse(req.body);
+      const announcementData = insertClassAnnouncementSchema.omit({ teacherId: true }).parse(req.body);
       const announcement = await storage.createAnnouncement({
         ...announcementData,
         teacherId: userId
-      });
+      } as any);
 
       res.status(201).json(announcement);
     } catch (error) {
