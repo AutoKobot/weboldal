@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1193,6 +1194,7 @@ const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
   const [annType, setAnnType] = useState<"info" | "action_required" | "event">("info");
   const [annClassId, setAnnClassId] = useState<string>("all");
   const [isCreatingAnn, setIsCreatingAnn] = useState(false);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: announcements = [], isLoading: annLoading } = useQuery<any[]>({
@@ -1215,9 +1217,19 @@ const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
       setIsCreatingAnn(false);
       setAnnTitle("");
       setAnnContent("");
-      // @ts-ignore
-      if (typeof toast !== 'undefined') toast({ title: "Sikeresen küldve", description: "Az üzenetet elküldtük az osztálynak." });
+      toast({ 
+        title: "Sikeresen küldve", 
+        description: "Az üzenetet elküldtük az osztálynak." 
+      });
     },
+    onError: (error) => {
+      console.error("Announcement error:", error);
+      toast({ 
+        variant: "destructive",
+        title: "Hiba történt", 
+        description: "Nem sikerült az üzenet küldése." 
+      });
+    }
   });
 
   const deleteAnnouncementMutation = useMutation({
@@ -1227,9 +1239,18 @@ const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/classes/${annClassId}/announcements`] });
-      // @ts-ignore
-      if (typeof toast !== 'undefined') toast({ title: "Törölve", description: "Az üzenetet sikeresen töröltük." });
+      toast({ 
+        title: "Törölve", 
+        description: "Az üzenetet sikeresen töröltük." 
+      });
     },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Hiba",
+        description: "Nem sikerült törölni az üzenetet."
+      });
+    }
   });
 
   return (
@@ -1393,6 +1414,15 @@ const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
             <Button
               disabled={!annTitle || !annContent || createAnnouncementMutation.isPending}
               onClick={() => {
+                if (annClassId === "all") {
+                  toast({
+                    variant: "destructive",
+                    title: "Hiba",
+                    description: "Kérjük, válasszon osztályt az üzenet küldése előtt!"
+                  });
+                  return;
+                }
+
                 let options = ["Értettem"];
                 try {
                   const optInput = document.getElementById("ann-options") as HTMLInputElement;
@@ -1430,6 +1460,7 @@ const AttendanceView = ({ attendanceClassId, attendanceDate }: AttendanceViewPro
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteText, setNoteText] = useState<string>("");
   const [savingNote, setSavingNote] = useState(false);
+  const { toast } = useToast();
 
   const { data: attData = [], isLoading: attLoading } = useQuery<any[]>({
     queryKey: [`/api/teacher/classes/${attendanceClassId}/attendance?date=${attendanceDate}`],
@@ -1472,29 +1503,37 @@ const AttendanceView = ({ attendanceClassId, attendanceDate }: AttendanceViewPro
     if (s === 'excused') return 'Igazolt';
     return 'Hiányzik';
   };
-
   const handleStatusChange = async (attendanceId: number, newStatus: string, studentData?: any) => {
-    if (attendanceId === -1 && studentData) {
-      await fetch(`/api/teacher/classes/${attendanceClassId}/attendance`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          studentId: studentData.student_id,
-          date: attendanceDate,
-          periodNumber: studentData.period_number,
-          status: newStatus,
-        }),
-      });
-    } else {
-      await fetch(`/api/teacher/attendance/${attendanceId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: newStatus }),
+    try {
+      if (attendanceId === -1 && studentData) {
+        await fetch(`/api/teacher/classes/${attendanceClassId}/attendance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            studentId: studentData.student_id,
+            date: attendanceDate,
+            periodNumber: studentData.period_number,
+            status: newStatus,
+          }),
+        });
+      } else {
+        await fetch(`/api/teacher/attendance/${attendanceId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: newStatus }),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/attendance?date=${attendanceDate}`] });
+    } catch (error) {
+      console.error("Attendance update error:", error);
+      toast({
+        variant: "destructive",
+        title: "Hiba",
+        description: "Nem sikerült módosítani a jelenléti állapotot."
       });
     }
-    queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/attendance?date=${attendanceDate}`] });
   };
 
   const handleSaveNote = async (studentId: string) => {
@@ -1513,6 +1552,16 @@ const AttendanceView = ({ attendanceClassId, attendanceDate }: AttendanceViewPro
       queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/notes?date=${attendanceDate}`] });
       setEditingNote(null);
       setNoteText("");
+      toast({
+        title: "Mentve",
+        description: "A megjegyzést sikeresen elmentettük."
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Hiba",
+        description: "Nem sikerült elmenteni a megjegyzést."
+      });
     } finally {
       setSavingNote(false);
     }
