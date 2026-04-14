@@ -96,7 +96,7 @@ import {
   type InsertAnnouncementAcknowledgement,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, asc } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, notExists, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
