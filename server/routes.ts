@@ -4162,11 +4162,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims?.sub || req.user.id;
       const user = await storage.getUser(userId);
 
-      if (!user || (user.role !== 'student' && user.role !== 'teacher') || !user.classId) {
+      if (!user) {
+        console.log(`[Announcements] User ${userId} not found`);
+        return res.json([]);
+      }
+
+      if ((user.role !== 'student' && user.role !== 'teacher')) {
+        console.log(`[Announcements] User ${userId} has no student/teacher role: ${user.role}`);
+        return res.json([]);
+      }
+
+      if (!user.classId) {
+        console.log(`[Announcements] User ${userId} (${user.role}) has no classId set`);
         return res.json([]);
       }
 
       const announcements = await storage.getUnacknowledgedAnnouncements(userId, user.classId);
+      console.log(`[Announcements] Found ${announcements.length} pending announcements for user ${userId} in class ${user.classId}`);
       res.json(announcements);
     } catch (error) {
       console.error("Error fetching my announcements:", error);

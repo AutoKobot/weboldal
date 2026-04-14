@@ -2641,12 +2641,6 @@ export class DatabaseStorage implements IStorage {
   async getUnacknowledgedAnnouncements(studentId: string, classId: number): Promise<ClassAnnouncement[]> {
     const now = new Date();
     
-    // Subquery to find already acknowledged announcement IDs
-    const acknowledgedIds = db
-      .select({ id: announcementAcknowledgements.announcementId })
-      .from(announcementAcknowledgements)
-      .where(eq(announcementAcknowledgements.studentId, studentId));
-
     return await db
       .select()
       .from(classAnnouncements)
@@ -2655,7 +2649,16 @@ export class DatabaseStorage implements IStorage {
           eq(classAnnouncements.classId, classId),
           eq(classAnnouncements.isActive, true),
           or(isNull(classAnnouncements.expiresAt), gte(classAnnouncements.expiresAt, now)),
-          sql`${classAnnouncements.id} NOT IN (${acknowledgedIds})`
+          notExists(
+            db.select()
+              .from(announcementAcknowledgements)
+              .where(
+                and(
+                  eq(announcementAcknowledgements.announcementId, classAnnouncements.id),
+                  eq(announcementAcknowledgements.studentId, studentId)
+                )
+              )
+          )
         )
       )
       .orderBy(desc(classAnnouncements.createdAt));

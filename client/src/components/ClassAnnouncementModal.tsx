@@ -28,9 +28,12 @@ export default function ClassAnnouncementModal() {
   });
 
   useEffect(() => {
-    if (pendingAnnouncements.length > 0 && !currentAnnouncement) {
-      setCurrentAnnouncement(pendingAnnouncements[0]);
-      setIsOpen(true);
+    if (pendingAnnouncements.length > 0) {
+      console.log(`[AnnouncementModal] Found ${pendingAnnouncements.length} pending announcements`);
+      if (!currentAnnouncement) {
+        setCurrentAnnouncement(pendingAnnouncements[0]);
+        setIsOpen(true);
+      }
     }
   }, [pendingAnnouncements, currentAnnouncement]);
 
