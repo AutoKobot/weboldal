@@ -148,6 +148,8 @@ export class AIQueueManager {
 
       this.queue.push(queueItem);
       console.log(`📝 Added to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
+      // Trigger processing immediately instead of waiting for the next interval tick
+      setImmediate(() => this.processNext());
     });
   }
 
@@ -176,6 +178,8 @@ export class AIQueueManager {
 
       this.queue.push(queueItem);
       console.log(`📝 Added quiz regen to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
+      // Trigger processing immediately instead of waiting for the next interval tick
+      setImmediate(() => this.processNext());
     });
   }
 
@@ -204,6 +208,8 @@ export class AIQueueManager {
 
       this.queue.push(queueItem);
       console.log(`📝 Added presentation to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
+      // Trigger processing immediately instead of waiting for the next interval tick
+      setImmediate(() => this.processNext());
     });
   }
 
@@ -259,11 +265,21 @@ export class AIQueueManager {
         console.log(`✅ Completed AI task: "${item.title}" (${this.queue.length} remaining in queue)`);
         item.resolve(result);
         this.processing.delete(item.id);
+        // Immediately pick up the next item from the queue without waiting for the interval
+        if (this.queue.length > 0) {
+          console.log(`🔄 Auto-starting next queued task (${this.queue.length} remaining)...`);
+          setImmediate(() => this.processNext());
+        }
       })
       .catch(error => {
         console.error(`❌ AI generation failed for "${item.title}":`, error);
         item.reject(error);
         this.processing.delete(item.id);
+        // Even on error, continue with the next item
+        if (this.queue.length > 0) {
+          console.log(`🔄 Continuing queue after error (${this.queue.length} remaining)...`);
+          setImmediate(() => this.processNext());
+        }
       });
   }
 
@@ -359,6 +375,18 @@ export class AIQueueManager {
                     const freshUrl = `${cloudImageUrl}?v=${Date.now()}`;
                     imageUrls.push(freshUrl);
                     console.log(`[STORAGE-V2] Image success: ${freshUrl}`);
+                  } else {
+                    // LOKÁLIS FALLBACK: Ha Supabase nem elérhető, mentés a szerverre
+                    console.warn(`[IMAGE] Supabase upload failed for slide ${slideAny.id} image ${i}, falling back to local storage...`);
+                    const fs = await import("fs/promises");
+                    const path = await import("path");
+                    const imageFilePath = path.join(process.cwd(), "uploads", "presentations", imageFileName);
+                    const uploadsDir = path.dirname(imageFilePath);
+                    await fs.mkdir(uploadsDir, { recursive: true });
+                    await fs.writeFile(imageFilePath, imageBuffer);
+                    const localUrl = `/uploads/presentations/${imageFileName}?v=${Date.now()}`;
+                    imageUrls.push(localUrl);
+                    console.warn(`[IMAGE] Saved locally: ${localUrl}`);
                   }
                 }
               }

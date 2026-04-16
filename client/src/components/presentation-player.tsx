@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw, ImageOff, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
@@ -32,6 +32,40 @@ interface PresentationPlayerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   moduleTitle: string;
+}
+
+function SlideImage({ src, alt }: { src: string; alt: string }) {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+
+  // Reset when src changes (slide navigation)
+  useEffect(() => {
+    setStatus('loading');
+  }, [src]);
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center">
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
+        </div>
+      )}
+      {status === 'error' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-slate-900/60 rounded-[2rem]">
+          <ImageOff className="w-12 h-12 text-slate-500" />
+          <p className="text-slate-500 text-sm text-center px-4">A kép nem elérhető</p>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105 ${
+          status === 'loaded' ? 'opacity-100' : 'opacity-0'
+        }`}
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+      />
+    </div>
+  );
 }
 
 function InteractiveContent({ slide }: { slide: Slide }) {
@@ -304,27 +338,13 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
                           {currentSlide?.imageUrls && currentSlide.imageUrls.length > 0 ? (
                             currentSlide.imageUrls.map((url: string, idx: number) => (
                               <div key={idx} className="relative rounded-[2rem] overflow-hidden shadow-xl border-2 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
-                                <img 
-                                  src={url} 
-                                  alt={`Visual ${idx + 1}`} 
-                                  className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).parentElement!.style.display = 'none';
-                                  }}
-                                />
+                                <SlideImage src={url} alt={`Visual ${idx + 1}`} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent pointer-events-none" />
                               </div>
                             ))
                           ) : (
                             <div className="relative rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
-                              <img 
-                                src={currentSlide?.imageUrl} 
-                                alt="Visual" 
-                                className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-105"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).parentElement!.style.display = 'none';
-                                }}
-                              />
+                              <SlideImage src={currentSlide?.imageUrl || ''} alt="Visual" />
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
                             </div>
                           )}
