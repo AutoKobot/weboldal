@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X, MonitorPlay, HelpCircle, Volume2, VolumeX, Play, Pause, RotateCcw, ImageOff, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -131,22 +131,52 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
     if (!open || !audioRef.current || !currentSlide || !hasStarted) return;
     const audio = audioRef.current;
 
+    // Cleanup function for canplay listener
+    let onCanPlay: (() => void) | null = null;
+    const cleanupCanPlay = () => {
+      if (onCanPlay) {
+        audio.removeEventListener('canplay', onCanPlay);
+        onCanPlay = null;
+      }
+    };
+
     if (currentSlide.narrationAudioUrl) {
       const rawUrl = currentSlide.narrationAudioUrl;
       const fullUrl = rawUrl.startsWith('http')
         ? rawUrl
         : `${window.location.protocol}//${window.location.host}${rawUrl}`;
 
-      if (audio.src !== fullUrl) {
+      // Compare only the path+search part to avoid false mismatches between
+      // relative (/uploads/...) and absolute (http://host/uploads/...) URLs
+      const normalizeUrl = (u: string) => {
+        try { return new URL(u).pathname + new URL(u).search; } catch { return u; }
+      };
+      const currentNorm = audio.src ? normalizeUrl(audio.src) : '';
+      const newNorm = normalizeUrl(fullUrl);
+
+      const srcChanged = currentNorm !== newNorm;
+      if (srcChanged) {
+        cleanupCanPlay(); // Remove any pending canplay listener before loading new src
         audio.src = fullUrl;
         audio.load();
       }
       audio.muted = isMuted;
 
       if (isPlaying) {
-        resumeAudioContext().then(() => {
-          audio.play().catch(err => console.warn("Autoplay blocked:", err));
-        });
+        if (srcChanged) {
+          // Wait for audio to be ready before playing (prevents NotSupportedError race condition)
+          onCanPlay = () => {
+            cleanupCanPlay();
+            resumeAudioContext().then(() => {
+              audio.play().catch(err => console.warn("Autoplay blocked:", err));
+            });
+          };
+          audio.addEventListener('canplay', onCanPlay);
+        } else if (audio.paused) {
+          resumeAudioContext().then(() => {
+            audio.play().catch(err => console.warn("Autoplay blocked:", err));
+          });
+        }
       } else {
         audio.pause();
       }
@@ -159,17 +189,24 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
         }
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        const target = e.target as HTMLAudioElement;
+        console.error(`[Audio] Failed to load audio source: ${target?.src || 'unknown'}`, (target as any)?.error);
+        cleanupCanPlay();
         if (autoAdvance && isPlaying && currentSlideIndex < slides.length - 1) {
-          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 4500);
+          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 2000);
         }
       };
     } else {
+      // No audio for this slide – auto-advance after delay
+      audio.pause();
       if (isPlaying && autoAdvance && currentSlideIndex < slides.length - 1) {
         const timer = setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 5000);
-        return () => clearTimeout(timer);
+        return () => { clearTimeout(timer); cleanupCanPlay(); };
       }
     }
+
+    return () => cleanupCanPlay();
   }, [open, currentSlideIndex, isPlaying, isMuted, slides.length, currentSlide, autoAdvance, hasStarted]);
 
   // Mandatory checks AFTER hooks
@@ -181,6 +218,7 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
         <DialogContent className="max-w-[70vw] w-full h-[80vh] p-0 bg-slate-950 border-slate-800 overflow-hidden outline-none flex items-center justify-center">
           <div className="sr-only">
             <DialogTitle>Nincs tartalom</DialogTitle>
+            <DialogDescription>Ehhez a modulhoz még nem készült interaktív prezentáció.</DialogDescription>
           </div>
           <div className="text-center space-y-6 max-w-md p-12 bg-slate-900/50 rounded-[3rem] border border-slate-800 shadow-2xl backdrop-blur-xl">
              <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
@@ -212,9 +250,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 m-0 overflow-hidden bg-slate-950 border-none shadow-none rounded-none flex flex-col focus:outline-none z-[999]">
-        {/* Accessibility Title (Required by Radix) */}
+        {/* Accessibility Title + Description (Required by Radix) */}
         <div className="sr-only">
           <DialogTitle>{moduleTitle || "Szakmai Prezentáció"}</DialogTitle>
+          <DialogDescription>Interaktív AI prezentáció hanggal és animációkkal.</DialogDescription>
         </div>
         
         {!hasStarted && (
@@ -246,7 +285,7 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           </div>
         )}
 
-        <audio ref={audioRef} style={{ display: 'none' }} crossOrigin="anonymous" />
+        <audio ref={audioRef} style={{ display: 'none' }} />
         
         <div className="h-20 bg-slate-900/60 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-8 z-50 shrink-0">
           <div className="flex items-center gap-6">
