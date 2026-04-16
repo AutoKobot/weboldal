@@ -533,22 +533,57 @@ Provide a concise but comprehensive explanation with examples where helpful.`;
   }
 }
 
-export async function generateSpeech(
-  text: string
-): Promise<Buffer> {
+export async function generateSpeech(text: string): Promise<Buffer> {
   try {
     const openai = await getOpenAIClient();
+    
+    // Chunk text if it exceeds API limits (4096 characters for OpenAI TTS)
+    const MAX_CHUNK_LENGTH = 4000;
+    
+    if (text.length <= MAX_CHUNK_LENGTH) {
+      const mp3 = await openai.audio.speech.create({
+        model: "tts-1-hd",
+        voice: "shimmer",
+        input: text,
+        speed: 1.0, 
+        response_format: "mp3",
+      });
+      return Buffer.from(await mp3.arrayBuffer());
+    }
 
-    const mp3 = await openai.audio.speech.create({
-      model: "tts-1-hd", // tts-1-hd a jobb minőségért
-      voice: "shimmer", // Shimmer hang természetesebb magyar kiejtéshez
-      input: text,
-      speed: 1.0, 
-      response_format: "mp3",
-    });
+    // Split text into chunks at sentence boundaries
+    const chunks: string[] = [];
+    let currentChunk = "";
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    
+    for (const sentence of sentences) {
+      if ((currentChunk.length + sentence.length) > MAX_CHUNK_LENGTH) {
+        if (currentChunk) chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      } else {
+        currentChunk += sentence;
+      }
+    }
+    if (currentChunk) chunks.push(currentChunk.trim());
 
-    const buffer = Buffer.from(await mp3.arrayBuffer());
-    return buffer;
+    // Fallback if a single sentence is incredibly long
+    if (chunks.length === 0) chunks.push(text.substring(0, MAX_CHUNK_LENGTH));
+
+    const buffers: Buffer[] = [];
+    for (const chunk of chunks) {
+      if (!chunk) continue;
+      const mp3Chunk = await openai.audio.speech.create({
+        model: "tts-1-hd",
+        voice: "shimmer",
+        input: chunk,
+        speed: 1.0, 
+        response_format: "mp3",
+      });
+      buffers.push(Buffer.from(await mp3Chunk.arrayBuffer()));
+    }
+    
+    // MP3 files can be concatenated safely
+    return Buffer.concat(buffers);
   } catch (error) {
     console.error("OpenAI TTS API error:", error);
     throw new Error("Failed to generate speech");
@@ -936,6 +971,10 @@ export async function generatePresentationData(moduleTitle: string, moduleConten
     const prompt = `Te egy profi digitális tananyagfejlesztő vagy. 
 Készíts egy interaktív, prémium minőségű prezentációt: "${moduleTitle}"
 Tananyag: ${moduleContent.substring(0, 40000)}
+
+FONTOS TARTALMI KÖVETELMÉNYEK (HOSSZ):
+A kapott tananyagot BŐVÍTSD KI a saját releváns szakmai tudásoddal (mintha végeztél volna egy alapos webes kutatást a témában), hogy egy átfogóbb, mélyebb anyagot kapjunk.
+A "narration" mezők (hangos prezentáció szövege) együttes hossza az összes dián összesítve érje el a **700 - 2000 szót**. Ez azért kritikus, hogy az ebből generált hanganyag **legalább 5 perces, de maximum 15 perces** legyen (átlagos beszédsebességgel számolva). Minden dián adj meg kellően részletes, magyarázó és érdekfeszítő "narration" szöveget!
 
 PRÉMIUM VIZUÁLIS SZABÁLYOK:
 1. DESIGN STÍLUS: "Realistic, professional photograph or high-quality 3D cinematic render, clean and modern composition, appropriate for an educational slide".
