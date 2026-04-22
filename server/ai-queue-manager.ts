@@ -362,9 +362,11 @@ export class AIQueueManager {
                 if (imageBuffer) {
                   // V2-ES LAPOS FÁJLSZERKEZET: Kényszerítjük a frissítést
                   const imageFileName = `v2_presentation_mod_${item.moduleId}_slide_${slideAny.id}_idx_${i}.png`;
+                  const folderPath = `module_${item.moduleId}/${imageFileName}`;
+                  
                   const cloudImageUrl = await uploadToSupabase(
                     "presentations",
-                    imageFileName,
+                    folderPath,
                     imageBuffer,
                     mimeType
                   );
@@ -386,7 +388,7 @@ export class AIQueueManager {
                     await fs.writeFile(imageFilePath, imageBuffer);
                     const localUrl = `/uploads/presentations/${imageFileName}?v=${Date.now()}`;
                     imageUrls.push(localUrl);
-                    console.warn(`[IMAGE] Saved locally: ${localUrl}`);
+                    console.warn(`[IMAGE] Saved locally (EPHEMERAL): ${localUrl}`);
                   }
                 }
               }
@@ -405,9 +407,11 @@ export class AIQueueManager {
               
               // V2-ES LAPOS FÁJLSZERKEZET a hanghoz is!
               const audioFileName = `v2_audio_mod_${item.moduleId}_slide_${slideAny.id}.mp3`;
+              const folderPath = `module_${item.moduleId}/${audioFileName}`;
+              
               const cloudUrl = await uploadToSupabase(
                   "presentations",
-                  audioFileName,
+                  folderPath,
                   Buffer.from(audioBuffer),
                   "audio/mpeg"
               );
@@ -423,7 +427,7 @@ export class AIQueueManager {
                 await fs.mkdir(uploadsDir, { recursive: true });
                 await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
                 narrationAudioUrl = `/uploads/presentations/${audioFileName}?v=${Date.now()}`;
-                console.warn(`Supabase fallback active! Saved to local filesystem: ${narrationAudioUrl}`);
+                console.warn(`Supabase fallback active! Saved to local filesystem (EPHEMERAL): ${narrationAudioUrl}`);
               }
  
               await this.recordAIGenerationCost('openai', 'tts_audio', 0.02);

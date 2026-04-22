@@ -7,7 +7,7 @@ git remote add origin https://github.com/AutoKobot/weboldal
 
 git add .
 set /p commit_msg="Add meg a commit uzenetet (vagy hagyd uresen az alapertelmezetthez): "
-if "%commit_msg%"=="" set commit_msg="Fix white screen and update AdminDashboard logic"
+if "%commit_msg%"=="" set commit_msg="Fix presentation storage persistence and Supabase bucket auto-creation"
 
 echo [GitHub Feltoltes] Mentes (commit)...
 git commit -m "%commit_msg%"

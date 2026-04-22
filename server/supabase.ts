@@ -22,8 +22,8 @@ async function getSupabaseClient() {
     const dbKey = dbKeySetting?.value;
     
     // 2. Fallback a környezeti változókra
-    const url = (dbUrl && dbUrl !== 'undefined') ? dbUrl : (process.env.SUPABASE_URL || '');
-    const key = (dbKey && dbKey !== 'undefined') ? dbKey : (process.env.SUPABASE_ANON_KEY || '');
+    const url = (dbUrl && dbUrl.trim() !== '' && dbUrl !== 'undefined') ? dbUrl : (process.env.SUPABASE_URL || '');
+    const key = (dbKey && dbKey.trim() !== '' && dbKey !== 'undefined') ? dbKey : (process.env.SUPABASE_ANON_KEY || '');
     
     // Ha a kulcsok nem változtak és már van példány, adjuk vissza azt
     if (supabaseInstance && url === lastUsedUrl && key === lastUsedKey) {
@@ -35,9 +35,15 @@ async function getSupabaseClient() {
       console.warn("[SUPABASE] Configuration Missing: No URL or Key found in DB or ENV.");
       return null;
     }
+
+    if (!url.startsWith('http')) {
+      console.error("[SUPABASE] Invalid URL format in configuration:", url);
+      return null;
+    }
     
     // Új kliens létrehozása
-    console.log(`[SUPABASE] Initializing client with URL: ${url.substring(0, 25)}...`);
+    const source = (dbUrl && dbUrl.trim() !== '') ? "Database" : "Environment (.env)";
+    console.log(`[SUPABASE] Initializing client from ${source} with URL: ${url.substring(0, 25)}...`);
     lastUsedUrl = url;
     lastUsedKey = key;
     supabaseInstance = createClient(url, key);
@@ -52,6 +58,35 @@ async function getSupabaseClient() {
        return createClient(envUrl, envKey);
     }
     return null;
+  }
+}
+
+/**
+ * Megbizonyosodik róla, hogy a megadott bucket létezik, és ha nem, létrehozza.
+ */
+async function ensureBucketExists(supabase: any, bucketName: string) {
+  try {
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    if (error) {
+      console.error("[SUPABASE] Error listing buckets:", error.message);
+      return;
+    }
+    
+    const exists = buckets.find((b: any) => b.name === bucketName);
+    if (!exists) {
+      console.log(`[SUPABASE] Creating missing bucket: ${bucketName}`);
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 52428800 // 50MB
+      });
+      if (createError) {
+        console.error(`[SUPABASE] Failed to create bucket ${bucketName}:`, createError.message);
+      } else {
+        console.log(`[SUPABASE] Bucket ${bucketName} created successfully (public)`);
+      }
+    }
+  } catch (err) {
+    console.error("[SUPABASE] Unexpected error during bucket check:", err);
   }
 }
 
@@ -72,6 +107,9 @@ export async function uploadToSupabase(
   }
   
   try {
+    // Ellenőrizzük a bucket létezését feltöltés előtt
+    await ensureBucketExists(supabase, bucketName);
+
     console.log(`[SUPABASE] Uploading ${filePath} to bucket ${bucketName}...`);
     const { data, error } = await supabase
       .storage
@@ -97,8 +135,8 @@ export async function uploadToSupabase(
       
     console.log(`[SUPABASE] Upload Success! Public URL: ${publicUrl}`);
     return publicUrl;
-  } catch (err) {
-    console.error("[SUPABASE] Unexpected context error during upload:", err);
+  } catch (err: any) {
+    console.error("[SUPABASE] Unexpected context error during upload:", err?.message || err);
     return null;
   }
 }
