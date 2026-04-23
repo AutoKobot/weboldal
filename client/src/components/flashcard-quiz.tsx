@@ -216,6 +216,9 @@ export function FlashcardQuiz({ flashcards }: FlashcardQuizProps) {
         }
         .backface-hidden {
           backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          -moz-backface-visibility: hidden;
+          transform: translateZ(1px);
         }
       `}} />
         </div>
