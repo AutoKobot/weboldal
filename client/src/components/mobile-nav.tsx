@@ -56,7 +56,7 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
     { icon: BookOpen, label: "Szakmák", href: "/tananyagok" },
     { icon: Settings, label: "Tartalomkezelő", href: "/teacher/content" },
     { icon: Users, label: "Közösségi Tanulás", href: "/community" },
-    { icon: TrendingUp, label: "Tanulóim", href: "/tanulóim" },
+    { icon: TrendingUp, label: "Tanulóim", href: "/teacher" },
     { icon: MessageSquare, label: "Üzenetek", href: "/messages", unreadCount: unreadData?.count },
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : [

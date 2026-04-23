@@ -453,14 +453,6 @@ export default function HomePage() {
                   >
                     Indítsd el az AI Chatet
                   </Button>
-                  <Button
-                    onClick={() => navigate('/messages')}
-                    variant="outline"
-                    className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50"
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Üzenet a tanáromnak
-                  </Button>
                 </div>
               </div>
 

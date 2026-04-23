@@ -579,14 +579,6 @@ export default function TeacherDashboard() {
                                               </div>
 
                                               <div className="flex gap-2">
-                                                <Button 
-                                                  variant="outline" 
-                                                  size="sm"
-                                                  onClick={() => setLocation(`/messages?partnerId=${student.id}`)}
-                                                >
-                                                  <MessageSquare className="h-4 w-4 mr-2" />
-                                                  Üzenet
-                                                </Button>
 
                                                 <Dialog>
                                                 <DialogTrigger asChild>
@@ -713,7 +705,7 @@ export default function TeacherDashboard() {
           </TabsContent>
 
           <TabsContent value="announcements">
-            <AnnouncementsView teacherClasses={teacherClasses} />
+            <AnnouncementsView teacherClasses={teacherClasses} students={students} />
           </TabsContent>
 
           <TabsContent value="stats">
@@ -1198,9 +1190,10 @@ const AcknowledgementStats = ({ announcementId }: { announcementId: number }) =>
 
 interface AnnouncementsViewProps {
   teacherClasses: ClassData[];
+  students: Student[];
 }
 
-const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
+const AnnouncementsView = ({ teacherClasses, students }: AnnouncementsViewProps) => {
   const [annTitle, setAnnTitle] = useState("");
   const [annContent, setAnnContent] = useState("");
   const [annType, setAnnType] = useState<"info" | "action_required" | "event">("info");
@@ -1267,7 +1260,20 @@ const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Tabs defaultValue="classes" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4">
+          <TabsTrigger value="classes" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Osztályüzenetek
+          </TabsTrigger>
+          <TabsTrigger value="private" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Privát üzenetek
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="classes">
+          <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-xl">Osztály Üzenetek</CardTitle>
@@ -1370,6 +1376,93 @@ const AnnouncementsView = ({ teacherClasses }: AnnouncementsViewProps) => {
           )}
         </CardContent>
       </Card>
+      </TabsContent>
+
+      <TabsContent value="private">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Privát Üzenetek</CardTitle>
+            <CardDescription>Kezdeményezzen közvetlen beszélgetést bármelyik tanulójával.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-4">
+                {teacherClasses.map(cls => (
+                  <div key={cls.id} className="space-y-2">
+                    <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-blue-500" />
+                      {cls.name}
+                    </h4>
+                    <div className="grid gap-2">
+                      {students.filter(s => s.classId === cls.id).map(student => (
+                        <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                                {student.firstName?.[0]}{student.lastName?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {student.lastName} {student.firstName}
+                              </p>
+                              <p className="text-xs text-gray-400">@{student.username}</p>
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setLocation(`/messages?partnerId=${student.id}`)}
+                            className="h-8"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 mr-2" />
+                            Üzenet küldése
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                {students.filter(s => !s.classId).length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-gray-700">Besorolatlan tanulók</h4>
+                    <div className="grid gap-2">
+                      {students.filter(s => !s.classId).map(student => (
+                        <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">
+                                {student.firstName?.[0]}{student.lastName?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {student.lastName} {student.firstName}
+                              </p>
+                              <p className="text-xs text-gray-400">@{student.username}</p>
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setLocation(`/messages?partnerId=${student.id}`)}
+                            className="h-8"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 mr-2" />
+                            Üzenet küldése
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
 
       {/* Create Announcement Dialog */}
       <Dialog open={isCreatingAnn} onOpenChange={setIsCreatingAnn}>
