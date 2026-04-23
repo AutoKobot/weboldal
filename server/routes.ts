@@ -88,7 +88,7 @@ const combinedAuth = async (req: any, res: any, next: any) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 };
-import { insertModuleSchema, insertChatMessageSchema, insertProfessionSchema, insertSubjectSchema, insertAdminMessageSchema, insertClassAnnouncementSchema } from "@shared/schema";
+import { insertModuleSchema, insertChatMessageSchema, insertProfessionSchema, insertSubjectSchema, insertAdminMessageSchema, insertClassAnnouncementSchema, insertPrivateMessageSchema } from "@shared/schema";
 import { generateChatResponse, generateQuizQuestions, explainConcept, generateSpeech, generatePresentationData, generatePresentationImage } from "./openai";
 import multer from "multer";
 import path from "path";
@@ -7457,6 +7457,92 @@ export function setupPrivacyRoutes(app: Express) {
     } catch (error: any) {
       console.error('Presentation Queue Error:', error);
       res.status(500).json({ message: "Failed to queue presentation", error: error.message });
+    }
+  });
+
+  // ── Private Messaging Routes ─────────────────────────────────────────────
+  
+  app.get('/api/messages', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const messages = await storage.getPrivateMessages(userId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching private messages:', error);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
+  app.get('/api/messages/partners', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const partners = await storage.getConversationPartners(userId);
+      res.json(partners);
+    } catch (error) {
+      console.error('Error fetching conversation partners:', error);
+      res.status(500).json({ message: 'Failed to fetch conversation partners' });
+    }
+  });
+
+  app.get('/api/messages/unread-count', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const count = await storage.getUnreadPrivateMessageCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      res.status(500).json({ message: 'Failed to fetch unread count' });
+    }
+  });
+
+  app.post('/api/messages', combinedAuth, async (req: any, res) => {
+    try {
+      const senderId = req.user?.id || req.user?.claims?.sub;
+      const { receiverId, message } = req.body;
+
+      if (!receiverId || !message) {
+        return res.status(400).json({ message: 'Missing receiverId or message' });
+      }
+
+      const newMessage = await storage.createPrivateMessage({
+        senderId,
+        receiverId,
+        message,
+        isRead: false
+      });
+
+      // Create a notification for the receiver
+      await storage.createNotification({
+        userId: receiverId,
+        type: 'private_message',
+        title: 'Új üzeneted érkezett',
+        message: `Üzeneted érkezett: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`,
+        link: '/messages',
+        actorId: senderId,
+        metadata: { messageId: newMessage.id }
+      });
+
+      res.status(201).json(newMessage);
+    } catch (error) {
+      console.error('Error creating private message:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  });
+
+  app.post('/api/messages/read', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const { senderId } = req.body;
+
+      if (!senderId) {
+        return res.status(400).json({ message: 'Missing senderId' });
+      }
+
+      await storage.markPrivateMessagesRead(userId, senderId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      res.status(500).json({ message: 'Failed to mark messages as read' });
     }
   });
 

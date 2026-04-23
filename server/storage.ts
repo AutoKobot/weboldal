@@ -13,6 +13,7 @@ import {
   discussions,
   peerReviews,
   adminMessages,
+  privateMessages,
   classes,
   schools,
   moduleSubjectAssignments,
@@ -44,6 +45,8 @@ import {
   type InsertPeerReview,
   type AdminMessage,
   type InsertAdminMessage,
+  type PrivateMessage,
+  type InsertPrivateMessage,
   type Class,
   type InsertClass,
   apiCalls,
@@ -240,6 +243,13 @@ export interface IStorage {
   getAdminMessages(): Promise<AdminMessage[]>;
   getUserAdminMessages(userId: string): Promise<AdminMessage[]>;
   respondToAdminMessage(messageId: number, response: string): Promise<AdminMessage>;
+  
+  // Private messages
+  createPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage>;
+  getPrivateMessages(userId: string): Promise<PrivateMessage[]>;
+  getUnreadPrivateMessageCount(userId: string): Promise<number>;
+  markPrivateMessagesRead(userId: string, senderId: string): Promise<void>;
+  getConversationPartners(userId: string): Promise<User[]>;
 
   // Privacy and GDPR compliance operations
   saveUserConsent(consent: InsertUserConsent): Promise<UserConsent>;
@@ -2800,6 +2810,47 @@ export class DatabaseStorage implements IStorage {
       console.warn("Could not save to aiSettings table, but saved to fallback.");
       return { ...merged, id: 0 } as any;
     }
+  }
+
+  // Private messages implementation
+  async createPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage> {
+    const [newMessage] = await db.insert(privateMessages).values(message).returning();
+    return newMessage;
+  }
+
+  async getPrivateMessages(userId: string): Promise<PrivateMessage[]> {
+    return await db.select().from(privateMessages)
+      .where(or(eq(privateMessages.senderId, userId), eq(privateMessages.receiverId, userId)))
+      .orderBy(asc(privateMessages.createdAt));
+  }
+
+  async getUnreadPrivateMessageCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(privateMessages)
+      .where(and(eq(privateMessages.receiverId, userId), eq(privateMessages.isRead, false)));
+    return Number(result?.count) || 0;
+  }
+
+  async markPrivateMessagesRead(userId: string, senderId: string): Promise<void> {
+    await db.update(privateMessages)
+      .set({ isRead: true })
+      .where(and(
+        eq(privateMessages.receiverId, userId),
+        eq(privateMessages.senderId, senderId),
+        eq(privateMessages.isRead, false)
+      ));
+  }
+
+  async getConversationPartners(userId: string): Promise<User[]> {
+    const sentTo = await db.select({ id: privateMessages.receiverId }).from(privateMessages).where(eq(privateMessages.senderId, userId));
+    const receivedFrom = await db.select({ id: privateMessages.senderId }).from(privateMessages).where(eq(privateMessages.receiverId, userId));
+    
+    const partnerIds = Array.from(new Set([...sentTo.map(u => u.id), ...receivedFrom.map(u => u.id)]));
+    
+    if (partnerIds.length === 0) return [];
+    
+    return await db.select().from(users).where(inArray(users.id, partnerIds));
   }
 }
 

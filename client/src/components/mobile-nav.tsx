@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Link, useLocation } from "wouter";
-import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, X, Users } from "lucide-react";
+import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, X, Users, MessageSquare } from "lucide-react";
 import type { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -16,6 +18,12 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
   const [location] = useLocation();
 
   const { toast } = useToast();
+  
+  // Fetch unread messages count
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/messages/unread-count"],
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
 
   const handleLogout = async () => {
     try {
@@ -48,12 +56,14 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
     { icon: Settings, label: "Tartalomkezelő", href: "/teacher/content" },
     { icon: Users, label: "Közösségi Tanulás", href: "/community" },
     { icon: TrendingUp, label: "Tanulóim", href: "/tanulóim" },
+    { icon: MessageSquare, label: "Üzenetek", href: "/messages", unreadCount: unreadData?.count },
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : [
     { icon: Home, label: "Főoldal", href: "/", description: "Kezdőlap és műszerfal" },
     { icon: BookOpen, label: "Szakmák", href: "/tananyagok", description: "Válassz és tanulj" },
     { icon: Users, label: "Közösségi Tanulás", href: "/community", description: "Tanulj másokkal" },
     { icon: TrendingUp, label: "Haladásom", href: "/progress", description: "Jegyek, célok" },
+    { icon: MessageSquare, label: "Üzenetek", href: "/messages", description: "Beszélgess a tanáraiddal", unreadCount: unreadData?.count },
     { icon: Bot, label: "AI Chat", href: "/chat", description: "Kérdezz az AI-tól" },
     { icon: Settings, label: "Beállítások", href: "/settings", description: "Profilod" },
   ];
@@ -93,6 +103,11 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
                   <item.icon size={20} className="flex-shrink-0" />
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium truncate">{item.label}</span>
+                    {('unreadCount' in item) && (item.unreadCount as number) > 0 && (
+                      <Badge className="ml-auto bg-red-500 text-white border-none h-5 px-1.5 min-w-[20px] flex items-center justify-center">
+                        {item.unreadCount as number}
+                      </Badge>
+                    )}
                     {'description' in item && item.description && (
                       <span className={`text-xs font-normal truncate opacity-90 ${location === item.href ? 'text-white/80' : 'text-neutral-500'}`}>{item.description}</span>
                     )}

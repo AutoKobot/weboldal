@@ -35,6 +35,7 @@ const ChatPage = lazy(() => import("@/pages/chat"));
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const PrivacyRequests = lazy(() => import("@/pages/privacy-requests"));
 const TeacherContentGuard = lazy(() => import("@/pages/teacher-content-guard"));
+const MessagesPage = lazy(() => import("@/pages/messages"));
 
 // Heartbeat a jelenléthez
 function AttendanceHeartbeat() {
@@ -127,6 +128,7 @@ function Router() {
               <Route path="/settings" component={SettingsPage} />
               <Route path="/community" component={CommunityLearning} />
               <Route path="/community-learning" component={CommunityLearning} />
+              <Route path="/messages" component={MessagesPage} />
               <Route path="/mermaid-test" component={MermaidTest} />
             </>
           )}
@@ -154,6 +156,7 @@ function Router() {
               <Route path="/settings" component={SettingsPage} />
               <Route path="/community" component={CommunityLearning} />
               <Route path="/community-learning" component={CommunityLearning} />
+              <Route path="/messages" component={MessagesPage} />
               <Route path="/mermaid-test" component={MermaidTest} />
             </>
           )}

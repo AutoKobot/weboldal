@@ -12,7 +12,7 @@ import { Badge as UiBadge } from "@/components/ui/badge";
 import {
   BookOpen, Menu, ArrowRight, Brain, Play, Flame, BarChart3, AlertCircle,
   CheckCircle2, Users, GraduationCap, TrendingUp, Award, Clock, XCircle,
-  ChevronRight, FileText, Bot
+  ChevronRight, FileText, Bot, MessageSquare
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
 import { StudentAvatar } from "@/components/StudentAvatar";
@@ -446,13 +446,22 @@ export default function HomePage() {
                 <p className="text-neutral-600 mb-6 text-sm lg:text-base leading-relaxed">
                   A chatbotod mindig rendelkezésre áll, hogy a tananyaggal kapcsolatban a segítségedre legyen. Nem helyettesít téged, de nagyszerű tanulótárs!
                 </p>
-                <Button
-                  onClick={() => navigate('/chat')}
-                  variant="outline"
-                  className="w-fit border-blue-200 text-blue-700 hover:bg-blue-50"
-                >
-                  Indítsd el a Chatet
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={() => navigate('/chat')}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200"
+                  >
+                    Indítsd el az AI Chatet
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/messages')}
+                    variant="outline"
+                    className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Üzenet a tanáromnak
+                  </Button>
+                </div>
               </div>
 
               <div className="bg-white md:w-1/2 p-6 md:p-8 border-t md:border-t-0 md:border-l border-blue-50">

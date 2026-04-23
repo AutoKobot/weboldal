@@ -348,6 +348,20 @@ export const adminMessages = pgTable("admin_messages", {
   respondedAt: timestamp("responded_at"),
 });
 
+// User-to-user private messages (Student-Teacher, etc.)
+export const privateMessages = pgTable("private_messages", {
+  id: serial("id").primaryKey(),
+  senderId: varchar("sender_id").references(() => users.id).notNull(),
+  receiverId: varchar("receiver_id").references(() => users.id).notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("private_messages_sender_idx").on(table.senderId),
+  index("private_messages_receiver_idx").on(table.receiverId),
+  index("private_messages_is_read_idx").on(table.isRead),
+]);
+
 // Classes table for school admin organization
 export const classes = pgTable("classes", {
   id: serial("id").primaryKey(),
@@ -655,6 +669,11 @@ export const adminMessagesRelations = relations(adminMessages, ({ one }) => ({
   sender: one(users, { fields: [adminMessages.senderId], references: [users.id] }),
 }));
 
+export const privateMessagesRelations = relations(privateMessages, ({ one }) => ({
+  sender: one(users, { fields: [privateMessages.senderId], references: [users.id] }),
+  receiver: one(users, { fields: [privateMessages.receiverId], references: [users.id] }),
+}));
+
 export const classesRelations = relations(classes, ({ one, many }) => ({
   schoolAdmin: one(users, { fields: [classes.schoolAdminId], references: [users.id] }),
   assignedTeacher: one(users, { fields: [classes.assignedTeacherId], references: [users.id] }),
@@ -713,6 +732,12 @@ export const insertAdminMessageSchema = createInsertSchema(adminMessages).omit({
   response: true,
 });
 
+export const insertPrivateMessageSchema = createInsertSchema(privateMessages).omit({
+  id: true,
+  createdAt: true,
+  isRead: true,
+});
+
 export const insertClassSchema = createInsertSchema(classes).omit({
   id: true,
   createdAt: true,
@@ -759,6 +784,8 @@ export type PeerReview = typeof peerReviews.$inferSelect;
 export type InsertPeerReview = z.infer<typeof insertPeerReviewSchema>;
 export type AdminMessage = typeof adminMessages.$inferSelect;
 export type InsertAdminMessage = z.infer<typeof insertAdminMessageSchema>;
+export type PrivateMessage = typeof privateMessages.$inferSelect;
+export type InsertPrivateMessage = z.infer<typeof insertPrivateMessageSchema>;
 
 // Notifications table – real-time user notification system
 export const notifications = pgTable("notifications", {

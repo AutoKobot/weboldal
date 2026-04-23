@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link, useLocation } from "wouter";
-import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, Users, Search, X, School, User as UserIcon } from "lucide-react";
+import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, Users, Search, X, School, User as UserIcon, MessageSquare } from "lucide-react";
 import type { User } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +40,12 @@ export default function Sidebar({ user }: SidebarProps) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
+  
+  // Fetch unread messages count
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/messages/unread-count"],
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
 
   // Fetch all modules for search
   const { data: modules } = useQuery<Module[]>({
@@ -173,12 +179,14 @@ export default function Sidebar({ user }: SidebarProps) {
     { icon: Settings, label: "Tartalomkezelő", href: "/teacher/content" },
     { icon: Users, label: "Közösségi Tanulás", href: "/community" },
     { icon: TrendingUp, label: "Tanulóim", href: "/teacher" },
+    { icon: MessageSquare, label: "Üzenetek", href: "/messages", unreadCount: unreadData?.count },
     { icon: Settings, label: "Beállítások", href: "/settings" },
   ] : [
     { icon: Home, label: "Főoldal", href: "/", description: "Kezdőlap és műszerfal" },
     { icon: BookOpen, label: "Szakmák", href: "/tananyagok", description: "Válaszd ki a szakmád és tanulj" },
     { icon: Users, label: "Közösségi Tanulás", href: "/community", description: "Tanulj és fejlődj másokkal" },
     { icon: TrendingUp, label: "Haladásom", href: "/progress", description: "Jegyek, kész modulok, célok" },
+    { icon: MessageSquare, label: "Üzenetek", href: "/messages", description: "Beszélgess a tanáraiddal", unreadCount: unreadData?.count },
     { icon: Settings, label: "Beállítások", href: "/settings", description: "Profil és fiókkezelés" },
   ];
 
@@ -286,6 +294,11 @@ export default function Sidebar({ user }: SidebarProps) {
                 <item.icon size={20} className="flex-shrink-0" />
                 <div className="flex flex-col min-w-0">
                   <span className="font-medium truncate">{item.label}</span>
+                  {('unreadCount' in item) && (item.unreadCount as number) > 0 && (
+                    <Badge className="ml-auto bg-red-500 text-white border-none h-5 px-1.5 min-w-[20px] flex items-center justify-center">
+                      {item.unreadCount as number}
+                    </Badge>
+                  )}
                   {'description' in item && item.description && (
                     <span className="text-xs text-neutral-600 font-normal truncate opacity-90">{item.description}</span>
                   )}

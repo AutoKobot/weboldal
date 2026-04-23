@@ -55,6 +55,7 @@ import {
   Eye,
   Info,
   AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -577,7 +578,17 @@ export default function TeacherDashboard() {
                                                 ))}
                                               </div>
 
-                                              <Dialog>
+                                              <div className="flex gap-2">
+                                                <Button 
+                                                  variant="outline" 
+                                                  size="sm"
+                                                  onClick={() => setLocation(`/messages?partnerId=${student.id}`)}
+                                                >
+                                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                                  Üzenet
+                                                </Button>
+
+                                                <Dialog>
                                                 <DialogTrigger asChild>
                                                   <Button variant="outline" size="sm">
                                                     <FileText className="h-4 w-4 mr-2" />
