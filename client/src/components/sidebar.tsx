@@ -35,6 +35,7 @@ interface SearchResult {
 }
 
 export default function Sidebar({ user }: SidebarProps) {
+  if (!user) return null;
   const [location] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);

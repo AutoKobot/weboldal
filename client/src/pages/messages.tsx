@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, Redirect } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Card, 
@@ -23,7 +23,8 @@ import {
   Clock,
   MoreVertical,
   SearchIcon,
-  Circle
+  Circle,
+  Menu
 } from "lucide-react";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
@@ -50,7 +51,7 @@ interface UserDetails {
 }
 
 export default function MessagesPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -62,7 +63,20 @@ export default function MessagesPage() {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(initialPartnerId);
   const [messageText, setMessageText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/" />;
+  }
 
   // Fetch all messages for the current user
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
@@ -173,15 +187,31 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
+      {user && <Sidebar user={user} />}
       <main className="flex-1 flex flex-col min-w-0 bg-white">
-        <MobileNav />
+        {user && (
+          <MobileNav 
+            isOpen={isMobileNavOpen} 
+            onClose={() => setIsMobileNavOpen(false)} 
+            user={user} 
+          />
+        )}
         
         <div className="flex-1 flex overflow-hidden">
           {/* Conversation List Sidebar */}
           <div className={`w-full md:w-80 border-r flex flex-col bg-gray-50 ${selectedPartnerId ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-4 border-b bg-white">
-              <h1 className="text-xl font-bold mb-4">Üzenetek</h1>
+            <div className="p-4 border-b bg-white flex items-center justify-between">
+              <h1 className="text-xl font-bold">Üzenetek</h1>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="md:hidden" 
+                onClick={() => setIsMobileNavOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-4 bg-white">
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input 
@@ -382,7 +412,7 @@ export default function MessagesPage() {
                         onClick={() => {
                           // Find assigned teacher ID and select it
                           // Note: assignedTeacherId should be in user object
-                          if (user.assignedTeacherId) {
+                          if (user?.assignedTeacherId) {
                             setSelectedPartnerId(user.assignedTeacherId);
                           } else {
                             toast({

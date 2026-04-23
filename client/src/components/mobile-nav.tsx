@@ -15,6 +15,7 @@ interface MobileNavProps {
 }
 
 export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
+  if (!user) return null;
   const [location] = useLocation();
 
   const { toast } = useToast();
