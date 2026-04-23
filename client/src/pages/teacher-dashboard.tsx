@@ -694,6 +694,7 @@ export default function TeacherDashboard() {
                                               </Dialog>
                                             </div>
                                           </div>
+                                          </div>
                                         </div>
                                       </div>
                                     </CardContent>
