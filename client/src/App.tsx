@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
 import { lazy, Suspense, useEffect } from "react";
 import CookieBanner from "@/components/cookie-banner";
+import ClassAnnouncementModal from "@/components/ClassAnnouncementModal";
 
 // Lazy-loaded pages – minden oldal külön chunk lesz a bundle-ban
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -132,6 +133,7 @@ function Router() {
               <Route path="/mermaid-test" component={MermaidTest} />
             </>
           )}
+          <ClassAnnouncementModal />
 
           {/* Teacher routes */}
           {user?.role === 'teacher' && (

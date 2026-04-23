@@ -7469,7 +7469,7 @@ export function setupPrivacyRoutes(app: Express) {
       res.json(messages);
     } catch (error) {
       console.error('Error fetching private messages:', error);
-      res.status(500).json({ message: 'Failed to fetch messages' });
+      res.status(500).json({ message: 'Failed to fetch messages', error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -7480,7 +7480,7 @@ export function setupPrivacyRoutes(app: Express) {
       res.json(partners);
     } catch (error) {
       console.error('Error fetching conversation partners:', error);
-      res.status(500).json({ message: 'Failed to fetch conversation partners' });
+      res.status(500).json({ message: 'Failed to fetch conversation partners', error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -7491,7 +7491,7 @@ export function setupPrivacyRoutes(app: Express) {
       res.json({ count });
     } catch (error) {
       console.error('Error fetching unread count:', error);
-      res.status(500).json({ message: 'Failed to fetch unread count' });
+      res.status(500).json({ message: 'Failed to fetch unread count', error: error instanceof Error ? error.message : String(error) });
     }
   });
 
