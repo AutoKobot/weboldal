@@ -2843,6 +2843,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground mt-1">
                   Összes: {users.length} &nbsp;|&nbsp;
                   <span className="text-red-600">● Admin: {adminUsers}</span> &nbsp;|&nbsp;
+                  <span className="text-blue-600">● Iskola: {schoolAdminUsers}</span> &nbsp;|&nbsp;
                   <span className="text-green-600">● Tanár: {teacherUsers}</span> &nbsp;|&nbsp;
                   <span className="text-purple-600">● Diák: {studentUsers}</span>
                 </p>
@@ -2881,6 +2882,29 @@ export default function AdminDashboard() {
                         onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
                         onUnlockModules={() => { if (confirm('Minden modul feloldása?')) unlockAllModulesMutation.mutate(user.id); }}
                         unlockPending={unlockAllModulesMutation.isPending}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ── ISKOLAI ADMINOK ── */}
+              {filteredUsers.filter((u: User) => u.role === 'school_admin').length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2 text-blue-600">
+                      <span className="h-3 w-3 rounded-full bg-blue-500 inline-block" />
+                      Iskolai adminisztrátorok ({filteredUsers.filter((u: User) => u.role === 'school_admin').length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {filteredUsers.filter(u => u.role === 'school_admin').map((user: User) => (
+                      <UserRow key={user.id} user={user}
+                        onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
+                        onResetPassword={() => { setResetPasswordUserId(user.id); setIsPasswordResetDialogOpen(true); }}
+                        onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
+                        onUnlockModules={() => { }}
+                        unlockPending={false}
                       />
                     ))}
                   </CardContent>
