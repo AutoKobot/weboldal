@@ -1194,6 +1194,7 @@ interface AnnouncementsViewProps {
 }
 
 const AnnouncementsView = ({ teacherClasses, students }: AnnouncementsViewProps) => {
+  const [, setLocation] = useLocation();
   const [annTitle, setAnnTitle] = useState("");
   const [annContent, setAnnContent] = useState("");
   const [annType, setAnnType] = useState<"info" | "action_required" | "event">("info");

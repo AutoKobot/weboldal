@@ -92,7 +92,8 @@ function Router() {
   }
 
   return (
-    <Switch>
+    <>
+      <Switch>
       {/* Always accessible routes */}
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/student-auth" component={StudentAuth} />
@@ -133,7 +134,6 @@ function Router() {
               <Route path="/mermaid-test" component={MermaidTest} />
             </>
           )}
-          <ClassAnnouncementModal />
 
           {/* Teacher routes */}
           {user?.role === 'teacher' && (
@@ -196,7 +196,9 @@ function Router() {
 
       {/* Fallback routes */}
       <Route path="/:rest*" component={NotFound} />
-    </Switch>
+      </Switch>
+      <ClassAnnouncementModal />
+    </>
   );
 }
 
