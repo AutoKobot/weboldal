@@ -1960,7 +1960,6 @@ const DayAttendanceEditor = ({ studentId, date, classId, onClose }: { studentId:
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="present">Jelen</SelectItem>
-                  <SelectItem value="late">Késő</SelectItem>
                   <SelectItem value="excused">Igazolt</SelectItem>
                   <SelectItem value="absent">Hiányzik</SelectItem>
                 </SelectContent>
@@ -2047,13 +2046,13 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
             <Table className="border-collapse table-fixed w-full">
               <TableHeader className="bg-gray-50 sticky top-0 z-30">
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[220px] border-r shadow-[2px_0_5px_rgba(0,0,0,0.05)] font-bold text-gray-700 px-4">Tanuló</TableHead>
-                  <TableHead className="min-w-[120px] border-r text-center text-[10px] font-bold text-gray-500 uppercase bg-blue-50/50 px-2">Összesítő</TableHead>
+                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[250px] w-[250px] border-r shadow-[2px_0_5px_rgba(0,0,0,0.05)] font-bold text-gray-700 px-4">Tanuló</TableHead>
+                  <TableHead className="sticky left-[250px] bg-blue-50 z-40 min-w-[140px] w-[140px] border-r text-center text-[10px] font-bold text-gray-500 uppercase px-2 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Összesítő</TableHead>
                   {dayNumbers.map(d => {
                     const date = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), d);
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                     return (
-                      <TableHead key={d} className={`text-center p-1 min-w-[36px] border-r text-[10px] font-bold ${isWeekend ? 'bg-red-50 text-red-400' : 'text-gray-600'}`}>
+                      <TableHead key={d} className={`text-center p-0.5 min-w-[28px] w-[28px] border-r text-[10px] font-bold ${isWeekend ? 'bg-red-50 text-red-400' : 'text-gray-600'}`}>
                         {d}
                       </TableHead>
                     );
@@ -2080,16 +2079,15 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
                               {student.lastName?.[0]}{student.firstName?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="truncate max-w-[150px]">{student.lastName} {student.firstName}</span>
+                          <span className="truncate max-w-[180px]">{student.lastName} {student.firstName}</span>
                         </div>
                       </TableCell>
                       
-                      <TableCell className="border-r p-2 bg-blue-50/20">
-                         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] font-bold">
+                      <TableCell className="sticky left-[250px] bg-blue-50/10 z-20 border-r p-2 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                         <div className="grid grid-cols-1 gap-y-0.5 text-[10px] font-bold">
                             <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">J:</span><span className="text-green-600">{stats.present}</span></div>
                             <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">H:</span><span className="text-red-600">{stats.absent}</span></div>
                             <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">I:</span><span className="text-blue-600">{stats.excused}</span></div>
-                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">K:</span><span className="text-yellow-600">{stats.late}</span></div>
                          </div>
                       </TableCell>
 
@@ -2103,20 +2101,31 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
                         return (
                           <TableCell 
                             key={d} 
-                            className={`p-1 border-r text-center cursor-pointer group relative hover:bg-gray-100 ${isWeekend ? 'bg-red-50/30' : ''}`}
+                            className={`p-0.5 border-r text-center cursor-pointer group relative hover:bg-gray-100 ${isWeekend ? 'bg-red-50/30' : ''}`}
                             onClick={() => setSelectedDayInfo({ studentId: student.id, studentName: `${student.lastName} ${student.firstName}`, date: dateStr })}
                           >
-                            <div className="flex flex-wrap gap-0.5 justify-center w-full max-w-[28px] mx-auto min-h-[16px] items-center">
+                            <div className="flex flex-col gap-0 justify-center items-center min-h-[20px]">
                                {periods.map(p => {
                                  const status = dayPeriods[p];
+                                 if (!status) return null;
+                                 
+                                 const colorClass = status === 'present' ? 'text-green-600' : 
+                                                  status === 'absent' ? 'text-red-600' : 
+                                                  'text-blue-600';
+
                                  return (
-                                   <div 
+                                   <span 
                                       key={p} 
-                                      className={`w-1.5 h-1.5 rounded-full ${status ? getStatusColor(status) : (isWeekend ? 'bg-gray-200 opacity-10' : 'bg-gray-100 opacity-20 group-hover:opacity-40')}`} 
-                                      title={status ? `${p}. óra: ${status === 'present' ? 'Jelen' : status === 'absent' ? 'Hiányzik' : status === 'late' ? 'Késő' : 'Igazolt'}` : `${p}. óra: Nincs adat`} 
-                                   />
+                                      className={`text-[9px] font-extrabold leading-tight ${colorClass}`}
+                                      title={`${p}. óra: ${status === 'present' ? 'Jelen' : status === 'absent' ? 'Hiányzik' : status === 'late' ? 'Késő' : 'Igazolt'}`}
+                                   >
+                                      {p}
+                                   </span>
                                  );
                                })}
+                               {!Object.keys(dayPeriods).length && !isWeekend && (
+                                 <span className="text-[8px] text-gray-200 opacity-0 group-hover:opacity-100">.</span>
+                               )}
                             </div>
                           </TableCell>
                         );
@@ -2134,7 +2143,6 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-500"></div> Jelen</div>
          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div> Hiányzik</div>
          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Igazolt</div>
-         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-yellow-500"></div> Késés</div>
          <div className="ml-auto italic">* Kattintson egy cellára a módosításhoz vagy igazoláshoz.</div>
       </div>
 
