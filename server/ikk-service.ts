@@ -142,16 +142,20 @@ export class IKKService {
    */
   async structureCurriculum(professionName: string, kkkText: string, pttText: string) {
     const prompt = `
-      Feladatod egy szakmai tananyag struktúrájának kialakítása a megadott KKK (Képzési és Kimeneti Követelmények) és PTT (Programtanterv) alapján.
+      Feladatod egy szakmai tananyag TELJES struktúrájának kialakítása a megadott KKK (Képzési és Kimeneti Követelmények) és PTT (Programtanterv) alapján.
       
       Szakma: ${professionName}
       
-      KKK Kivonat: ${kkkText.substring(0, 10000)} ...
+      FONTOS: Ne fogd rövidre! A cél az, hogy a szakma teljes tananyagát lefedjük. 
+      Az összes tantárgyat és minden egyes modult/tananyagegységet ki kell gyűjtened, amit a dokumentumokban találsz.
       
-      PTT Kivonat: ${pttText.substring(0, 10000)} ...
+      KKK Kivonat: ${kkkText.substring(0, 15000)} ...
       
-      Kérlek azonosítsd a főbb tantárgyakat (Subjects) és a hozzájuk tartozó modulokat (Modules).
-      Minden modulhoz írj egy 4-5 mondatos tömör összefoglalót, ami leírja a modul célját és tartalmát.
+      PTT Kivonat: ${pttText.substring(0, 40000)} ...
+      
+      Kérlek azonosítsd az ÖSSZES tantárgyat (Subjects) és az azokhoz tartozó ÖSSZES modult (Modules).
+      Minden modulhoz írj egy 4-5 mondatos tömör összefoglalót (conciseContent), ami leírja a modul célját, 
+      és egy részletesebb leírást (detailedContent), ami tartalmazza a konkrét szakmai témaköröket is.
       
       A válaszod egy JSON objektum legyen a következő formátumban:
       {
@@ -161,9 +165,9 @@ export class IKKService {
             "description": "Tantárgy rövid leírása",
             "modules": [
               {
-                "title": "Modul címe",
+                "title": "Modul/Tananyagegység címe",
                 "conciseContent": "4-5 mondatos összefoglaló...",
-                "detailedContent": "Részletesebb leírás a tananyagról (1-2 bekezdés)"
+                "detailedContent": "Részletes szakmai tartalom és témakörök (legalább 2-3 bekezdés)"
               }
             ]
           }
@@ -171,8 +175,6 @@ export class IKKService {
       }
     `;
 
-    // Itt hívnánk meg az AI szolgáltatót
-    // Ezt a részt a routes.ts-ben vagy egy külön generátorban érdemes kezelni
     return prompt;
   }
 }
