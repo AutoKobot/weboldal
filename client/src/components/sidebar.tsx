@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link, useLocation } from "wouter";
-import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, Users, Search, X, School, User as UserIcon, MessageSquare } from "lucide-react";
+import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, Users, Search, X, School, User as UserIcon, MessageSquare, Camera } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { User } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -311,15 +312,31 @@ export default function Sidebar({ user }: SidebarProps) {
       </nav>
       {/* User Profile */}
       <div className="p-4 border-t border-neutral-100 flex-shrink-0 bg-[#8ea64c4a]">
-        <div className="bg-neutral-50 rounded-lg p-3">
-          <div className="mb-2">
-            <p className="text-sm font-medium text-neutral-700 truncate">
-              {user.lastName && user.firstName
-                ? `${user.lastName} ${user.firstName}`
-                : user.email
-              }
-            </p>
-            <p className="text-xs text-neutral-400 capitalize">{user.role}</p>
+        <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-sm">
+          <div className="flex flex-col items-center text-center mb-3">
+            <div className="relative group mb-3">
+              <Avatar className="h-16 w-16 border-2 border-white shadow-md transition-transform group-hover:scale-105">
+                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName} ${user.lastName}&backgroundColor=6366f1,06b6d4,8b5cf6`} />
+                <AvatarFallback className="bg-primary text-white text-lg font-bold">
+                  {(user.firstName?.[0] || '') + (user.lastName?.[0] || user.username?.[0] || 'U')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm border border-neutral-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera size={10} className="text-neutral-400" />
+              </div>
+            </div>
+            <div className="w-full">
+              <p className="text-sm font-bold text-neutral-800 truncate px-1">
+                {user.lastName && user.firstName
+                  ? `${user.lastName} ${user.firstName}`
+                  : user.username
+                }
+              </p>
+              <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{user.role}</p>
+              </div>
+            </div>
           </div>
 
           {/* Student-specific information */}
@@ -327,12 +344,12 @@ export default function Sidebar({ user }: SidebarProps) {
             <StudentInfo user={user} />
           )}
 
-          <div className="space-y-1">
+          <div className="pt-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="w-full bg-[#d1b7883b] text-[#0d0c0c] hover:text-neutral-700 text-xs"
+              className="w-full bg-neutral-100/50 hover:bg-red-50 text-neutral-600 hover:text-red-600 text-xs font-bold transition-all"
             >
               <LogOut size={14} className="mr-2" />
               Kijelentkezés

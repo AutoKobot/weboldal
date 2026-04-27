@@ -578,25 +578,25 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
 
       <div className="flex-1 overflow-auto">
         {/* Fejléc */}
-        <header className="bg-white border-b px-6 py-5 shadow-sm">
+        <header className="bg-white border-b px-6 py-3 shadow-sm">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => setIsMobileNavOpen(true)} className="lg:hidden">
-              <Menu size={20} />
+              <Menu size={18} />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <GraduationCap className="h-7 w-7 text-blue-600" />
+              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <GraduationCap className="h-6 w-6 text-blue-600" />
                 Szia, {user.firstName || 'Tanár'}! 👋
               </h1>
-              <p className="text-gray-500 text-sm mt-0.5">Az alábbiakban láthatod az osztályaid összefoglaló statisztikáit.</p>
+              <p className="text-gray-500 text-xs mt-0">Az alábbiakban láthatod az osztályaid összefoglaló statisztikáit.</p>
             </div>
-            <Button className="ml-auto" onClick={() => navigate('/teacher')}>
-              Részletes nézet <ChevronRight className="ml-1 h-4 w-4" />
+            <Button size="sm" className="ml-auto h-8 text-xs" onClick={() => navigate('/teacher')}>
+              Részletes nézet <ChevronRight className="ml-1 h-3 w-3" />
             </Button>
           </div>
         </header>
 
-        <main className="p-6 max-w-7xl mx-auto space-y-8">
+        <main className="p-4 max-w-7xl mx-auto space-y-6">
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-gray-400">
@@ -608,21 +608,25 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
           ) : (<>
 
             {/* ── Összesítő kártyák ── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: "Osztályok", value: totalClasses, sub: null, icon: <Users className="h-5 w-5 text-blue-500" />, bg: "bg-blue-50" },
-                { label: "Tanulók", value: totalStudents, sub: `${noActivityStudents.length} még nem kezdte el`, icon: <GraduationCap className="h-5 w-5 text-purple-500" />, bg: "bg-purple-50" },
-                { label: "Befejezett modulok", value: totalCompletedModules, sub: totalStudents > 0 ? `${Math.round(totalCompletedModules / totalStudents * 10) / 10} / tanuló` : null, icon: <FileText className="h-5 w-5 text-green-500" />, bg: "bg-green-50" },
-                { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", sub: avgScorePct !== null ? `${avgScorePct}% átlag` : "Még nincs adat", icon: <Award className="h-5 w-5 text-yellow-500" />, bg: "bg-yellow-50" },
+                { label: "Osztályok", value: totalClasses, sub: null, icon: <Users className="h-4 w-4 text-blue-500" />, bg: "bg-blue-50" },
+                { label: "Tanulók", value: totalStudents, sub: `${noActivityStudents.length} új`, icon: <GraduationCap className="h-4 w-4 text-purple-500" />, bg: "bg-purple-50" },
+                { label: "Befejezett modulok", value: totalCompletedModules, sub: totalStudents > 0 ? `${Math.round(totalCompletedModules / totalStudents * 10) / 10} / tan.` : null, icon: <FileText className="h-4 w-4 text-green-500" />, bg: "bg-green-50" },
+                { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", sub: avgScorePct !== null ? `${avgScorePct}%` : "Nincs adat", icon: <Award className="h-4 w-4 text-yellow-500" />, bg: "bg-yellow-50" },
               ].map(stat => (
                 <Card key={stat.label} className="shadow-sm border-0 ring-1 ring-gray-100">
-                  <CardContent className="p-5">
-                    <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center mb-3`}>
-                      {stat.icon}
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center shrink-0`}>
+                        {stat.icon}
+                      </div>
+                      <div>
+                        <p className="text-xl font-black text-gray-900 leading-none">{stat.value}</p>
+                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-tight mt-1">{stat.label}</p>
+                        {stat.sub && <p className="text-[9px] text-gray-400 leading-tight">{stat.sub}</p>}
+                      </div>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-                    {stat.sub && <p className="text-xs text-gray-400 mt-0.5">{stat.sub}</p>}
                   </CardContent>
                 </Card>
               ))}
@@ -643,49 +647,48 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                 <div className="grid gap-4 md:grid-cols-2">
                   {classStats.map(({ cls, students: clsStudents, avgGrade: cg, totalModulesDone, noActivityCount }) => (
                     <Card key={cls.id} className="shadow-sm border-0 ring-1 ring-gray-100 hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <CardTitle className="text-sm flex items-center justify-between">
+                          <span className="flex items-center gap-2 font-bold truncate">
+                            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
                             {cls.name}
                           </span>
-                          <UiBadge variant="secondary">{clsStudents.length} tanuló</UiBadge>
+                          <UiBadge variant="secondary" className="text-[10px] px-1.5 py-0">{clsStudents.length} tanuló</UiBadge>
                         </CardTitle>
-                        {cls.description && <p className="text-xs text-gray-400">{cls.description}</p>}
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-3 px-4 pb-3">
                         {/* Stat sor */}
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <p className={`text-2xl font-bold ${gradeColor(cg)}`}>{cg ?? "–"}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Átlagjegy</p>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-gray-50 rounded-md p-2">
+                            <p className={`text-xl font-black ${gradeColor(cg)}`}>{cg ?? "–"}</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-medium">Átlag</p>
                           </div>
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-2xl font-bold text-green-600">{totalModulesDone}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Befejezések</p>
+                          <div className="bg-gray-50 rounded-md p-2">
+                            <p className="text-xl font-black text-green-600">{totalModulesDone}</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-medium">Kész</p>
                           </div>
-                          <div className={`rounded-lg p-3 ${noActivityCount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                            <p className={`text-2xl font-bold ${noActivityCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{noActivityCount}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Inaktív</p>
+                          <div className={`rounded-md p-2 ${noActivityCount > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                            <p className={`text-xl font-black ${noActivityCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{noActivityCount}</p>
+                            <p className="text-[9px] text-gray-500 uppercase font-medium">Inaktív</p>
                           </div>
                         </div>
 
-                        {/* Progresz: hány % töltött ki legalább 1 modult */}
+                        {/* Progresz */}
                         {clsStudents.length > 0 && (() => {
                           const activeCount = clsStudents.length - noActivityCount;
                           const pct = Math.round((activeCount / clsStudents.length) * 100);
                           return (
                             <div>
-                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                              <div className="flex justify-between text-[10px] text-gray-500 mb-0.5 font-medium">
                                 <span>Aktivitási arány</span>
-                                <span>{activeCount}/{clsStudents.length} aktív</span>
+                                <span>{activeCount}/{clsStudents.length}</span>
                               </div>
-                              <Progress value={pct} className="h-1.5" />
+                              <Progress value={pct} className="h-1" />
                             </div>
                           );
                         })()}
 
-                        <Button variant="outline" size="sm" className="w-full text-xs"
+                        <Button variant="outline" size="sm" className="w-full text-[10px] h-7"
                           onClick={() => navigate('/teacher')}>
                           Részletek <ChevronRight className="h-3 w-3 ml-1" />
                         </Button>
