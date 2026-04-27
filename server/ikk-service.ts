@@ -61,19 +61,32 @@ export class IKKService {
    */
   async getPdfText(mediaId: number): Promise<string> {
     try {
+      console.log(`IKK PDF Letöltés indítása: ${IKKService.API_MEDIA_URL}/${mediaId}`);
       const response = await axios.get(`${IKKService.API_MEDIA_URL}/${mediaId}`, {
         responseType: 'arraybuffer',
+        timeout: 45000,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/pdf,application/octet-stream',
+          'Referer': 'https://akkreditaltvizsgaztatas.ikk.hu/'
         }
       });
 
-      const data = await pdf(Buffer.from(response.data));
+      const buffer = Buffer.from(response.data);
+      const signature = buffer.slice(0, 4).toString();
+      console.log(`Letöltve: ${buffer.length} bájt. Szignatúra: ${signature}`);
+      
+      if (signature !== '%PDF') {
+        console.error('Hiba: A letöltött tartalom nem PDF!', buffer.slice(0, 100).toString());
+        throw new Error(`A szerver nem érvényes PDF-et küldött (ID: ${mediaId}). Tartalom kezdete: ${signature}`);
+      }
+
+      const data = await pdf(buffer);
       return data.text;
     } catch (error) {
       console.error(`Hiba a PDF feldolgozásakor (ID: ${mediaId}):`, error);
-      if (error instanceof Error && error.message.includes('Invalid PDF structure')) {
-         throw new Error(`Sérült vagy nem támogatott PDF formátum (ID: ${mediaId}). Próbálj másik szakmát.`);
+      if (error instanceof Error && (error.message.includes('Invalid PDF structure') || error.message.includes('PDF header not found'))) {
+         throw new Error(`Sérült vagy nem támogatott PDF formátum (ID: ${mediaId}). A fájl letöltődött (${mediaId}), de az olvasó nem tudja értelmezni.`);
       }
       throw error;
     }
