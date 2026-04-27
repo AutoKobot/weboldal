@@ -9,6 +9,8 @@ import { aiQueueManager } from "./ai-queue-manager";
 import { mermaidService } from "./mermaid-service";
 import { enhancedModuleGenerator } from "./enhanced-module-generator";
 import { parse } from 'csv-parse/sync';
+import { ikkService } from './ikk-service';
+
 
 
 // In-memory cache to throttle attendance tracking
@@ -388,6 +390,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting API pricing:', error);
       res.status(500).json({ message: 'Failed to delete API pricing' });
+    }
+  });
+
+  // IKK Import routes (admin only)
+  app.get('/api/admin/ikk/professions', combinedAuth, async (req: any, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      const professions = await ikkService.getProfessions();
+      res.json(professions);
+    } catch (error) {
+      console.error('Error fetching IKK professions:', error);
+      res.status(500).json({ message: 'Failed to fetch IKK professions' });
+    }
+  });
+
+  app.post('/api/admin/ikk/import', combinedAuth, async (req: any, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const { profession } = req.body;
+      if (!profession) {
+        return res.status(400).json({ message: 'Profession data is required' });
+      }
+
+      // 1. Get PDF content
+      console.log(`Starting IKK import for: ${profession.name}`);
+      const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
+
+      // 2. Structure curriculum using AI
+      // We use Gemini (Google) if available, otherwise fallback
+      const { generateChatResponse } = await import('./openai');
+      const structurePrompt = await ikkService.structureCurriculum(profession.name, kkkText, pttText);
+      
+      const aiResponse = await generateChatResponse(
+        structurePrompt,
+        'standalone', // Use standalone mode for simple AI response
+        [],
+        'Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul.'
+      );
+
+      // Clean AI response from markdown blocks if present
+      const jsonStr = aiResponse.message.replace(/```json\n?|\n?```/g, '').trim();
+      const curriculum = JSON.parse(jsonStr);
+
+      // 3. Save to database
+      // Create Profession
+      const newProfession = await storage.createProfession({
+        name: profession.name,
+        description: `${curriculum.subjects?.length || 0} tantárgy az IKK alapműveltség alapján.`,
+        iconName: 'GraduationCap'
+      });
+
+      let subjectsCreated = 0;
+      let modulesCreated = 0;
+
+      for (const sub of curriculum.subjects) {
+        const newSubject = await storage.createSubject({
+          name: sub.name,
+          description: sub.description,
+          professionId: newProfession.id
+        });
+        subjectsCreated++;
+
+        for (const mod of sub.modules) {
+          const newModule = await storage.createModule({
+            title: mod.title,
+            content: mod.detailedContent || mod.conciseContent,
+            conciseContent: mod.conciseContent,
+            detailedContent: mod.detailedContent,
+            subjectId: newSubject.id,
+            isPublished: false 
+          });
+          modulesCreated++;
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Sikeres importálás: ${subjectsCreated} tantárgy, ${modulesCreated} modul létrehozva. Az AI generálás a háttérben folytatódik.`,
+        professionId: newProfession.id
+      });
+
+    } catch (error) {
+      console.error('Error importing IKK curriculum:', error);
+      res.status(500).json({ message: 'Failed to import IKK curriculum', error: error instanceof Error ? error.message : String(error) });
     }
   });
 

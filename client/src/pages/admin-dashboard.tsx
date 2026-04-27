@@ -781,6 +781,9 @@ export default function AdminDashboard() {
   const [isSchoolEditOpen, setIsSchoolEditOpen] = useState(false);
   const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<School | null>(null);
+  const [isIkkDialogOpen, setIsIkkDialogOpen] = useState(false);
+  const [ikkSearchTerm, setIkkSearchTerm] = useState("");
+
 
   const checkSupabaseStatus = async () => {
     setCheckingSupabase(true);
@@ -849,6 +852,29 @@ export default function AdminDashboard() {
   const { data: youtubePromptData } = useQuery<{ message: string }>({
     queryKey: ["/api/admin/settings/youtube-prompt"],
   });
+
+  const { data: ikkProfessions = [], isLoading: ikkLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/ikk/professions"],
+    enabled: isIkkDialogOpen,
+  });
+
+  const importIkkMutation = useMutation({
+    mutationFn: async (profession: any) => {
+      const res = await apiRequest("POST", "/api/admin/ikk/import", { profession });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Siker", description: data.message });
+      setIsIkkDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+    },
+  });
+
 
   const { data: wikipediaPromptData } = useQuery<{ message: string }>({
     queryKey: ["/api/admin/settings/wikipedia-prompt"],
@@ -1301,6 +1327,25 @@ export default function AdminDashboard() {
       });
     },
   });
+
+  const handleBulkRegenerate = () => {
+    if (!selectedSubjectForFilter) return;
+    const subjectModules = modules.filter((m: Module) => m.subjectId === selectedSubjectForFilter);
+    if (subjectModules.length === 0) return;
+
+    subjectModules.forEach((m: Module) => {
+      regenerateModuleMutation.mutate({
+        moduleId: m.id,
+        title: m.title,
+        content: m.content
+      });
+    });
+    
+    toast({ 
+      title: "Bulk AI fejlesztés", 
+      description: `${subjectModules.length} modul beütemezve az AI sorba.` 
+    });
+  };
 
   const createProfessionMutation = useMutation({
     mutationFn: async (data: ProfessionFormData) => {
@@ -2129,6 +2174,73 @@ export default function AdminDashboard() {
                   </Form>
                 </DialogContent>
               </Dialog>
+
+              <Dialog open={isIkkDialogOpen} onOpenChange={setIsIkkDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700">
+                    <Globe className="h-4 w-4 mr-2" />
+                    IKK Importálás
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>Szakma importálása az IKK adatbázisból</DialogTitle>
+                    <DialogDescription>
+                      Válasszon ki egy szakmát az akkreditaltvizsgaztatas.ikk.hu adatbázisából. 
+                      A rendszer automatikusan létrehozza a tananyagokat és modulokat a KKK/PTT alapján.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4 flex-1 overflow-hidden flex flex-col">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Szakma keresése..."
+                        className="pl-8"
+                        value={ikkSearchTerm}
+                        onChange={(e) => setIkkSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 overflow-y-auto border rounded-md">
+                      {ikkLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                          <span className="ml-2">Szakmák betöltése az IKK-ról...</span>
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {ikkProfessions
+                            .filter(p => p.name.toLowerCase().includes(ikkSearchTerm.toLowerCase()))
+                            .map((prof) => (
+                              <div key={prof.id} className="p-3 hover:bg-gray-50 flex items-center justify-between group">
+                                <div>
+                                  <div className="font-medium">{prof.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {prof.sector?.name} | {prof.okjId}
+                                  </div>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  disabled={importIkkMutation.isPending}
+                                  onClick={() => importIkkMutation.mutate(prof)}
+                                >
+                                  {importIkkMutation.isPending && importIkkMutation.variables?.id === prof.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4 mr-1" />
+                                      Import
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
             </div>
 
             {professionsLoading ? (
@@ -2501,6 +2613,19 @@ export default function AdminDashboard() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+
+                {selectedSubjectForFilter && (
+                  <Button 
+                    variant="outline" 
+                    className="border-purple-200 text-purple-700 hover:bg-purple-50"
+                    onClick={handleBulkRegenerate}
+                    disabled={regeneratingModules.size > 0}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                    Összes modul AI fejlesztése
+                  </Button>
+                )}
+
                 <Button onClick={handleNewModule}>
                   <Plus className="h-4 w-4 mr-2" />
                   Új modul
