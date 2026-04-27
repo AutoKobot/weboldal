@@ -2197,6 +2197,8 @@ export default function AdminDashboard() {
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
+                        id="ikk-search-input"
+                        name="ikk-search-input"
                         placeholder="Szakma keresése..."
                         className="pl-8"
                         value={ikkSearchTerm}

@@ -134,8 +134,8 @@ export class IKKService {
     }
 
     if (!kkkText && !pttText) {
-      const details = JSON.stringify(profession.attachments?.map(a => ({ name: a.name, hasMedia: !!a.media })), null, 2);
-      throw new Error(`Egyik dokumentumot (KKK vagy PTT) sem sikerült feldolgozni a(z) ${profession.name} szakmához. Csatolmányok: ${details}`);
+      const details = profession.attachments?.map(a => `${a.name} (ID: ${a.media?.id}, Media: ${!!a.media})`).join(', ');
+      throw new Error(`Nem sikerült feldolgozni a KKK/PTT dokumentumokat. Részletek: ${details}. Ellenőrizd a szerver naplót a szignatúráért!`);
     }
 
     return { kkkText, pttText };
