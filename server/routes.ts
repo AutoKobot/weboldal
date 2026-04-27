@@ -434,8 +434,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul.'
       );
 
-      // Clean AI response from markdown blocks if present
-      const jsonStr = aiResponse.message.replace(/```json\n?|\n?```/g, '').trim();
+      // Clean AI response from markdown blocks or extra text
+      let jsonStr = aiResponse.message.trim();
+      
+      // Extract everything between the first { and last }
+      const firstBrace = jsonStr.indexOf('{');
+      const lastBrace = jsonStr.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+      } else {
+        console.error('AI response does not contain a JSON object:', aiResponse.message);
+        throw new Error('Az AI válasza nem tartalmaz érvényes JSON struktúrát.');
+      }
+
       const curriculum = JSON.parse(jsonStr);
 
       // 3. Save to database
