@@ -141,33 +141,39 @@ export class IKKService {
    * AI segítségével struktúrált tananyagot generál a KKK/PTT szövegekből.
    */
   async structureCurriculum(professionName: string, kkkText: string, pttText: string) {
+    console.log(`Curriculum generation started for ${professionName}. KKK: ${kkkText.length} chars, PTT: ${pttText.length} chars.`);
+
     const prompt = `
-      Feladatod egy szakmai tananyag TELJES struktúrájának kialakítása a megadott KKK (Képzési és Kimeneti Követelmények) és PTT (Programtanterv) alapján.
+      Feladatod egy szakmai tananyag RENDKÍVÜL RÉSZLETES és TELJES struktúrájának kialakítása a megadott KKK és PTT alapján.
       
       Szakma: ${professionName}
       
-      FONTOS: Ne fogd rövidre! A cél az, hogy a szakma teljes tananyagát lefedjük. 
-      Az összes tantárgyat és minden egyes modult/tananyagegységet ki kell gyűjtened, amit a dokumentumokban találsz.
+      SZIGORÚ UTASÍTÁSOK:
+      1. NE ÖSSZEFOGLALJ! A cél nem egy rövid vázlat, hanem a teljes képzési terv digitalizálása.
+      2. Minden egyes tantárgyat (Subject) vegyél fel, ami a Programtantervben (PTT) szerepel.
+      3. Minden tantárgy alatt sorold fel az ÖSSZES hozzá tartozó tananyagegységet/modult (Module). 
+      4. Egy átlagos szakmánál ez legalább 15-30 különböző modult jelent összesen. Ha csak 8-at találsz, akkor hibáztál és keress tovább a szövegben!
+      5. A 'detailedContent' mező legyen alapos, tartalmazza a konkrét szakmai kulcsszavakat, eszközöket és munkafolyamatokat.
       
-      KKK Kivonat: ${kkkText.substring(0, 15000)} ...
+      KKK Szöveg (Képzési és Kimeneti Követelmények):
+      ${kkkText.substring(0, 20000)}
       
-      PTT Kivonat: ${pttText.substring(0, 40000)} ...
+      PTT Szöveg (Programtanterv - Itt vannak a konkrét modulok!):
+      ${pttText.substring(0, 50000)}
       
-      Kérlek azonosítsd az ÖSSZES tantárgyat (Subjects) és az azokhoz tartozó ÖSSZES modult (Modules).
-      Minden modulhoz írj egy 4-5 mondatos tömör összefoglalót (conciseContent), ami leírja a modul célját, 
-      és egy részletesebb leírást (detailedContent), ami tartalmazza a konkrét szakmai témaköröket is.
+      Kérlek azonosítsd az ÖSSZES tantárgyat és az azokhoz tartozó ÖSSZES modult.
       
-      A válaszod egy JSON objektum legyen a következő formátumban:
+      VÁLASZ FORMÁTUM (Csak érvényes JSON):
       {
         "subjects": [
           {
             "name": "Tantárgy neve",
-            "description": "Tantárgy rövid leírása",
+            "description": "Tantárgy részletes célkitűzései",
             "modules": [
               {
-                "title": "Modul/Tananyagegység címe",
-                "conciseContent": "4-5 mondatos összefoglaló...",
-                "detailedContent": "Részletes szakmai tartalom és témakörök (legalább 2-3 bekezdés)"
+                "title": "Modul pontos címe",
+                "conciseContent": "4-5 mondatos összefoglaló a modulról.",
+                "detailedContent": "Nagyon részletes szakmai leírás, témakörök, elsajátítandó készségek (legalább 3-4 bekezdés)."
               }
             ]
           }
