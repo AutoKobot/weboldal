@@ -451,6 +451,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const curriculum = JSON.parse(jsonStr);
 
       // 3. Save to database
+      // First, check if a profession with this name already exists and delete it (overwrite mode)
+      const existingProfessions = await storage.getProfessions();
+      const duplicate = existingProfessions.find(p => p.name === profession.name);
+      if (duplicate) {
+        console.log(`Deleting existing profession: ${profession.name} (ID: ${duplicate.id}) before re-import.`);
+        await storage.deleteProfession(duplicate.id);
+      }
+
       // Create Profession
       const newProfession = await storage.createProfession({
         name: profession.name,
