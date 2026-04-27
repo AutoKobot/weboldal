@@ -5,12 +5,8 @@ import { aiProvider } from './openai';
 
 interface IKKAttachment {
   name: string;
-  media: {
-    id: number;
-    originalName: string;
-    mimeType: string;
-    size: number;
-  };
+  media: string;
+  media_id: number;
   version: number;
   publishDate: string;
 }
@@ -111,30 +107,30 @@ export class IKKService {
     let kkkText = '';
     let pttText = '';
 
-    if (kkkAttachment && kkkAttachment.media && kkkAttachment.media.id) {
-      console.log(`Downloading KKK (ID: ${kkkAttachment.media.id}) for ${profession.name}`);
+    if (kkkAttachment && kkkAttachment.media_id) {
+      console.log(`Downloading KKK (ID: ${kkkAttachment.media_id}) for ${profession.name}`);
       try {
-        kkkText = await this.getPdfText(kkkAttachment.media.id);
+        kkkText = await this.getPdfText(kkkAttachment.media_id);
       } catch (e) {
         console.error(`Nem sikerült a KKK-t feldolgozni:`, e);
       }
     } else {
-      console.warn(`Nem található KKK dokumentum (vagy hiányzik a média ID) a(z) ${profession.name} szakmához.`);
+      console.warn(`Nem található KKK dokumentum (vagy hiányzik a media_id) a(z) ${profession.name} szakmához.`);
     }
 
-    if (pttAttachment && pttAttachment.media && pttAttachment.media.id) {
-      console.log(`Downloading PTT (ID: ${pttAttachment.media.id}) for ${profession.name}`);
+    if (pttAttachment && pttAttachment.media_id) {
+      console.log(`Downloading PTT (ID: ${pttAttachment.media_id}) for ${profession.name}`);
       try {
-        pttText = await this.getPdfText(pttAttachment.media.id);
+        pttText = await this.getPdfText(pttAttachment.media_id);
       } catch (e) {
         console.error(`Nem sikerült a PTT-t feldolgozni:`, e);
       }
     } else {
-      console.warn(`Nem található PTT dokumentum (vagy hiányzik a média ID) a(z) ${profession.name} szakmához.`);
+      console.warn(`Nem található PTT dokumentum (vagy hiányzik a media_id) a(z) ${profession.name} szakmához.`);
     }
 
     if (!kkkText && !pttText) {
-      const details = profession.attachments?.map(a => `${a.name} (ID: ${a.media?.id}, Media: ${!!a.media})`).join(', ');
+      const details = profession.attachments?.map(a => `${a.name} (media_id: ${a.media_id}, hasMediaURL: ${!!a.media})`).join(', ');
       throw new Error(`Nem sikerült feldolgozni a KKK/PTT dokumentumokat. Részletek: ${details}. Ellenőrizd a szerver naplót a szignatúráért!`);
     }
 
