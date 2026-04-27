@@ -2088,11 +2088,14 @@ export default function AdminDashboard() {
                     Új szakma
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent aria-describedby={undefined}>
                   <DialogHeader>
                     <DialogTitle>
                       {editingProfession ? "Szakma szerkesztése" : "Új szakma létrehozása"}
                     </DialogTitle>
+                    <DialogDescription>
+                      {editingProfession ? "Módosítsd a szakma alapvető adatait." : "Adj meg egy nevet és leírást az új szakmához."}
+                    </DialogDescription>
                   </DialogHeader>
                   <Form {...professionForm}>
                     <form onSubmit={professionForm.handleSubmit(onProfessionSubmit)} className="space-y-4">
@@ -2182,7 +2185,7 @@ export default function AdminDashboard() {
                     IKK Importálás
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogContent aria-describedby={undefined} className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Szakma importálása az IKK adatbázisból</DialogTitle>
                     <DialogDescription>
@@ -2329,11 +2332,14 @@ export default function AdminDashboard() {
                     Új tantárgy
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent aria-describedby={undefined}>
                   <DialogHeader>
                     <DialogTitle>
                       {editingSubject ? "Tantárgy szerkesztése" : "Új tantárgy létrehozása"}
                     </DialogTitle>
+                    <DialogDescription>
+                      {editingSubject ? "Módosítsd a tantárgy adatait." : "Adj meg egy nevet és leírást az új tantárgynak."}
+                    </DialogDescription>
                   </DialogHeader>
                   <Form {...subjectForm}>
                     <form onSubmit={subjectForm.handleSubmit(onSubjectSubmit)} className="space-y-4">

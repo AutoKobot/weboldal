@@ -98,22 +98,31 @@ export class IKKService {
     let kkkText = '';
     let pttText = '';
 
-    if (kkkAttachment) {
+    if (kkkAttachment && kkkAttachment.media && kkkAttachment.media.id) {
       console.log(`Downloading KKK (ID: ${kkkAttachment.media.id}) for ${profession.name}`);
-      kkkText = await this.getPdfText(kkkAttachment.media.id);
+      try {
+        kkkText = await this.getPdfText(kkkAttachment.media.id);
+      } catch (e) {
+        console.error(`Nem sikerült a KKK-t feldolgozni:`, e);
+      }
     } else {
-      console.warn(`Nem található KKK dokumentum a(z) ${profession.name} szakmához.`);
+      console.warn(`Nem található KKK dokumentum (vagy hiányzik a média ID) a(z) ${profession.name} szakmához.`);
     }
 
-    if (pttAttachment) {
+    if (pttAttachment && pttAttachment.media && pttAttachment.media.id) {
       console.log(`Downloading PTT (ID: ${pttAttachment.media.id}) for ${profession.name}`);
-      pttText = await this.getPdfText(pttAttachment.media.id);
+      try {
+        pttText = await this.getPdfText(pttAttachment.media.id);
+      } catch (e) {
+        console.error(`Nem sikerült a PTT-t feldolgozni:`, e);
+      }
     } else {
-      console.warn(`Nem található PTT dokumentum a(z) ${profession.name} szakmához.`);
+      console.warn(`Nem található PTT dokumentum (vagy hiányzik a média ID) a(z) ${profession.name} szakmához.`);
     }
 
     if (!kkkText && !pttText) {
-      throw new Error(`Egyik dokumentumot (KKK vagy PTT) sem sikerült letölteni vagy feldolgozni a(z) ${profession.name} szakmához.`);
+      const details = JSON.stringify(profession.attachments?.map(a => ({ name: a.name, hasMedia: !!a.media })), null, 2);
+      throw new Error(`Egyik dokumentumot (KKK vagy PTT) sem sikerült feldolgozni a(z) ${profession.name} szakmához. Csatolmányok: ${details}`);
     }
 
     return { kkkText, pttText };
