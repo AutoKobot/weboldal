@@ -1920,12 +1920,15 @@ const DayAttendanceEditor = ({ studentId, date, classId, onClose }: { studentId:
 
   const justifyAll = async () => {
     try {
-      for (const h of studentHours) {
-        if (h.status === 'absent') {
-          await handleUpdate(h.id, 'excused', h.period_number);
+      const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+      for (const p of periods) {
+        const h = studentHours.find((sh: any) => sh.period_number === p);
+        // Ha nincs rekord vagy hiányzik, akkor igazoljuk
+        if (!h || h.status === 'absent') {
+          await handleUpdate(h?.id || -1, 'excused', p);
         }
       }
-      toast({ title: "Sikeres igazolás", description: "A hiányzásokat leigazoltuk." });
+      toast({ title: "Sikeres igazolás", description: "A nap összes óráját leigazoltuk." });
       onClose();
     } catch (e) {
       toast({ variant: "destructive", title: "Hiba", description: "Hiba történt az igazolás közben." });
@@ -1934,22 +1937,23 @@ const DayAttendanceEditor = ({ studentId, date, classId, onClose }: { studentId:
 
   if (isLoading) return <div className="text-center p-4">Betöltés...</div>;
 
+  const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+
   return (
     <div className="space-y-3">
-      <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
-        {studentHours.length === 0 ? (
-          <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed">
-            <p className="text-sm text-gray-500">Ezen a napon nincsenek rögzített órák.</p>
-          </div>
-        ) : (
-          studentHours.map((h: any) => (
-            <div key={h.period_number} className="flex items-center justify-between p-2 rounded-md bg-gray-50 border">
-              <span className="text-sm font-medium">{h.period_number}. óra</span>
-              <Select value={h.status} onValueChange={(s) => handleUpdate(h.id, s, h.period_number)}>
+      <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
+        {periods.map((p) => {
+          const h = studentHours.find((sh: any) => sh.period_number === p);
+          const currentStatus = h?.status || 'absent';
+          
+          return (
+            <div key={p} className="flex items-center justify-between p-2 rounded-md bg-gray-50 border">
+              <span className="text-sm font-medium">{p}. óra</span>
+              <Select value={currentStatus} onValueChange={(s) => handleUpdate(h?.id || -1, s, p)}>
                 <SelectTrigger className={`w-32 h-8 text-xs font-semibold ${
-                  h.status === 'present' ? 'bg-green-50 border-green-200 text-green-700' :
-                  h.status === 'late' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
-                  h.status === 'excused' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                  currentStatus === 'present' ? 'bg-green-50 border-green-200 text-green-700' :
+                  currentStatus === 'late' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                  currentStatus === 'excused' ? 'bg-blue-50 border-blue-200 text-blue-700' :
                   'bg-red-50 border-red-200 text-red-700'
                 }`}>
                   <SelectValue />
@@ -1962,14 +1966,17 @@ const DayAttendanceEditor = ({ studentId, date, classId, onClose }: { studentId:
                 </SelectContent>
               </Select>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
       <div className="pt-4 flex flex-col gap-2">
         <Button 
           className="w-full bg-blue-600 hover:bg-blue-700" 
           onClick={justifyAll}
-          disabled={!studentHours.some((h: any) => h.status === 'absent')}
+          disabled={!periods.some(p => {
+            const h = studentHours.find((sh: any) => sh.period_number === p);
+            return !h || h.status === 'absent';
+          })}
         >
           <CheckCircle className="h-4 w-4 mr-2" />
           Összes hiányzás igazolása (Napi)
@@ -2040,13 +2047,17 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
             <Table className="border-collapse table-fixed w-full">
               <TableHeader className="bg-gray-50 sticky top-0 z-30">
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[180px] border-r shadow-[2px_0_5px_rgba(0,0,0,0.05)] font-bold text-gray-700">Tanuló</TableHead>
-                  <TableHead className="min-w-[100px] border-r text-center text-[10px] font-bold text-gray-500 uppercase bg-blue-50/50">Összesítő</TableHead>
-                  {dayNumbers.map(d => (
-                    <TableHead key={d} className="text-center p-1 min-w-[36px] border-r text-[10px] font-bold text-gray-600">
-                      {d}
-                    </TableHead>
-                  ))}
+                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[220px] border-r shadow-[2px_0_5px_rgba(0,0,0,0.05)] font-bold text-gray-700 px-4">Tanuló</TableHead>
+                  <TableHead className="min-w-[120px] border-r text-center text-[10px] font-bold text-gray-500 uppercase bg-blue-50/50 px-2">Összesítő</TableHead>
+                  {dayNumbers.map(d => {
+                    const date = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), d);
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                    return (
+                      <TableHead key={d} className={`text-center p-1 min-w-[36px] border-r text-[10px] font-bold ${isWeekend ? 'bg-red-50 text-red-400' : 'text-gray-600'}`}>
+                        {d}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -2062,49 +2073,50 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
 
                   return (
                     <TableRow key={student.id} className="hover:bg-blue-50/30 transition-colors">
-                      <TableCell className="sticky left-0 bg-white z-20 font-semibold text-sm border-r py-3 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                      <TableCell className="sticky left-0 bg-white z-20 font-semibold text-sm border-r py-3 shadow-[2px_0_5px_rgba(0,0,0,0.05)] px-4">
                         <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-[10px] bg-blue-100 text-blue-600">
+                          <Avatar className="h-7 w-7">
+                            <AvatarFallback className="text-[10px] bg-blue-100 text-blue-600 font-bold">
                               {student.lastName?.[0]}{student.firstName?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="truncate">{student.lastName} {student.firstName}</span>
+                          <span className="truncate max-w-[150px]">{student.lastName} {student.firstName}</span>
                         </div>
                       </TableCell>
                       
-                      <TableCell className="border-r p-1 bg-blue-50/20">
-                         <div className="grid grid-cols-2 gap-0.5 text-[9px] font-bold">
-                            <span className="text-green-600" title="Jelen">{stats.present}</span>
-                            <span className="text-red-600" title="Hiányzás">{stats.absent}</span>
-                            <span className="text-blue-600" title="Igazolt">{stats.excused}</span>
-                            <span className="text-yellow-600" title="Késés">{stats.late}</span>
+                      <TableCell className="border-r p-2 bg-blue-50/20">
+                         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] font-bold">
+                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">J:</span><span className="text-green-600">{stats.present}</span></div>
+                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">H:</span><span className="text-red-600">{stats.absent}</span></div>
+                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">I:</span><span className="text-blue-600">{stats.excused}</span></div>
+                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">K:</span><span className="text-yellow-600">{stats.late}</span></div>
                          </div>
                       </TableCell>
 
                       {dayNumbers.map(d => {
                         const dateStr = `${month}-${d.toString().padStart(2, '0')}`;
                         const dayPeriods = studentData[dateStr] || {};
-                        const periodEntries = Object.entries(dayPeriods).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+                        const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+                        const date = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), d);
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                         
                         return (
                           <TableCell 
                             key={d} 
-                            className="p-1 border-r text-center cursor-pointer group relative hover:bg-gray-100"
+                            className={`p-1 border-r text-center cursor-pointer group relative hover:bg-gray-100 ${isWeekend ? 'bg-red-50/30' : ''}`}
                             onClick={() => setSelectedDayInfo({ studentId: student.id, studentName: `${student.lastName} ${student.firstName}`, date: dateStr })}
                           >
                             <div className="flex flex-wrap gap-0.5 justify-center w-full max-w-[28px] mx-auto min-h-[16px] items-center">
-                               {periodEntries.length > 0 ? (
-                                 periodEntries.map(([p, status]) => (
+                               {periods.map(p => {
+                                 const status = dayPeriods[p];
+                                 return (
                                    <div 
                                       key={p} 
-                                      className={`w-1.5 h-1.5 rounded-full ${getStatusColor(status)}`} 
-                                      title={`${p}. óra: ${status === 'present' ? 'Jelen' : status === 'absent' ? 'Hiányzik' : status === 'late' ? 'Késő' : 'Igazolt'}`} 
+                                      className={`w-1.5 h-1.5 rounded-full ${status ? getStatusColor(status) : (isWeekend ? 'bg-gray-200 opacity-10' : 'bg-gray-100 opacity-20 group-hover:opacity-40')}`} 
+                                      title={status ? `${p}. óra: ${status === 'present' ? 'Jelen' : status === 'absent' ? 'Hiányzik' : status === 'late' ? 'Késő' : 'Igazolt'}` : `${p}. óra: Nincs adat`} 
                                    />
-                                 ))
-                               ) : (
-                                 <div className="w-1 h-1 rounded-full bg-gray-100 opacity-0 group-hover:opacity-100" />
-                               )}
+                                 );
+                               })}
                             </div>
                           </TableCell>
                         );
