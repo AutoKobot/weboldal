@@ -27,14 +27,18 @@ interface IKKProfession {
 
 export class IKKService {
   private static readonly BASE_URL = 'https://akkreditaltvizsgaztatas.ikk.hu/kkk-ptt';
-  private static readonly API_MEDIA_URL = 'https://api.ikk.hu/v1/media';
+  private static readonly API_MEDIA_URL = 'https://api.ikk.hu/v1/media/documents';
 
   /**
    * Lekéri a szakmák listáját az IKK oldaláról a __NEXT_DATA__ objektumból.
    */
   async getProfessions(): Promise<IKKProfession[]> {
     try {
-      const response = await axios.get(IKKService.BASE_URL);
+      const response = await axios.get(IKKService.BASE_URL, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
       const $ = cheerio.load(response.data);
       const nextDataJson = $('#__NEXT_DATA__').html();
 
@@ -58,13 +62,19 @@ export class IKKService {
   async getPdfText(mediaId: number): Promise<string> {
     try {
       const response = await axios.get(`${IKKService.API_MEDIA_URL}/${mediaId}`, {
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
       });
 
       const data = await pdf(Buffer.from(response.data));
       return data.text;
     } catch (error) {
       console.error(`Hiba a PDF feldolgozásakor (ID: ${mediaId}):`, error);
+      if (error instanceof Error && error.message.includes('Invalid PDF structure')) {
+         throw new Error(`Sérült vagy nem támogatott PDF formátum (ID: ${mediaId}). Próbálj másik szakmát.`);
+      }
       throw error;
     }
   }
@@ -73,23 +83,37 @@ export class IKKService {
    * KKK és PTT szövegek kinyerése egy szakmához.
    */
   async getProfessionContent(profession: IKKProfession) {
+    console.log(`Checking attachments for profession: ${profession.name}`, JSON.stringify(profession.attachments, null, 2));
+
+    // Keressük a KKK-t (név alapján, rugalmasabban)
     const kkkAttachment = profession.attachments
-      .filter(a => a.name === 'KKK')
+      .filter(a => a.name.toUpperCase().includes('KKK'))
       .sort((a, b) => b.version - a.version)[0];
 
+    // Keressük a PTT-t (név alapján, rugalmasabban)
     const pttAttachment = profession.attachments
-      .filter(a => a.name === 'PTT')
+      .filter(a => a.name.toUpperCase().includes('PTT'))
       .sort((a, b) => b.version - a.version)[0];
 
     let kkkText = '';
     let pttText = '';
 
     if (kkkAttachment) {
+      console.log(`Downloading KKK (ID: ${kkkAttachment.media.id}) for ${profession.name}`);
       kkkText = await this.getPdfText(kkkAttachment.media.id);
+    } else {
+      console.warn(`Nem található KKK dokumentum a(z) ${profession.name} szakmához.`);
     }
 
     if (pttAttachment) {
+      console.log(`Downloading PTT (ID: ${pttAttachment.media.id}) for ${profession.name}`);
       pttText = await this.getPdfText(pttAttachment.media.id);
+    } else {
+      console.warn(`Nem található PTT dokumentum a(z) ${profession.name} szakmához.`);
+    }
+
+    if (!kkkText && !pttText) {
+      throw new Error(`Egyik dokumentumot (KKK vagy PTT) sem sikerült letölteni vagy feldolgozni a(z) ${profession.name} szakmához.`);
     }
 
     return { kkkText, pttText };

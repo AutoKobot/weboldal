@@ -234,7 +234,7 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
       {/* Navigation */}
-      <nav className="p-4 flex-1 min-h-0 text-left bg-[#7cd1323b]">
+      <nav className="p-4 pb-8 flex-1 overflow-y-auto min-h-0 text-left bg-[#7cd1323b] custom-scrollbar">
         {/* Search Results */}
         {searchQuery && (
           <div className="mb-4">
