@@ -138,6 +138,8 @@ export default function TeacherDashboard() {
   const [editingNote, setEditingNote] = useState<string | null>(null); // studentId being edited
   const [noteText, setNoteText] = useState<string>("");
   const [savingNote, setSavingNote] = useState(false);
+  const [attendanceViewMode, setAttendanceViewMode] = useState<"daily" | "monthly">("daily");
+  const [attendanceMonth, setAttendanceMonth] = useState<string>(new Date().toISOString().substring(0, 7)); // YYYY-MM
 
   // Collapsible class groups in student list
   const [collapsedClasses, setCollapsedClasses] = useState<Set<string>>(new Set());
@@ -1088,23 +1090,53 @@ export default function TeacherDashboard() {
                     </Select>
                   </div>
                   <div className="flex-1">
-                    <label className="text-sm font-medium mb-1 block">Dátum</label>
-                    <Input
-                      id="attendance-date-picker"
-                      type="date"
-                      value={attendanceDate}
-                      onChange={e => setAttendanceDate(e.target.value)}
-                    />
+                    <label className="text-sm font-medium mb-1 block">Nézet</label>
+                    <div className="flex bg-gray-100 p-1 rounded-md h-10">
+                      <button 
+                        onClick={() => setAttendanceViewMode("daily")}
+                        className={`flex-1 text-xs font-medium rounded transition-colors ${attendanceViewMode === "daily" ? "bg-white shadow-sm text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+                      >
+                        Napi
+                      </button>
+                      <button 
+                        onClick={() => setAttendanceViewMode("monthly")}
+                        className={`flex-1 text-xs font-medium rounded transition-colors ${attendanceViewMode === "monthly" ? "bg-white shadow-sm text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+                      >
+                        Havi
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-sm font-medium mb-1 block">
+                      {attendanceViewMode === "daily" ? "Dátum" : "Hónap"}
+                    </label>
+                    {attendanceViewMode === "daily" ? (
+                      <Input
+                        id="attendance-date-picker"
+                        type="date"
+                        value={attendanceDate}
+                        onChange={e => setAttendanceDate(e.target.value)}
+                      />
+                    ) : (
+                      <Input
+                        id="attendance-month-picker"
+                        type="month"
+                        value={attendanceMonth}
+                        onChange={e => setAttendanceMonth(e.target.value)}
+                      />
+                    )}
                   </div>
                   <div className="flex items-end gap-2">
-                    <Button
-                      variant="outline"
-                      id="attendance-today-btn"
-                      onClick={() => setAttendanceDate(new Date().toISOString().split('T')[0])}
-                    >
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Ma
-                    </Button>
+                    {attendanceViewMode === "daily" && (
+                      <Button
+                        variant="outline"
+                        id="attendance-today-btn"
+                        onClick={() => setAttendanceDate(new Date().toISOString().split('T')[0])}
+                      >
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Ma
+                      </Button>
+                    )}
                     {attendanceClassId !== 'all' && (
                       <Button
                         id="attendance-csv-export-btn"
@@ -1135,12 +1167,17 @@ export default function TeacherDashboard() {
             {attendanceClassId === 'all' ? (
               <Card className="p-10 text-center border-dashed">
                 <ClipboardList className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-400">Válasszon osztályt a jelenléti íev megtekintéséhez.</p>
+                <p className="text-gray-400">Válasszon osztályt a jelenléti ív megtekintéséhez.</p>
               </Card>
-            ) : (
+            ) : attendanceViewMode === "daily" ? (
               <AttendanceView 
                 attendanceClassId={attendanceClassId} 
                 attendanceDate={attendanceDate}
+              />
+            ) : (
+              <MonthlyAttendanceView 
+                classId={attendanceClassId} 
+                month={attendanceMonth}
               />
             )}
           </TabsContent>
@@ -1837,6 +1874,281 @@ const AttendanceView = ({ attendanceClassId, attendanceDate }: AttendanceViewPro
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+};
+
+const DayAttendanceEditor = ({ studentId, date, classId, onClose }: { studentId: string, date: string, classId: string, onClose: () => void }) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: dayData = [], isLoading } = useQuery<any[]>({
+    queryKey: [`/api/teacher/classes/${classId}/attendance?date=${date}`],
+    enabled: !!classId && !!date,
+  });
+
+  const studentHours = useMemo(() => {
+    return dayData.filter((d: any) => d.student_id === studentId).sort((a, b) => a.period_number - b.period_number);
+  }, [dayData, studentId]);
+
+  const handleUpdate = async (attendanceId: number, status: string, periodNumber: number) => {
+    try {
+      if (attendanceId === -1) {
+        await fetch(`/api/teacher/classes/${classId}/attendance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId, date, periodNumber, status }),
+        });
+      } else {
+        await fetch(`/api/teacher/attendance/${attendanceId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${classId}/attendance?date=${date}`] });
+      // Also invalidate monthly query to keep it in sync
+      const monthStr = date.substring(0, 7);
+      const startDate = `${monthStr}-01`;
+      const endOfMonth = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0);
+      const endDate = endOfMonth.toISOString().split('T')[0];
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${classId}/attendance?startDate=${startDate}&endDate=${endDate}`] });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Hiba", description: "Sikertelen mentés" });
+    }
+  };
+
+  const justifyAll = async () => {
+    try {
+      for (const h of studentHours) {
+        if (h.status === 'absent') {
+          await handleUpdate(h.id, 'excused', h.period_number);
+        }
+      }
+      toast({ title: "Sikeres igazolás", description: "A hiányzásokat leigazoltuk." });
+      onClose();
+    } catch (e) {
+      toast({ variant: "destructive", title: "Hiba", description: "Hiba történt az igazolás közben." });
+    }
+  };
+
+  if (isLoading) return <div className="text-center p-4">Betöltés...</div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
+        {studentHours.length === 0 ? (
+          <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed">
+            <p className="text-sm text-gray-500">Ezen a napon nincsenek rögzített órák.</p>
+          </div>
+        ) : (
+          studentHours.map((h: any) => (
+            <div key={h.period_number} className="flex items-center justify-between p-2 rounded-md bg-gray-50 border">
+              <span className="text-sm font-medium">{h.period_number}. óra</span>
+              <Select value={h.status} onValueChange={(s) => handleUpdate(h.id, s, h.period_number)}>
+                <SelectTrigger className={`w-32 h-8 text-xs font-semibold ${
+                  h.status === 'present' ? 'bg-green-50 border-green-200 text-green-700' :
+                  h.status === 'late' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                  h.status === 'excused' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                  'bg-red-50 border-red-200 text-red-700'
+                }`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="present">Jelen</SelectItem>
+                  <SelectItem value="late">Késő</SelectItem>
+                  <SelectItem value="excused">Igazolt</SelectItem>
+                  <SelectItem value="absent">Hiányzik</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="pt-4 flex flex-col gap-2">
+        <Button 
+          className="w-full bg-blue-600 hover:bg-blue-700" 
+          onClick={justifyAll}
+          disabled={!studentHours.some((h: any) => h.status === 'absent')}
+        >
+          <CheckCircle className="h-4 w-4 mr-2" />
+          Összes hiányzás igazolása (Napi)
+        </Button>
+        <Button variant="outline" className="w-full" onClick={onClose}>Bezárás</Button>
+      </div>
+    </div>
+  );
+};
+
+const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: string }) => {
+  const [selectedDayInfo, setSelectedDayInfo] = useState<{ studentId: string, studentName: string, date: string } | null>(null);
+
+  const startDate = `${month}-01`;
+  const endOfMonth = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0);
+  const endDate = endOfMonth.toISOString().split('T')[0];
+  const daysInMonth = endOfMonth.getDate();
+
+  const { data: attendanceData = [], isLoading } = useQuery<any[]>({
+    queryKey: [`/api/teacher/classes/${classId}/attendance?startDate=${startDate}&endDate=${endDate}`],
+    enabled: !!classId && classId !== 'all',
+  });
+
+  const { data: studentsData = [] } = useQuery<Student[]>({
+    queryKey: ["/api/teacher/students"],
+  });
+
+  const classStudents = useMemo(() => {
+    return studentsData
+      .filter(s => s.classId === parseInt(classId))
+      .sort((a, b) => `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`, 'hu'));
+  }, [studentsData, classId]);
+
+  const attendanceMap = useMemo(() => {
+    const map: Record<string, Record<string, Record<number, string>>> = {};
+    attendanceData.forEach(row => {
+      if (!map[row.student_id]) map[row.student_id] = {};
+      if (!map[row.student_id][row.date]) map[row.student_id][row.date] = {};
+      map[row.student_id][row.date][row.period_number] = row.status;
+    });
+    return map;
+  }, [attendanceData]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'present': return 'bg-green-500';
+      case 'late': return 'bg-yellow-500';
+      case 'excused': return 'bg-blue-500';
+      case 'absent': return 'bg-red-500';
+      default: return 'bg-gray-200';
+    }
+  };
+
+  const dayNumbers = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  if (isLoading) return (
+    <div className="py-20 text-center">
+      <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
+      <p className="text-gray-500">Havi adatok betöltése...</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Card className="overflow-hidden border-blue-100">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto max-h-[70vh]">
+            <Table className="border-collapse table-fixed w-full">
+              <TableHeader className="bg-gray-50 sticky top-0 z-30">
+                <TableRow>
+                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[180px] border-r shadow-[2px_0_5px_rgba(0,0,0,0.05)] font-bold text-gray-700">Tanuló</TableHead>
+                  <TableHead className="min-w-[100px] border-r text-center text-[10px] font-bold text-gray-500 uppercase bg-blue-50/50">Összesítő</TableHead>
+                  {dayNumbers.map(d => (
+                    <TableHead key={d} className="text-center p-1 min-w-[36px] border-r text-[10px] font-bold text-gray-600">
+                      {d}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {classStudents.map(student => {
+                  // Calculate month summary for this student
+                  const studentData = attendanceMap[student.id] || {};
+                  const stats = { present: 0, absent: 0, late: 0, excused: 0 };
+                  Object.values(studentData).forEach(day => {
+                    Object.values(day).forEach(status => {
+                      if (status in stats) stats[status as keyof typeof stats]++;
+                    });
+                  });
+
+                  return (
+                    <TableRow key={student.id} className="hover:bg-blue-50/30 transition-colors">
+                      <TableCell className="sticky left-0 bg-white z-20 font-semibold text-sm border-r py-3 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-[10px] bg-blue-100 text-blue-600">
+                              {student.lastName?.[0]}{student.firstName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="truncate">{student.lastName} {student.firstName}</span>
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell className="border-r p-1 bg-blue-50/20">
+                         <div className="grid grid-cols-2 gap-0.5 text-[9px] font-bold">
+                            <span className="text-green-600" title="Jelen">{stats.present}</span>
+                            <span className="text-red-600" title="Hiányzás">{stats.absent}</span>
+                            <span className="text-blue-600" title="Igazolt">{stats.excused}</span>
+                            <span className="text-yellow-600" title="Késés">{stats.late}</span>
+                         </div>
+                      </TableCell>
+
+                      {dayNumbers.map(d => {
+                        const dateStr = `${month}-${d.toString().padStart(2, '0')}`;
+                        const dayPeriods = studentData[dateStr] || {};
+                        const periodEntries = Object.entries(dayPeriods).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+                        
+                        return (
+                          <TableCell 
+                            key={d} 
+                            className="p-1 border-r text-center cursor-pointer group relative hover:bg-gray-100"
+                            onClick={() => setSelectedDayInfo({ studentId: student.id, studentName: `${student.lastName} ${student.firstName}`, date: dateStr })}
+                          >
+                            <div className="flex flex-wrap gap-0.5 justify-center w-full max-w-[28px] mx-auto min-h-[16px] items-center">
+                               {periodEntries.length > 0 ? (
+                                 periodEntries.map(([p, status]) => (
+                                   <div 
+                                      key={p} 
+                                      className={`w-1.5 h-1.5 rounded-full ${getStatusColor(status)}`} 
+                                      title={`${p}. óra: ${status === 'present' ? 'Jelen' : status === 'absent' ? 'Hiányzik' : status === 'late' ? 'Késő' : 'Igazolt'}`} 
+                                   />
+                                 ))
+                               ) : (
+                                 <div className="w-1 h-1 rounded-full bg-gray-100 opacity-0 group-hover:opacity-100" />
+                               )}
+                            </div>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center gap-4 text-xs text-gray-500 bg-white p-3 rounded-lg border">
+         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-500"></div> Jelen</div>
+         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div> Hiányzik</div>
+         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Igazolt</div>
+         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-yellow-500"></div> Késés</div>
+         <div className="ml-auto italic">* Kattintson egy cellára a módosításhoz vagy igazoláshoz.</div>
+      </div>
+
+      <Dialog open={!!selectedDayInfo} onOpenChange={() => setSelectedDayInfo(null)}>
+         <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                {selectedDayInfo?.studentName}
+              </DialogTitle>
+              <DialogDescription className="font-bold text-gray-900">
+                {selectedDayInfo?.date?.replace(/-/g, '. ')}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+               {selectedDayInfo && (
+                 <DayAttendanceEditor 
+                    studentId={selectedDayInfo.studentId} 
+                    date={selectedDayInfo.date} 
+                    classId={classId}
+                    onClose={() => setSelectedDayInfo(null)}
+                 />
+               )}
+            </div>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 };
