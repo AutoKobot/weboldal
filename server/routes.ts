@@ -469,6 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         subjectsCreated++;
 
+        let moduleCounter = 1;
         for (const mod of sub.modules) {
           const newModule = await storage.createModule({
             title: mod.title,
@@ -476,6 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             conciseContent: mod.conciseContent,
             detailedContent: mod.detailedContent,
             subjectId: newSubject.id,
+            moduleNumber: moduleCounter++,
             isPublished: false 
           });
           modulesCreated++;
