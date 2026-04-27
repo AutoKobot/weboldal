@@ -329,52 +329,52 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Global Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="shadow-sm border-blue-50">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Összes tanuló</p>
-                  <div className="flex items-baseline space-x-2">
-                    <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Összes tanuló</p>
+                  <div className="flex items-baseline space-x-2 mt-1">
+                    <p className="text-2xl font-bold text-gray-900">{totalStudents}</p>
                     {onlineStudentsCount > 0 && (
-                      <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded-full flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse"></span>
+                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full flex items-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></span>
                         {onlineStudentsCount} online
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
+                <div className="h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          <Card className="shadow-sm border-green-50">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Aktív tanulók</p>
-                  <p className="text-3xl font-bold text-gray-900">{activeStudents}</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Aktív tanulók</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{activeStudents}</p>
                 </div>
-                <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
+                <div className="h-10 w-10 bg-green-50 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          <Card className="shadow-sm border-purple-50">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Átlagos haladás</p>
-                  <p className="text-3xl font-bold text-gray-900">{averageProgress}%</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Átlagos haladás</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{averageProgress}%</p>
                 </div>
-                <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Award className="h-6 w-6 text-purple-600" />
+                <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                  <Award className="h-5 w-5 text-purple-500" />
                 </div>
               </div>
             </CardContent>
@@ -497,99 +497,48 @@ export default function TeacherDashboard() {
                               {classStudents.map((student: Student) => {
                                 const progress = getStudentProgress(student);
                                 const completedCount = student.completedModules?.length || 0;
-                                const recentModules = student.completedModules?.slice(-3) || [];
-
                                 return (
                                   <Card key={student.id} className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-6">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex items-start space-x-4 flex-1">
-                                          <Avatar className="h-12 w-12">
-                                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.firstName} ${student.lastName}`} />
-                                            <AvatarFallback>
-                                              {(student.firstName?.[0] || '') + (student.lastName?.[0] || student.username?.[0] || 'T')}
-                                            </AvatarFallback>
-                                          </Avatar>
+                                    <CardContent className="p-4">
+                                      <div className="flex items-start gap-4">
+                                        <Avatar className="h-10 w-10 shrink-0">
+                                          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.firstName} ${student.lastName}`} />
+                                          <AvatarFallback>
+                                            {(student.firstName?.[0] || '') + (student.lastName?.[0] || student.username?.[0] || 'T')}
+                                          </AvatarFallback>
+                                        </Avatar>
 
-                                          <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-2">
-                                              <div>
-                                                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                                                  {student.lastName && student.firstName
-                                                    ? `${student.lastName} ${student.firstName}`
-                                                    : student.username
-                                                  }
-                                                  {student.isOnline && (
-                                                    <span title="Jelenleg bejelentkezve" className="ml-2 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
-                                                  )}
-                                                </h3>
-                                                <p className="text-sm text-gray-500">@{student.username}</p>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-start justify-between mb-2">
+                                            <div className="min-w-0">
+                                              <h3 className="text-base font-semibold text-gray-900 flex items-center truncate">
+                                                {student.lastName && student.firstName
+                                                  ? `${student.lastName} ${student.firstName}`
+                                                  : student.username
+                                                }
+                                                {student.isOnline && (
+                                                  <span title="Jelenleg bejelentkezve" className="ml-2 w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0"></span>
+                                                )}
+                                              </h3>
+                                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <span>@{student.username}</span>
                                                 {student.lastActiveDate && (
-                                                  <p className="text-xs text-gray-400 mt-0.5">
-                                                    Utolsó belépés: {new Date(student.lastActiveDate).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                  </p>
-                                                )}
-                                              </div>
-                                              <div className="text-right">
-                                                <Badge variant={progress > 50 ? "default" : "secondary"}>
-                                                  {progress}% kész
-                                                </Badge>
-                                              </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                              <div>
-                                                <p className="text-sm font-medium text-gray-600 mb-1">Szakma</p>
-                                                <p className="text-sm text-gray-900">
-                                                  {getProfessionName(student.selectedProfessionId)}
-                                                </p>
-                                              </div>
-                                              <div>
-                                                <p className="text-sm font-medium text-gray-600 mb-1">Teljesített modulok</p>
-                                                <p className="text-sm text-gray-900">
-                                                  {completedCount} / {modules.length}
-                                                </p>
-                                              </div>
-                                              <div>
-                                                <p className="text-sm font-medium text-gray-600 mb-1 flex items-center">
-                                                  <Clock className="w-3 h-3 mr-1" /> Tanulási idő
-                                                </p>
-                                                <p className="text-sm text-gray-900" title="Becsült idő a befejezett modulok alapján">
-                                                  ~{Math.floor(completedCount * 2.5)} óra
-                                                </p>
-                                                {(student.currentStreak || 0) > 0 && (
-                                                  <p className="text-xs text-orange-600 font-medium mt-0.5 flex items-center">
-                                                    🔥 {student.currentStreak} napos sorozat
-                                                  </p>
+                                                  <>
+                                                    <span>•</span>
+                                                    <span>Aktivitás: {new Date(student.lastActiveDate).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                  </>
                                                 )}
                                               </div>
                                             </div>
-
-                                            <div className="mb-4">
-                                              <div className="flex items-center justify-between mb-2">
-                                                <p className="text-sm font-medium text-gray-600">Haladás</p>
-                                                <p className="text-sm text-gray-500">{progress}%</p>
-                                              </div>
-                                              <Progress value={progress} className="h-2" />
-                                            </div>
-
-                                            <div className="flex justify-between items-center mt-4">
-                                              <div className="flex flex-wrap gap-2">
-                                                {recentModules.length > 0 && recentModules.map((moduleId: number) => (
-                                                  <Badge key={moduleId} variant="outline" className="text-xs">
-                                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                                    {getModuleName(moduleId)}
-                                                  </Badge>
-                                                ))}
-                                              </div>
-
-                                              <div className="flex gap-2">
-
-                                                <Dialog>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                              <Badge variant={progress > 50 ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                                                {progress}% kész
+                                              </Badge>
+                                              
+                                              <Dialog>
                                                 <DialogTrigger asChild>
-                                                  <Button variant="outline" size="sm">
-                                                    <FileText className="h-4 w-4 mr-2" />
-                                                    Részletek
+                                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600">
+                                                    <FileText className="h-4 w-4" />
                                                   </Button>
                                                 </DialogTrigger>
                                                 <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -2094,9 +2043,16 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
                       {dayNumbers.map(d => {
                         const dateStr = `${month}-${d.toString().padStart(2, '0')}`;
                         const dayPeriods = studentData[dateStr] || {};
-                        const periods = [1, 2, 3, 4, 5, 6, 7, 8];
                         const date = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), d);
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                        // Aggregate counts for this day
+                        const dayCounts = { present: 0, absent: 0, excused: 0 };
+                        Object.values(dayPeriods).forEach(status => {
+                          if (status === 'present') dayCounts.present++;
+                          else if (status === 'absent') dayCounts.absent++;
+                          else if (status === 'excused') dayCounts.excused++;
+                        });
                         
                         return (
                           <TableCell 
@@ -2104,25 +2060,16 @@ const MonthlyAttendanceView = ({ classId, month }: { classId: string, month: str
                             className={`p-0.5 border-r text-center cursor-pointer group relative hover:bg-gray-100 ${isWeekend ? 'bg-red-50/30' : ''}`}
                             onClick={() => setSelectedDayInfo({ studentId: student.id, studentName: `${student.lastName} ${student.firstName}`, date: dateStr })}
                           >
-                            <div className="flex flex-col gap-0 justify-center items-center min-h-[20px]">
-                               {periods.map(p => {
-                                 const status = dayPeriods[p];
-                                 if (!status) return null;
-                                 
-                                 const colorClass = status === 'present' ? 'text-green-600' : 
-                                                  status === 'absent' ? 'text-red-600' : 
-                                                  'text-blue-600';
-
-                                 return (
-                                   <span 
-                                      key={p} 
-                                      className={`text-[9px] font-extrabold leading-tight ${colorClass}`}
-                                      title={`${p}. óra: ${status === 'present' ? 'Jelen' : status === 'absent' ? 'Hiányzik' : status === 'late' ? 'Késő' : 'Igazolt'}`}
-                                   >
-                                      {p}
-                                   </span>
-                                 );
-                               })}
+                            <div className="flex flex-col gap-0 justify-center items-center min-h-[24px]">
+                               {dayCounts.present > 0 && (
+                                 <span className="text-[11px] font-bold text-green-600 leading-none" title="Jelen">{dayCounts.present}</span>
+                               )}
+                               {dayCounts.absent > 0 && (
+                                 <span className="text-[11px] font-bold text-red-600 leading-none" title="Hiányzás">{dayCounts.absent}</span>
+                               )}
+                               {dayCounts.excused > 0 && (
+                                 <span className="text-[11px] font-bold text-blue-600 leading-none" title="Igazolt">{dayCounts.excused}</span>
+                               )}
                                {!Object.keys(dayPeriods).length && !isWeekend && (
                                  <span className="text-[8px] text-gray-200 opacity-0 group-hover:opacity-100">.</span>
                                )}
