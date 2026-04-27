@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -128,6 +130,7 @@ export default function TeacherDashboard() {
   const [rosterCustomStart, setRosterCustomStart] = useState("");
   const [rosterCustomEnd, setRosterCustomEnd] = useState("");
   const [rosterExpandedStudents, setRosterExpandedStudents] = useState<Set<string>>(new Set());
+  const [rosterPrintDetails, setRosterPrintDetails] = useState(false);
 
   // Attendance state
   const [attendanceClassId, setAttendanceClassId] = useState<string>("all");
@@ -853,7 +856,7 @@ export default function TeacherDashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   {/* Class selector */}
                   <div>
                     <label className="text-sm font-medium mb-1 block">Osztály</label>
@@ -879,6 +882,18 @@ export default function TeacherDashboard() {
                         <SelectItem value="custom">Egyéni dátumtartomány</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Detailed toggle */}
+                  <div className="flex items-center space-x-2 h-10 pb-2">
+                    <Checkbox 
+                      id="print-details" 
+                      checked={rosterPrintDetails} 
+                      onCheckedChange={(checked) => setRosterPrintDetails(!!checked)}
+                    />
+                    <Label htmlFor="print-details" className="text-sm font-medium cursor-pointer">
+                      Részletes eredmények a nyomtatásban
+                    </Label>
                   </div>
 
                   {/* Print button */}
@@ -997,8 +1012,11 @@ export default function TeacherDashboard() {
                               </TableRow>
 
                               {/* Expanded detail rows */}
-                              {isExpanded && student.grades?.map((g: any, gi: number) => (
-                                <TableRow key={`${student.username}-${gi}`} className="bg-blue-50/40 text-sm no-print">
+                              {(isExpanded || rosterPrintDetails) && student.grades?.map((g: any, gi: number) => (
+                                <TableRow 
+                                  key={`${student.username}-${gi}`} 
+                                  className={`bg-blue-50/40 text-sm ${!isExpanded ? 'hidden print:table-row' : ''} ${rosterPrintDetails ? '' : 'no-print'}`}
+                                >
                                   <TableCell></TableCell>
                                   <TableCell colSpan={2} className="text-gray-600 pl-8">
                                     ↳ {g.moduleTitle}
@@ -1012,7 +1030,7 @@ export default function TeacherDashboard() {
                                       ({g.grade})
                                     </span>
                                   </TableCell>
-                                  <TableCell></TableCell>
+                                  <TableCell className="no-print"></TableCell>
                                 </TableRow>
                               ))}
                             </>
