@@ -17,6 +17,7 @@ export default function TananyagokPage() {
   const [location, navigate] = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [selectedProfession, setSelectedProfession] = useState<number | null>(null);
+  const [selectedType, setSelectedType] = useState<"theory" | "practical" | null>(null);
 
   // Check URL for profession parameter and auto-select class profession
   useEffect(() => {
@@ -145,7 +146,12 @@ export default function TananyagokPage() {
 
   const handleBackToProfessions = () => {
     setSelectedProfession(null);
+    setSelectedType(null);
     navigate('/tananyagok');
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedType(null);
   };
 
   return (
@@ -275,77 +281,146 @@ export default function TananyagokPage() {
             </div>
           )}
 
-          {/* Subject Selection */}
+          {/* Category Selection or Subject List */}
           {selectedProfession && (
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-neutral-800">
-                  2. Válassza ki a tantárgyat
-                </h2>
-                <Button
-                  variant="outline"
-                  onClick={handleBackToProfessions}
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft size={16} />
-                  <span>Vissza a szakmákhoz</span>
-                </Button>
-              </div>
-
-              {subjectsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...subjects].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)).map((subject: Subject) => (
-                    <Card
-                      key={subject.id}
-                      className="glassmorphism gradient-overlay hover-lift transition-all duration-300 cursor-pointer flex flex-col h-full interactive-element border-white/20"
-                      onClick={() => handleSubjectSelect(subject.id)}
+              {!selectedType ? (
+                // --- KATEGÓRIA VÁLASZTÁS (Elmélet vs Gyakorlat) ---
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-neutral-800">
+                      Válasszon képzéstípust
+                    </h2>
+                    <Button
+                      variant="outline"
+                      onClick={handleBackToProfessions}
+                      className="flex items-center space-x-2"
                     >
-                      <CardHeader className="pb-3 flex-shrink-0">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-16 h-16 bg-gradient-to-br from-secondary to-green-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                            <BookOpen className="text-white" size={28} />
-                          </div>
-                          <div className="flex-1 min-w-0 pr-2">
-                            <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
-                              {subject.name}
-                            </CardTitle>
-                          </div>
-                          <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
-                        </div>
+                      <ArrowLeft size={16} />
+                      <span>Vissza a szakmákhoz</span>
+                    </Button>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    {/* Elméleti Képzés Kártya */}
+                    <Card 
+                      className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-blue-100 overflow-hidden group"
+                      onClick={() => setSelectedType("theory")}
+                    >
+                      <div className="h-32 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                        <BookOpen className="text-white w-16 h-16 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-2xl text-center text-blue-900">Elméleti Képzés</CardTitle>
                       </CardHeader>
-
-                      <CardContent className="flex flex-col flex-grow">
-                        <div className="flex-grow">
-                          {subject.description && (
-                            <p className="text-neutral-600 text-sm leading-relaxed line-clamp-3 mb-4">
-                              {subject.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <Button
-                          className="w-full mt-auto bg-secondary hover:bg-secondary/90 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSubjectSelect(subject.id);
-                          }}
-                        >
-                          <BookOpen className="mr-2" size={16} />
-                          Modulok megtekintése
-                        </Button>
+                      <CardContent>
+                        <p className="text-center text-muted-foreground">
+                          Szakmai tananyagok, elméleti modulok, vizsgakövetelmények és tudásanyagok elsajátítása.
+                        </p>
                       </CardContent>
                     </Card>
-                  ))}
 
-                  {subjects.length === 0 && (
-                    <div className="col-span-full text-center py-12">
-                      <BookOpen className="mx-auto h-12 w-12 text-neutral-400 mb-4" />
-                      <h3 className="text-lg font-medium text-neutral-900 mb-2">Nincsenek elérhető tantárgyak</h3>
-                      <p className="text-neutral-600">Jelenleg nincsenek tantárgyak hozzárendelve ehhez a szakmához.</p>
+                    {/* Gyakorlati Képzés Kártya */}
+                    <Card 
+                      className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-orange-100 overflow-hidden group"
+                      onClick={() => setSelectedType("practical")}
+                    >
+                      <div className="h-32 bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                        <Wrench className="text-white w-16 h-16 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-2xl text-center text-orange-900">Gyakorlati Képzés</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-center text-muted-foreground">
+                          Gyakorlati feladatok, műhelymunka lépései, szerelési és kivitelezési útmutatók.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              ) : (
+                // --- TANTÁRGYAK LISTÁZÁSA ---
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-neutral-800">
+                      {selectedType === "theory" ? "Elméleti tantárgyak" : "Gyakorlati tantárgyak"}
+                    </h2>
+                    <Button
+                      variant="outline"
+                      onClick={handleBackToCategories}
+                      className="flex items-center space-x-2"
+                    >
+                      <ArrowLeft size={16} />
+                      <span>Vissza a kategóriákhoz</span>
+                    </Button>
+                  </div>
+
+                  {subjectsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {[...subjects]
+                        .filter(s => (s.type || "theory") === selectedType)
+                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                        .map((subject: Subject) => (
+                        <Card
+                          key={subject.id}
+                          className="glassmorphism gradient-overlay hover-lift transition-all duration-300 cursor-pointer flex flex-col h-full interactive-element border-white/20"
+                          onClick={() => handleSubjectSelect(subject.id)}
+                        >
+                          <CardHeader className="pb-3 flex-shrink-0">
+                            <div className="flex items-start space-x-3">
+                              <div className={`w-16 h-16 bg-gradient-to-br ${selectedType === 'theory' ? 'from-secondary to-green-700' : 'from-orange-400 to-red-600'} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}>
+                                {selectedType === 'theory' ? <BookOpen className="text-white" size={28} /> : <Wrench className="text-white" size={28} />}
+                              </div>
+                              <div className="flex-1 min-w-0 pr-2">
+                                <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
+                                  {subject.name}
+                                </CardTitle>
+                              </div>
+                              <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
+                            </div>
+                          </CardHeader>
+
+                          <CardContent className="flex flex-col flex-grow">
+                            <div className="flex-grow">
+                              {subject.description && (
+                                <p className="text-neutral-600 text-sm leading-relaxed line-clamp-3 mb-4">
+                                  {subject.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <Button
+                              className={`w-full mt-auto transition-colors ${selectedType === 'theory' ? 'bg-secondary hover:bg-secondary/90' : 'bg-orange-600 hover:bg-orange-700'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSubjectSelect(subject.id);
+                              }}
+                            >
+                              {selectedType === 'theory' ? <BookOpen className="mr-2" size={16} /> : <Wrench className="mr-2" size={16} />}
+                              {selectedType === 'theory' ? 'Tananyagok megtekintése' : 'Feladatok megtekintése'}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+
+                      {subjects.filter(s => (s.type || "theory") === selectedType).length === 0 && (
+                        <div className="col-span-full text-center py-12">
+                          {selectedType === 'theory' ? (
+                            <BookOpen className="mx-auto h-12 w-12 text-neutral-400 mb-4" />
+                          ) : (
+                            <Wrench className="mx-auto h-12 w-12 text-neutral-400 mb-4" />
+                          )}
+                          <h3 className="text-lg font-medium text-neutral-900 mb-2">
+                            Nincsenek elérhető {selectedType === 'theory' ? 'elméleti' : 'gyakorlati'} tantárgyak
+                          </h3>
+                          <p className="text-neutral-600">Jelenleg nincsenek ide tartozó tantárgyak hozzárendelve ehhez a szakmához.</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
