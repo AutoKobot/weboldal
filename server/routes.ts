@@ -7831,7 +7831,17 @@ export function setupPrivacyRoutes(app: Express) {
       const grades = await storage.getPracticalGradesByStudent(req.params.studentId);
       res.json(grades);
     } catch (error) {
-      console.error('Error fetching practical grades:', error);
+      console.error('Error fetching practical grades by student:', error);
+      res.status(500).json({ message: 'Hiba a gyakorlati jegyek betöltésekor' });
+    }
+  });
+
+  app.get('/api/practical-grades/module/:moduleId', combinedAuth, async (req: any, res) => {
+    try {
+      const grades = await storage.getPracticalGradesByModule(parseInt(req.params.moduleId));
+      res.json(grades);
+    } catch (error) {
+      console.error('Error fetching practical grades by module:', error);
       res.status(500).json({ message: 'Hiba a gyakorlati jegyek betöltésekor' });
     }
   });

@@ -2871,6 +2871,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(practicalGrades.createdAt));
   }
 
+  async getPracticalGradesByModule(moduleId: number): Promise<PracticalGrade[]> {
+    return await db.select().from(practicalGrades)
+      .where(eq(practicalGrades.moduleId, moduleId));
+  }
+
   async getPracticalGradesByTeacher(teacherId: string): Promise<PracticalGrade[]> {
     return await db.select().from(practicalGrades)
       .where(eq(practicalGrades.teacherId, teacherId))

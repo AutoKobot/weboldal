@@ -17,24 +17,33 @@ interface Props {
   modules: Module[];
 }
 
+interface StudentWithGrade extends User {
+  grade?: PracticalGrade;
+}
+
 export function PracticalGradesView({ teacherClasses, students, subjects, modules }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("all");
-  const [selectedModuleId, setSelectedModuleId] = useState<string>("");
+  const [expandedModuleId, setExpandedModuleId] = useState<number | null>(null);
   
-  const [gradeValue, setGradeValue] = useState<string>("");
-  const [gradeComment, setGradeComment] = useState<string>("");
+  // State for bulk/quick editing in the roster
+  const [editingGrades, setEditingGrades] = useState<Record<string, { grade: string, comment: string }>>({});
 
-  // Only show practical subjects and modules
-  const practicalSubjects = subjects.filter(s => s.type === 'practical');
+  // 1. Determine profession of the selected class to fix filtering
+  const classProfessionId = students.find(s => s.classId === parseInt(selectedClassId))?.selectedProfessionId;
+
+  // 2. Only show practical subjects and modules FOR THIS PROFESSION
+  const practicalSubjects = subjects.filter(s => 
+    s.type === 'practical' && 
+    (!classProfessionId || s.professionId === classProfessionId)
+  );
   const practicalModules = modules.filter(m => practicalSubjects.some(s => s.id === m.subjectId));
 
-  // Fetch grades for the selected student
-  const { data: studentGrades, isLoading: gradesLoading } = useQuery<PracticalGrade[]>({
-    queryKey: ["/api/practical-grades/student", selectedStudentId],
-    enabled: selectedStudentId !== "all" && !!selectedStudentId,
+  // 3. Fetch ALL practical grades for this module to show in the roster
+  const { data: moduleGrades = [], isLoading: gradesLoading } = useQuery<PracticalGrade[]>({
+    queryKey: ["/api/practical-grades/module", expandedModuleId],
+    enabled: !!expandedModuleId,
   });
 
   const saveGradeMutation = useMutation({
@@ -47,29 +56,30 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
       if (!res.ok) throw new Error("Failed to save grade");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({ title: "Sikeres mentés", description: "A gyakorlati érdemjegy rögzítve." });
-      queryClient.invalidateQueries({ queryKey: ["/api/practical-grades/student", selectedStudentId] });
-      setGradeValue("");
-      setGradeComment("");
-      setSelectedModuleId("");
+      queryClient.invalidateQueries({ queryKey: ["/api/practical-grades/module", expandedModuleId] });
+      // Clear local edit state for this student
+      setEditingGrades(prev => {
+        const next = { ...prev };
+        delete next[variables.studentId];
+        return next;
+      });
     },
     onError: () => {
       toast({ title: "Hiba", description: "Nem sikerült menteni az érdemjegyet.", variant: "destructive" });
     }
   });
 
-  const handleSaveGrade = () => {
-    if (selectedStudentId === "all" || !selectedModuleId || !gradeValue) {
-      toast({ title: "Figyelem", description: "Kérjük, válasszon ki minden kötelező mezőt és adjon meg érdemjegyet!", variant: "destructive" });
-      return;
-    }
+  const handleSaveStudentGrade = (studentId: string, moduleId: number) => {
+    const edit = editingGrades[studentId];
+    if (!edit || !edit.grade) return;
 
     saveGradeMutation.mutate({
-      studentId: selectedStudentId,
-      moduleId: parseInt(selectedModuleId),
-      grade: parseInt(gradeValue),
-      comment: gradeComment,
+      studentId,
+      moduleId,
+      grade: parseInt(edit.grade),
+      comment: edit.comment || "",
     });
   };
 
@@ -89,18 +99,17 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-100">
-          <div>
-            <Label className="mb-2 block">1. Válasszon osztályt</Label>
+        <div className="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <Label className="mb-2 block font-medium text-blue-900">Válasszon osztályt a gyakorlati naplóhoz</Label>
             <Select value={selectedClassId} onValueChange={(val) => {
               setSelectedClassId(val);
-              setSelectedStudentId("all");
+              setExpandedModuleId(null);
             }}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Minden osztály" />
+              <SelectTrigger className="bg-white border-blue-200">
+                <SelectValue placeholder="Válasszon osztályt..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Minden osztály</SelectItem>
                 {teacherClasses.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id.toString()}>
                     {cls.name}
@@ -109,129 +118,140 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
               </SelectContent>
             </Select>
           </div>
-
-          <div>
-            <Label className="mb-2 block">2. Válasszon diákot</Label>
-            <Select value={selectedStudentId} onValueChange={setSelectedStudentId} disabled={selectedClassId === "all"}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Válasszon diákot..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Válasszon diákot...</SelectItem>
-                {filteredStudents.map((student) => (
-                  <SelectItem key={student.id} value={student.id}>
-                    {student.lastName} {student.firstName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="hidden md:block text-blue-400">
+            <Loader2 className={`h-6 w-6 ${gradesLoading ? 'animate-spin' : 'opacity-0'}`} />
           </div>
         </div>
 
-        {selectedStudentId !== "all" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Col: Grade Input */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg border-b pb-2">Új Értékelés Rögzítése</h3>
-              
-              <div>
-                <Label className="mb-2 block">Gyakorlati Feladat / Modul</Label>
-                <Select value={selectedModuleId} onValueChange={setSelectedModuleId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Válassza ki az értékelt feladatot..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {practicalModules.map((module) => (
-                      <SelectItem key={module.id} value={module.id.toString()}>
-                        {module.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="mb-2 block">Érdemjegy (1-5)</Label>
-                <Select value={gradeValue} onValueChange={setGradeValue}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Válasszon érdemjegyet..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5 - Jeles</SelectItem>
-                    <SelectItem value="4">4 - Jó</SelectItem>
-                    <SelectItem value="3">3 - Közepes</SelectItem>
-                    <SelectItem value="2">2 - Elégséges</SelectItem>
-                    <SelectItem value="1">1 - Elégtelen</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="mb-2 block">Szöveges értékelés / Megjegyzés (opcionális)</Label>
-                <Textarea 
-                  placeholder="Részletes szakmai vélemény a munkadarabról vagy a munkafolyamatról..."
-                  value={gradeComment}
-                  onChange={(e) => setGradeComment(e.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
-
-              <Button 
-                onClick={handleSaveGrade} 
-                disabled={saveGradeMutation.isPending || !selectedModuleId || !gradeValue}
-                className="w-full"
-              >
-                {saveGradeMutation.isPending ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Mentés...</>
-                ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Érdemjegy Mentése</>
-                )}
-              </Button>
-            </div>
-
-            {/* Right Col: Grade History */}
-            <div>
-              <h3 className="font-semibold text-lg border-b pb-2 mb-4">Eddigi Értékelések</h3>
-              {gradesLoading ? (
-                <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
-              ) : studentGrades && studentGrades.length > 0 ? (
-                <div className="space-y-3">
-                  {studentGrades.map(grade => {
-                    const mod = practicalModules.find(m => m.id === grade.moduleId);
-                    return (
-                      <div key={grade.id} className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm flex items-start gap-4">
-                        <div className={[
-                          'flex items-center justify-center h-10 w-10 rounded-full font-bold text-lg',
-                          grade.grade === 5 ? 'bg-green-100 text-green-700' :
-                          grade.grade === 4 ? 'bg-blue-100 text-blue-700' :
-                          grade.grade === 3 ? 'bg-yellow-100 text-yellow-700' :
-                          grade.grade === 2 ? 'bg-orange-100 text-orange-700' :
-                          'bg-red-100 text-red-700'
-                        ].join(' ')}>
-                          {grade.grade}
+        {selectedClassId !== "all" && (
+          <div className="space-y-4">
+            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Gyakorlati Feladatok (Modulok)
+            </h3>
+            
+            <div className="grid grid-cols-1 gap-3">
+              {practicalModules.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed">
+                  Nincs elérhető gyakorlati modul ehhez a szakmához.
+                </div>
+              ) : practicalModules.map((module) => {
+                const isExpanded = expandedModuleId === module.id;
+                const moduleGradesCount = moduleGrades.filter(g => g.moduleId === module.id).length;
+                
+                return (
+                  <div key={module.id} className={`border rounded-xl transition-all duration-200 ${isExpanded ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:bg-gray-50'}`}>
+                    <div 
+                      className="p-4 flex items-center justify-between cursor-pointer"
+                      onClick={() => setExpandedModuleId(isExpanded ? null : module.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${moduleGradesCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                          {moduleGradesCount}
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm text-gray-900">{mod?.title || 'Ismeretlen modul'}</h4>
-                          <p className="text-xs text-gray-500 mb-1">
-                            {new Date(grade.createdAt!).toLocaleDateString('hu-HU')}
-                          </p>
-                          {grade.comment && (
-                            <p className="text-sm text-gray-700 mt-2 bg-gray-50 p-2 rounded border border-gray-100 italic">
-                              &ldquo;{grade.comment}&rdquo;
-                            </p>
-                          )}
+                        <div>
+                          <p className="font-semibold text-gray-900">{module.title}</p>
+                          <p className="text-xs text-gray-500">{module.sectionCode || 'Gyakorlat'}</p>
                         </div>
-                        <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <Wrench className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                  <p>Még nincs regisztrált gyakorlati jegy.</p>
-                </div>
-              )}
+                      <Button variant="ghost" size="sm" className="text-blue-600">
+                        {isExpanded ? 'Bezárás' : 'Osztályzás megnyitása'}
+                      </Button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="p-4 bg-gray-50 border-t rounded-b-xl animate-in fade-in slide-in-from-top-2">
+                        <div className="overflow-hidden bg-white rounded-lg border shadow-sm">
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
+                              <tr>
+                                <th className="px-4 py-3">Tanuló Neve</th>
+                                <th className="px-4 py-3">Aktuális Jegy</th>
+                                <th className="px-4 py-3">Új Osztályzat</th>
+                                <th className="px-4 py-3">Megjegyzés</th>
+                                <th className="px-4 py-3 text-right">Művelet</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {filteredStudents.map(student => {
+                                const currentGrade = moduleGrades.find(g => g.studentId === student.id && g.moduleId === module.id);
+                                const edit = editingGrades[student.id] || { grade: "", comment: "" };
+                                
+                                return (
+                                  <tr key={student.id} className="hover:bg-blue-50/30 transition-colors">
+                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                      {student.lastName} {student.firstName}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      {currentGrade ? (
+                                        <span className={`inline-flex items-center justify-center h-8 w-8 rounded-full font-bold text-white shadow-sm
+                                          ${currentGrade.grade === 5 ? 'bg-green-500' : 
+                                            currentGrade.grade === 4 ? 'bg-blue-500' : 
+                                            currentGrade.grade === 3 ? 'bg-yellow-500' : 
+                                            currentGrade.grade === 2 ? 'bg-orange-500' : 'bg-red-500'}`}
+                                        >
+                                          {currentGrade.grade}
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-300 text-xs">-</span>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <Select 
+                                        value={edit.grade} 
+                                        onValueChange={(val) => setEditingGrades(prev => ({
+                                          ...prev,
+                                          [student.id]: { ...edit, grade: val }
+                                        }))}
+                                      >
+                                        <SelectTrigger className="w-24 h-9 bg-white">
+                                          <SelectValue placeholder="Jegy" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="5">5 - Jeles</SelectItem>
+                                          <SelectItem value="4">4 - Jó</SelectItem>
+                                          <SelectItem value="3">3 - Közepes</SelectItem>
+                                          <SelectItem value="2">2 - Elégséges</SelectItem>
+                                          <SelectItem value="1">1 - Elégtelen</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                      <Input 
+                                        placeholder="Megjegyzés..."
+                                        value={edit.comment}
+                                        onChange={(e) => setEditingGrades(prev => ({
+                                          ...prev,
+                                          [student.id]: { ...edit, comment: e.target.value }
+                                        }))}
+                                        className="h-9 bg-white text-xs"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => handleSaveStudentGrade(student.id, module.id)}
+                                        disabled={!edit.grade || saveGradeMutation.isPending}
+                                        className="h-9 px-4"
+                                      >
+                                        {saveGradeMutation.isPending && saveGradeMutation.variables?.studentId === student.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <><Save className="h-3.5 w-3.5 mr-1" /> Mentés</>
+                                        )}
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
