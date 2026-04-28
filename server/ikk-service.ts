@@ -149,15 +149,13 @@ export class IKKService {
       Szakma: ${professionName}
       
       SZIGORÚ UTASÍTÁSOK:
-      1. NE ÖSSZEFOGLALJ! A cél nem egy rövid vázlat, hanem a teljes képzési terv digitalizálása.
-      2. Minden egyes tantárgyat (Subject) vegyél fel, ami a Programtantervben (PTT) szerepel az adott szövegrészletben.
-      3. HAGYD FIGYELMEN KÍVÜL AZ ADMINISZTRATÍV RÉSZEKET! Ne csinálj modult olyan bekezdésekből, mint "A tantárgy tanításának fő célja", "Az oktató végzettsége", "Eszközjegyzék", "Értékelés"! Kizárólag a TÉNYLEGES TANANYAGOT, a "Témakörök" alatti konkrét tanulási egységeket dolgozd fel!
-      4. Minden tantárgy alatt KÜLÖN-KÜLÖN sorold fel az elméleti tananyagegységeket ('theoryModules') és a gyakorlati feladatokat ('practicalModules'). TILOS ÖSSZEVONNI ŐKET! 
-      5. KÜLÖNÖS TEKINTETTEL FIGYELD A SORSZÁMOZÁST ÉS A FELSOROLÁSOKAT! Egy témakör (pl. 3.4.1.6) ÖNMAGÁBAN IS TÖBB ELMÉLETI ÉS TÖBB GYAKORLATI MODULT tartalmaz! Ha felsorolásokat vagy több résztémát látsz, azokat MIND EGY-EGY KÜLÖN MODULKÉNT vedd fel a megfelelő tömbbe! Bontsd ki a legkisebb önálló fogalomkörökre és részfeladatokra!
-      6. A GYAKORLAT TÖBB RÉSZFELADATBÓL ÁLL! Sose elégedj meg 1 db gyakorlati modullal egy tantárgynál! A gyakorlati képzések mindig tucatnyi specifikus munkafázisból, szerelési/készítési lépésből és mérésből állnak. Ezeket mind külön-külön 'practicalModules' elemként rögzítsd!
-      7. Egy tantárgyhoz ÁLTALÁBAN 10-30 ilyen apró elméleti és 10-20 gyakorlati modul tartozik. Ha egy tantárgynál csak 1-2 modult listázol ki, akkor HIBÁZTÁL. Szigorúan kövesd végig az összes apró résztémát!
-      8. A 'detailedContent' mező legyen alapos. Gyakorlati moduloknál a feladat pontos lépéseit és elvárt eredményeit is rögzítsd.
-      9. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! Kizárólag a szakmai tantárgyakat és a konkrét elméleti/gyakorlati témaköröket keresd!
+      1. TANTÁRGYAK AZONOSÍTÁSA: A tantárgyak felismerése onnan történik, hogy a címük végén ott van a "tantárgy" szó és az óraszám (pl. "3.4.2 Textiltermékek gyártástechnológiája tantárgy 36/36 óra").
+      2. HOL VANNAK A MODULOK? A modulokat (tananyagegységeket) KIZÁRÓLAG "A tantárgy témakörei" című bekezdés (pl. 3.4.2.6) után találod meg! HAGYJ FIGYELMEN KÍVÜL minden bevezetőt ("A tantárgy tanításának fő célja", "oktató végzettsége", "kompetenciák")!
+      3. A FELSOROLÁSOK A VALÓDI MODULOK! Amikor egy témakörön belül (pl. 3.4.2.6.1 Ruhaipari ábrázolások) felsorolásokat, gondolatjeleket (-) vagy perjelekkel (/) elválasztott fogalmakat látsz, AZOK A TÉNYLEGES MODULOK! Minden EGYYES FELSOROLÁS PONTOT KÜLÖN MODULKÉNT ('theoryModules' vagy 'practicalModules' elemként) rögzíts!
+      4. MODULOK ELNEVEZÉSE: Ha felsorolásból szedsz ki egy modult, a címe (title) tartalmazza a témakör nevét és a felsorolás elemét! Példa: "Ruhaipari ábrázolások - Modellrajz", "Ruhaipari ábrázolások - Gyártmányrajz".
+      5. ELMÉLET VS GYAKORLAT: Ha egy tantárgynál az van írva, hogy "A képzés órakeretének X%-át gyakorlati helyszínen kell lebonyolítani", vagy a leírásban/témakörnél szerepel a "Gyakorlat" szó, akkor a hozzá tartozó felsorolás elemeket a 'practicalModules' tömbbe rakd!
+      6. MENNYISÉG: Egy tantárgyhoz ÁLTALÁBAN 10-30 ilyen apró, felsorolás-szintű elméleti és 10-20 gyakorlati modul tartozik. TILOS ÖSSZEVONNI a felsorolásokat egy nagy modulba! Ha egy tantárgy alá csak 1-3 modult generálsz, az HIBÁS feldolgozás. Bontsd ki az összes gondolatjelet!
+      7. A 'detailedContent' mezőbe részletesen írd le, miről szól az adott pici részfeladat vagy elméleti altéma. Hagyj figyelmen kívül minden táblázatot és puszta óraszám-összesítést!
       
       PTT Szöveg (Programtanterv - Itt vannak a konkrét tantárgyak és modulok!):
       ${pttText.substring(0, 350000)}
@@ -168,30 +166,35 @@ export class IKKService {
       {
         "subjects": [
           {
-            "name": "Tantárgy neve (pl. 3.4.1 Textiltermékek gyártástechnológiája)",
-            "description": "Tantárgy részletes célkitűzései",
+            "name": "Textiltermékek gyártástechnológiája",
+            "description": "Tantárgy részletes célkitűzései a PTT alapján",
             "theoryModules": [
               {
-                "title": "3.4.1.1 Anyagismeret alapjai",
-                "conciseContent": "4-5 mondatos összefoglaló...",
+                "title": "3.4.2.6.1 Ruhaipari ábrázolások - Modellrajz",
+                "conciseContent": "4-5 mondatos összefoglaló a modellrajz elméletéről...",
+                "detailedContent": "Részletes szakmai leírás a modellrajzok elkészítésének szabályairól..."
+              },
+              {
+                "title": "3.4.2.6.1 Ruhaipari ábrázolások - Gyártmányrajz",
+                "conciseContent": "4-5 mondatos összefoglaló a gyártmányrajzról...",
                 "detailedContent": "Részletes szakmai leírás..."
               },
               {
-                "title": "3.4.1.2 Varrógépek működése",
-                "conciseContent": "4-5 mondatos összefoglaló...",
+                "title": "3.4.2.6.1 Ruhaipari ábrázolások - Részletrajz",
+                "conciseContent": "4-5 mondatos összefoglaló a részletrajzról...",
                 "detailedContent": "Részletes szakmai leírás..."
               }
             ],
             "practicalModules": [
               {
-                "title": "3.4.1.3 Szabásminta készítése (Gyakorlat)",
+                "title": "3.4.2.6.2 Varrástechnológia - A varratok és varrások alaki és méretjellemzői",
                 "conciseContent": "A gyakorlati feladat rövid összefoglalója...",
-                "detailedContent": "Pontos gyakorlati lépések..."
+                "detailedContent": "Pontos gyakorlati lépések, munkafázisok..."
               },
               {
-                "title": "3.4.1.4 Zseb varrása (Gyakorlat)",
+                "title": "3.4.2.6.2 Varrástechnológia - Öltések és varratok (Gyakorlat)",
                 "conciseContent": "A gyakorlati feladat rövid összefoglalója...",
-                "detailedContent": "Pontos gyakorlati lépések..."
+                "detailedContent": "Pontos gyakorlati lépések, munkafázisok..."
               }
             ]
           }
