@@ -12,7 +12,7 @@ import { Badge as UiBadge } from "@/components/ui/badge";
 import {
   BookOpen, Menu, ArrowRight, Brain, Play, Flame, BarChart3, AlertCircle,
   CheckCircle2, Users, GraduationCap, TrendingUp, Award, Clock, XCircle,
-  ChevronRight, FileText, Bot, MessageSquare
+  ChevronRight, FileText, Bot, MessageSquare, Wrench
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
 import { StudentAvatar } from "@/components/StudentAvatar";
@@ -517,6 +517,26 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
     retry: false,
   });
 
+  const { data: practicalGradesSummary = [] } = useQuery<any[]>({
+    queryKey: ["/api/practical-grades/teacher-summary"],
+    queryFn: async () => {
+      // Fetch all students' practical grades via teacher endpoint
+      const res = await fetch('/api/teacher/students');
+      if (!res.ok) return [];
+      const students = await res.json();
+      const allGrades: any[] = [];
+      for (const s of students.slice(0, 5)) {
+        const gr = await fetch(`/api/practical-grades/student/${s.id}`);
+        if (gr.ok) {
+          const g = await gr.json();
+          g.forEach((grade: any) => allGrades.push({ ...grade, studentName: `${s.lastName || ''} ${s.firstName || ''}`.trim() || s.username }));
+        }
+      }
+      return allGrades;
+    },
+    retry: false,
+  });
+
   const teacherClasses = homeStats?.classes ?? [];
   const students = homeStats?.students ?? [];
 
@@ -631,6 +651,43 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                 </Card>
               ))}
             </div>
+
+            {/* ── Legutóbbi Gyakorlati Jegyek ── */}
+            {practicalGradesSummary.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-blue-600" />
+                  Legutóbbi Gyakorlati Értékelések
+                </h2>
+                <Card className="shadow-sm border-0 ring-1 ring-blue-100">
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-gray-100">
+                      {practicalGradesSummary.slice(0, 8).map((g: any) => (
+                        <div key={g.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-blue-50/30">
+                          <div className="flex items-center gap-3">
+                            <div className={[
+                              'w-8 h-8 rounded-full flex items-center justify-center font-black text-sm',
+                              g.grade === 5 ? 'bg-green-100 text-green-700' :
+                              g.grade === 4 ? 'bg-blue-100 text-blue-700' :
+                              g.grade === 3 ? 'bg-yellow-100 text-yellow-700' :
+                              g.grade === 2 ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                            ].join(' ')}>
+                              {g.grade}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900">{g.studentName}</p>
+                              <p className="text-xs text-gray-400">{new Date(g.createdAt).toLocaleDateString('hu-HU')}</p>
+                            </div>
+                          </div>
+                          {g.comment && <p className="text-xs text-gray-500 italic truncate max-w-[200px]">{g.comment}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* ── Osztályonkénti részletes statisztikák ── */}
             <div>

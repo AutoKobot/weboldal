@@ -98,6 +98,13 @@ interface Module {
   moduleNumber: number;
 }
 
+interface Subject {
+  id: number;
+  name: string;
+  type?: string;
+  professionId?: number;
+}
+
 interface Profession {
   id: number;
   name: string;
@@ -162,6 +169,11 @@ export default function TeacherDashboard() {
   // Fetch modules
   const { data: modules = [], isLoading: modulesLoading } = useQuery<Module[]>({
     queryKey: ["/api/public/modules"],
+  });
+
+  // Fetch subjects (needed for PracticalGradesView)
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ["/api/public/subjects"],
   });
 
   // Fetch professions
@@ -1093,8 +1105,7 @@ export default function TeacherDashboard() {
               />
             )}
           </TabsContent>
-
-</Tabs>
+        </Tabs>
       </div>
     </div>
   );

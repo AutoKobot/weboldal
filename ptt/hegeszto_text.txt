@@ -1,0 +1,3402 @@
+
+
+ 
+ 1/47. oldal 
+ 
+P R O G R A M T A N T E R V 
+ 
+a 
+10. GÉPÉSZET 
+ágazathoz tartozó 
+4 0715 10 08 
+Hegesztő 
+SZAKMÁHOZ 
+ 
+1 A S Z A K M A  A L A P A D A T A I 
+ 
+ 
+1.1 Az ágazat megnevezése: Gépészet 
+1.2 A szakma megnevezése: Hegesztő 
+1.3 A szakma azonosító száma: 4 0715 10 08 
+1.4 A szakma szakmairányai: — 
+1.5 A szakma Európai Képesítési Keretrendszer szerinti szintje: 4 
+1.6 A szakma Magyar Képesítési Keretrendszer szerinti szintje: 4 
+1.7 Ágazati alapoktatás megnevezése: Műszaki ágazati alapoktatás 
+1.8 Kapcsolódó részszakmák megnevezése: Fémipari gyártás előkészítő 
+ 
+ 
+2 A KÉPZÉS SZERKEZETE ÉS TARTALMA 
+ 
+A programtantervvel kitöltött időkeret – a szakképzésről szóló törvény végrehajtásáról szóló 
+12/2020 (II. 7.) Korm. rendelet 13.§ (4) bekezdésének megfelelően – tartalmaz a szakképző 
+intézmény által a helyi gazdasági környezet egyedi elvárásaihoz igazodó szakmai célokra sza-
+badon felhasználható időkeretet (szabad sáv). 
+A szabad sáv szakmai tartalmáról a szakképző iskola szakmai programjában kell rendelkezni. 
+ 
+Az elmélet és a gyakorlat a dokumentumban nem kerül élesen elválasztásra. A cél az, hogy 
+lehetőség legyen a gyakorlat során is elméletet oktatni, hatékonyabbá téve ezzel az oktatást. 
+Az egyes tantárgyaknál történik annak meghatározása, hogy a tantárgy teljes tartalmát tekint-
+ve az órakeretnek minimálisan hány százalékát kell gyakorlati körülmények között (tanmű-
+helyben, termelőüzemben stb.) oktatni. Ez az adott tantárgy egészének gyakorlatigényességét 
+mutatja, és minél magasabb ez az arány, annál inkább ösztönöz az elméleti tudáselemek gya-
+korlatba ágyazottan történő oktatására. 
+ 
+A szakirányú oktatásban a tantárgyakra meghatározott időkeret és tartalom kötelező érvényű, 
+a témakörökre kialakított óraszám, valamint a tantárgyak és témakörök óraszámának évfo-
+lyamonkénti megoszlása és sorrendje – a szakmai vizsga követelményeire tekintettel – pedig 
+ajánlás. 
+ 
+A kizárólag szakmai vizsgára történő felkészítés során az ágazati alapoktatáshoz tartozó tan-
+tárgyak oktatását a szakmai oktatás első félévében kell megszervezni. 
+ 
+ 
+
+ 
+ 2/47. oldal 
+ 
+A tanulási területekhez rendelt tantárgyak és témakörök óraszáma évfolyamonként 
+ 
+Évfolyam 1/9. 2/10. 3/11. 
+A képzés 
+összes 
+óraszáma 
+1. évfo-
+lyam 
+2. évfo-
+lyam 
+A képzés 
+összes 
+óraszáma 
+Évfolyam összes óraszáma 576 720 681 1977 1088 992 2080 
+Munkavállalói ismere-
+tek
+ 
+Munkavállalói ismeretek 18 0 0 18 18 0 18 
+Álláskeresés 5     5 5   5 
+Munkajogi alapismeretek 5     5 5   5 
+Munkaviszony létesítése 5     5 5   5 
+Munkanélküliség 3     3 3   3 
+Munkavállalói idegen 
+nyelv
+ 
+Munkavállalói idegen nyelv 0 0 62 62 0 62 62 
+Az álláskeresés lépései, álláshirdetések     11 11   11 11 
+Önéletrajz és motivációs levél     20 20   20 20 
+„Small talk” – általános társalgás     11 11   11 11 
+Állásinterjú     20 20   20 20 
+Műszaki alapozás
+ 
+Villamos alapismeretek 288 0 0 288 288 0 288 
+Villamos áramkör 90     90 36   36 
+Villamos áramkör ábrázolása 18     18 36   36 
+Villamos áramkör kialakítása 36     36 72   72 
+Villamos biztonságtechnika 36     36 36   36 
+Villamos áramkörök mérése, dokumentá-
+lása 
+108     108 108   108 
+  
+
+ 
+ 3/47. oldal 
+ 
+Gépészeti alapismeretek 270 0 0 270 270 0 270 
+Munkabiztonság, tűz- és környezetvéde-
+lem 
+18     18 18   18 
+Műszaki rajz alapjai 72     72 72   72 
+Anyag- és gyártásismeret 18     18 18   18 
+Fémipari alapmegmunkálások 72     72 72   72 
+Projektmunka 90     90 90   90 
+Tanulási terület összóraszáma 558 0 0 558 558 0 558 
+Gépészeti alapismeretek
+ 
+Műszaki dokumentáció 0 108 0 108 108 0 108 
+Technológiai dokumentációk 
+  3   3 3   3 
+Rajztechnikai alapszabványok, előírások, 
+megoldások 
+  50   50 50   50 
+Jelképes ábrázolások   10   10 10   10 
+A géprajzkészítés gyakorlata   45   45 45   45 
+Gépészeti alapmérések 0 72 0 72 72 0 72 
+Alapfogalmak   3   3 3   3 
+Mérési dokumentumok   2   2 2   2 
+A mérés eszközei   4   4 4   4 
+Mérési hibák   1   1 1   1 
+Hosszméretek mérése, ellenőrzése   36   36 36   36 
+Szögek mérése és ellenőrzése   10   10 10   10 
+Alak- és helyzetpontosság mérése, ellen-
+őrzése 
+  8   8 8   8 
+Anyagismeret, anyagvizsgálat 0 72 0 72 72 0 72 
+Alapanyagok csoportosítása és tulajdon-
+ságai 
+  2   2 2   2 
+Anyagszerkezettani alapismeretek   4   4 4   4 
+A mikroszerkezet és a tulajdonságok 
+kapcsolata 
+  2   2 2   2 
+
+ 
+ 4/47. oldal 
+Fontosabb fémek és ötvözeteik   14   14 14   14 
+Szinterelt szerkezeti anyagok   3   3 3   3 
+Műanyagok   5   5 5   5 
+Segédanyagok   4   4 4   4 
+Hőkezelő eljárások   13   13 13   13 
+Anyagvizsgálat   25   25 25   25 
+Tanulási terület összóraszáma 0 252 0 252 252 0 252 
+Hegesztési technológia 
+előkészítése
+ 
+Hegesztés alapismeretei 0 212 0 212 212 0 212 
+A hegesztés alapfogalmai 
+  2   2 2   2 
+Hegesztési élek előkészítése, kialakítása   62   62 62   62 
+Alkatrészek összeállítása, készülékek 
+használata 
+  60   60 60   60 
+A hegesztés hozag- és segédanyagai   2   2 2   2 
+Hegesztési eltérések   2   2 2   2 
+A hegesztés biztonságtechnikája   4   4 4   4 
+Hegesztő berendezések és azok üzembe-
+helyezése 
+  80   80 80   80 
+Tanulási terület összóraszáma 0 212 0 212 212 0 212 
+Hegesztési feladatok
+ 
+Fogyó elektródás ívhegesztés bevont 
+elektródával (kézi ívhegesztés) 
+0 128 62 190 0 217 217 
+Fémek hegeszthetősége bevont elektródás 
+kézi ívhegesztéssel 
+  2   2   2 2 
+Fogyó elektródás ívhegesztés bevont 
+elektródával (kézi ívhegesztés) 
+  1   1   1 1 
+A bevont ívhegesztő elektródák főbb 
+típusai 
+  2   2   2 2 
+A bevont elektródás kézi ívhegesztés 
+technológiája 
+  60 14 74   81 81 
+Az ívhegesztés kötései   60 48 108   128 128 
+A bevont elektródás kézi ívhegesztéssel 
+készített kötések eltérései (hibái) 
+  1   1   1 1 
+Javító- és felrakóhegesztések   1   1   1 1 
+A bevont elektródás kézi ívhegesztés 
+biztonságtechnikája 
+  1   1   1 1 
+
+ 
+ 5/47. oldal 
+Gázhegesztés 0 128 92 220 48 186 234 
+A gázhegesztés fogalma, lényege   1   1 1   1 
+Gázhegesztő berendezések   2   2 2   2 
+Hegesztőgázok   2   2 2   2 
+Hegesztőláng   2   2 2   2 
+A gázhegesztés technológiája   50 48 98 10 98 108 
+A hegesztőláng beállítása   4   4 4   4 
+A hegesztés folyamata   52 44 96 12 88 100 
+A gázhegesztés kötései, illesztések, var-
+ratalakok 
+  10   10 10   10 
+Fémek hegeszthetősége gázhegesztéssel   2   2 2   2 
+A hegesztési kötések eltérései, hibái   1   1 1   1 
+A gázhegesztés jelentősége a javító tech-
+nikában 
+  1   1 1   1 
+A gázhegesztés biztonságtechnikája   1   1 1   1 
+Fogyó elektródás védőgázas 
+(MIG/MAG) ívhegesztés 
+0 0 217 217 0 248 248 
+A fogyó elektródás védőgázas 
+(MIG/MAG) ívhegesztés berendezése 
+    5 5   5 5 
+A hegesztőhuzal     5 5   5 5 
+Védőgázellátás     6 6   6 6 
+A fogyó elektródás védőgázas 
+(MIG/MAG) ívhegesztés technológiája 
+    201 201   232 232 
+Volfrámelektródás semleges védőgázas 
+ívhegesztés (TIG)  
+0 0 217 217 0 248 248 
+Volfrámelektródás semleges védőgázas 
+ívhegesztés 
+    2 2   2 2 
+A volfrámelektródás semleges védőgázas 
+ívhegesztés berendezése 
+    4 4   4 4 
+A volfrámelektródás semleges védőgázas 
+ívhegesztés hozaganyagai 
+    10 10   10 10 
+A volfrámelektródás semleges védőgázas 
+ívhegesztés technológiája 
+    95 95   116 116 
+
+ 
+ 6/47. oldal 
+A hegesztőpisztoly és a hegesztőpálca 
+tartása volfrámelektródás semleges védő-
+gázas ívhegesztés esetén 
+    102 102   112 112 
+Hegesztési eltérések     4 4   4 4 
+A volfrámelektródás semleges védőgázas 
+ívhegesztés biztonságtechnikája 
+      0     0 
+Egyéb hegesztési eljárások 0 0 15 15 0 15 15 
+Az elektromos ellenállás elvén működő 
+eljárások 
+    4 4   4 4 
+A mechanikai energia felhasználásán 
+alapuló hegesztő eljárások 
+    4 4   4 4 
+A sugárenergia által végzett ömlesztőhe-
+gesztések 
+    3 3   3 3 
+A termokémiai elven működő eljárások     2 2   2 2 
+A hegesztés jövője     2 2   2 2 
+A hegesztett kötések minőségi követel-
+ményei 
+0 0 16 16 0 16 16 
+Hegesztési eltérések csoportba sorolása      2 2   2 2 
+Hegesztési varratok roncsolásos vizsgála-
+tai 
+    2 2   2 2 
+A hegesztési varratok roncsolásmentes 
+vizsgálatai 
+    3 3   3 3 
+A hegesztett kötések minőségi szintjei, 
+kategóriái 
+    6 6   6 6 
+Hegesztési feszültségek, alakváltozások     3 3   3 3 
+Tanulási terület összóraszáma 0 256 619 875 48 930 978 
+Egybefüggő szakmai gyakorlat: 0 140     160     
+ 
+ 
+
+ 
+ 7/47. oldal 
+ 
+3 A TANULÁSI TERÜLETEK RÉSZLETES SZAKMAI TARTALMA 
+ 
+ 
+3.1 Munkavállalói ismeretek megnevezésű tanulási terület 
+ 
+A tanulási terület tantárgyainak összóraszáma:  18/18 óra 
+A tanulási terület tartalmi összefoglalója 
+A Munkavállalói ismeretek tanulási terület elsajátításával a tanuló önismeretet szerez, megha-
+tározza a céljait. Megismerkedik környezete munkaerőpiaci helyzetével. Megtanulja, milyen 
+foglalkoztatási formában tud majd elhelyezkedni munkavállalóként. Megismeri, hogy tanulói 
+jogviszonyában is foglalkoztatható szakképzési munkaviszony keretében. Megtanulja az eh-
+hez a jogviszonyhoz kapcsolódó jogait és kötelezettségeit. A tanuló megismeri a munkaválla-
+láshoz,  a  munkaviszony  létesítéséhez  szükséges  alapismereteket,  amelyeket  a  gyakorlati, 
+mindennapi tevékenysége során alkalmazni tud.   
+ 
+3.1.1 Munkavállalói ismeretek tantárgy 18/18 óra 
+ 
+3.1.1.1 A tantárgy tanításának fő célja 
+A tanuló általános felkészítése az álláskeresés módszereire, technikáira, valamint a munkavál-
+laláshoz, a munkaviszony létesítéséhez szükséges alapismeretek elsajátítására. 
+ 
+3.1.1.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.1.1.3 Kapcsolódó közismereti, szakmai tartalmak 
+— 
+ 
+3.1.1.4 A képzés órakeretének legalább 0%-át gyakorlati helyszínen (tanműhely, üzem 
+stb.) kell lebonyolítani. 
+ 
+3.1.1.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Megfogalmazza 
+saját karriercéljait. 
+Ismeri saját szemé-
+lyisége jellemvoná-
+sait, annak pozití-
+vumait. 
+Teljesen önállóan 
+Önismerete alapján 
+törekszik céljai 
+reális megfogalma-
+zására. Megjelené-
+sében igényes, vi-
+selkedésében visz-
+szafogott. Elkötele-
+zett a szabályos 
+foglalkoztatás mel-
+lett. Törekszik a 
+saját munkabérét 
+érintő változások 
+nyomon követésére. 
+ 
+Szakképzési mun-
+kaviszonyt létesít. 
+Ismeri a munka-
+szerződés tartalmi 
+és formai követel-
+ményeit. 
+Instrukció alapján 
+részben önállóan 
+ 
+Felismeri, megne-
+vezi és leírja az 
+álláskeresés mód-
+szereit. 
+Ismeri a formális és 
+informális álláske-
+resési technikákat. 
+Teljesen önállóan 
+Internetes álláskere-
+sési portálokon 
+információkat ke-
+res, rendszerez. 
+ 
+
+ 
+ 8/47. oldal 
+ 
+3.1.1.6 A tantárgy témakörei 
+ 
+3.1.1.6.1 Álláskeresés 
+Karrierlehetőségek feltérképezése: önismeret, reális célkitűzések, helyi munkaerőpiac ismere-
+te,  mobilitás  szerepe,  szakképzések  szerepe,  képzési  támogatások  (ösztöndíjak  rendszere) 
+ismerete  
+Álláskeresési módszerek: újsághirdetés, internetes álláskereső oldalak, személyes kapcsola-
+tok, kapcsolati hálózat fontossága  
+ 
+3.1.1.6.2 Munkajogi alapismeretek 
+Foglalkoztatási formák: munkaviszony, megbízási jogviszony, vállalkozási jogviszony, köz-
+alkalmazotti jogviszony, közszolgálati jogviszony 
+A tanulót érintő szakképzési munkaviszony lényege, jelentősége 
+Atipikus munkavégzési formák a munka törvénykönyve szerint: távmunka, bedolgozói mun-
+kaviszony,  munkaerő-kölcsönzés,  egyszerűsített  foglalkoztatás  (mezőgazdasági,  turisztikai 
+idénymunka és alkalmi munka) 
+Speciális  jogviszonyok:  önfoglalkoztatás,  iskolaszövetkezet  keretében  végzett  diákmunka, 
+önkéntes munka 
+ 
+3.1.1.6.3 Munkaviszony létesítése 
+Felek a munkajogviszonyban. A munkaviszony alanyai 
+A munkaviszony létesítése. A munkaszerződés. A munkaszerződés tartalma. 
+A munkaviszony kezdete létrejötte, fajtái. Próbaidő 
+A munkavállaló és munkáltató alapvető kötelezettségei 
+A munkaszerződés módosítása 
+Munkaviszony megszűnése, megszüntetése 
+Munkaidő és pihenőidő 
+A munka díjazása (minimálbér, garantált bérminimum) 
+ 
+3.1.1.6.4 Munkanélküliség 
+Nemzeti Foglalkoztatási Szolgálat (NFSZ). Álláskeresőként történő nyilvántartásba vétel  
+Az álláskeresési ellátások fajtái 
+Álláskeresők számára nyújtandó támogatások (vállalkozóvá válás, közfoglalkoztatás, képzé-
+sek, utazásiköltség-támogatások) 
+Szolgáltatások álláskeresőknek (munkaerő-közvetítés, tanácsadás) 
+Európai Foglalkoztatási Szolgálat (EURES) 
+ 
+ 
+  
+
+ 
+ 9/47. oldal 
+ 
+ 
+3.2 Munkavállalói idegen nyelv megnevezésű tanulási terület 
+ 
+A tanulási terület tantárgyainak összóraszáma:  62/62 óra 
+A tanulási terület tartalmi összefoglalója 
+Állások megpályázása idegen nyelven. Önéletrajz és motivációs levél megfogalmazása, az 
+állásinterjú során megfelelő idegen nyelvű kommunikáció. 
+ 
+3.2.1 Munkavállalói idegen nyelv tantárgy 62/62 óra 
+ 
+3.2.1.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának célja, hogy a tanulók idegen nyelven is képesek legyenek álláshirdetés-
+re jelentkezni, ismerjék az álláskeresés lépéseit, s nyelvi szintjüknek megfelelően hatékonyan 
+és eredményesen meg tudják valósítani a kommunikációs célokat egy állásinterjú során.  
+ 
+Megértsék a munkájukhoz kapcsolódó idegen nyelvű álláshirdetéseket, képesek legyenek a 
+munkavállaláshoz kapcsolódóan egyszerű formanyomtatványokat kitölteni, önéletrajzot írni 
+és motivációs levelet megfogalmazni a formai és tartalmi követelményeknek megfelelően, 
+nyelvi panelek és gyakori kifejezések segítségével. 
+ 
+Az állásinterjú során legyenek képesek idegen nyelven, a személyes és szakmai vonatkozást is 
+beleértve bemutatkozni. Az állásinterjú bevezető részében, az általános társalgás során feltett 
+kérdéseket egyszerű mondatokkal meg tudják válaszolni. Az interjú során tudjanak szándéka-
+ikról, elképzeléseikről, jövőbeli terveikről beszélni. Ki tudják fejezni erősségeiket, gyengesé-
+geiket  egyszerűbb  mondatok,  nyelvi  szerkezetek  segítségével.  Rendelkezzenek  megfelelő 
+szókinccsel  ahhoz,  hogy  tanulmányaikról  és  munkatapasztalatukról  be  tudjanak  számolni. 
+Megértsék az adott cég/vállalat honlapján közzétett információkat, és ezzel kapcsolatosan fel 
+tudjanak tenni munkájukat érintő egyszerűbb kérdéseket. 
+ 
+A tantárgy az utolsó évfolyamon kerül oktatásra, így épít a tanulók közismereti tantárgyak 
+keretében elsajátított idegennyelv-tudására, alapvető mondatszerkesztési ismereteire, valamint 
+a főbb igeidők ismeretére. A tantárgy tanulása során a tanuló ezen ismereteit aktiválja és a 
+munkavállalói szókincset is alkalmazva gyakorolja. 
+ 
+3.2.1.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+A tantárgy tanítása idegen nyelven zajlik, ezért az oktatónak rendelkeznie kell az adott 
+idegen nyelvből nyelvtanári végzettséggel.  
+ 
+3.2.1.3 Kapcsolódó közismereti, szakmai tartalmak 
+Idegen nyelvek  
+ 
+3.2.1.4 A képzés órakeretének legalább 0%-át gyakorlati helyszínen (tanműhely, üzem 
+stb.) kell lebonyolítani. 
+  
+
+ 
+ 10/47. oldal 
+ 
+3.2.1.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek,  
+képességek 
+Ismeretek 
+Önállóság és  
+felelősség mértéke 
+Elvárt  
+viselkedésmódok, 
+attitűdök 
+Általános  
+és szakmához  
+kötődő digitális 
+kompetenciák 
+Internetes álláskere-
+ső oldalakon és 
+egyéb fórumokon 
+(újsághirdetések, 
+szaklapok, szakmai 
+kiadványok stb.) 
+álláshirdetéseket 
+keres. Az álláskere-
+séshez használja a 
+kapcsolati tőkéjét. 
+Ismeri az álláskere-
+sést segítő fórumo-
+kat, álláshirdetése-
+ket tartalmazó for-
+rásokat, állásokat 
+hirdető vagy állás-
+keresésben segítő 
+szervezeteket, mun-
+kaközvetítő ügy-
+nökségeket. 
+Teljesen önállóan 
+Törekszik kompe-
+tenciáinak reális 
+megfogalmazására, 
+erősségeinek hang-
+súlyozására idegen 
+nyelven. Nyitott 
+szakmai és szemé-
+lyes kompetenciái-
+nak fejlesztésére. 
+Törekszik receptív 
+és produktív kész-
+ségeit idegen nyel-
+ven fejleszteni (ol-
+vasott és hallott 
+szöveg értése, írás-
+készség, valamint 
+beszédprodukció). 
+Szakmája iránt 
+elkötelezett. Megje-
+lenése visszafogott, 
+helyzethez illő. 
+Viselkedésében 
+törekszik az adott 
+helyzetnek megfe-
+lelni. 
+Hatékonyan tudja 
+álláskereséshez 
+használni az inter-
+netes böngészőket 
+és álláskereső portá-
+lokat, és ezek segít-
+ségével képes 
+szakmájának, vég-
+zettségének, képes-
+ségeinek megfelelő-
+en álláshirdetéseket 
+kiválasztani. 
+A tartalmi és formai 
+követelményeknek 
+megfelelő önéletraj-
+zot fogalmaz. 
+Ismeri az önéletrajz 
+típusait, azok tar-
+talmi és formai 
+követelményeit. 
+Teljesen önállóan 
+Ki tud tölteni ön-
+életrajzsablonokat, 
+pl. Europass CV-
+sablon, vagy szö-
+vegszerkesztő prog-
+ram segítségével 
+létre tud hozni az 
+adott önéletrajztípu-
+soknak megfelelő 
+dokumentumot. 
+A tartalmi és formai 
+követelményeknek 
+megfelelő motivá-
+ciós levelet ír, me-
+lyet a megpályá-
+zandó állás sajátos-
+ságaihoz igazít. 
+Ismeri a motivációs 
+levél tartalmi és 
+formai követelmé-
+nyeit, felépítését, 
+valamint tipikus 
+szófordulatait az 
+adott idegen nyel-
+ven. 
+Teljesen önállóan 
+Szövegszerkesztő 
+program segítségé-
+vel meg tud írni egy 
+önéletrajzot, figye-
+lembe véve a formai 
+szabályokat. 
+Kitölti és a munka-
+adóhoz eljuttatja a 
+szükséges nyomtat-
+ványokat és doku-
+mentumokat az 
+álláskeresés folya-
+matának figyelem-
+bevételével. 
+Ismeri az álláskere-
+sés folyamatát. 
+Teljesen önállóan 
+Digitális forma-
+nyomtatványok 
+kitöltése, szövegek 
+formai követelmé-
+nyeknek megfelelő 
+létrehozása, e-
+mailek küldése és 
+fogadása, csatolmá-
+nyok letöltése és 
+hozzáadása. 
+Felkészül az állásin-
+terjúra a megpá-
+lyázni kívánt állás-
+nak megfelelően, és 
+céljait szem előtt 
+tartva kommunikál 
+az interjú során. 
+Ismeri az állásinter-
+jú menetét, tisztá-
+ban van a lehetséges 
+kérdésekkel. Az 
+adott szituáció 
+megvalósításához 
+megfelelő szókincs-
+csel és nyelvtani 
+tudással rendelke-
+zik. 
+Teljesen önállóan 
+A megpályázni 
+kívánt állással kap-
+csolatban képes az 
+internetről informá-
+ciót szerezni. 
+
+ 
+ 11/47. oldal 
+Az állásinterjún, az 
+állásinterjúra érke-
+zéskor vagy a kap-
+csolódó telefonbe-
+szélgetések során 
+csevegést (small 
+talk) kezdeményez, 
+a társalgást fenntart-
+ja és befejezi. A 
+kérdésekre megfele-
+lő válaszokat ad. 
+Tisztában van a 
+legáltalánosabb 
+csevegési témák 
+szókincsével, ame-
+lyek az interjú so-
+rán, az interjút 
+megelőző és esetle-
+gesen követő tele-
+fonbeszélgetés 
+során vagy az állás-
+interjúra megérke-
+zéskor felmerülhet-
+nek.  
+Teljesen önállóan  
+ 
+ 
+ 
+3.2.1.6 A tantárgy témakörei 
+ 
+3.2.1.6.1 Az álláskeresés lépései, álláshirdetések 
+A tanuló megismeri az álláskeresés lépéseit, és megtanulja az ahhoz kapcsolódó szókin-
+cset  idegen  nyelven  (végzettségek,  egyéb  képzettségek,  megkövetelt tulajdonságok, 
+szakmai gyakorlat stb.). 
+Képessé válik a szakmájához kapcsolódó álláshirdetések megértésére, és fel tudja ismer-
+ni, hogy saját végzettsége, képzettsége, képességei mennyire felelnek meg az álláshirde-
+tés követelményeinek. Az álláshirdetésnek és szakmájának megfelelően begyakorolja az 
+egyszerűbb, álláskereséssel kapcsolatos űrlapok helyes kitöltését. 
+Az álláshirdetések és az űrlapok szövegének olvasása során a receptív kompetencia fej-
+lesztése történik (olvasott szöveg értése), az űrlapkitöltés során pedig produktív kompe-
+tenciákat fejlesztünk (íráskészség).  
+ 
+3.2.1.6.2 Önéletrajz és motivációs levél  
+A tanuló megtanulja az önéletrajzok típusait, azok tartalmi és formai követelményeit, ti-
+pikus szófordulatait. Képessé válik saját maga is a nyelvi szintjének megfelelő helyes-
+séggel és igényességgel, önállóan megfogalmazni önéletrajzát.  
+Megismeri az állás megpályázásához használt hivatalos levél tartami és formai követel-
+ményeit. Begyakorolja a gyakran használt tipikus szófordulatokat, a szakmájában hasz-
+nált gyakori kifejezéseket, valamint a szakmája gyakorlásához szükséges kulcsfontosságú 
+kompetenciák kifejezéseit idegen nyelven. Az álláshirdetések alapján begyakorolja, hogy 
+tipikus szófordulatok és nyelvi panelek segítségével hogyan lehet az adott hirdetéshez 
+igazítani levelének tartalmát.  
+ 
+3.2.1.6.3 „Small talk” – általános társalgás  
+A small talk elengedhetetlen része minden beszélgetésnek, így az állásinterjúnak is. Segíti 
+a beszélgetésben részt vevőket ráhangolódni a tényleges beszélgetésre, megtöri a kínos 
+csendet,  oldja a feszültséget, segít a beszélgetés gördülékeny menetének fenntartásában 
+és a beszélgetés lezárásában. Fontos, hogy a small talk során érintett témák semlegesek 
+legyenek a beszélgetőpartnerek számára, és az adott szituációhoz, fizikai környezethez 
+passzoljanak. Ilyen tipikus témák lehetnek pl. az időjárás, közlekedés (odajutás, parkolás, 
+épületen  belüli  tájékozódás),  étkezési  lehetőségek  (cégnél,  környéken),  család,  hobbi, 
+szabadidő (szórakozás, sport). A tanulók begyakorolják a megfelelő kérdésfeltevést és a 
+beszélgetésben való aktív részvétel szabályait, fordulatait. 
+ 
+
+ 
+ 12/47. oldal 
+3.2.1.6.4 Állásinterjú 
+A témakör végére a tanuló képes egyszerűbb mondatokkal és megfelelő koherenciával 
+hatékony kommunikációt folytatni az állásinterjú során. Be tud mutatkozni szakmai vo-
+natkozással is. Elsajátítja azt a szakmai jellegű szókincset, amely alkalmassá teszi arra, 
+hogy a munkalehetőségekről, munkakörülményekről tájékozódjon. Ki tudja emelni erős-
+ségeit, és egyszerűbb kérdéseket tud feltenni a betölteni kívánt munkakörrel kapcsolato-
+san.  
+A témakör tanulása során elsajátítja a közvetlenül a szakmájára vonatkozó, gyakran hasz-
+nált kifejezéseket.  
+ 
+ 
+  
+
+ 
+ 13/47. oldal 
+ 
+3.3 Műszaki alapozás megnevezésű tanulási terület 
+ 
+A tanulási terület tantárgyainak összóraszáma:  558/558 óra 
+A tanulási terület tartalmi összefoglalója 
+Egyszerű hálózatokban, alapvető áramköri elemek felhasználásával összeállít egy kapcsolást, 
+a villamos biztonsági előírások figyelembevételével. Ehhez az áramforrástól a kapcsolón át az 
+egyszerű terhelésig és/vagy a kapcsolót helyettesítő félvezetőig különféle áramköri elemeket 
+felhasznál, az alkatrészek funkcionalitására összpontosítva. Egyszerű méréseket végez (fe-
+szültség,  áram,  ellenállás).  Munkáját  a  villamos  biztonsági  előírások  figyelembevételével 
+végzi. Ismeri a túláram fogalmát, érti az egyszerű zárlatvédelmi eszközök (olvadóbetét, kis-
+megszakítók) működését. A tanítási terület fő célja, hogy a tanulók megismerjék a gépészet 
+alapozó műveleteit, és ezek önálló elvégzéséhez megfelelő gyakorlatot szerezzenek. A gya-
+korlati tevékenységek elvégzése mellett ismerjék meg azoknak az anyagoknak a tulajdonsága-
+it, egyszerű alakítási lehetőségeit, felhasználási területeit, amelyekkel dolgoznak. A gyakorlati 
+tevékenységek elvégzése műszaki dokumentációk alapján történik, melyek információtartal-
+mát meg kell ismerni, tudni kell értelmezni, és az alkatrészeket ezek alapján kell legyártani. 
+Az  elkészített  alkatrészek  felhasználhatóságáról  mérésekkel,  minősítéssel  kell  dönteni.  Az 
+alapozó ismeretek megszerzése során a megfelelő alkatrészek összeszerelését, kötések létre-
+hozását is el kell végezni a megadott összeállítási dokumentáció alapján. A munkavégzés fo-
+lyamán be kell tartani a munka- és balesetvédelmi, tűzvédelmi előírásokat. 
+ 
+3.3.1 Villamos alapismeretek tantárgy 288/288 óra 
+ 
+3.3.1.1 A tantárgy tanításának fő célja 
+A tanulók ismerjék a villamos szempontból legfontosabb fémes és nemfémes anyagokat, az 
+anyagok technológiai jellemzőit, megmunkálási lehetőségeit. A tanulók rendelkezzenek alap-
+vető elektrotechnikai ismeretekkel. Megbízhatóan használják az elektrotechnikai alapfogal-
+makat, a villamos mennyiségek jelöléseit és azok mértékegységeit. Ismerjék az egyszerű vil-
+lamos áramköröket, azok alapvető létesítési, üzemeltetési és védelmi megoldásait. Tudjon 
+különbséget tenni energetikai és jelátviteli áramkör között. Ismerjék a villamos rajzokat, azok 
+alapján képesek legyenek egyszerű áramkörök kialakítására. Biztonságosan használjanak kézi 
+szerszámokat, kisgépeket a technológiai alapműveletek során. A mechanikus és villamos kö-
+tések készítésénél kézügyességük, műszaki szemléletük fejlesztése is fontos cél. Ismerjék a 
+villamosság veszélyeit, az ellenük való védekezés módjait. Villamos balesetek alkalmával 
+képesek legyenek mentésre, elsősegélynyújtásra. Ismerjék az egészséget nem veszélyeztető, 
+biztonságos munkavégzés alapelveit, képesek legyenek a körültekintő, megfontolt munkavál-
+lalói magatartásra. 
+ 
+3.3.1.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.3.1.3 Kapcsolódó közismereti, szakmai tartalmak 
+Matematika, fizika, informatika, egyismeretlenes egyenletek, villamosságtan 
+ 
+3.3.1.4 A  képzés  órakeretének  legalább  50%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+  
+
+ 
+ 14/47. oldal 
+ 
+3.3.1.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek,  
+képességek 
+Ismeretek 
+Önállóság és  
+felelősség mértéke 
+Elvárt  
+viselkedésmódok, 
+attitűdök 
+Általános  
+és szakmához  
+kötődő digitális 
+kompetenciák 
+Egyszerű számítá-
+sokat végez a villa-
+mos alapmennyisé-
+gek között. 
+Ismeri az egyszerű 
+áramkör villamos 
+alapmennyiségeit, 
+összefüggéseit, 
+törvényeit. 
+Teljesen önállóan 
+Törekszik az igé-
+nyesen elkészített 
+dokumentáció meg-
+alkotására. 
+ 
+Kritikusan szemléli 
+az internetről letöl-
+tött kapcsolásokat. 
+ 
+Fontosnak tartja a 
+mérőhely rendjét és 
+tisztaságát. 
+ 
+Kiválasztja a feladat 
+megoldására alkal-
+mas eszközöket az 
+alkatrészeken talál-
+ható jelölések és a 
+katalógusadatok 
+alapján. 
+Ismeri az egyszerű 
+áramkör felépítését, 
+anyagait, eszközeit. 
+Instrukció alapján 
+részben önállóan 
+Online katalógust 
+használ. 
+Adott feladathoz 
+kapcsolási rajzokat 
+készít és értelmez, 
+szabványos jelölé-
+sek alkalmazásával. 
+Ismeri az egyszerű 
+világítási áramkö-
+röket.  
+Teljesen önállóan 
+Az internetről kap-
+csolásokat tölt le. 
+Kiválasztja a mé-
+réshez szüksége 
+műszereket. 
+Ismeri a villamos 
+műszerek jellemzőit 
+és használatuk mód-
+ját. 
+Instrukció alapján 
+részben önállóan 
+ 
+Mérési tevékenysé-
+geket végez a biz-
+tonságvédelmi 
+előírások betartásá-
+val. 
+Ismeri a biztonság-
+védelmi szabványok 
+előírásait és a méré-
+si módszereket. 
+Instrukció alapján 
+részben önállóan 
+ 
+Mérési tevékenysé-
+gét dokumentálja, 
+jegyzőkönyvet 
+készít, az eredményt 
+kiértékeli. 
+Ismeri a dokumen-
+tációkészítés alap-
+elveit. 
+Teljesen önállóan 
+Irodai alapszoftvert 
+használ. 
+Felismeri a hiba- és 
+túláramvédelmi 
+eszközök jelzéseit. 
+Ismeri az egyszerű 
+áramkörök alapvető 
+védelmeit, azok 
+eszközeit. 
+Teljesen önállóan  
+ 
+ 
+3.3.1.6 A tantárgy témakörei 
+ 
+3.3.1.6.1 Villamos áramkör 
+Villamos alapfogalmak (töltés, áram, feszültség, ellenállás, vezetés, teljesítmény, munka, 
+hatásfok) 
+Az áramkör és a villamos áramkör fogalma, felépítése, működése, jellemzői, ábrázolása, 
+összefüggések 
+Villamos energiaforrások csoportosítása, jellemzői 
+Fogyasztók csoportosítása, jellemzői 
+Ellenállás, fajlagos ellenállás 
+Ohm törvénye 
+
+ 
+ 15/47. oldal 
+Az anyagok  csoportosítása villamos szempontból; vezető, szigetelő, félvezető fogalma; 
+példák a különböző anyagokra 
+A vezetők ellenállását meghatározó tényezők (anyagi minőség, hossz, keresztmetszet)  
+A vezeték ellenállása  
+A vezetők és szigetelők ellenállásának hőmérsékletfüggése.  
+Az összetett áramkörök fogalma, felépítése, elemei (csomópont, ág, hurok) 
+Az összetett áramkörök alaptörvényei és alkalmazásuk (Kirchhoff I., II, áramosztás, fe-
+szültségosztás) 
+Ellenállások soros, párhuzamos eredője, vegyes kapcsolása két-három ellenállás esetén 
+Feszültség- és áramforrások soros és párhuzamos kapcsolása, átalakítása 
+Egyszerű energiaforrások (ideális és valóságos feszültségforrás); a feszültségforrás jellem-
+zői (üresjárási feszültség, kapocsfeszültség, belső ellenállás, rövidzárási áram) 
+Összetett áramkörök egyszerűsítése 
+ 
+3.3.1.6.2 Villamos áramkör ábrázolása 
+Villamos rajzok fogalma, fajtái (egyvonalas, többvonalas, elvi, kapcsolási, szerelési, elren-
+dezési, nyomvonal-, áramutas stb.) 
+A villamos rajzok felépítése 
+Vezetékek ábrázolása – vonalak 
+Készülékek ábrázolása – jelképek 
+Érintkezők és működtetésük (a kapcsoló fogalma, szerepe az áramkörben, jellemzői) 
+Fontosabb kapcsolófajták (nyomógomb, mágneskapcsoló [relé]) 
+Félvezető alapú alkatrészek (dióda, LED, tranzisztor) 
+A villamos rajzok szerepe, használata 
+Villamos rajzok készítése szabadkézzel és szimulációs szoftverrel (pl. FluidSIM) 
+Villamos rajzok olvasása, értelmezése 
+ 
+3.3.1.6.3 Villamos áramkör kialakítása 
+Egyszerű áramkörök kialakítása, működtetése dokumentáció alapján, a villamos biztonsági 
+előírások figyelembevételével 
+Áramkörök előkészítése feszültség alá helyezésre – szerelői ellenőrzés – készre jelentés 
+Világítási áramkörök  
+Egyszerű világítási alapkapcsolásokat képes legyen összeállítani (egysarkú kapcsolás, két-
+sarkú [leválasztó] kapcsolás, váltó kapcsolás) 
+Mágneskapcsoló (relé) alkalmazásával öntartó kapcsolást képes kialakítani (pl. kétkezes 
+indítás, vészleállítás több helyről, egy készülék bekapcsolása és leállítása több helyről) 
+ 
+3.3.1.6.4 Villamos biztonságtechnika 
+Villamos  biztonságtechnikai  ismeretek,  MSZ1  szerinti  feszültségszintek  (kisfeszültség, 
+nagyfeszültség, törpefeszültség)  
+A villamos áram élettani hatásai; az áramütéses baleset súlyosságát befolyásoló tényezők 
+Az áramütés elleni védelem fogalma 
+Alapvédelem (közvetlen érintés elleni védelem); szigetelés, burkolat; az IP-védettség fo-
+galma  
+Hibavédelem (közvetett érintés elleni védelem) 
+A táplálás önműködő lekapcsolása védelmi mód fogalma, működési elve 
+A földelővezető színjelölése, a védelmi mód jele a fogyasztói készüléken 
+Kettős és megerősített szigetelés 
+A védelmi mód működési elve 
+A védelmi mód jele a fogyasztói készüléken 
+
+ 
+ 16/47. oldal 
+Törpefeszültség 
+A védelmi mód működési elve 
+A védelmi mód jele a fogyasztói készüléken 
+Védőelválasztás 
+A védelmi mód működési elve 
+A védelmi mód jele a fogyasztói készüléken 
+Az MSZ 1585 alapján a szakképzett, kioktatott és laikus személy fogalma (példákkal) 
+A feszültségmentesítés lépései; azok alkalmazása épületen (lakóépületen) belül. 
+Műszaki mentés kisfeszültségen; áramütött személy kiszabadítása az áramkörből; az első-
+segélynyújtás alapjai 
+Biztonságos munkavégzéshez szükséges biztonságtechnikai alapismeretek, veszélyhelyze-
+tek felismerése 
+ 
+3.3.1.6.5 Villamos áramkörök mérése, dokumentálása 
+Mérési alapismeretek, műveletek: a mérés fogalma, analóg és digitális műszerek jellemzői, 
+használata, feszültség mérése, áram mérése 
+Műszerek jelzései, mért értékek leolvasása 
+Méréshatár, skála, mért érték, pontosság 
+Analóg és digitális műszer kiválasztása, használata 
+Árammérő jellemzői, csatlakoztatása az áramkörhöz 
+Feszültségmérő jellemzői, csatlakoztatása az áramkörhöz 
+Ellenállásmérés jellemzői, csatlakoztatás az áramkörhöz 
+Multiméter használata 
+Megfelelő műszer kiválasztása, az optimális méréshatár megválasztása 
+Egyszerű áramkörön alapmérések végzése (áramerősség, feszültség, ellenállás)  
+Lineáris és nem lineáris fogyasztókon mérési sorozat végzése. Egyszerű lineáris fogyasztó 
+U-I jelleggörbéjének felvétele  
+Egyszerű nem lineáris fogyasztó pl. izzó U-I jelleggörbéjének felvétele 
+Logikai kapcsolatok, ÉS, VAGY kapuk, logikai kapcsolatok megvalósítása kapcsolók és 
+tranzisztorok segítségével 
+Mérési sorozat önálló elvégzése, dióda alapműködésének megértése céljából (egyenáramú 
+megközelítés)  
+Az elvégzett munkák szakszerű dokumentálása mérési jegyzőkönyv és/vagy munkanapló 
+formájában. Egyszerű irodai szoftverekkel mérési jegyzőkönyv készítése. A mérés leírása, 
+a mérési adatok táblázatba rendezése, a mérési eredmények egyszerű diagramban, függ-
+vényben ábrázolása 
+ 
+3.3.2 Gépészeti alapismeretek tantárgy 270/270 óra 
+ 
+3.3.2.1 A tantárgy tanításának fő célja 
+A gépészeti alapismeretek tantárgy tanításának célja, hogy a tanuló képes legyen a munka 
+tárgyával kapcsolatos dokumentációkat értelmezni, tudjon kézi vázlatokat és dokumentációkat 
+készíteni. Egyszerű alkatrészek gyártása és összeszerelése során tudja meghatározni a szüksé-
+ges munkafázisokat és ezek sorrendjét. Ismerje és alkalmazza a darabolás, a kézi forgácsolás 
+és  az  egyszerű kisgépes  megmunkálás  eljárásait.  Tudja  elvégezni  a  legyártott  alkatrészek 
+geometriai ellenőrzését, minősítse az adott alkatrészt. Az alkatrészekből az összeállítás doku-
+mentációja alapján végezze el az összeszerelést, illesztést, ehhez tudjon kötéseket létrehozni. 
+A munkafolyamatot és eredményét dokumentálja. Munkája során tartsa be a munkabiztonsági 
+előírásokat. 
+ 
+
+ 
+ 17/47. oldal 
+3.3.2.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.3.2.3 Kapcsolódó közismereti, szakmai tartalmak 
+Matematika,  fizika,  informatika,  egyismeretlenes  egyenletek, technika, síkmértani fogal-
+mak, testek, anyagok és jellemzőik 
+ 
+3.3.2.4 A  képzés  órakeretének  legalább  50%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.3.2.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi és ismer-
+teti a műszaki do-
+kumentációk (alkat-
+részrajz, összeállítá-
+si rajz, darabjegy-
+zék stb.) informá-
+ciótartalmát, az 
+alkatrész(ek) felépí-
+tését, előírásait és 
+funkcióját. 
+Ismeri a géprajzi 
+szabályokat, előírá-
+sokat. Ismeri a 
+műszaki rajzok 
+tartalmi követelmé-
+nyeit. 
+Teljesen önállóan 
+Törekszik  a  pontos 
+munkavégzésre, 
+munkahelyi környe-
+zetének   rendben 
+tartására. 
+ 
+Dokumentációk 
+készítésekor  törek-
+szik a tiszta munká-
+ra.  
+ 
+Az  eszközök,  be-
+rendezések  haszná-
+latakor  szakszerűen 
+és   körültekintően 
+jár el.  
+ 
+Törekszik a munka-
+védelmi előírások 
+maradéktalan betar-
+tására. 
+Digitalizált vagy 
+digitális formátumú 
+rajzok  elemzése 
+Szabadkézi felvételi 
+vázlatot készít egy-
+szerű alkatrészek-
+ről. 
+Ismeri a vetületi és 
+metszeti ábrázolás 
+szabályait, a vonal-
+vastagságok és 
+vonaltípusok alkal-
+mazását. 
+Teljesen önállóan  
+Megtervezi az al-
+katrész gyártásának 
+munkafázisait, és 
+azok sorrendjét. 
+Ismeri az alapanya-
+gokat, segédanya-
+gokat, a megmunká-
+lási eljárásokat. 
+Instrukció alapján 
+részben önállóan 
+ 
+Betartja a munka-
+biztonsági és kör-
+nyezetvédelmi 
+szabályokat. 
+Tudja a munkakör-
+nyezetére vonatko-
+zó munkabiztonsági 
+és környezetvédel-
+mi szabályokat. 
+Instrukció alapján 
+részben önállóan 
+ 
+Alkatrészrajz alap-
+ján a szükséges 
+eszközökkel elvégzi 
+az előrajzolást. 
+Ismeri az előrajzo-
+lás eszközeit, mód-
+szereit. 
+Teljesen önállóan  
+A megadott pontos-
+sággal elvégzi a 
+darabolást. 
+Ismeri a darabolás 
+eszközeit és techno-
+lógiáját. 
+Instrukció alapján 
+részben önállóan 
+Információszerzés 
+online forrásokból 
+Elvégzi az alkatrész 
+elkészítéséhez szük-
+séges lemezalakítá-
+sokat. 
+Ismeri az egyszerű 
+lemezalakítási tech-
+nológiákat. 
+Instrukció alapján 
+részben önállóan 
+Információszerzés 
+online forrásokból 
+
+ 
+ 18/47. oldal 
+A dokumentáció 
+alapján forgácsolást 
+végez. 
+Ismeri a kézi és 
+kisgépes forgácsoló 
+megmunkálások 
+eljárásait. Ismeri a 
+furatmegmunkálás 
+egyszerű technoló-
+giáit. 
+Instrukció alapján 
+részben önállóan 
+Információszerzés 
+online forrásokból 
+Létrehozza az ösz-
+szeállításhoz szük-
+séges kötéseket. 
+Ismeri a kötések 
+létrehozásának 
+eszközeit, tudja a 
+kötések kialakításá-
+nak, létrehozásának 
+technológiáját. 
+Instrukció alapján 
+részben önállóan 
+Információszerzés 
+online forrásokból 
+Az alkatrész mű-
+szaki előírásai alap-
+ján a kiválasztott 
+eszközökkel mér, 
+ellenőriz és doku-
+mentálva minősíti 
+az alkatrészt. 
+Ismeri a mérőesz-
+közök alkalmazási 
+területeit, fontosabb 
+metrológiai jellem-
+zőit. Ismeri a geo-
+metriai mérés és 
+ellenőrzés egyszerű 
+módjait. Tudja a 
+minősítés szerepét 
+és lényegét. 
+Teljesen önállóan 
+Digitális dokumen-
+táció készítése 
+ 
+ 
+3.3.2.6 A tantárgy témakörei 
+ 
+3.3.2.6.1 Munkabiztonság, tűz- és környezetvédelem  
+A munkavédelem fogalma, szakterületei 
+Munkabalesetek és foglalkozási megbetegedések 
+A munkabalesetek bejelentése, nyilvántartása és kivizsgálása 
+Tárgyi feltételek a munkavédelemben (levegő, megvilágítás, közlekedő és menekülő útvo-
+nalak, egyéb infrastruktúra) 
+Gépek, berendezések biztonsági követelményei, biztonsági berendezések 
+Kémiai biztonság: vegyszerek tárolása, kezelése 
+Villamos biztonság – elektromos áram élettani hatásai és veszélyei 
+Ergonómia 
+A munkavégzés fizikai ártalmai és ezekkel szembeni védekezés lehetőségei 
+Személyi és kollektív védőfelszerelések használata és alkalmazása 
+A munkahelyen alkalmazott biztonsági jelzések 
+Megfelelő mozgástér biztosítása, elkerítés, lefedés, tároló helyek kialakítása 
+Munkaegészségügy, foglalkozás-egészségügy 
+A tűzvédelem fogalma, szakterületei 
+Általános tűzvédelmi ismeretek, tűzvédelmi fogalmak: tűzszakasz, kockázati osztály, tűz-
+állóság 
+Tűzvédelmi tiltások: torlaszolás tilalma, dohányzási tilalom, nyílt láng használatának ti-
+lalma 
+Tűzmegelőzés, gépek, berendezések speciális tűzvédelmi előírásai 
+Tűzveszélyes anyagok tárolása, szállítása, kezelése 
+Tűzvédelmi infrastruktúra alapismeretek 
+Tűzriadó terv: tűz jelzése, teendők tűz esetén 
+Tűzoltás módjai, tűzoltó eszközök 
+Jelzőtáblák, feliratok, speciális fényjelzések 
+A környezetvédelem fogalma, szakterületei 
+
+ 
+ 19/47. oldal 
+Irányítási rendszerek (ISO14001, EMAS) 
+Hulladékgazdálkodás: veszélyes és nem veszélyes hulladékok kezelése, szelektív össze-
+gyűjtése tárolása, gyűjtőhelyek kialakítása 
+Levegőtisztaság-védelem: pontforrások jellemzése 
+Víz- és talajvédelem: hűtő-kenő emulzió, egyéb ipari folyadékok felhasználása, tárolása, 
+vegyszerkezelés, kármentés 
+Környezeti zaj, rezgés, biodiverzitás, az élő környezet védelme 
+ 
+3.3.2.6.2 Műszaki rajz alapjai 
+A műszaki rajzok tartalmi és formai követelményei 
+Rajztechnikai alapszabványok, előírások 
+A műszaki rajzban alkalmazott vonalak 
+Alkatrészek síkbeli ábrázolásának szabályai 
+A metszeti ábrázolás célja, értelmezése alkatrészrajzokon 
+A mérethálózat felépítése, a méretmegadás szabályai  
+A felvételi vázlatok készítése  
+A mérettűrés megadási módjai, a határméretek meghatározása 
+A felületi érdességek megadása 
+Alak- és helyzettűrések 
+A különféle furatok (sima, süllyesztett, zsákfurat, menetes furat) ábrázolása 
+Felvételi vázlat készítése furatos, menetes alkatrészekről tűrések és felületi érdesség meg-
+adásával 
+Az összeállítási rajzok tartalmi és formai követelményei 
+Összeállítási rajzok értelmezése 
+Szerelési sorrend felépítése összeállítási rajzok alapján 
+ 
+3.3.2.6.3 Anyag- és gyártásismeret 
+Az előgyártmányok típusai a gyártási technológiák alapján (hengerlés, húzás, kovácsolás, 
+öntés) 
+Az előgyártmányok szabványos szállítási állapotai (alak, méret és hőkezeltség). 
+Az ipari anyagok csoportosítása  
+Az ipari anyagok tulajdonságai és felhasználási területei 
+Az alkatrészrajzok és összeállítási rajzok anyagjelölései 
+Az előírt anyag forgácsolhatóságának meghatározása anyagjelölés alapján, katalógus segít-
+ségével 
+ 
+3.3.2.6.4 Fémipari alapmegmunkálások 
+Az előrajzolás eszközei és módszerei 
+A darabolás eszközei és technológiái  
+Egyszerű lemezalakítások  
+Kézi forgácsolóeljárások  
+A furatmegmunkálás technológiái 
+Egyszerű kötések létrehozása (menetes kötés, szegecskötés, ragasztás, lágyforrasztás) 
+Hossz- és szögmérő eszközök alkalmazása  
+Az alak- és helyzettűrések ellenőrzési módszerei  
+A mérési eredmények dokumentálása, a kész alkatrészek minősítése 
+  
+
+ 
+ 20/47. oldal 
+ 
+3.3.2.6.5 Projektmunka 
+A tantárgy témaköreiben elsajátított elméleti ismeretek és gyakorlati tevékenységek alkal-
+mazása egy vagy több projektmunka keretében. A projekt(ek) megvalósítása során az aláb-
+bi tevékenységek elvégzése szükséges. Egy projekt az ágazati alapvizsga gyakorlati rész-
+ének előkészítését is szolgálhatja. 
+Témakörök: 
+A gyártás-előkészítés lépései: 
+‒ gyártmányelemzés  
+‒ alapanyagválasztás, segédanyagok választása  
+‒ a gyártás munkafázisainak és azok sorrendjének meghatározása 
+‒ megmunkálószerszámok és megmunkálógépek kiválasztása  
+A dokumentációban megadott alkatrészek elkészítése kézi és gépi megmunkálással  
+A megfelelő mérőeszközök kiválasztása, az alkatrészek ellenőrzése, minősítése 
+A szükséges gépészeti kötések elkészítése, összeszerelés, illesztés  
+Gyártmányellenőrzés a műszaki előírás követelményei szerint  
+A mérések, ellenőrzések, minősítések dokumentálása  
+A projektmunka dokumentumainak folyamatos vezetése 
+Prezentáció készítése az elvégzett projektmunkáról 
+ 
+ 
+  
+
+ 
+ 21/47. oldal 
+ 
+3.4 Gépészeti alapismeretek megnevezésű tanulási terület 
+ 
+A tanulási terület tantárgyainak összóraszáma: 252/252 óra 
+A tanulási terület tartalmi összefoglalója 
+A gépészeti alapismeretek megnevezésű tanulási terület elsajátításával a tanuló megszerzi 
+mindazokat az általános és speciális gépészeti ismereteket, amelyek a munka tárgyára, céljára 
+és a technológiára vonatkozó dokumentumok megismerését támogatják. Képessé válik egy-
+szerű gépészeti műszaki rajzok, szabadkézi vázlatrajzok készítésére, olvasására, értelmezésé-
+re. Megismeri az általános gépészeti célú anyagok tulajdonságait. Elsajátítja a gépipari alap-
+méréseket, alak- és helyzetpontossági méréseket végez. Megismeri a hőkezelések fajtáit, tud-
+ja, hogyan kell roncsolásos és roncsolásmentes anyagvizsgálatokat végezni. 
+ 
+3.4.1 Műszaki dokumentáció tantárgy 108/108 óra 
+ 
+3.4.1.1 A tantárgy tanításának fő célja 
+Olyan eszközrendszer kialakítása, amelynek segítségével lehetőség nyílik a munkadarabok, a 
+műszaki ábrázolás kommunikációs előírásai szerinti megjelenítésére. 
+ 
+3.4.1.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.4.1.3 Kapcsolódó közismereti, szakmai tartalmak 
+Gépészeti alapismeretek 
+ 
+3.4.1.4 A képzés órakeretének legalább 0%-át gyakorlati helyszínen (tanműhely, üzem 
+stb.) kell lebonyolítani. 
+ 
+3.4.1.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi a munka 
+tárgyára, céljára és 
+a technológiára 
+vonatkozó doku-
+mentumokat. 
+Összefüggéseiben 
+ismeri  a  gépészeti 
+technológiai  doku-
+mentációkat   (mű-
+helyrajzok, összeál-
+lítási rajzok, szere-
+lési rajzok, techno-
+lógiai utasítások, 
+művelettervek, 
+műveletutasítások, 
+szerelési utasítások) 
+mint információ-
+hordozókat, azok 
+formai és tartalmi 
+követelményeit. 
+Instrukció alapján 
+részben önállóan 
+Szabálykövetően, 
+nagyfokú   precizi-
+tással végzi munká-
+ját.  Törekszik  a 
+szabályok  betartása 
+melletti legjobb 
+megoldások  alkal-
+mazására. 
+Használja,   alkal-
+mazza az új ismere-
+teket. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+
+ 
+ 22/47. oldal 
+Elkészíti a lemez-
+tárgy szerkesztett 
+rajzát. 
+Alkalmazói szinten 
+ismeri a rajztechni-
+kai alapszabványo-
+kat, előírásokat, 
+megoldásokat, a 
+síkmértani szerkesz-
+téseket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Bemutatja a tár-
+gyak, alkatrészek 
+vetítés irányába eső 
+külső tagoltságát. 
+A vetületi ábrázolás 
+szabályrendszerét 
+alapszinten tudja. 
+Instrukció alapján 
+részben önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Térbeli objektumot 
+szemléltet síkbeli 
+ábrázolással. 
+Alapszinten tud 
+térbeli objektumot 
+síkbeli ábrázolással 
+szemléltetni. 
+Instrukció alapján 
+részben önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+A belső üregek, 
+furatok szemléletes 
+ábrázolására met-
+szeteket és szelvé-
+nyeket használ. 
+Szemléletesen be 
+tudja mutatni a 
+munkadarabok 
+belső üregeit, fura-
+tait metszetek és 
+szelvények ábrázo-
+lásával. 
+Instrukció alapján 
+részben önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Az alkatrész elké-
+szítéséhez szüksé-
+ges méreteket ren-
+dezetten helyezi el a 
+rajzon. 
+Magabiztosan, 
+rendezetten helyezi 
+el a rajzon az alkat-
+rész elkészítéséhez 
+szükséges mérteket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Jelképes  ábrázolá-
+sokat alkalmaz 
+alkatrészrajzokon és 
+összeállítási  rajzo-
+kon. 
+Alkalmazói szinten 
+ismeri az alkatrész- 
+és összeállítási 
+rajzokon használa-
+tos jelképeket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+ 
+ 
+3.4.1.6 A tantárgy témakörei 
+ 
+3.4.1.6.1 Technológiai dokumentációk 
+Alkatrészrajzok 
+Összeállítási rajzok 
+Szerelési családfák, robbantott ábrák 
+Művelettervek 
+Műveletutasítások 
+Szerelési műveleti utasítások 
+ 
+3.4.1.6.2 Rajztechnikai alapszabványok, előírások, megoldások 
+Alapszerkesztések 
+Térelemek kölcsönös helyzetének ábrázolása 
+Vetületi ábrázolás 
+‒ Látás és ábrázolás, vetítési módok 
+‒ Térelemek ábrázolása 
+‒ A kocka vetületi ábrázolása 
+‒ A hasáb vetületi ábrázolása 
+‒ A henger vetületi ábrázolása 
+‒ A kúp vetületi ábrázolása 
+
+ 
+ 23/47. oldal 
+Axonometrikus ábrázolás 
+‒ Az egyméretű (izometrikus) axonometria 
+‒ A kétméretű (dimetrikus) axonometria 
+‒ A frontális (kavalier) axonometria 
+‒ A síklapú testek axonometrikus ábrázolása 
+‒ A kocka axonometrikus ábrázolása 
+‒ A henger axonometrikus ábrázolása 
+ 
+3.4.1.6.3 Jelképes ábrázolások 
+Csavarmenetek jelképes ábrázolása 
+Bordás tengelykötés jelképes ábrázolása 
+Fogaskerekek egyszerűsített ábrázolása 
+Szegecskötés jelképes ábrázolása 
+Hegesztett kötések ábrázolása és jelképes jelölése 
+ 
+3.4.1.6.4 A géprajzkészítés gyakorlata 
+Szabadkézi vázlatrajz készítése 
+Szerkesztett műszaki rajz készítése 
+Rajzolvasási feladatok 
+ 
+ 
+3.4.2 Gépészeti alapmérések tantárgy 72/72 óra 
+ 
+3.4.2.1 A tantárgy tanításának fő célja 
+A gépészeti alapmérések tantárgy tanításának célja, hogy a tanulók megismerjék a gépészet 
+területén használt mérőeszközök működési elvét, végre tudják hajtani a mérési, ellenőrzési 
+feladatokat, és el tudják készíteni a mérési dokumentumokat. 
+ 
+3.4.2.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.4.2.3 Kapcsolódó közismereti, szakmai tartalmak 
+Matematika, fizika 
+ 
+3.4.2.4 A  képzés  órakeretének  legalább  50%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.4.2.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi a gépé-
+szeti alapmérések 
+alapfogalmait. 
+Összefüggéseiben 
+ismeri a gépészeti 
+alapmérések alap-
+fogalmait. 
+Teljesen önállóan 
+Elkötelezett  a  pon-
+tos,  precíz  munka-
+végzés    mellett, 
+igyekszik  elkerülni 
+a mérési hibákat. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+
+ 
+ 24/47. oldal 
+Mérési jegyzőköny-
+vet készít. 
+Ismeri a mérési 
+jegyzőkönyv elké-
+szítésének szabálya-
+it. 
+Teljesen önállóan 
+Belátja, ha hibát 
+követ el és képes 
+azt korrigálni. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Kiválasztja az adott 
+mérési feladathoz 
+megfelelő mérőesz-
+közt. 
+Ki tudja választani 
+és azonosítani tudja 
+az adott mérési 
+feladathoz megfele-
+lő mérőeszközt. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Előzetes becslést 
+végez a mérési 
+hibák felismerésére. 
+Felismeri a mérési 
+hibát. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Végrehajtja az ösz-
+szetett méret-, alak- 
+és helyzetmérése-
+ket. 
+Ismeri az összetett 
+méret-, alak- és 
+helyzetmérési mód-
+szereket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+ 
+ 
+3.4.2.6 A tantárgy témakörei 
+ 
+3.4.2.6.1 Alapfogalmak 
+Mérés, ellenőrzés fogalma 
+A mérés folyamata 
+Mérési módszerek 
+Mértékegységek 
+Tűrés, illesztés 
+Felületi érdesség 
+ 
+3.4.2.6.2 Mérési dokumentumok 
+Mérési utasítás 
+Mérési jegyzőkönyv 
+ 
+3.4.2.6.3 A mérés eszközei 
+Mérőeszközök csoportosítása 
+Az értékmutató műszerek kijelző elemei 
+A mérőeszközök (műszerek) metrológiai jellemzői 
+A mérőeszközök kiválasztásának szempontjai 
+Mérési segédeszközök 
+ 
+3.4.2.6.4 Mérési hibák 
+Mérési hibák csoportosítása 
+ 
+3.4.2.6.5 Hosszméretek mérése, ellenőrzése 
+Hosszmérés eszközeinek csoportosítása 
+Egyszerű hosszúságmérő eszközök 
+Egyértékű mértékek 
+Tolómérő 
+Mikrométer 
+Mérőóra 
+
+ 
+ 25/47. oldal 
+Mérőhasábkészlet 
+Finomtapintók 
+Optikai hosszmérő eszközök 
+ 
+3.4.2.6.6 Szögek mérése és ellenőrzése 
+Szögmértékek 
+Mozgószáras szögmérők 
+Szögmérés közvetett eljárással 
+Szögmérés optikai úton 
+Szintezők 
+Kúpszögmérés 
+ 
+3.4.2.6.7 Alak- és helyzetpontosság mérése, ellenőrzése 
+Alakhibák mérése, ellenőrzése 
+‒ síkbeli egyenességeltérés ellenőrzése 
+‒ síklapúság ellenőrzése 
+‒ köralakeltérés ellenőrzése 
+‒ hengerességeltérés ellenőrzése 
+‒ helyzetpontosság ellenőrzése 
+‒ párhuzamosság ellenőrzése 
+‒ forgóelem felületének helyzetpontossági ellenőrzése 
+ 
+ 
+3.4.3 Anyagismeret, anyagvizsgálat tantárgy 72/72 óra 
+ 
+3.4.3.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának fő célja, hogy a tanulók megismerjék a szakmában használatos anya-
+gok tulajdonságait; felismerjék a felhasználási területeknek legjobban megfelelő megmunká-
+landó anyagokat; elsajátítsák a különböző anyagvizsgálati technikákat. Fel tudják mérni, mi-
+lyen igénybevételnek lesz kitéve a vizsgált alkatrész, és annak megfelelő vizsgálati technoló-
+giát válasszanak, illetve alkalmazzanak. 
+ 
+3.4.3.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.4.3.3 Kapcsolódó közismereti, szakmai tartalmak 
+Gépészeti alapismeretek 
+ 
+3.4.3.4 A  képzés  órakeretének  legalább  50%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+  
+
+ 
+ 26/47. oldal 
+ 
+3.4.3.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Csoportosítja az 
+ipari anyagokat. 
+Ismeri az ipari 
+anyagok fajtáit. 
+Teljesen önállóan 
+Használja,   alkal-
+mazza az új ismere-
+teket. 
+Motivált az anya-
+gok  megismerésé-
+ben.  Munkája során 
+felhasználja    az 
+anyagok  különböző 
+megmunkálás  hatá-
+sára  bekövetkezett 
+tulajdonságváltozá-
+sairól szerzett isme-
+reteit. 
+Szabálykövető, 
+pontosan  és  rend-
+szerezetten   végzi 
+munkáját. 
+Törekszik a jegyző-
+könyv pontos,  pre-
+cíz megírására. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Az anyagok mikro-
+szerkezete alapján 
+következtet az 
+anyagok tulajdon-
+ságaira. 
+Ismeri a mikroszer-
+kezet és az anyagok 
+tulajdonságai közöt-
+ti kapcsolatot. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Jellemzi az ipari 
+vasötvözeteket, az 
+alumíniumot, a 
+rezet és ötvözetei-
+ket. 
+Ismeri az iparilag 
+fontosabb fémek és 
+ötvözeteik tulajdon-
+ságait. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+A kerámiák, kom-
+pozitok, szinterelt 
+szerkezeti anyagok 
+alkalmazása esetén 
+figyelembe veszi 
+azok tulajdonságait. 
+Azonosítani tudja a 
+szervetlen, nemfé-
+mes ipari anyago-
+kat. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Műanyagok alkal-
+mazása esetén azok 
+fajtájáról a tulaj-
+donságaik alapján 
+dönt. 
+Ismeri a műanyagok 
+előállításának lehe-
+tőségeit, szerkezete-
+it, tulajdonságait, 
+alkalmazhatóságait. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Az ipari segédanya-
+gok kiválasztásakor 
+azok tulajdonságai-
+ra hagyatkozik. 
+Ismeri a segédanya-
+gok fajtáit és azok 
+jellemző tulajdon-
+ságait. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Felismeri az anyag-
+szerkezet és a tulaj-
+donságváltozás 
+közötti kapcsolatot. 
+Összefüggéseiben 
+látja a hőkezelés 
+lényegét, ismeri a 
+fajtáit, céljait. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Jegyzőkönyvet 
+készít az anyag-
+vizsgálatokról és 
+értékeli a mérési 
+eredményeket. 
+Ismeri    az    anyag-
+vizsgálat    célját, 
+feladatát. Tudja 
+hogyan kell az 
+anyagvizsgálatokat 
+végrehajtani    és 
+dokumentálni. 
+Instrukció alapján 
+részben önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+ 
+  
+
+ 
+ 27/47. oldal 
+ 
+3.4.3.6 A tantárgy témakörei 
+ 
+3.4.3.6.1 Alapanyagok csoportosítása és tulajdonságai 
+Az anyagok csoportosítása 
+Ipari anyagok, szerkezeti anyagok 
+Az ipari anyagok fontosabb tulajdonságai 
+ 
+3.4.3.6.2 Anyagszerkezettani alapismeretek 
+Az anyagok mikroszerkezete 
+‒ elsődleges kémiai kötés 
+‒ másodlagos kémiai kötés 
+ 
+3.4.3.6.3 A mikroszerkezet és a tulajdonságok kapcsolata 
+Az ionkötésű anyagok tulajdonságai 
+A kovalens kötésű anyagok tulajdonságai 
+A fémes kötésű anyagok tulajdonságai 
+A másodlagos kémiai anyagok tulajdonságai 
+ 
+3.4.3.6.4 Fontosabb fémek és ötvözeteik 
+A fémötvözetek kristályrácsa 
+Ipari vasötvözetek 
+Alumínium és ötvözetei 
+Réz és ötvözetei 
+Ón és ötvözetei 
+Horgany és ötvözetei 
+Titán és ötvözetei 
+ 
+3.4.3.6.5 Szinterelt szerkezeti anyagok 
+Műszaki kerámiák 
+Porkohászati termékek 
+Műanyag-fém kompozitok (technológiai ismertetése, a tapadás hatásmechanizmusa, fizi-
+kai, kémiai tulajdonságai) 
+ 
+3.4.3.6.6 Műanyagok 
+Műanyagok szerkezete 
+Óriásmolekulák előállítása 
+Műanyagok tulajdonságai 
+A műanyagok tulajdonságainak módosítása, javítása 
+Műanyagok csoportosítása 
+ 
+3.4.3.6.7 Segédanyagok 
+Kenőanyagok 
+‒ Kenőolajok 
+‒ Kenőzsírok 
+Tömítőanyagok 
+  
+
+ 
+ 28/47. oldal 
+ 
+3.4.3.6.8 Hőkezelő eljárások 
+Hőkezelés fogalma 
+Vasötvözetek hőkezelése 
+‒ Acélok hőkezelése 
+o Teljes keresztmetszetű hőkezelések 
+o Felületi hőkezelések 
+‒ Öntöttvasak hőkezelése 
+Könnyűfémek és ötvözeteik hőkezelése 
+ 
+3.4.3.6.9 Anyagvizsgálat 
+Az anyagvizsgálati módszerek felosztása 
+Az anyagvizsgálati eljárások főbb területei 
+Kémiai vizsgálatok 
+Fémtani vizsgálatok 
+Mechanikai vizsgálatok 
+‒ Szilárdsági vizsgálatok 
+‒ Keménységmérések 
+Technológiai vizsgálatok 
+Roncsolásmentes vizsgálatok 
+ 
+  
+
+ 
+ 29/47. oldal 
+ 
+3.5 Hegesztési technológia előkészítése megnevezésű tanulási terület 
+ 
+A tanulási terület tantárgyainak összóraszáma: 212/212 óra 
+A tanulási terület tartalmi összefoglalója 
+A tanulási terület bemutatja a hegesztéssel kapcsolatos alapfogalmakat. Ismerteti a hegesztés 
+előkészületi  műveleteit,  a  munkadarab,  alkatrész  előkészítését,  összeállítását  hegesztéshez. 
+Foglalkozik a hegesztési eljárások berendezéseivel, hozag- és segédanyagaival, a hegesztési 
+eltérésekkel, valamint a hegesztés biztonságtechnikájával. 
+ 
+3.5.1 Hegesztés alapismeretei tantárgy 212/212 óra 
+ 
+3.5.1.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának fő célja, hogy a tanuló elsajátítsa a hegesztés alapfogalmait, átlássa a 
+hegesztés előkészítő és befejező műveleteit. Tisztában legyen a hegesztéshez használt alap-, 
+hozag- és segédanyagok fajtáinak, kiválasztási szempontjainak meghatározásához szükséges 
+ismeretekkel. Képes  legyen  az  információforrások kezelésére a WPS (Gyártói Hegesztési 
+Utasítás) alapján; a HBSZ (Hegesztési  Biztonsági  Szabályzat) tartalmának  értelmezésére; 
+valamint a hegesztésből adódó hibák felismerésére, elkerülésére. 
+A képzésben részt vevők az önálló, felelősségteljes munkavégzés érdekében megismerik a 
+biztonságos munka feltételeit és begyakorolják a hegesztés előkészítő, illetve befejező műve-
+leteihez szükséges gépek, berendezések, szerszámok használatát. 
+ 
+3.5.1.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.5.1.3 Kapcsolódó közismereti, szakmai tartalmak 
+Gépészeti alapismeretek 
+ 
+3.5.1.4 A  képzés  órakeretének  legalább  50%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.5.1.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Műszaki rajzok, 
+tervdokumentációk 
+alapján felkészül a 
+feladatra, értelmezi 
+az általános gépé-
+szeti anyagokra és 
+alkatrészekre vo-
+natkozó informáci-
+ókat. 
+Értelmezni tudja a 
+munka tárgyára, 
+céljára és a techno-
+lógiára vonatkozó 
+dokumentumokat. 
+Ismeri az általános 
+gépészeti anyagokra 
+és alkatrészekre 
+vonatkozó informá-
+ciókat. 
+Teljesen önállóan 
+Szabálykövetően, 
+nagyfokú   precizi-
+tással végzi munká-
+ját. 
+Törekszik  a  szabá-
+lyok  betartása  mel-
+letti  legjobb  megol-
+dások  alkalmazásá-
+ra. 
+Használja,   alkal-
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+
+ 
+ 30/47. oldal 
+Előkészíti a munka-
+feladat végrehajtá-
+sához szükséges 
+anyagokat, segéd-
+anyagokat, előre 
+gyártott elemeket, 
+gépeket, szerszá-
+mokat, mérőeszkö-
+zöket, felfogó- és 
+befogóeszközöket, 
+védőfelszereléseket. 
+Ismeri a varratmére-
+teket,  varrattípuso-
+kat,    hegesztési 
+helyzeteket. 
+Ismeri a gépeket, 
+szerszámokat, mé-
+rőeszközöket, felfo-
+gó- és befogóeszkö-
+zöket, védőfelszere-
+léseket. 
+Ismeri a speciális 
+munkabiztonsági és 
+környezetvédelmi 
+előírásokat. 
+Teljesen önállóan 
+mazza az új ismere-
+teket. 
+Ismeri, betartja és 
+betartatja a speciális 
+munkabiztonsági és 
+környezetvédelmi 
+előírásokat. 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Kézi és gépi forgá-
+csoló alapeljárások-
+kal alakítja a mun-
+kadarabot. 
+Képlékenyalakítást 
+végez kézi alapmű-
+veletekkel. 
+Kézi és gépi műve-
+letekkel darabol. 
+Ismeri  a  kézi  és 
+kisgépes  fémalakító 
+műveletekhez  hasz-
+nált gépeket,  szer-
+számokat,  mérőesz-
+közöket,   védőfel-
+szereléseket.  
+Teljesen önállóan 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Termikus vágásokat 
+végez, végrehajtja 
+az előmelegítést, 
+szükség szerint a 
+hőkezelést. 
+Ismeri a termikus 
+vágások lényegét, 
+alkalmazásának 
+feltételeit. 
+Teljesen önállóan 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Kiválasztja a meg-
+felelő elektródát, 
+égőszárat, illetve 
+huzalt a WPS alap-
+ján, beazonosítja az 
+anyagokat. 
+Ismeri a hegesztés 
+hozag- és segéd-
+anyagait. 
+Teljesen önállóan 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Beállítja a hegesztés 
+gépeit, elvégzi a 
+kezelési és karban-
+tartási előírásban 
+meghatározott mű-
+veleteket. 
+Ismeri a hegesztő 
+berendezéseket és 
+üzembe helyezésük 
+módját. 
+Teljesen önállóan 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+Folyamatos minő-
+ségellenőrzést vé-
+gez, szükség esetén 
+kijavítja a hibát.  
+Ismeri a hegesztési 
+eltéréseket. 
+Teljesen önállóan 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése 
+ 
+ 
+3.5.1.6 A tantárgy témakörei 
+ 
+3.5.1.6.1 A hegesztés alapfogalmai 
+Hegesztés fogalma 
+Hegesztés feltételei 
+Hegesztési alapfogalmak 
+A hegesztési eljárások csoportosítása, az egyes eljárások lényege, jelölése, alkalmazása 
+A hegesztési eljárások eszközei, berendezései és védőfelszerelései 
+Fémek hegeszthetősége 
+Műanyagok hegeszthetősége 
+
+ 
+ 31/47. oldal 
+Hegesztési helyzetek értelmezése 
+Varratképzési ismeretek az MSZ EN ISO 6947 szerinti szabvány alapján 
+A hegesztés rajzi jelölése, alap és kiegészítő jelek 
+A hegesztés hő- és fémtani folyamata 
+ 
+3.5.1.6.2 Hegesztési élek előkészítése, kialakítása 
+Felületek előkészítése, tisztítása 
+Lemezek darabolása 
+Alakítóvágás 
+Forgácsolóvágás 
+Termikus vágás: 
+‒ Lángvágás 
+‒ Plazmavágás 
+‒ Lézervágás 
+ 
+3.5.1.6.3 Alkatrészek összeállítása, készülékek használata 
+Alkatrészek összeállítása, készülékek használata 
+A hegesztéshez kapcsolódó előmelegítés 
+ 
+3.5.1.6.4 A hegesztés hozag- és segédanyagai 
+Bevont elektródás kézi ívhegesztés hozaganyagai 
+Fogyó elektródás semleges védőgázas ívhegesztés hozaganyagai 
+Fogyó elektródás aktív védőgázas ívhegesztés hozaganyagai 
+Volfrámelektródás semleges védőgázas ívhegesztés hozaganyagai 
+Gázhegesztés hozaganyagai 
+Fedett ívű hegesztés hozaganyagai 
+ 
+3.5.1.6.5 Hegesztési eltérések 
+Külső hibák 
+Belső hibák 
+ 
+3.5.1.6.6 A hegesztés biztonságtechnikája 
+A Hegesztési Biztonsági Szabályzat (HBSZ) felépítése, tartalma, értelmezése 
+A hegesztőt és környezetét érő hatások, terhelések 
+Munka- és környezetvédelmi előírások 
+A munkaterület kialakítása 
+ 
+3.5.1.6.7 Hegesztő berendezések és azok üzembe helyezése 
+Gázhegesztő berendezés és üzembe helyezése 
+Ívhegesztő berendezés és üzembe helyezése 
+A hegesztés berendezéseinek, eszközeinek biztonságos kezelése 
+ 
+  
+
+ 
+ 32/47. oldal 
+ 
+3.6 Hegesztési feladatok megnevezésű tanulási terület 
+ 
+A tanulási terület tantárgyainak összóraszáma:  875/978 óra 
+A tanulási terület tartalmi összefoglalója 
+A tanulási terület bemutatja a különböző hegesztési technológiákat és feladatokat. Képessé 
+teszi a tanulókat a hegesztési eljárások jellemzőinek és összefüggéseinek megértésére, és segít 
+magyarázatot adni a gyakorlat során felmerülő problémákra. 
+Ismerteti a hegesztéshez használt eszközök működését és a különböző hegesztési eljárások 
+technikáját. Elsajátítását követően a tanulók a műszaki dokumentáció alapján önállóan is  el 
+tudják végezni a hegesztési feladatot. Megismerik a legmodernebb technológiákat és alkalma-
+zásukat, valamint a hegesztett alkatrészek elkészítéséhez szükséges alapvető tervezési szabá-
+lyokat,  számításokat,  törvényszerűségeket. Kialakul  bennük a  precíz,  pontos  munka iránti 
+igény. 
+ 
+3.6.1 Fogyó elektródás ívhegesztés bevont elektródával (kézi ívhegesztés) tantárgy  
+ 190/217 óra 
+ 
+3.6.1.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának célja, hogy a képzésben részt vevők készségszinten sajátítsák el a be-
+vont  elektródás kézi hegesztés technikáját, és a műszaki dokumentáció alapján önállóan el 
+tudják végezni a hegesztési feladatot. Képesek legyenek alkalmazni a munkájukat segítő leg-
+modernebb technológiákat. Megismerjék a bevont  elektródás kézi ívhegesztés jellemzőit és 
+összefüggéseit, és megértsék a hegesztéshez használt eszközök működését. 
+ 
+3.6.1.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.6.1.3 Kapcsolódó közismereti, szakmai tartalmak 
+Hegesztés alapismeretei 
+ 
+3.6.1.4 A  képzés  órakeretének  legalább  80%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.6.1.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi a munka 
+tárgyára, céljára és 
+a technológiára 
+vonatkozó doku-
+mentumokat. 
+Ismeri a műszaki 
+dokumentációkat. 
+Teljesen önállóan 
+Elkötelezett  a  biz-
+tonságos   munka-
+végzés    mellett, 
+alkalmazza a  mun-
+kabiztonsági, tűz- és 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+
+ 
+ 33/47. oldal 
+Műszaki rajzok, 
+tervdokumentációk 
+alapján felkészül a 
+bevont elektródás 
+kézi ívhegesztési 
+feladatra, értelmezi 
+az általános gépé-
+szeti anyagokra és 
+alkatrészekre vo-
+natkozó informáci-
+ókat. 
+Alapvető anyagis-
+mereti, rajzolvasási 
+ismeretekkel ren-
+delkezik. 
+Teljesen önállóan 
+környezetvédelmi 
+előírásokat. 
+Pontos,  precíz  he-
+gesztést hajt végre. 
+Törekszik  a  szabá-
+lyok  betartása  mel-
+letti legjobb  megol-
+dások  alkalmazásá-
+ra. 
+Igényes  a munka-
+környezetére    és 
+tudatosan     rendben 
+tartja azt. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése,  felhasz-
+nálása és rendszere-
+zése, megosztása 
+Elvégzi a kezelési 
+és karbantartási 
+előírásban meghatá-
+rozott műveleteket, 
+beállítja az ívhe-
+gesztő berendezést. 
+Ismeri az ívhegesz-
+tő berendezés mű-
+ködését, felépítését. 
+Teljesen önállóan 
+Digitális tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Kiválasztja a meg-
+felelő elektródát a 
+WPS alapján, be-
+azonosítja az anya-
+gokat, a varratmére-
+teket, varrattípuso-
+kat. 
+Ismeri a WPS adat-
+tartalmát, az elekt-
+ródák, alapanyagok 
+jelölési rendszerét, a 
+varrat- és kötéstípu-
+sokat, azok rajzi 
+jelölését és a he-
+gesztési helyzete-
+ket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Szerkezeti elemként 
+készült gépalkatré-
+szeket, szerkezeti 
+elemeket rögzít 
+egymáshoz bevont 
+elektródás kézi 
+ívhegesztés alkal-
+mazásával. 
+Ismeri a különböző 
+hegesztési helyzet-
+ben készített varra-
+tok és kötések létre-
+hozásának techno-
+lógiáját. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Folyamatos minő-
+ségellenőrzést vé-
+gez, szükség esetén 
+kijavítja a hibát.  
+Be tudja azonosítani 
+a különféle hegesz-
+tési eltéréseket, és 
+ismeri azok kijaví-
+tásának lehetősége-
+it. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+ 
+ 
+3.6.1.6 A tantárgy témakörei 
+ 
+3.6.1.6.1 Fémek hegeszthetősége bevont elektródás kézi ívhegesztéssel 
+Fémek bevont elektródás kézi ívhegesztése 
+Öntöttvas hegesztése 
+Alumínium és ötvözeteinek hegesztése 
+Réz és ötvözeteinek hegesztése 
+Nikkel hegesztése 
+ 
+3.6.1.6.2 Fogyó elektródás ívhegesztés bevont elektródával (kézi ívhegesztés) 
+A hegesztőív jellemzői 
+A kézi ívhegesztés berendezései és szerszámai 
+  
+
+ 
+ 34/47. oldal 
+ 
+3.6.1.6.3 A bevont ívhegesztő elektródák főbb típusai 
+A különböző bevonatú elektródák sajátosságai és alkalmazása 
+‒ Bázikus bevonatú elektródák 
+‒ Cellulóz bevonatú elektródák 
+‒ Rutilos és rutilalapú bevonattal készült elektródák 
+‒ Savas bevonatú elektródák 
+‒ Speciális elektródák 
+Bevont elektródák csoportosítása 
+Az elektródák nemzetközi jelölésrendszere_Toc382469354 
+ 
+3.6.1.6.4 A bevont elektródás kézi ívhegesztés technológiája 
+Anyag előkészítése a bevont elektródás kézi ívhegesztéshez 
+Az elektróda kiválasztása 
+A hegesztő-berendezés üzembe helyezése 
+Az áramerősség megválasztása 
+Az ív gyújtása és megszakítása 
+Az elektróda tartása, vezetése 
+‒ Vízszintes hegesztési helyzet (PA) 
+‒ Haránt vízszintes sarok hegesztési helyzet (PB) 
+‒ Függőleges falon vízszintes (haránt) hegesztési helyzet (PC) 
+‒ Fej feletti hegesztési helyzet (PE) 
+‒ Függőleges hegesztési helyzet (PF) 
+‒ Csövek hegesztési pozíciója (H-LO45, J-LO45, PH, PJ) 
+A munkavégzés szabályai 
+Karbantartás, ellenőrzés 
+ 
+3.6.1.6.5 Az ívhegesztés kötései 
+Tompavarratok 
+Sarokvarratok 
+Horonyvarratok 
+Él- és peremvarratok 
+ 
+3.6.1.6.6 A bevont elektródás kézi ívhegesztéssel készített kötések eltérései (hibái) 
+Külső varrathibák 
+Belső varrathibák 
+ 
+3.6.1.6.7 Javító- és felrakóhegesztések 
+Kopásfajták 
+Szerszámacélok felrakóhegesztése 
+‒ Hegesztés teljes hőkezeléssel 
+‒ Hegesztés egyszerűsített hőkezeléssel 
+‒ Kopásnak kitett alkatrészek javító- és felrakóhegesztése 
+ 
+3.6.1.6.8 A bevont elektródás kézi ívhegesztés biztonságtechnikája 
+Egyéni védőeszközök 
+A munkavégzésre vonatkozó általános magatartási szabályok 
+A bevont elektródás kézi ívhegesztés általános előírásai 
+Szervezési körülmények 
+ 
+
+ 
+ 35/47. oldal 
+ 
+3.6.2 Gázhegesztés tantárgy 220/234 óra 
+ 
+3.6.2.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának fő célja, hogy a képzésben részt vevők készségszinten sajátítsák el  a 
+gázhegesztés technikáját, és a műszaki dokumentáció alapján önállóan el tudják végezni a 
+hegesztési feladatot. Képesek legyenek alkalmazni  a munkájukat segítő legmodernebb tech-
+nológiákat. Megismerjék a gázhegesztés jellemzőit és összefüggéseit, és megértsék a hegesz-
+téshez használt eszközök működését. 
+ 
+3.6.2.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.6.2.3 Kapcsolódó közismereti, szakmai tartalmak 
+Hegesztés alapismeretei 
+ 
+3.6.2.4 A  képzés  órakeretének  legalább  80%-át gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.6.2.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi a munka 
+tárgyára, céljára és 
+a technológiára 
+vonatkozó doku-
+mentumokat. 
+Ismeri a műszaki 
+dokumentációkat. 
+Teljesen önállóan 
+Elkötelezett  a  biz-
+tonságos   munka-
+végzés    mellett, 
+alkalmazza a  mun-
+kabiztonsági, tűz- és 
+környezetvédelmi 
+előírásokat. 
+Pontos,  precíz  he-
+gesztést hajt végre. 
+Törekszik  a  szabá-
+lyok  betartása  mel-
+letti  legjobb  megol-
+dások  alkalmazásá-
+ra. 
+Igényes  a munka-
+környezetére    és 
+tudatosan     rendben 
+tartja azt. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Műszaki rajzok, 
+tervdokumentációk 
+alapján felkészül a 
+gázhegesztési fel-
+adatra, értelmezi az 
+általános gépészeti 
+anyagokra és alkat-
+részekre vonatkozó 
+információkat. 
+Alapvető anyagis-
+mereti, rajzolvasási 
+ismeretekkel ren-
+delkezik. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Elvégzi a kezelési 
+és karbantartási 
+előírásban meghatá-
+rozott műveleteket, 
+beállítja a gázhe-
+gesztő berendezést. 
+Ismeri a gázhegesz-
+tő berendezés mű-
+ködését, felépítését. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Kiválasztja a meg-
+felelő hegesztőpál-
+cát a WPS alapján, 
+beazonosítja az 
+anyagokat, a var-
+ratméreteket, varrat-
+típusokat. 
+Ismeri a WPS adat-
+tartalmát, a hegesz-
+tőpálcák, alapanya-
+gok jelölési rend-
+szerét, varrat- és 
+kötéstípusokat, azok 
+rajzi jelölését és a 
+hegesztési helyzete-
+ket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+
+ 
+ 36/47. oldal 
+Szerkezeti elemként 
+készült gépalkatré-
+szeket, szerkezeti 
+elemeket rögzít 
+egymáshoz gázhe-
+gesztés alkalmazá-
+sával. 
+Ismeri a különböző 
+hegesztési helyzet-
+ben készített varra-
+tok és kötések létre-
+hozásának techno-
+lógiáját. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Folyamatos minő-
+ségellenőrzést vé-
+gez, szükség esetén 
+kijavítja a hibát.  
+Be tudja azonosítani 
+a különféle hegesz-
+tési eltéréseket, és 
+ismeri azok kijaví-
+tásának lehetősége-
+it. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+ 
+ 
+3.6.2.6 A tantárgy témakörei 
+ 
+3.6.2.6.1 A gázhegesztés fogalma, lényege 
+A gázhegesztés fogalma, lényege 
+ 
+3.6.2.6.2 Gázhegesztő berendezések 
+Gázpalackok, gázellátás 
+Gázpalackok kezelése, tárolása 
+Nyomáscsökkentők 
+Hegesztőtömlők és tömlőcsatlakozások típusai és felhasználási területük 
+Hegesztőpisztolyok típusai és felhasználási területük 
+Gázhegesztő berendezések karbantartása 
+Biztonsági szerelvények 
+ 
+3.6.2.6.3 Hegesztőgázok 
+Az égést tápláló oxigén 
+Éghető gázok 
+ 
+3.6.2.6.4 Hegesztőláng 
+A hegesztőláng szerkezete  
+A hegesztőláng fajtái 
+A lángerősség fogalma 
+ 
+3.6.2.6.5 A gázhegesztés technológiája 
+Az alapanyag előkészítése a gázhegesztéshez, szükség esetén gázlánggal történő előmele-
+gítése 
+A hegesztőanyag kiválasztása 
+A gázhegesztő berendezések használata 
+‒ A hegesztő berendezés üzembe helyezésének sorrendje 
+‒ Az üzemszünet szabályai 
+‒ Az üzemen kívül helyezés sorrendje 
+ 
+3.6.2.6.6 A hegesztőláng beállítása 
+A hegesztőláng beállítása 
+ 
+3.6.2.6.7 A hegesztés folyamata 
+Balra- és jobbra hegesztés 
+
+ 
+ 37/47. oldal 
+ 
+3.6.2.6.8 A gázhegesztés kötései, illesztések, varratalakok 
+Tompavarratok 
+Sarokvarratok 
+Horony-, él- és peremvarratok 
+ 
+3.6.2.6.9 Fémek hegeszthetősége gázhegesztéssel 
+Acélok hegesztése 
+Öntöttvas hegesztése 
+Alumínium és ötvözeteinek hegesztése 
+Réz és ötvözeteinek hegesztése 
+Nikkel hegesztése 
+ 
+3.6.2.6.10 A hegesztési kötések eltérései, hibái 
+Varratok külső és belső hibái 
+ 
+3.6.2.6.11 A gázhegesztés jelentősége a javító technikában 
+A gázhegesztés jelentősége a javító technikában 
+Gázzal való egyengetés 
+ 
+3.6.2.6.12 A gázhegesztés biztonságtechnikája 
+A gázhegesztés veszélyforrásai 
+A gázhegesztő berendezések időszaki ellenőrzése 
+A gázhegesztéssel kapcsolatos munkavédelmi ismeretek 
+Egyéni védőeszközök 
+A munkavégzésre vonatkozó általános magatartási szabályok 
+A gázhegesztés általános előírásai 
+Vészhelyzetekre vonatkozó magatartási szabályok 
+Munkaszervezési követelmények 
+ 
+ 
+3.6.3 Fogyó elektródás védőgázas (MIG/MAG) ívhegesztés tantárgy 217/248 óra 
+ 
+3.6.3.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának fő célja, hogy a képzésben részt vevők készségszinten sajátítsák el  a 
+fogyó elektródás védőgázas (MIG/MAG) ívhegesztés technikáját, és a műszaki dokumentáció 
+alapján önállóan el tudják végezni a hegesztési feladatot. Képesek legyenek alkalmazni a 
+munkájukat segítő legmodernebb technológiákat. Megismerjék a fogyó elektródás védőgázas 
+ívhegesztés jellemzőit és összefüggéseit,  valamint megértsék a hegesztéshez használt eszkö-
+zök működését. 
+ 
+3.6.3.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.6.3.3 Kapcsolódó közismereti, szakmai tartalmak 
+Hegesztés alapismeretei 
+ 
+3.6.3.4 A  képzés  órakeretének  legalább  80%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+
+ 
+ 38/47. oldal 
+ 
+3.6.3.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi a munka 
+tárgyára, céljára és 
+a technológiára 
+vonatkozó doku-
+mentumokat. 
+Ismeri a műszaki 
+dokumentációkat. 
+Teljesen önállóan 
+Elkötelezett  a  biz-
+tonságos   munka-
+végzés    mellett, 
+alkalmazza a  mun-
+kabiztonsági, tűz- és 
+környezetvédelmi 
+előírásokat. 
+Pontos,  precíz  he-
+gesztést hajt végre. 
+Törekszik  a  szabá-
+lyok  betartása  mel-
+letti  legjobb  megol-
+dások  alkalmazásá-
+ra. 
+Igényes  a munka-
+környezetére    és 
+tudatosan     rendben 
+tartja azt. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Műszaki   rajzok, 
+tervdokumentációk 
+alapján  felkészül  a 
+Fogyó elektródás 
+védőgázas ívhe-
+gesztési  feladatra, 
+értelmezi  az  általá-
+nos gépészeti anya-
+gokra  és alkatré-
+szekre   vonatkozó 
+információkat. 
+Alapvető anyagis-
+mereti, rajzolvasási 
+ismeretekkel ren-
+delkezik. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Elvégzi a kezelési 
+és karbantartási 
+előírásban meghatá-
+rozott műveleteket, 
+beállítja a fogyó 
+elektródás védőgá-
+zas ívhegesztő be-
+rendezést. 
+Ismeri a fogyó 
+elektródás védőgá-
+zas ívhegesztő be-
+rendezés működé-
+sét, felépítését. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Kiválasztja a meg-
+felelő hegesztőhu-
+zalt, védőgázt a 
+WPS alapján, be-
+azonosítja az anya-
+gokat, a varratmére-
+teket, varrattípuso-
+kat. 
+Ismeri a WPS adat-
+tartalmát, a hegesz-
+tőhuzalok, védőgá-
+zak, alapanyagok 
+jelölési rendszerét, a 
+varrat- és kötéstípu-
+sokat, azok rajzi 
+jelölését és a he-
+gesztési helyzete-
+ket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Szerkezeti elemként 
+készült gépalkatré-
+szeket, szerkezeti 
+elemeket rögzít 
+egymáshoz fogyó 
+elektródás védőgá-
+zas ívhegesztés 
+alkalmazásával. 
+Ismeri a különböző 
+hegesztési helyzet-
+ben készített varra-
+tok és kötések létre-
+hozásának techno-
+lógiáját. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Folyamatos minő-
+ségellenőrzést vé-
+gez, szükség esetén 
+kijavítja a hibát. 
+Be tudja azonosítani 
+a különféle hegesz-
+tési eltéréseket és 
+ismeri azok kijaví-
+tásának lehetősége-
+it. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+ 
+  
+
+ 
+ 39/47. oldal 
+ 
+3.6.3.6 A tantárgy témakörei 
+ 
+3.6.3.6.1 A fogyó elektródás védőgázas (MIG/MAG) ívhegesztés berendezése 
+Fokozatkapcsolós egyenirányítók 
+Tirisztoros áramforrások 
+Inverteres hegesztőgépek 
+Az áramforrás segédfunkciói 
+Huzalelőtoló készülékek 
+Hegesztőpisztoly- és kábelköteg-típusok 
+ 
+3.6.3.6.2 A hegesztőhuzal 
+A hegesztőhuzal típusai, alkalmazási területei 
+ 
+3.6.3.6.3 Védőgázellátás 
+Védőgáztípusok és alkalmazási területük 
+Egyedi gázpalackokból 
+Központi gázellátó rendszerről 
+ 
+3.6.3.6.4 A fogyó elektródás védőgázas (MIG/MAG) ívhegesztés technológiája 
+Rövidívű hegesztés 
+Vegyes (nagycseppes) anyagátmenet 
+Szóróívű (finomcseppes) anyagátmenet 
+Különleges anyagátmenetek 
+Forgóíves anyagátmenet 
+Impulzushegesztés 
+Impulzusvezérlés 
+A szinergikus vezérlés 
+Hegesztőpisztoly vezetése és hatása a varrat alakjára 
+Hegesztési hibák és lehetséges okaik 
+Fogyó elektródás, aktív védőgázas (MAG) ívhegesztés során előforduló hibák és kiküsz-
+öbölésük 
+Fogyó elektródás argon védőgázas (MIG) ívhegesztés során előforduló hibák és kiküsz-
+öbölésük 
+A fogyó elektródás védőgázas (MIG/MAG) ívhegesztés biztonságtechnikája 
+ 
+ 
+3.6.4 Volfrámelektródás semleges védőgázas ívhegesztés (TIG) tantárgy 217/248 óra 
+ 
+3.6.4.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának fő célja, hogy a képzésben részt vevők készségszinten sajátítsák el  a 
+volfrámelektródás semleges védőgázas ívhegesztés (TIG) technikáját, és a műszaki dokumen-
+táció alapján önállóan el tudják végezni a hegesztési feladatot. Képesek legyenek alkalmazni a 
+munkájukat segítő legmodernebb technológiákat. Megismerjék a volfrámelektródás semleges 
+védőgázas  ívhegesztés jellemzőit és összefüggéseit, és  megértsék a  hegesztéshez  használt 
+eszközök működését. 
+ 
+3.6.4.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+
+ 
+ 40/47. oldal 
+ 
+3.6.4.3 Kapcsolódó közismereti, szakmai tartalmak 
+Hegesztés alapismeretei 
+ 
+3.6.4.4 A  képzés  órakeretének  legalább  80%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.6.4.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Értelmezi a munka 
+tárgyára, céljára és 
+a technológiára 
+vonatkozó doku-
+mentumokat. 
+Ismeri a műszaki 
+dokumentációkat. 
+Teljesen önállóan 
+Elkötelezett  a  biz-
+tonságos   munka-
+végzés    mellett, 
+alkalmazza  a  mun-
+kabiztonsági, tűz- és 
+környezetvédelmi 
+előírásokat. 
+Pontos,  precíz  he-
+gesztést hajt végre. 
+Törekszik  a  szabá-
+lyok  betartása  mel-
+letti  legjobb  megol-
+dások  alkalmazásá-
+ra. 
+Igényes  a munka-
+környezetére    és 
+tudatosan     rendben 
+tartja azt. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Műszaki rajzok, 
+tervdokumentációk 
+alapján felkészül a 
+volfrámelektródás 
+védőgázas ívhe-
+gesztési feladatra, 
+értelmezi az általá-
+nos gépészeti anya-
+gokra és alkatré-
+szekre vonatkozó 
+információkat. 
+Alapvető anyagis-
+mereti, rajzolvasási 
+ismeretekkel ren-
+delkezik. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Elvégzi a kezelési 
+és karbantartási 
+előírásban meghatá-
+rozott műveleteket, 
+beállítja a volf-
+rámelektródás vé-
+dőgázas ívhegesztő 
+berendezést. 
+Ismeri a volf-
+rámelektródás vé-
+dőgázas ívhegesztő 
+berendezés műkö-
+dését, felépítését. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Kiválasztja a meg-
+felelő hozaganya-
+got, védőgázt, elekt-
+ródát a WPS alap-
+ján, beazonosítja az 
+anyagokat, a var-
+ratméreteket, varrat-
+típusokat. 
+Ismeri a WPS adat-
+tartalmát, az hozag-
+anyagok, védőgá-
+zak, elektródák, 
+alapanyagok jelölési 
+rendszerét., varrat- 
+és kötéstípusokat, 
+azok rajzi jelölését 
+és a hegesztési 
+helyzeteket. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+Szerkezeti elemként 
+készült gépalkatré-
+szeket, szerkezeti 
+elemeket rögzít 
+egymáshoz volf-
+rámelektródás vé-
+dőgázas ívhegesztés 
+alkalmazásával. 
+Ismeri a különböző 
+hegesztési helyzet-
+ben készített varra-
+tok és kötések létre-
+hozásának techno-
+lógiáját. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+
+ 
+ 41/47. oldal 
+Folyamatos minő-
+ségellenőrzést vé-
+gez, szükség esetén 
+kijavítja a hibát.  
+Be tudja azonosítani 
+a különféle hegesz-
+tési eltéréseket és 
+ismeri azok kijaví-
+tásának lehetősége-
+it. 
+Teljesen önállóan 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+ 
+3.6.4.6 A tantárgy témakörei 
+ 
+3.6.4.6.1 Volfrámelektródás semleges védőgázas ívhegesztés 
+A volfrámelektródás semleges védőgázas hegesztési eljárás elve, előnyei, hátrányai, szab-
+ványos jelölése 
+ 
+3.6.4.6.2 Volfrámelektródás semleges védőgázas ívhegesztés berendezése 
+A volfrámelektródás semleges védőgázas ívhegesztő áramforrása: 
+‒ A volfrámelektródás semleges védőgázas ívhegesztő áramforrás főbb típusai 
+‒ A volfrámelektródás semleges védőgázas ívhegesztő áramforrás főbb technológiai 
+jellemzői 
+A vezérlőberendezés 
+A nagyfrekvenciás ívstabilizátor és a szűrőkondenzátor feladata, működése 
+A volfrámelektródás semleges védőgázas ívhegesztő berendezés adattábláján szereplő ada-
+tok és jeleik 
+A volfrámelektródás semleges védőgázas ívhegesztő berendezés biztonságos működtetése 
+A volfrámelektródás semleges védőgázas ívhegesztő berendezés napi karbantartási felada-
+tai 
+A hegesztő feladata a TIG-hegesztő berendezés szerkezeti részeinek meghibásodásakor 
+Védőgázellátás 
+‒ Gázpalack 
+‒ A gázelvétel módja, a nyomáscsökkentő és a rotaméter működése 
+‒ Az argongázpalack üzembe helyezése és biztonságos kezelése 
+A kábelköteg felépítése, csatlakozásai, hibalehetőségei 
+A volfrámelektródás semleges védőgázas ívhegesztésnél a hegesztőpisztoly feladatai, biz-
+tonságos kezelése 
+A volfrámelektródás semleges védőgázas ívhegesztési folyamatot segítő és támogató se-
+gédeszközök típusai, szerepük és felhasználási lehetőségük 
+‒ Volfrámköszörű 
+‒ Krátertöltő berendezés 
+‒ Lábpedál 
+‒ Impulzusadó 
+‒ Gázvédelem a gyökoldalon 
+‒ TIG-PEN 
+‒ Manipulátorok 
+ 
+3.6.4.6.3 A volfrámelektródás semleges védőgázas ívhegesztés hozaganyagai 
+A volfrámelektródás semleges védőgázas hegesztéshez alkalmazott argon védőgáz tulaj-
+donságai, szabványos nemzetközi jelölése 
+A volfrámelektróda jellemzői, méretei, szabványos jelölése 
+A volfrámelektróda adott feladathoz való kiválasztása 
+A volfrámelektródás semleges védőgázas ívhegesztő pálca jellemzői, összetétele, mérete, 
+szabványos nemzetközi jelölése 
+A hegesztőpálca adott feladathoz való kiválasztásának szempontjai 
+
+ 
+ 42/47. oldal 
+ 
+3.6.4.6.4 A volfrámelektródás semleges védőgázas ívhegesztés technológiája 
+Varratél-kialakítási formák volfrámelektródás semleges védőgázas ívhegesztéskor 
+A volfrámelektródás semleges védőgázas ívhegesztés ömlesztési folyamata, a varrat kiala-
+kulása, a hőhatásövezet tulajdonságai 
+A mágneses fúvóhatás jelensége, csökkentési módjai 
+A  volfrámelektródás semleges  védőgázas ívhegesztés  fő  paramétereinek  (áramerősség, 
+volfrámelektróda, hegesztőpálca, argonfúvóka, védőgázfogyasztás) meghatározása 
+Az egyenáramú hegesztőív jellemzői, az ív statikus jelleggörbéje 
+Az áramforrás eső jelleggörbéjének jellemzői, a munkapont fogalma, elmozdulása 
+Váltakozó áramú hegesztés esetén lejátszódó jelenségek volfrámelektródás semleges védő-
+gázas ívhegesztésnél 
+A folyamatos ívű és a lüktető ívű volfrámelektródás semleges védőgázas ívhegesztés áram-
+lefutása 
+A fajlagos hőbevitel fogalma, meghatározása 
+ 
+3.6.4.6.5 A hegesztőpisztoly és a hegesztőpálca tartása volfrámelektródás semle-
+ges védőgázas ívhegesztés esetén 
+Lemezen, PA és PF helyzetben többsoros tompavarrat készítése esetén a varratsorok kiala-
+kítása 
+Az áramerősség, a feszültség, a hegesztési sebesség és a pisztolytartás változtatásának ha-
+tása a sarokvarrat alakjára PB és PF helyzetben történő hegesztés esetén 
+Rögzített, vízszintes tengelyű cső tompakötésének előkészítési és hegesztési vázlata, a he-
+gesztőpisztoly és a hegesztőpálca tartása, gyökvédelem 
+Az áramerősség, a feszültség és a hegesztési sebesség változtatásának hatása a tompavarrat 
+alakjára volfrámelektródás semleges védőgázas ívhegesztéskor 
+ 
+3.6.4.6.6 Hegesztési eltérések 
+A volfrámelektródás semleges védőgázas hegesztésnél előforduló legveszélyesebb varrat-
+hibák okai, elkerülésük és kijavításuk módjai 
+ 
+3.6.4.6.7 A volfrámelektródás semleges védőgázas ívhegesztés biztonságtechniká-
+ja 
+TIG hegesztési munkahely kialakítása a HBSZ szerint 
+A volfrámelektródás semleges védőgázas ívhegesztés baleseti forrásai 
+A volfrámelektródás semleges védőgázas ívhegesztés környezetszennyező hatásai 
+ 
+ 
+3.6.5 Egyéb hegesztési eljárások tantárgy 15/15 óra 
+ 
+3.6.5.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának célja, hogy a tanuló megismerje és alkalmazni tudja a munkáját segítő 
+legmodernebb technológiákat. 
+ 
+3.6.5.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.6.5.3 Kapcsolódó közismereti, szakmai tartalmak 
+Hegesztés alapismeretei 
+
+ 
+ 43/47. oldal 
+ 
+3.6.5.4 A képzés órakeretének legalább 0%-át gyakorlati helyszínen (tanműhely, üzem 
+stb.) kell lebonyolítani. 
+ 
+3.6.5.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Az egyéb hegesztő-
+eljárások közül 
+kiválasztja az adott 
+feladat végrehajtá-
+sára leggazdaságo-
+sabb eljárást. 
+Ismeri 
+‒ az elektromos 
+ellenállás elvén 
+működő eljáráso-
+kat, 
+‒ a mechanikai 
+energia felhaszná-
+lásán alapuló he-
+gesztő eljárásokat, 
+‒ a sugárenergia 
+által végzett öm-
+lesztőhegesztése-
+ket, 
+‒ a termokémiai 
+elven működő el-
+járásokat, 
+‒ a hegesztés jövő-
+jét. 
+Instrukció alapján 
+részben önállóan 
+Törekszik  a  szabá-
+lyok  betartása  mel-
+letti  legjobb  megol-
+dások  alkalmazásá-
+ra. 
+Digitális  tartalmak 
+keresése,  böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+ 
+ 
+3.6.5.6 A tantárgy témakörei 
+ 
+3.6.5.6.1 Elektromos ellenállás elvén működő eljárások 
+Ponthegesztés 
+Dudorhegesztés 
+Vonalhegesztés 
+Párhuzamos elektródás hegesztés 
+Termokompressziós hegesztés 
+Sodort vezetékek hegesztése 
+Szigetelt vezetékek hegesztése 
+Salakhegesztés 
+Fedett ívű hegesztés 
+ 
+3.6.5.6.2 A mechanikai energia felhasználásán alapuló hegesztő eljárások 
+Dörzshegesztés 
+Ultrahangos hegesztés 
+Hidegsajtoló hegesztés 
+Robbantásos hegesztés 
+ 
+3.6.5.6.3 A sugárenergia által végzett ömlesztőhegesztések 
+Elektronsugaras hegesztés 
+Lézersugaras hegesztés 
+Plazmasugár-hegesztés 
+ 
+
+ 
+ 44/47. oldal 
+3.6.5.6.4 A termokémiai elven működő eljárások 
+Termithegesztés 
+ 
+3.6.5.6.5 A hegesztés jövője 
+Automata és félautomata hegesztési eljárások 
+Robothegesztés technikája, típusai 
+Orbitális hegesztés 
+ 
+3.6.6 A hegesztett kötések minőségi követelményei tantárgy 16/16 óra 
+ 
+3.6.6.1 A tantárgy tanításának fő célja 
+A tantárgy tanításának fő célja, hogy a tanulóban kialakuljon a precíz, pontos munkára 
+való igény. 
+ 
+3.6.6.2 A tantárgyat oktató végzettségére, szakképesítésére, munkatapasztalatára vo-
+natkozó speciális elvárások 
+— 
+ 
+3.6.6.3 Kapcsolódó közismereti, szakmai tartalmak 
+Hegesztés alapismeretei 
+ 
+3.6.6.4 A  képzés  órakeretének  legalább  80%-át  gyakorlati  helyszínen  (tanműhely, 
+üzem stb.) kell lebonyolítani. 
+ 
+3.6.6.5 A tantárgy oktatása során fejlesztendő kompetenciák 
+ 
+Készségek, képes-
+ségek 
+Ismeretek 
+Önállóság és fele-
+lősség mértéke 
+Elvárt viselkedés-
+módok, attitűdök 
+Általános és szak-
+mához kötődő 
+digitális kompe-
+tenciák 
+Folyamatos minő-
+ségellenőrzést vé-
+gez, szükség esetén 
+kijavítja a hibát. 
+Ismeri 
+– a hegesztési elté-
+réseket, 
+– a hegesztési varra-
+tok roncsolásos és 
+roncsolásmentes 
+vizsgálatának mód-
+szereit, 
+– a hegesztett köté-
+sek minőségi szint-
+jeit, kategóriáit, 
+– a hegesztési fe-
+szültségek kialaku-
+lásának okait, és 
+azok elkerülésének 
+lehetőségeit. 
+Instrukció alapján 
+részben önállóan 
+A munkafolyamatot 
+pontosan, precízen 
+hajtja végre. 
+Digitális tartalmak 
+keresése, böngészé-
+se, szűrése, felhasz-
+nálása és rendszere-
+zése, megosztása 
+ 
+  
+
+ 
+ 45/47. oldal 
+ 
+3.6.6.6 A tantárgy témakörei 
+ 
+3.6.6.6.1 Hegesztési eltérések csoportba sorolása 
+Külső hibák 
+Belső hibák 
+Kötési hibák 
+Alakhibák 
+ 
+3.6.6.6.2 Hegesztési varratok roncsolásos vizsgálatai 
+Szakítóvizsgálat 
+Keménységvizsgálat 
+Hajlítóvizsgálat 
+Ütővizsgálat 
+Csiszolatvizsgálat 
+Töretvizsgálat 
+Fárasztóvizsgálat 
+ 
+3.6.6.6.3 A hegesztési varratok roncsolásmentes vizsgálatai 
+Külső (felületi) eltérések (hiba) kimutatására alkalmas vizsgálati eljárások: 
+‒ – szemrevételezés (WT) 
+‒ folyadékbehatolásos (PT) 
+‒ mágnesporos (MT) 
+‒ tömörségi 
+Belső eltérések (hiba) kimutatására alkalmas vizsgálati eljárások: 
+‒ átsugárzásos (RT) 
+‒ ultrahangos (UT) 
+ 
+3.6.6.6.4 A hegesztett kötések minőségi szintjei, kategóriái 
+B jelű fokozott követelmények 
+C jelű közepes követelmények 
+D jelű méréskelt követelmények 
+ 
+3.6.6.6.5 Hegesztési feszültségek, alakváltozások 
+A hegesztési feszültségek és alakváltozások kialakulása 
+Hegesztési hő hatása az alakváltozásra 
+A hegesztési feszültségek és alakváltozások csökkentésének lehetőségei 
+Feszültségcsökkentő hőkezelés 
+Gyártás  közbeni  feszültségcsökkentő  módszerek  alkalmazása  (deformáció  engedése, 
+szimmetrikus hőbevitel, kis varratszélesség) 
+ 
+ 
+  
+
+ 
+ 46/47. oldal 
+ 
+4 RÉSZSZAKMA 
+ 
+A részszakma megszerzésére irányuló szakmai vizsga akkor kezdhető meg, ha a tanuló eleget 
+tett a jelen fejezet szerinti képzési követelményeknek. 
+ 
+4.1 A részszakma megnevezése: Fémipari gyártás előkészítő 
+ 
+4.1.1 A részszakma ajánlott szakmai tartalma: 
+ 
+Az oktatási egység  
+3. fejezetben szereplő 
+azonosító száma 
+Az oktatási egység megnevezése 
+3.1.1 Munkavállalói ismeretek tantárgy  
+3.3.1 Villamos alapismeretek tantárgy 
+3.3.2 Gépészeti alapismeretek tantárgy 
+3.4.1 Műszaki dokumentáció tantárgy 
+3.4.2 Gépészeti alapmérések tantárgy 
+3.4.3 Anyagismeret, anyagvizsgálat tantárgy 
+3.5.1 Hegesztés alapismeretei tantárgy 
+ 
+ 
+5 E G Y E B E K 
+ 
+ 
+  
+
+ 
+ 47/47. oldal 
+ 
+T A R T A L O M 
+ 
+1 A SZAKMA ALAPADATAI ............................................................................................................. 1 
+2 A KÉPZÉS SZERKEZETE ÉS TARTALMA .............................................................................. 1 
+A tanulási területekhez rendelt tantárgyak és témakörök óraszáma évfolyamonként
+ ................................................................................................................................................................ 2 
+3 A TANULÁSI TERÜLETEK RÉSZLETES SZAKMAI TARTALMA ................................... 7 
+3.1 Munkavállalói ismeretek megnevezésű tanulási terület ........................................... 7 
+3.1.1 Munkavállalói ismeretek tantárgy 18/18 óra ...................................................... 7 
+3.2 Munkavállalói idegen nyelv megnevezésű tanulási terület ..................................... 9 
+3.2.1 Munkavállalói idegen nyelv tantárgy 62/62 óra ................................................. 9 
+3.3 Műszaki alapozás megnevezésű tanulási terület ...................................................... 13 
+3.3.1 Villamos alapismeretek tantárgy 288/288 óra .................................................. 13 
+3.3.2 Gépészeti alapismeretek tantárgy 270/270 óra ................................................. 16 
+3.4 Gépészeti alapismeretek megnevezésű tanulási terület .......................................... 21 
+3.4.1 Műszaki dokumentáció tantárgy 108/108 óra ................................................... 21 
+3.4.2 Gépészeti alapmérések tantárgy 72/72 óra ........................................................ 23 
+3.4.3 Anyagismeret, anyagvizsgálat tantárgy 72/72 óra ........................................... 25 
+3.5 Hegesztési technológia előkészítése megnevezésű tanulási terület ...................... 29 
+3.5.1 Hegesztés alapismeretei tantárgy 212/212 óra .................................................. 29 
+3.6 Hegesztési feladatok megnevezésű tanulási terület ................................................. 32 
+3.6.1 Fogyó  elektródás  ívhegesztés  bevont  elektródával  (kézi  ívhegesztés) 
+tantárgy   190/217 óra .............................................................................................................. 32 
+3.6.2 Gázhegesztés tantárgy 220/234 óra ...................................................................... 35 
+3.6.3 Fogyó  elektródás  védőgázas  (MIG/MAG)  ívhegesztés  tantárgy  217/248 
+óra 37 
+3.6.4 Volfrámelektródás  semleges  védőgázas  ívhegesztés  (TIG)  tantárgy 
+217/248 óra .................................................................................................................................. 39 
+3.6.5 Egyéb hegesztési eljárások tantárgy 15/15 óra ................................................. 42 
+3.6.6 A hegesztett kötések minőségi követelményei tantárgy 16/16 óra .............. 44 
+4 RÉSZSZAKMA ................................................................................................................................. 46 
+4.1 A részszakma megnevezése: Fémipari gyártás előkészítő ............................................... 46 
+5 EGYEBEK ......................................................................................................................................... 46 
+ 
+ 

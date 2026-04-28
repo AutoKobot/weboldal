@@ -418,120 +418,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Profession data is required' });
       }
 
-      // 1. Get PDF content
-      console.log(`Starting IKK import for: ${profession.name}`);
+      console.log(`Starting TWO-PASS IKK import for: ${profession.name}`);
       const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
 
-      // 2. Structure curriculum using AI in chunks
       const { getOpenAIClient } = await import('./openai');
       const openai = await getOpenAIClient();
-      console.log('Sending requests to GPT-4o-mini in chunks for complex curriculum structuring...');
-      
-      const mergedCurriculum: any = { subjects: [] };
-      const CHUNK_SIZE = 60000; // ~15k tokens
-      const OVERLAP = 2000;
-      
+
+      // ══════════════════════════════════════════════════════════════════════
+      // PASS 1 – SZERKEZETI KINYERÉS
+      // Kis csonkokban küldjük el a PTT szöveget, az AI csak azonosít és listáz.
+      // Minden sor egy modul-cím lesz, nincs tartalom-generálás.
+      // ══════════════════════════════════════════════════════════════════════
+      const CHUNK_SIZE = 40000; // kisebb chunk → pontosabb kinyerés
+      const OVERLAP = 1500;
+      const mergedSubjects: Map<string, any> = new Map();
+
+      const totalChunks = Math.ceil(pttText.length / (CHUNK_SIZE - OVERLAP));
+      console.log(`PASS 1: ${pttText.length} karakter, ${totalChunks} csonkban...`);
+
       for (let i = 0; i < pttText.length; i += (CHUNK_SIZE - OVERLAP)) {
         const chunk = pttText.substring(i, i + CHUNK_SIZE);
-        console.log(`Processing chunk ${Math.floor(i / (CHUNK_SIZE - OVERLAP)) + 1} of ${Math.ceil(pttText.length / (CHUNK_SIZE - OVERLAP))} (${chunk.length} chars)...`);
-        
-        const structurePrompt = await ikkService.structureCurriculum(profession.name, kkkText, chunk);
-        
+        const chunkNum = Math.floor(i / (CHUNK_SIZE - OVERLAP)) + 1;
+        console.log(`  P1 Csonk ${chunkNum}/${totalChunks} (${chunk.length} kar)...`);
+
+        const extractionPrompt = ikkService.buildExtractionPrompt(chunk);
+
         try {
           const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini", // GPT-4o-mini has a much higher TPM limit allowing for large chunked processing
+            model: "gpt-4o-mini",
             response_format: { type: "json_object" },
             messages: [
-              { role: "system", content: "Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul." },
-              { role: "user", content: structurePrompt }
+              { role: "system", content: "Te egy precíz dokumentum-elemző vagy. Kizárólag a dokumentumban szereplő szövegeket listázod fel, semmit sem generálsz magadtól. Csak érvényes JSON-t adsz válaszul." },
+              { role: "user", content: extractionPrompt }
             ],
-            temperature: 0.2, // Low temp for stable output
+            temperature: 0.0, // Nulla hőmérséklet = maximális pontosság
           });
-          
-          let aiResponseText = response.choices[0].message.content || "{}";
-          let jsonStr = aiResponseText.trim();
-          
-          // Clean potential markdown blocks
+
+          let jsonStr = (response.choices[0].message.content || '{}').trim();
           if (jsonStr.startsWith('```json')) jsonStr = jsonStr.substring(7);
           else if (jsonStr.startsWith('```')) jsonStr = jsonStr.substring(3);
           if (jsonStr.endsWith('```')) jsonStr = jsonStr.substring(0, jsonStr.length - 3);
-          jsonStr = jsonStr.trim();
-          
           const firstBrace = jsonStr.indexOf('{');
           const lastBrace = jsonStr.lastIndexOf('}');
           if (firstBrace !== -1 && lastBrace !== -1) {
             jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-            const parsed = JSON.parse(jsonStr);
-            
-            // Merge logic
-            if (parsed.subjects && Array.isArray(parsed.subjects)) {
-              for (const subject of parsed.subjects) {
-                 // Try to find existing subject by name
-                 let existingSubject = mergedCurriculum.subjects.find((s: any) => 
-                   s.name.toLowerCase().trim() === subject.name.toLowerCase().trim()
-                 );
-                 
-                 if (!existingSubject) {
-                   existingSubject = { ...subject, theoryModules: [], practicalModules: [] };
-                   mergedCurriculum.subjects.push(existingSubject);
-                 }
-                 
-                 // Merge theory modules
-                 if (subject.theoryModules && Array.isArray(subject.theoryModules)) {
-                   for (const mod of subject.theoryModules) {
-                     const isDuplicate = existingSubject.theoryModules.find((m: any) => 
-                       m.title.toLowerCase().trim() === mod.title.toLowerCase().trim()
-                     );
-                     if (!isDuplicate) {
-                       existingSubject.theoryModules.push(mod);
-                     }
-                   }
-                 }
-                 
-                 // Merge practical modules
-                 if (subject.practicalModules && Array.isArray(subject.practicalModules)) {
-                   for (const mod of subject.practicalModules) {
-                     const isDuplicate = existingSubject.practicalModules.find((m: any) => 
-                       m.title.toLowerCase().trim() === mod.title.toLowerCase().trim()
-                     );
-                     if (!isDuplicate) {
-                       existingSubject.practicalModules.push(mod);
-                     }
-                   }
-                 }
+          }
+
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.subjects && Array.isArray(parsed.subjects)) {
+            for (const subject of parsed.subjects) {
+              const key = subject.name?.toLowerCase()?.trim();
+              if (!key) continue;
+
+              if (!mergedSubjects.has(key)) {
+                mergedSubjects.set(key, {
+                  name: subject.name,
+                  code: subject.code || '',
+                  description: subject.description || '',
+                  practicalPercent: subject.practicalPercent || 0,
+                  modules: []
+                });
+              }
+
+              const existing = mergedSubjects.get(key)!;
+              if (subject.modules && Array.isArray(subject.modules)) {
+                for (const mod of subject.modules) {
+                  const isDup = existing.modules.some((m: any) =>
+                    m.title?.toLowerCase()?.trim() === mod.title?.toLowerCase()?.trim()
+                  );
+                  if (!isDup && mod.title) {
+                    existing.modules.push(mod);
+                  }
+                }
               }
             }
           }
         } catch (err) {
-          console.error(`Error processing chunk ${Math.floor(i / (CHUNK_SIZE - OVERLAP)) + 1}:`, err);
-          // Continue to next chunk even if one fails
+          console.error(`  P1 Csonk ${chunkNum} hiba:`, err);
         }
       }
 
-      const curriculum = mergedCurriculum;
+      const rawSubjects = Array.from(mergedSubjects.values());
+      const totalModulesExtracted = rawSubjects.reduce((sum, s) => sum + s.modules.length, 0);
+      console.log(`PASS 1 KÉSZ: ${rawSubjects.length} tantárgy, ${totalModulesExtracted} modul azonosítva.`);
 
-      // 3. Save to database
-      // First, check if a profession with this name already exists and delete it (overwrite mode)
+      // ══════════════════════════════════════════════════════════════════════
+      // PASS 2 – TARTALOMGENERÁLÁS
+      // Tantárgyanként, 20 modulos kötegekben generálunk concise/detailed tartalmat.
+      // ══════════════════════════════════════════════════════════════════════
+      const BATCH_SIZE = 20;
+      console.log(`PASS 2: Tartalomgenerálás ${rawSubjects.length} tantárgyhoz...`);
+
+      for (const subject of rawSubjects) {
+        if (!subject.modules || subject.modules.length === 0) continue;
+
+        const enrichedModules: any[] = [];
+        const batches = [];
+        for (let i = 0; i < subject.modules.length; i += BATCH_SIZE) {
+          batches.push(subject.modules.slice(i, i + BATCH_SIZE));
+        }
+
+        console.log(`  P2 "${subject.name}": ${subject.modules.length} modul, ${batches.length} köteg...`);
+
+        for (let bi = 0; bi < batches.length; bi++) {
+          const batch = batches[bi];
+          const contentPrompt = ikkService.buildContentPrompt(profession.name, subject.name, batch);
+
+          try {
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: "Te egy szakképzési tananyagfejlesztő vagy. Minden felsorolt modulhoz szakmai tartalmat generálsz. Csak érvényes JSON-t adsz válaszul." },
+                { role: "user", content: contentPrompt }
+              ],
+              temperature: 0.4,
+            });
+
+            let jsonStr = (response.choices[0].message.content || '{}').trim();
+            if (jsonStr.startsWith('```json')) jsonStr = jsonStr.substring(7);
+            else if (jsonStr.startsWith('```')) jsonStr = jsonStr.substring(3);
+            if (jsonStr.endsWith('```')) jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+            const firstBrace = jsonStr.indexOf('{');
+            const lastBrace = jsonStr.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.modules && Array.isArray(parsed.modules)) {
+              // Merge content back by position (fallback: by title)
+              for (let mi = 0; mi < batch.length; mi++) {
+                const rawMod = batch[mi];
+                const enriched = parsed.modules[mi] || parsed.modules.find((m: any) =>
+                  m.title?.toLowerCase()?.trim() === rawMod.title?.toLowerCase()?.trim()
+                );
+                enrichedModules.push({
+                  title: rawMod.title,
+                  type: rawMod.type,
+                  conciseContent: enriched?.conciseContent || `${rawMod.title} témakör összefoglalója.`,
+                  detailedContent: enriched?.detailedContent || `${rawMod.title} részletes kifejtése.`,
+                });
+              }
+            } else {
+              // Fallback if parse fails: use placeholder content
+              for (const rawMod of batch) {
+                enrichedModules.push({ ...rawMod, conciseContent: `${rawMod.title}.`, detailedContent: `${rawMod.title} részletei.` });
+              }
+            }
+          } catch (err) {
+            console.error(`  P2 "${subject.name}" köteg ${bi + 1} hiba:`, err);
+            for (const rawMod of batch) {
+              enrichedModules.push({ ...rawMod, conciseContent: `${rawMod.title}.`, detailedContent: `${rawMod.title} részletei.` });
+            }
+          }
+        }
+
+        subject.enrichedModules = enrichedModules;
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
+      // 3. ADATBÁZISBA MENTÉS
+      // ══════════════════════════════════════════════════════════════════════
       const existingProfessions = await storage.getProfessions();
       const duplicate = existingProfessions.find(p => p.name === profession.name);
       if (duplicate) {
-        console.log(`Deleting existing profession: ${profession.name} (ID: ${duplicate.id}) before re-import.`);
+        console.log(`Meglévő szakma törlése: ${profession.name} (ID: ${duplicate.id})`);
         await storage.deleteProfession(duplicate.id);
       }
 
-      // Create Profession
+      const totalFinalModules = rawSubjects.reduce((sum, s) => sum + (s.enrichedModules?.length || 0), 0);
       const newProfession = await storage.createProfession({
         name: profession.name,
-        description: `${curriculum.subjects?.length || 0} tantárgy az IKK alapműveltség alapján.`,
+        description: `${rawSubjects.length} tantárgy, ${totalFinalModules} modul (IKK PTT alapján importálva).`,
         iconName: 'GraduationCap'
       });
 
       let subjectsCreated = 0;
       let modulesCreated = 0;
 
-      for (const sub of curriculum.subjects) {
-        // Create Theory Subject if there are theory modules
-        if (sub.theoryModules && sub.theoryModules.length > 0) {
+      for (const sub of rawSubjects) {
+        const enriched = sub.enrichedModules || [];
+        const theoryMods = enriched.filter((m: any) => m.type === 'theory');
+        const practicalMods = enriched.filter((m: any) => m.type === 'practical');
+
+        if (theoryMods.length > 0) {
           const theorySubject = await storage.createSubject({
             name: sub.name,
             description: sub.description,
@@ -539,42 +608,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
             professionId: newProfession.id
           });
           subjectsCreated++;
-
-          let moduleCounter = 1;
-          for (const mod of sub.theoryModules) {
+          let counter = 1;
+          for (const mod of theoryMods) {
             await storage.createModule({
               title: mod.title,
               content: mod.detailedContent || mod.conciseContent,
               conciseContent: mod.conciseContent,
               detailedContent: mod.detailedContent,
               subjectId: theorySubject.id,
-              moduleNumber: moduleCounter++,
-              isPublished: false 
+              moduleNumber: counter++,
+              isPublished: false
             });
             modulesCreated++;
           }
         }
 
-        // Create Practical Subject if there are practical modules
-        if (sub.practicalModules && sub.practicalModules.length > 0) {
+        if (practicalMods.length > 0) {
           const practicalSubject = await storage.createSubject({
-            name: sub.name, // The UI will display it under "Gyakorlati képzés"
+            name: sub.name,
             description: sub.description,
             type: "practical",
             professionId: newProfession.id
           });
           subjectsCreated++;
-
-          let moduleCounter = 1;
-          for (const mod of sub.practicalModules) {
+          let counter = 1;
+          for (const mod of practicalMods) {
             await storage.createModule({
               title: mod.title,
               content: mod.detailedContent || mod.conciseContent,
               conciseContent: mod.conciseContent,
               detailedContent: mod.detailedContent,
               subjectId: practicalSubject.id,
-              moduleNumber: moduleCounter++,
-              isPublished: false 
+              moduleNumber: counter++,
+              isPublished: false
             });
             modulesCreated++;
           }
@@ -583,12 +649,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         success: true,
-        message: `Sikeres importálás: ${subjectsCreated} tantárgy, ${modulesCreated} modul létrehozva. Az AI generálás a háttérben folytatódik.`,
-        professionId: newProfession.id
+        message: `Kétlépéses importálás kész! ${subjectsCreated} tantárgy, ${modulesCreated} modul létrehozva.`,
+        professionId: newProfession.id,
+        stats: {
+          subjects: subjectsCreated,
+          modules: modulesCreated,
+          pass1Subjects: rawSubjects.length,
+          pass1Modules: totalModulesExtracted,
+        }
       });
 
     } catch (error) {
-      console.error('Error importing IKK curriculum:', error);
+      console.error('IKK import hiba:', error);
       res.status(500).json({ message: 'Failed to import IKK curriculum', error: error instanceof Error ? error.message : String(error) });
     }
   });

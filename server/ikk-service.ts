@@ -156,21 +156,22 @@ AMIT KI KELL HAGYNI (NEM modulok!):
 
 ── MODULOK KÉT FORMÁJA ──
 
+── MODULOK KÉT FORMÁJA ──
+
 FORMA A – Teljes mondatos sorok (pl. Hegesztő PTT):
   A témakör fejléce (pl. "3.3.2.6.1 Munkabiztonság, tűz- és környezetvédelem") NEM modul.
-  Az utána lévő minden szöveges sor ÖNÁLLÓ MODUL:
-    "A munkavédelem fogalma, szakterületei"              → 1 modul
-    "Munkabalesetek és foglalkozási megbetegedések"      → 1 modul
-    "A munkabalesetek bejelentése, nyilvántartása..."    → 1 modul (sorfolytatás összefűzve!)
+  FOGADD EL SZABÁLYKÉNT: A témakör címe alatt található **MAJDNEM MINDEN EGYES MONDAT / BEKEZDÉS EGY ÖNÁLLÓ MODUL**. 
+  Ne vond össze a mondatokat! Ha egy bekezdésben 5 külön mondat van (vagy egy sorban 5 különböző technika), az 5 KÜLÖN MODUL!
+  Példa egy sorra: "A munkavédelem fogalma, szakterületei." → 1 modul
+  "Munkabalesetek és foglalkozási megbetegedések." → 1 modul
 
 FORMA B – Bevezető + ‒ gondolatjeles lista (pl. Divatszabó PTT):
   A témakör fejléce NEM modul.
   A bevezető "A témakör... ismerteti." mondat(ok) NEM modulok!
   Az "Ezen belül az alábbi témákat tartalmazza:" sor NEM modul!
-  CSAK a "‒" karakterrel KEZDŐDŐ sorok modulok:
+  CSAK a "‒" karakterrel KEZDŐDŐ sorok modulok. MINDEN EGYES GONDOLATJEL EGY ÚJ MODUL.
     "‒ Modellrajz"         → 1 modul
     "‒ Gyártmányrajz"      → 1 modul
-    "‒ Részletrajz"        → 1 modul
 
 ── SORFOLYTATÁS ──
 Ha sor kötőjellel végződik és a következő sor folytatja → fűzd össze:
