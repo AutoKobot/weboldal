@@ -422,51 +422,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Starting IKK import for: ${profession.name}`);
       const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
 
-      // 2. Structure curriculum using AI
-      // Use the strongest available AI model (GPT-4o) for curriculum generation because it requires high reasoning
+      // 2. Structure curriculum using AI in chunks
       const { getOpenAIClient } = await import('./openai');
-      const structurePrompt = await ikkService.structureCurriculum(profession.name, kkkText, pttText);
-      
       const openai = await getOpenAIClient();
-      console.log('Sending request to GPT-4o for complex curriculum structuring...');
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // GPT-4o-mini has a much higher TPM limit allowing for 80-page docs
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: "Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul." },
-          { role: "user", content: structurePrompt }
-        ],
-        temperature: 0.2, // Alacsony hőmérséklet a stabilabb, determinisztikus kimenetért
-      });
+      console.log('Sending requests to GPT-4o-mini in chunks for complex curriculum structuring...');
       
-      let aiResponseText = response.choices[0].message.content || "{}";
+      const mergedCurriculum: any = { subjects: [] };
+      const CHUNK_SIZE = 60000; // ~15k tokens
+      const OVERLAP = 2000;
+      
+      for (let i = 0; i < pttText.length; i += (CHUNK_SIZE - OVERLAP)) {
+        const chunk = pttText.substring(i, i + CHUNK_SIZE);
+        console.log(`Processing chunk ${Math.floor(i / (CHUNK_SIZE - OVERLAP)) + 1} of ${Math.ceil(pttText.length / (CHUNK_SIZE - OVERLAP))} (${chunk.length} chars)...`);
+        
+        const structurePrompt = await ikkService.structureCurriculum(profession.name, kkkText, chunk);
+        
+        try {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini", // GPT-4o-mini has a much higher TPM limit allowing for large chunked processing
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: "Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul." },
+              { role: "user", content: structurePrompt }
+            ],
+            temperature: 0.2, // Low temp for stable output
+          });
+          
+          let aiResponseText = response.choices[0].message.content || "{}";
+          let jsonStr = aiResponseText.trim();
+          
+          // Clean potential markdown blocks
+          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.substring(7);
+          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.substring(3);
+          if (jsonStr.endsWith('```')) jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+          jsonStr = jsonStr.trim();
+          
+          const firstBrace = jsonStr.indexOf('{');
+          const lastBrace = jsonStr.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+            const parsed = JSON.parse(jsonStr);
+            
+            // Merge logic
+            if (parsed.subjects && Array.isArray(parsed.subjects)) {
+              for (const subject of parsed.subjects) {
+                 // Try to find existing subject by name
+                 let existingSubject = mergedCurriculum.subjects.find((s: any) => 
+                   s.name.toLowerCase().trim() === subject.name.toLowerCase().trim()
+                 );
+                 
+                 if (!existingSubject) {
+                   existingSubject = { ...subject, modules: [] };
+                   mergedCurriculum.subjects.push(existingSubject);
+                 }
+                 
+                 // Merge modules
+                 if (subject.modules && Array.isArray(subject.modules)) {
+                   for (const mod of subject.modules) {
+                     const isDuplicate = existingSubject.modules.find((m: any) => 
+                       m.title.toLowerCase().trim() === mod.title.toLowerCase().trim()
+                     );
+                     if (!isDuplicate) {
+                       existingSubject.modules.push(mod);
+                     }
+                   }
+                 }
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Error processing chunk ${Math.floor(i / (CHUNK_SIZE - OVERLAP)) + 1}:`, err);
+          // Continue to next chunk even if one fails
+        }
+      }
 
-      // Clean AI response from markdown blocks or extra text
-      let jsonStr = aiResponseText.trim();
-      
-      // Remove any potential markdown block wrappers just in case
-      if (jsonStr.startsWith('```json')) {
-        jsonStr = jsonStr.substring(7);
-      } else if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.substring(3);
-      }
-      if (jsonStr.endsWith('```')) {
-        jsonStr = jsonStr.substring(0, jsonStr.length - 3);
-      }
-      jsonStr = jsonStr.trim();
-      
-      // Extract everything between the first { and last }
-      const firstBrace = jsonStr.indexOf('{');
-      const lastBrace = jsonStr.lastIndexOf('}');
-      
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-      } else {
-        console.error('AI response does not contain a JSON object:', aiResponseText);
-        throw new Error('Az AI válasza nem tartalmaz érvényes JSON struktúrát.');
-      }
-
-      const curriculum = JSON.parse(jsonStr);
+      const curriculum = mergedCurriculum;
 
       // 3. Save to database
       // First, check if a profession with this name already exists and delete it (overwrite mode)
