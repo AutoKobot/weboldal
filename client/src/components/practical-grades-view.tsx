@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Wrench, CheckCircle } from "lucide-react";
 import type { User, Class, Subject, Module, PracticalGrade } from "@shared/schema";
 
@@ -31,12 +32,14 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
   const [editingGrades, setEditingGrades] = useState<Record<string, { grade: string, comment: string }>>({});
 
   // 1. Determine profession of the selected class to fix filtering
-  const classProfessionId = students.find(s => s.classId === parseInt(selectedClassId))?.selectedProfessionId;
+  const selectedClass = teacherClasses.find(c => c.id.toString() === selectedClassId);
+  const classProfessionId = selectedClass?.professionId;
 
   // 2. Only show practical subjects and modules FOR THIS PROFESSION
+  // CRITICAL: Filter by professionId to avoid showing modules from other professions (e.g. welding vs tailoring)
   const practicalSubjects = subjects.filter(s => 
     s.type === 'practical' && 
-    (!classProfessionId || s.professionId === classProfessionId)
+    (classProfessionId ? s.professionId === classProfessionId : false)
   );
   const practicalModules = modules.filter(m => practicalSubjects.some(s => s.id === m.subjectId));
 
@@ -130,128 +133,159 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
               Gyakorlati Feladatok (Modulok)
             </h3>
             
-            <div className="grid grid-cols-1 gap-3">
-              {practicalModules.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed">
-                  Nincs elérhető gyakorlati modul ehhez a szakmához.
-                </div>
-              ) : practicalModules.map((module) => {
-                const isExpanded = expandedModuleId === module.id;
-                const moduleGradesCount = moduleGrades.filter(g => g.moduleId === module.id).length;
-                
-                return (
-                  <div key={module.id} className={`border rounded-xl transition-all duration-200 ${isExpanded ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:bg-gray-50'}`}>
-                    <div 
-                      className="p-4 flex items-center justify-between cursor-pointer"
-                      onClick={() => setExpandedModuleId(isExpanded ? null : module.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${moduleGradesCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                          {moduleGradesCount}
+            <div className="space-y-2">
+              {practicalModules
+                .sort((a, b) => a.moduleNumber - b.moduleNumber)
+                .map((module) => {
+                  const isExpanded = expandedModuleId === module.id;
+                  const moduleGradesCount = moduleGrades.filter(g => g.moduleId === module.id).length;
+                  const totalStudents = filteredStudents.length;
+                  
+                  return (
+                    <div key={module.id} className={`border rounded-lg transition-all duration-200 ${isExpanded ? 'ring-1 ring-blue-400 shadow-md bg-white' : 'hover:bg-gray-50 bg-white'}`}>
+                      <div 
+                        className="p-3 flex items-center justify-between cursor-pointer"
+                        onClick={() => setExpandedModuleId(isExpanded ? null : module.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`h-10 w-10 rounded-lg flex flex-col items-center justify-center border ${isExpanded ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                            <span className="text-[10px] uppercase font-bold leading-none mb-0.5">Feladat</span>
+                            <span className="text-lg font-black leading-none">{module.moduleNumber}</span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-900 leading-tight">{module.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="secondary" className="text-[10px] px-1.5 h-4 font-normal">
+                                {moduleGradesCount} / {totalStudents} értékelt
+                              </Badge>
+                              <span className="text-[10px] text-gray-400">|</span>
+                              <span className="text-[10px] text-gray-500 font-medium">{module.sectionCode || 'Gyakorlat'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{module.title}</p>
-                          <p className="text-xs text-gray-500">{module.sectionCode || 'Gyakorlat'}</p>
-                        </div>
+                        <Button variant="ghost" size="sm" className={`h-8 gap-1.5 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-gray-500'}`}>
+                          {isExpanded ? 'Bezárás' : 'Osztályozás'}
+                          <Wrench className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-12' : ''}`} />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-blue-600">
-                        {isExpanded ? 'Bezárás' : 'Osztályzás megnyitása'}
-                      </Button>
-                    </div>
 
-                    {isExpanded && (
-                      <div className="p-4 bg-gray-50 border-t rounded-b-xl animate-in fade-in slide-in-from-top-2">
-                        <div className="overflow-hidden bg-white rounded-lg border shadow-sm">
-                          <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
-                              <tr>
-                                <th className="px-4 py-3">Tanuló Neve</th>
-                                <th className="px-4 py-3">Aktuális Jegy</th>
-                                <th className="px-4 py-3">Új Osztályzat</th>
-                                <th className="px-4 py-3">Megjegyzés</th>
-                                <th className="px-4 py-3 text-right">Művelet</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {filteredStudents.map(student => {
-                                const currentGrade = moduleGrades.find(g => g.studentId === student.id && g.moduleId === module.id);
-                                const edit = editingGrades[student.id] || { grade: "", comment: "" };
-                                
-                                return (
-                                  <tr key={student.id} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-gray-900">
-                                      {student.lastName} {student.firstName}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      {currentGrade ? (
-                                        <span className={`inline-flex items-center justify-center h-8 w-8 rounded-full font-bold text-white shadow-sm
-                                          ${currentGrade.grade === 5 ? 'bg-green-500' : 
-                                            currentGrade.grade === 4 ? 'bg-blue-500' : 
-                                            currentGrade.grade === 3 ? 'bg-yellow-500' : 
-                                            currentGrade.grade === 2 ? 'bg-orange-500' : 'bg-red-500'}`}
-                                        >
-                                          {currentGrade.grade}
-                                        </span>
-                                      ) : (
-                                        <span className="text-gray-300 text-xs">-</span>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <Select 
-                                        value={edit.grade} 
-                                        onValueChange={(val) => setEditingGrades(prev => ({
-                                          ...prev,
-                                          [student.id]: { ...edit, grade: val }
-                                        }))}
-                                      >
-                                        <SelectTrigger className="w-24 h-9 bg-white">
-                                          <SelectValue placeholder="Jegy" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="5">5 - Jeles</SelectItem>
-                                          <SelectItem value="4">4 - Jó</SelectItem>
-                                          <SelectItem value="3">3 - Közepes</SelectItem>
-                                          <SelectItem value="2">2 - Elégséges</SelectItem>
-                                          <SelectItem value="1">1 - Elégtelen</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <Input 
-                                        placeholder="Megjegyzés..."
-                                        value={edit.comment}
-                                        onChange={(e) => setEditingGrades(prev => ({
-                                          ...prev,
-                                          [student.id]: { ...edit, comment: e.target.value }
-                                        }))}
-                                        className="h-9 bg-white text-xs"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                      <Button 
-                                        size="sm" 
-                                        onClick={() => handleSaveStudentGrade(student.id, module.id)}
-                                        disabled={!edit.grade || saveGradeMutation.isPending}
-                                        className="h-9 px-4"
-                                      >
-                                        {saveGradeMutation.isPending && saveGradeMutation.variables?.studentId === student.id ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <><Save className="h-3.5 w-3.5 mr-1" /> Mentés</>
-                                        )}
-                                      </Button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                      {isExpanded && (
+                        <div className="p-0 bg-gray-50/50 border-t rounded-b-lg animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm border-collapse">
+                              <thead className="bg-gray-100/80 text-gray-600 uppercase text-[10px] font-bold">
+                                <tr>
+                                  <th className="px-4 py-2 border-b">Tanuló Neve</th>
+                                  <th className="px-4 py-2 border-b text-center w-24">Jelenlegi</th>
+                                  <th className="px-4 py-2 border-b w-32">Osztályzat</th>
+                                  <th className="px-4 py-2 border-b">Megjegyzés / Értékelés</th>
+                                  <th className="px-4 py-2 border-b text-right w-32">Állapot</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200 bg-white">
+                                {filteredStudents
+                                  .sort((a, b) => (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName))
+                                  .map(student => {
+                                    const currentGrade = moduleGrades.find(g => g.studentId === student.id && g.moduleId === module.id);
+                                    const edit = editingGrades[student.id] || { grade: "", comment: "" };
+                                    
+                                    return (
+                                      <tr key={student.id} className="hover:bg-blue-50/30 transition-colors group">
+                                        <td className="px-4 py-2.5 font-semibold text-gray-900">
+                                          {student.lastName} {student.firstName}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center">
+                                          {currentGrade ? (
+                                            <Badge 
+                                              className={`h-7 w-7 rounded-md flex items-center justify-center font-bold text-white p-0 mx-auto
+                                                ${currentGrade.grade === 5 ? 'bg-green-600 shadow-green-100' : 
+                                                  currentGrade.grade === 4 ? 'bg-blue-600 shadow-blue-100' : 
+                                                  currentGrade.grade === 3 ? 'bg-amber-500 shadow-amber-100' : 
+                                                  currentGrade.grade === 2 ? 'bg-orange-500 shadow-orange-100' : 'bg-red-600 shadow-red-100'}`}
+                                            >
+                                              {currentGrade.grade}
+                                            </Badge>
+                                          ) : (
+                                            <span className="text-gray-300 text-xs">-</span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                          <Select 
+                                            value={edit.grade || (currentGrade?.grade?.toString() || "")} 
+                                            onValueChange={(val) => {
+                                              setEditingGrades(prev => ({
+                                                ...prev,
+                                                [student.id]: { ...edit, grade: val }
+                                              }));
+                                              // Auto-save on grade change
+                                              saveGradeMutation.mutate({
+                                                studentId: student.id,
+                                                moduleId: module.id,
+                                                grade: parseInt(val),
+                                                comment: edit.comment || currentGrade?.comment || "",
+                                              });
+                                            }}
+                                          >
+                                            <SelectTrigger className="w-24 h-8 bg-white border-gray-200 text-xs">
+                                              <SelectValue placeholder="Jegy" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="5">5 - Jeles</SelectItem>
+                                              <SelectItem value="4">4 - Jó</SelectItem>
+                                              <SelectItem value="3">3 - Közepes</SelectItem>
+                                              <SelectItem value="2">2 - Elégséges</SelectItem>
+                                              <SelectItem value="1">1 - Elégtelen</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                          <Input 
+                                            placeholder="Gyakorlati tapasztalatok..."
+                                            value={edit.comment !== undefined ? edit.comment : (currentGrade?.comment || "")}
+                                            onChange={(e) => setEditingGrades(prev => ({
+                                              ...prev,
+                                              [student.id]: { ...edit, comment: e.target.value }
+                                            }))}
+                                            onBlur={() => {
+                                              const gradeToSave = edit.grade || currentGrade?.grade?.toString();
+                                              if (gradeToSave) {
+                                                saveGradeMutation.mutate({
+                                                  studentId: student.id,
+                                                  moduleId: module.id,
+                                                  grade: parseInt(gradeToSave),
+                                                  comment: edit.comment || "",
+                                                });
+                                              }
+                                            }}
+                                            className="h-8 bg-white text-xs border-gray-200 group-hover:border-blue-200 focus:border-blue-400"
+                                          />
+                                        </td>
+                                        <td className="px-4 py-2.5 text-right">
+                                          <div className="flex items-center justify-end gap-2 text-[10px]">
+                                            {saveGradeMutation.isPending && saveGradeMutation.variables?.studentId === student.id ? (
+                                              <span className="text-blue-500 animate-pulse font-medium flex items-center gap-1">
+                                                <Loader2 className="h-2.5 w-2.5 animate-spin" /> Mentés...
+                                              </span>
+                                            ) : currentGrade ? (
+                                              <span className="text-green-600 font-bold flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                <CheckCircle className="h-3 w-3" /> RÖGZÍTVE
+                                              </span>
+                                            ) : (
+                                              <span className="text-gray-300">Vár értékelésre</span>
+                                            )}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}

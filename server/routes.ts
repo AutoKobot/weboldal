@@ -436,11 +436,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`PASS 1: ${pttText.length} karakter, ${chunks.length} logikai szakaszban...`);
 
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
+      const chunkResults = await Promise.all(chunks.map(async (chunk, i) => {
         const chunkNum = i + 1;
-        console.log(`  P1 Szakasz ${chunkNum}/${chunks.length} (${chunk.length} kar)...`);
-
         const extractionPrompt = ikkService.buildExtractionPrompt(chunk);
 
         try {
@@ -451,50 +448,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
               { role: "system", content: "Te egy precíz dokumentum-elemző vagy. Kizárólag a dokumentumban szereplő szövegeket listázod fel, semmit sem generálsz magadtól. Csak érvényes JSON-t adsz válaszul." },
               { role: "user", content: extractionPrompt }
             ],
-            temperature: 0.0, // Nulla hőmérséklet = maximális pontosság
+            temperature: 0.0,
           });
 
           let jsonStr = (response.choices[0].message.content || '{}').trim();
           if (jsonStr.startsWith('```json')) jsonStr = jsonStr.substring(7);
           else if (jsonStr.startsWith('```')) jsonStr = jsonStr.substring(3);
           if (jsonStr.endsWith('```')) jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+          
           const firstBrace = jsonStr.indexOf('{');
           const lastBrace = jsonStr.lastIndexOf('}');
           if (firstBrace !== -1 && lastBrace !== -1) {
             jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
           }
 
-          const parsed = JSON.parse(jsonStr);
-          if (parsed.subjects && Array.isArray(parsed.subjects)) {
-            for (const subject of parsed.subjects) {
-              const key = subject.name?.toLowerCase()?.trim();
-              if (!key) continue;
+          console.log(`  P1 Szakasz ${chunkNum}/${chunks.length} feldolgozva.`);
+          return JSON.parse(jsonStr);
+        } catch (err) {
+          console.error(`  P1 Csonk ${chunkNum} hiba:`, err);
+          return { subjects: [] };
+        }
+      }));
 
-              if (!mergedSubjects.has(key)) {
-                mergedSubjects.set(key, {
-                  name: subject.name,
-                  code: subject.code || '',
-                  description: subject.description || '',
-                  practicalPercent: subject.practicalPercent || 0,
-                  modules: []
-                });
-              }
+      for (const parsed of chunkResults) {
+        if (parsed.subjects && Array.isArray(parsed.subjects)) {
+          for (const subject of parsed.subjects) {
+            const key = subject.name?.toLowerCase()?.trim();
+            if (!key) continue;
 
-              const existing = mergedSubjects.get(key)!;
-              if (subject.modules && Array.isArray(subject.modules)) {
-                for (const mod of subject.modules) {
-                  const isDup = existing.modules.some((m: any) =>
-                    m.title?.toLowerCase()?.trim() === mod.title?.toLowerCase()?.trim()
-                  );
-                  if (!isDup && mod.title) {
-                    existing.modules.push(mod);
-                  }
+            if (!mergedSubjects.has(key)) {
+              mergedSubjects.set(key, {
+                name: subject.name,
+                code: subject.code || '',
+                description: subject.description || '',
+                practicalPercent: subject.practicalPercent || 0,
+                modules: []
+              });
+            }
+
+            const existing = mergedSubjects.get(key)!;
+            if (subject.modules && Array.isArray(subject.modules)) {
+              for (const mod of subject.modules) {
+                const isDup = existing.modules.some((m: any) =>
+                  m.title?.toLowerCase()?.trim() === mod.title?.toLowerCase()?.trim()
+                );
+                if (!isDup && mod.title) {
+                  existing.modules.push(mod);
                 }
               }
             }
           }
-        } catch (err) {
-          console.error(`  P1 Csonk ${chunkNum} hiba:`, err);
         }
       }
 
@@ -509,20 +512,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const BATCH_SIZE = 20;
       console.log(`PASS 2: Tartalomgenerálás ${rawSubjects.length} tantárgyhoz...`);
 
-      for (const subject of rawSubjects) {
-        if (!subject.modules || subject.modules.length === 0) continue;
+      await Promise.all(rawSubjects.map(async (subject) => {
+        if (!subject.modules || subject.modules.length === 0) return;
 
-        const enrichedModules: any[] = [];
         const batches = [];
         for (let i = 0; i < subject.modules.length; i += BATCH_SIZE) {
           batches.push(subject.modules.slice(i, i + BATCH_SIZE));
         }
 
-        console.log(`  P2 "${subject.name}": ${subject.modules.length} modul, ${batches.length} köteg...`);
+        console.log(`  P2 "${subject.name}": ${subject.modules.length} modul, ${batches.length} köteg INDÍTVA...`);
 
-        for (let bi = 0; bi < batches.length; bi++) {
-          const batch = batches[bi];
+        const batchResults = await Promise.all(batches.map(async (batch, bi) => {
           const contentPrompt = ikkService.buildContentPrompt(profession.name, subject.name, batch);
+          const enrichedBatch: any[] = [];
 
           try {
             const response = await openai.chat.completions.create({
@@ -539,41 +541,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (jsonStr.startsWith('```json')) jsonStr = jsonStr.substring(7);
             else if (jsonStr.startsWith('```')) jsonStr = jsonStr.substring(3);
             if (jsonStr.endsWith('```')) jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+            
             const firstBrace = jsonStr.indexOf('{');
             const lastBrace = jsonStr.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1) jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
 
             const parsed = JSON.parse(jsonStr);
             if (parsed.modules && Array.isArray(parsed.modules)) {
-              // Merge content back by position (fallback: by title)
               for (let mi = 0; mi < batch.length; mi++) {
                 const rawMod = batch[mi];
                 const enriched = parsed.modules[mi] || parsed.modules.find((m: any) =>
                   m.title?.toLowerCase()?.trim() === rawMod.title?.toLowerCase()?.trim()
                 );
-                enrichedModules.push({
+                enrichedBatch.push({
                   title: rawMod.title,
                   type: rawMod.type,
-                  conciseContent: enriched?.conciseContent || `${rawMod.title} témakör összefoglalója.`,
-                  detailedContent: enriched?.detailedContent || `${rawMod.title} részletes kifejtése.`,
+                  conciseContent: enriched?.conciseContent || `${rawMod.title} összefoglalója.`,
+                  detailedContent: enriched?.detailedContent || `${rawMod.title} részletei.`,
                 });
               }
             } else {
-              // Fallback if parse fails: use placeholder content
-              for (const rawMod of batch) {
-                enrichedModules.push({ ...rawMod, conciseContent: `${rawMod.title}.`, detailedContent: `${rawMod.title} részletei.` });
-              }
+              throw new Error("Invalid response format");
             }
           } catch (err) {
             console.error(`  P2 "${subject.name}" köteg ${bi + 1} hiba:`, err);
             for (const rawMod of batch) {
-              enrichedModules.push({ ...rawMod, conciseContent: `${rawMod.title}.`, detailedContent: `${rawMod.title} részletei.` });
+              enrichedBatch.push({ ...rawMod, conciseContent: `${rawMod.title}.`, detailedContent: `${rawMod.title} részletei.` });
             }
           }
-        }
+          return enrichedBatch;
+        }));
 
-        subject.enrichedModules = enrichedModules;
-      }
+        subject.enrichedModules = batchResults.flat();
+        console.log(`  P2 "${subject.name}" KÉSZ.`);
+      }));
 
       // ══════════════════════════════════════════════════════════════════════
       // 3. ADATBÁZISBA MENTÉS
