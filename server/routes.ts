@@ -413,6 +413,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Admin access required' });
       }
 
+      // Disable timeout for this long-running request (AI processing can take several minutes)
+      req.setTimeout(0);
+
       const { profession } = req.body;
       if (!profession) {
         return res.status(400).json({ message: 'Profession data is required' });
