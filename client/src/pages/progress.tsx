@@ -163,13 +163,14 @@ export default function ProgressPage() {
                       const mod = modules.find(m => m.id === grade.moduleId);
                       return (
                         <div key={grade.id} className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm flex items-start gap-4">
-                          <div className={\`flex items-center justify-center h-12 w-12 rounded-full font-bold text-xl shadow-inner \${
+                          <div className={[
+                            'flex items-center justify-center h-12 w-12 rounded-full font-bold text-xl shadow-inner',
                             grade.grade === 5 ? 'bg-green-100 text-green-700 border border-green-200' :
                             grade.grade === 4 ? 'bg-blue-100 text-blue-700 border border-blue-200' :
                             grade.grade === 3 ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
                             grade.grade === 2 ? 'bg-orange-100 text-orange-700 border border-orange-200' :
                             'bg-red-100 text-red-700 border border-red-200'
-                          }\`}>
+                          ].join(' ')}>
                             {grade.grade}
                           </div>
                           <div className="flex-1">
@@ -181,7 +182,7 @@ export default function ProgressPage() {
                             </div>
                             {grade.comment && (
                               <p className="text-sm text-neutral-700 mt-3 italic bg-neutral-50 p-3 rounded-lg border-l-2 border-neutral-300">
-                                "{grade.comment}"
+                                &ldquo;{grade.comment}&rdquo;
                               </p>
                             )}
                           </div>
