@@ -151,34 +151,45 @@ export class IKKService {
       SZIGORÚ UTASÍTÁSOK:
       1. NE ÖSSZEFOGLALJ! A cél nem egy rövid vázlat, hanem a teljes képzési terv digitalizálása.
       2. Minden egyes tantárgyat (Subject) vegyél fel, ami a Programtantervben (PTT) szerepel az adott szövegrészletben.
-      3. Minden tantárgy alatt KÜLÖN-KÜLÖN sorold fel az elméleti tananyagegységeket ('theoryModules') és a gyakorlati feladatokat/témaköröket ('practicalModules'). Ne hagyj ki egyet sem!
-      4. KÜLÖNÖS TEKINTETTEL FIGYELD A SORSZÁMOZÁST! A dokumentum logikai felépítését a számozott bekezdések adják (pl. 3.1, 3.4.1 a tantárgy, 3.4.1.6.1 a témakörök/modulok). Használd ezeket a számozásokat a tantárgyak és a hozzájuk tartozó elméleti és gyakorlati modulok pontos beazonosítására! Keresd a "gyakorlat", "gyakorlati feladat", "labor" szavakat a gyakorlati részek azonosításához.
-      5. A 'detailedContent' mező legyen alapos, tartalmazza a konkrét szakmai kulcsszavakat, eszközöket és munkafolyamatokat. Gyakorlati moduloknál a feladat pontos lépéseit és elvárt eredményeit is rögzítsd.
-      6. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! A szövegben a táblázatokból származó ismétlődő, ömlesztett adatok (pl. óraszámok, vizsgakövetelmények) nem a tananyag részei. Kizárólag a szakmai tantárgyakat és a konkrét elméleti/gyakorlati témaköröket keresd!
+      3. Minden tantárgy alatt KÜLÖN-KÜLÖN sorold fel az elméleti tananyagegységeket ('theoryModules') és a gyakorlati feladatokat/témaköröket ('practicalModules'). TILOS ÖSSZEVONNI ŐKET! 
+      4. KÜLÖNÖS TEKINTETTEL FIGYELD A SORSZÁMOZÁST ÉS A FELSOROLÁSOKAT! Egy tantárgyhoz tartozó altéma (pl. 3.4.1.1) gyakran ÖNMAGÁBAN IS TÖBB MODULT tartalmaz! Ha egy alpontban gondolatjeleket, felsorolásokat vagy több résztémát látsz, azokat MIND EGY-EGY KÜLÖN MODULKÉNT (tananyagegységként) vedd fel a tömbbe! Ne elégedj meg 1 modul/alpont aránnyal, bontsd ki a legkisebb önálló fogalomkörökre!
+      5. Egy tantárgyhoz ÁLTALÁBAN 10-30 ilyen apró, részletes modul tartozik. Ha egy tantárgynál csak 1-2 modult listázol ki, akkor HIBÁZTÁL. Szigorúan kövesd végig az összes apró résztémát!
+      6. A 'detailedContent' mező legyen alapos. Gyakorlati moduloknál a feladat pontos lépéseit és elvárt eredményeit is rögzítsd.
+      7. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! Kizárólag a szakmai tantárgyakat és a konkrét elméleti/gyakorlati témaköröket keresd!
       
       PTT Szöveg (Programtanterv - Itt vannak a konkrét tantárgyak és modulok!):
       ${pttText.substring(0, 350000)}
       
-      Kérlek azonosítsd az ÖSSZES tantárgyat és az azokhoz tartozó ÖSSZES elméleti és gyakorlati modult.
+      Kérlek azonosítsd az ÖSSZES tantárgyat és az azokhoz tartozó ÖSSZES (akár tantárgyanként 10-30) elméleti és gyakorlati apró modult.
       
       VÁLASZ FORMÁTUM (Csak érvényes JSON):
       {
         "subjects": [
           {
-            "name": "Tantárgy neve (pl. Textiltermékek gyártástechnológiája)",
+            "name": "Tantárgy neve (pl. 3.4.1 Textiltermékek gyártástechnológiája)",
             "description": "Tantárgy részletes célkitűzései",
             "theoryModules": [
               {
-                "title": "Elméleti témakör pontos címe (pl. 3.4.1.6.1 Alkalmazott műszaki ismeretek)",
-                "conciseContent": "4-5 mondatos összefoglaló az elméleti modulról.",
-                "detailedContent": "Nagyon részletes szakmai leírás, témakörök, elsajátítandó elméleti ismeretek (legalább 3-4 bekezdés)."
+                "title": "3.4.1.1 Anyagismeret alapjai",
+                "conciseContent": "4-5 mondatos összefoglaló...",
+                "detailedContent": "Részletes szakmai leírás..."
+              },
+              {
+                "title": "3.4.1.2 Varrógépek működése",
+                "conciseContent": "4-5 mondatos összefoglaló...",
+                "detailedContent": "Részletes szakmai leírás..."
               }
             ],
             "practicalModules": [
               {
-                "title": "Gyakorlati feladat/témakör pontos címe (pl. Szabásminta készítése gyakorlatban)",
-                "conciseContent": "A gyakorlati feladat rövid összefoglalója.",
-                "detailedContent": "Pontos gyakorlati lépések, műveletek, használt gépek/eszközök és elvárt eredmények (legalább 3-4 bekezdés)."
+                "title": "3.4.1.3 Szabásminta készítése (Gyakorlat)",
+                "conciseContent": "A gyakorlati feladat rövid összefoglalója...",
+                "detailedContent": "Pontos gyakorlati lépések..."
+              },
+              {
+                "title": "3.4.1.4 Zseb varrása (Gyakorlat)",
+                "conciseContent": "A gyakorlati feladat rövid összefoglalója...",
+                "detailedContent": "Pontos gyakorlati lépések..."
               }
             ]
           }
