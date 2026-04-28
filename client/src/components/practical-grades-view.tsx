@@ -200,13 +200,14 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
                     const mod = practicalModules.find(m => m.id === grade.moduleId);
                     return (
                       <div key={grade.id} className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm flex items-start gap-4">
-                        <div className={\`flex items-center justify-center h-10 w-10 rounded-full font-bold text-lg \${
+                        <div className={[
+                          'flex items-center justify-center h-10 w-10 rounded-full font-bold text-lg',
                           grade.grade === 5 ? 'bg-green-100 text-green-700' :
                           grade.grade === 4 ? 'bg-blue-100 text-blue-700' :
                           grade.grade === 3 ? 'bg-yellow-100 text-yellow-700' :
                           grade.grade === 2 ? 'bg-orange-100 text-orange-700' :
                           'bg-red-100 text-red-700'
-                        }\`}>
+                        ].join(' ')}>
                           {grade.grade}
                         </div>
                         <div className="flex-1">
@@ -216,7 +217,7 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
                           </p>
                           {grade.comment && (
                             <p className="text-sm text-gray-700 mt-2 bg-gray-50 p-2 rounded border border-gray-100 italic">
-                              "{grade.comment}"
+                              &ldquo;{grade.comment}&rdquo;
                             </p>
                           )}
                         </div>
