@@ -141,10 +141,10 @@ export class IKKService {
    * AI segítségével struktúrált tananyagot generál a KKK/PTT szövegekből.
    */
   async structureCurriculum(professionName: string, kkkText: string, pttText: string) {
-    console.log(`Curriculum generation started for ${professionName}. KKK: ${kkkText.length} chars, PTT: ${pttText.length} chars.`);
+    console.log(`Curriculum generation started for ${professionName}. PTT: ${pttText.length} chars.`);
 
     const prompt = `
-      Feladatod egy szakmai tananyag RENDKÍVÜL RÉSZLETES és TELJES struktúrájának kialakítása a megadott KKK és PTT alapján.
+      Feladatod egy szakmai tananyag RENDKÍVÜL RÉSZLETES és TELJES struktúrájának kialakítása a megadott PTT (Programtanterv) alapján.
       
       Szakma: ${professionName}
       
@@ -152,14 +152,12 @@ export class IKKService {
       1. NE ÖSSZEFOGLALJ! A cél nem egy rövid vázlat, hanem a teljes képzési terv digitalizálása.
       2. Minden egyes tantárgyat (Subject) vegyél fel, ami a Programtantervben (PTT) szerepel.
       3. Minden tantárgy alatt sorold fel az ÖSSZES hozzá tartozó tananyagegységet/modult (Module). 
-      4. Egy átlagos szakmánál ez legalább 15-30 különböző modult jelent összesen. Ha csak 8-at találsz, akkor hibáztál és keress tovább a szövegben!
+      4. Egy átlagos szakmánál ez legalább 15-30 különböző modult jelent összesen. Ha csak 8-10-et találsz, akkor hibáztál és keress tovább a szövegben!
       5. A 'detailedContent' mező legyen alapos, tartalmazza a konkrét szakmai kulcsszavakat, eszközöket és munkafolyamatokat.
+      6. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! A szövegben a táblázatokból származó ismétlődő, ömlesztett adatok (pl. óraszámok, vizsgakövetelmények) nem a tananyag részei. Ne csinálj modult a vizsgákból vagy az általános óraszám-táblázatokból! Kizárólag a szakmai tantárgyakat és a konkrét szakmai témaköröket (modulokat) keresd!
       
-      KKK Szöveg (Képzési és Kimeneti Követelmények):
-      ${kkkText.substring(0, 20000)}
-      
-      PTT Szöveg (Programtanterv - Itt vannak a konkrét modulok!):
-      ${pttText.substring(0, 50000)}
+      PTT Szöveg (Programtanterv - Itt vannak a konkrét tantárgyak és modulok!):
+      ${pttText.substring(0, 350000)}
       
       Kérlek azonosítsd az ÖSSZES tantárgyat és az azokhoz tartozó ÖSSZES modult.
       

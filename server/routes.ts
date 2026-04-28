@@ -4313,7 +4313,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(announcements);
     } catch (error) {
       console.error("Error fetching my announcements:", error);
-      res.status(500).json({ message: "Failed to fetch announcements" });
+      // Ha hiba történik (pl. hiányzó tábla a live szerveren), ne omlasszuk össze a UI-t, adjunk vissza üres tömböt
+      res.json([]);
     }
   });
 
