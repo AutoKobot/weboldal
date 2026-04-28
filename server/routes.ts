@@ -426,20 +426,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // ══════════════════════════════════════════════════════════════════════
       // PASS 1 – SZERKEZETI KINYERÉS
-      // Kis csonkokban küldjük el a PTT szöveget, az AI csak azonosít és listáz.
-      // Minden sor egy modul-cím lesz, nincs tartalom-generálás.
+      // Fejezetkódok alapján daraboljuk a szöveget, így az AI egy-egy teljes témakört kap meg.
       // ══════════════════════════════════════════════════════════════════════
-      const CHUNK_SIZE = 40000; // kisebb chunk → pontosabb kinyerés
-      const OVERLAP = 1500;
+      const chunks = ikkService.splitPttIntoSections(pttText);
       const mergedSubjects: Map<string, any> = new Map();
 
-      const totalChunks = Math.ceil(pttText.length / (CHUNK_SIZE - OVERLAP));
-      console.log(`PASS 1: ${pttText.length} karakter, ${totalChunks} csonkban...`);
+      console.log(`PASS 1: ${pttText.length} karakter, ${chunks.length} logikai szakaszban...`);
 
-      for (let i = 0; i < pttText.length; i += (CHUNK_SIZE - OVERLAP)) {
-        const chunk = pttText.substring(i, i + CHUNK_SIZE);
-        const chunkNum = Math.floor(i / (CHUNK_SIZE - OVERLAP)) + 1;
-        console.log(`  P1 Csonk ${chunkNum}/${totalChunks} (${chunk.length} kar)...`);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const chunkNum = i + 1;
+        console.log(`  P1 Szakasz ${chunkNum}/${chunks.length} (${chunk.length} kar)...`);
 
         const extractionPrompt = ikkService.buildExtractionPrompt(chunk);
 

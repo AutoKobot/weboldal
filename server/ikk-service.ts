@@ -107,7 +107,50 @@ export class IKKService {
       throw new Error(`Nem sikerült feldolgozni a dokumentumokat. Részletek: ${details}`);
     }
 
-    return { kkkText, pttText };
+    return { 
+      kkkText: this.preprocessText(kkkText), 
+      pttText: this.preprocessText(pttText) 
+    };
+  }
+
+  /**
+   * Pre-processes raw PDF text to remove noise that confuses the AI.
+   * - Removes page numbers (e.g., "15 / 80. oldal")
+   * - Fixes hyphenation at line breaks
+   * - Removes common PDF artifacts and redundant headers
+   */
+  private preprocessText(text: string): string {
+    if (!text) return '';
+    
+    return text
+      // Remove page numbers: "X / Y. oldal" or "X / Y oldal"
+      .replace(/\d+\s*\/\s*\d+\.\s*oldal/gi, '')
+      .replace(/\d+\s*\/\s*\d+\s*oldal/gi, '')
+      // Remove Programtanterv repeated headers if any
+      .replace(/P\s*R\s*O\s*G\s*R\s*A\s*M\s*T\s*A\s*N\s*T\s*E\s*R\s*V/g, '')
+      // Fix hyphenation: "szerszám-\nkészítés" -> "szerszámkészítés"
+      .replace(/([a-záéíóöőuúüű])-\n\s*([a-záéíóöőuúüű])/gi, '$1$2')
+      // Fix common PDF spacing issues (e.g. "S Z A K M Á H O Z")
+      .replace(/S\s*Z\s*A\s*K\s*M\s*Á\s*H\s*O\s*Z/g, 'SZAKMÁHOZ')
+      // Remove multiple empty lines
+      .replace(/\n\s*\n\s*\n/g, '\n\n');
+  }
+
+  /**
+   * Splits PTT text into intelligent chunks based on section headers.
+   * Catches both Subject definitions (e.g. 3.3.1) and Topic definitions (e.g. 3.3.1.6.1).
+   */
+  splitPttIntoSections(text: string): string[] {
+    if (!text) return [];
+
+    // Look for patterns like "3.4.2.6.1" or "3.4.2 " at the start of a line
+    // The pattern \n\s*\d+\.\d+\.\d+ catches subjects and topics
+    const sections = text.split(/(?=\n\s*\d+\.\d+\.\d+)/);
+    
+    // Filter out very small fragments and trim
+    return sections
+      .map(s => s.trim())
+      .filter(s => s.length > 50);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
