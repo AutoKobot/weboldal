@@ -95,8 +95,10 @@ import {
   announcementAcknowledgements,
   type ClassAnnouncement,
   type InsertClassAnnouncement,
-  type AnnouncementAcknowledgement,
   type InsertAnnouncementAcknowledgement,
+  practicalGrades,
+  type PracticalGrade,
+  type InsertPracticalGrade,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, notExists, asc } from "drizzle-orm";
@@ -264,9 +266,18 @@ export interface IStorage {
   // Test result operations
   createTestResult(result: InsertTestResult): Promise<TestResult>;
   getTestResultsByUser(userId: string): Promise<TestResult[]>;
+  getTestResultForModule(userId: string, moduleId: number): Promise<TestResult | undefined>;
   getTestResultsByModule(moduleId: number): Promise<TestResult[]>;
   getTestResultsByClass(classId: number, startDate?: string, endDate?: string): Promise<any[]>;
   getClassesByTeacher(teacherId: string): Promise<Class[]>;
+
+  // Practical Grades
+  getPracticalGradesByStudent(studentId: string): Promise<PracticalGrade[]>;
+  getPracticalGradesByTeacher(teacherId: string): Promise<PracticalGrade[]>;
+  getPracticalGradeForModule(studentId: string, moduleId: number): Promise<PracticalGrade | undefined>;
+  createPracticalGrade(grade: InsertPracticalGrade): Promise<PracticalGrade>;
+  updatePracticalGrade(id: number, data: Partial<InsertPracticalGrade>): Promise<PracticalGrade>;
+  deletePracticalGrade(id: number): Promise<void>;
 
   // Notification operations
   createNotification(data: InsertNotification): Promise<Notification>;
@@ -2851,6 +2862,48 @@ export class DatabaseStorage implements IStorage {
     if (partnerIds.length === 0) return [];
     
     return await db.select().from(users).where(inArray(users.id, partnerIds));
+  }
+
+  // --- Practical Grades Implementations ---
+  async getPracticalGradesByStudent(studentId: string): Promise<PracticalGrade[]> {
+    return await db.select().from(practicalGrades)
+      .where(eq(practicalGrades.studentId, studentId))
+      .orderBy(desc(practicalGrades.createdAt));
+  }
+
+  async getPracticalGradesByTeacher(teacherId: string): Promise<PracticalGrade[]> {
+    return await db.select().from(practicalGrades)
+      .where(eq(practicalGrades.teacherId, teacherId))
+      .orderBy(desc(practicalGrades.createdAt));
+  }
+
+  async getPracticalGradeForModule(studentId: string, moduleId: number): Promise<PracticalGrade | undefined> {
+    const [result] = await db.select().from(practicalGrades)
+      .where(and(
+        eq(practicalGrades.studentId, studentId),
+        eq(practicalGrades.moduleId, moduleId)
+      ))
+      .orderBy(desc(practicalGrades.createdAt))
+      .limit(1);
+    return result;
+  }
+
+  async createPracticalGrade(grade: InsertPracticalGrade): Promise<PracticalGrade> {
+    const [newGrade] = await db.insert(practicalGrades).values(grade).returning();
+    return newGrade;
+  }
+
+  async updatePracticalGrade(id: number, data: Partial<InsertPracticalGrade>): Promise<PracticalGrade> {
+    const [updated] = await db.update(practicalGrades)
+      .set(data)
+      .where(eq(practicalGrades.id, id))
+      .returning();
+    if (!updated) throw new Error("Practical grade not found");
+    return updated;
+  }
+
+  async deletePracticalGrade(id: number): Promise<void> {
+    await db.delete(practicalGrades).where(eq(practicalGrades.id, id));
   }
 }
 

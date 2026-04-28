@@ -181,6 +181,21 @@ export const testResults = pgTable("test_results", {
   index("test_results_module_id_idx").on(table.moduleId),
 ]);
 
+// Practical grades table - gyakorlati érdemjegyek
+export const practicalGrades = pgTable("practical_grades", {
+  id: serial("id").primaryKey(),
+  studentId: varchar("student_id").references(() => users.id).notNull(),
+  teacherId: varchar("teacher_id").references(() => users.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  grade: integer("grade").notNull(), // 1-5 magyar osztályzat
+  comment: text("comment"), // Szöveges értékelés
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("practical_grades_student_id_idx").on(table.studentId),
+  index("practical_grades_teacher_id_idx").on(table.teacherId),
+  index("practical_grades_module_id_idx").on(table.moduleId),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   selectedProfession: one(professions, { fields: [users.selectedProfessionId], references: [professions.id] }),
@@ -188,6 +203,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   chatMessages: many(chatMessages),
   assignedClass: one(classes, { fields: [users.classId], references: [classes.id] }),
   testResults: many(testResults),
+  practicalGradesReceived: many(practicalGrades, { relationName: "student_grades" }),
+  practicalGradesGiven: many(practicalGrades, { relationName: "teacher_grades" }),
 }));
 
 export const schoolsRelations = relations(schools, ({ many }) => ({
@@ -212,6 +229,7 @@ export const modulesRelations = relations(modules, ({ one, many }) => ({
   additionalAssignments: many(moduleSubjectAssignments),
   chatMessages: many(chatMessages),
   flashcards: many(flashcards),
+  practicalGrades: many(practicalGrades),
 }));
 
 export const moduleSubjectAssignmentsRelations = relations(moduleSubjectAssignments, ({ one }) => ({
@@ -231,6 +249,23 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   relatedModule: one(modules, {
     fields: [chatMessages.relatedModuleId],
     references: [modules.id],
+  }),
+}));
+
+export const practicalGradesRelations = relations(practicalGrades, ({ one }) => ({
+  student: one(users, {
+    fields: [practicalGrades.studentId],
+    references: [users.id],
+    relationName: "student_grades"
+  }),
+  teacher: one(users, {
+    fields: [practicalGrades.teacherId],
+    references: [users.id],
+    relationName: "teacher_grades"
+  }),
+  module: one(modules, {
+    fields: [practicalGrades.moduleId],
+    references: [modules.id]
   }),
 }));
 

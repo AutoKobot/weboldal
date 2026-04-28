@@ -7755,5 +7755,66 @@ export function setupPrivacyRoutes(app: Express) {
     }
   });
 
+  // ── Practical Grades Routes ─────────────────────────────────────────────
+
+  app.get('/api/practical-grades/student/:studentId', combinedAuth, async (req: any, res) => {
+    try {
+      const grades = await storage.getPracticalGradesByStudent(req.params.studentId);
+      res.json(grades);
+    } catch (error) {
+      console.error('Error fetching practical grades:', error);
+      res.status(500).json({ message: 'Hiba a gyakorlati jegyek betöltésekor' });
+    }
+  });
+
+  app.post('/api/practical-grades', combinedAuth, async (req: any, res) => {
+    try {
+      if (req.user?.role !== 'teacher' && req.user?.role !== 'admin' && req.user?.role !== 'school_admin') {
+        return res.status(403).json({ message: "Teacher access required" });
+      }
+
+      const { studentId, moduleId, grade, comment } = req.body;
+      const teacherId = req.user?.id || req.user?.claims?.sub;
+
+      if (!studentId || !moduleId || !grade) {
+        return res.status(400).json({ message: 'Hiányzó kötelező mezők' });
+      }
+
+      // Check if grade already exists for this module and student
+      const existing = await storage.getPracticalGradeForModule(studentId, moduleId);
+      
+      let result;
+      if (existing) {
+        result = await storage.updatePracticalGrade(existing.id, { grade, comment, teacherId });
+      } else {
+        result = await storage.createPracticalGrade({
+          studentId,
+          moduleId,
+          grade,
+          comment,
+          teacherId
+        });
+      }
+
+      res.status(201).json(result);
+    } catch (error) {
+      console.error('Error creating/updating practical grade:', error);
+      res.status(500).json({ message: 'Hiba a gyakorlati jegy mentésekor' });
+    }
+  });
+
+  app.delete('/api/practical-grades/:id', combinedAuth, async (req: any, res) => {
+    try {
+      if (req.user?.role !== 'teacher' && req.user?.role !== 'admin' && req.user?.role !== 'school_admin') {
+        return res.status(403).json({ message: "Teacher access required" });
+      }
+      await storage.deletePracticalGrade(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting practical grade:', error);
+      res.status(500).json({ message: 'Hiba a gyakorlati jegy törlésekor' });
+    }
+  });
+
 }
 

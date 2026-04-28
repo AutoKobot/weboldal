@@ -58,7 +58,9 @@ import {
   Info,
   AlertTriangle,
   MessageSquare,
+  Wrench,
 } from "lucide-react";
+import { PracticalGradesView } from "@/components/practical-grades-view";
 import { Textarea } from "@/components/ui/textarea";
 
 
@@ -399,6 +401,10 @@ export default function TeacherDashboard() {
               <Printer className="h-4 w-4" />
               Névsor &amp; Nyomtatás
             </TabsTrigger>
+            <TabsTrigger value="practical" className="flex items-center gap-2 text-blue-700 bg-blue-50/50">
+              <Wrench className="h-4 w-4" />
+              Gyakorlati Értékelés
+            </TabsTrigger>
             <TabsTrigger value="announcements" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Üzenetek
@@ -608,6 +614,15 @@ export default function TeacherDashboard() {
 
           <TabsContent value="announcements">
             <AnnouncementsView teacherClasses={teacherClasses} students={students} />
+          </TabsContent>
+
+          <TabsContent value="practical">
+            <PracticalGradesView 
+              teacherClasses={teacherClasses} 
+              students={students} 
+              subjects={subjects} 
+              modules={modules} 
+            />
           </TabsContent>
 
           <TabsContent value="stats">
