@@ -46,6 +46,7 @@ const moduleFormSchema = insertModuleSchema.extend({
 const professionFormSchema = insertProfessionSchema;
 const subjectFormSchema = insertSubjectSchema.extend({
   professionId: z.number().min(1, "Szakma kiválasztása kötelező"),
+  type: z.enum(["theory", "practical"]).default("theory"),
 });
 
 const schoolAdminFormSchema = z.object({
@@ -2326,6 +2327,7 @@ export default function AdminDashboard() {
                       subjectForm.reset({
                         name: "",
                         description: "",
+                        type: "theory",
                         professionId: selectedProfessionForFilter ?? 0,
                       });
                     }
@@ -2402,6 +2404,26 @@ export default function AdminDashboard() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={subjectForm.control}
+                        name="type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Képzés típusa</FormLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Válassz típust" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="theory">Elméleti (Tananyagok)</SelectItem>
+                                <SelectItem value="practical">Gyakorlati (Feladatok)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
                       <div className="flex justify-end space-x-2">
                         <Button type="button" variant="outline" onClick={() => {
                           setIsSubjectDialogOpen(false);
@@ -2433,10 +2455,17 @@ export default function AdminDashboard() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base font-medium truncate">{subject.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {professions.find((p: Profession) => p.id === subject.professionId)?.name}
-                          </p>
+                          <CardTitle className="text-base font-medium truncate">
+                            {subject.type === "practical" ? "🛠️ " : "📘 "}{subject.name}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={subject.type === "practical" ? "secondary" : "default"} className="text-[10px]">
+                              {subject.type === "practical" ? "Gyakorlat" : "Elmélet"}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {professions.find((p: Profession) => p.id === subject.professionId)?.name}
+                            </p>
+                          </div>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                             {subject.description}
                           </p>

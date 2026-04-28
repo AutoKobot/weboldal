@@ -98,6 +98,7 @@ export const subjects = pgTable("subjects", {
   professionId: integer("profession_id").references(() => professions.id).notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
+  type: varchar("type").notNull().default("theory"), // "theory" vagy "practical"
   orderIndex: integer("order_index").notNull().default(0),
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
@@ -519,8 +520,8 @@ export const apiCalls = pgTable("api_calls", {
   costUsd: numeric("cost_usd", { precision: 10, scale: 6 }).notNull(), // Cost in USD with 6 decimal precision
   userId: varchar("user_id").references(() => users.id),
   moduleId: integer("module_id").references(() => modules.id),
-  requestData: jsonb("request_data"), // Store request details for analysis
-  responseData: jsonb("response_data"), // Store response details for analysis
+  requestData: text("req_data"), // Store request details for analysis
+  responseData: text("res_data"), // Store response details for analysis
   createdAt: timestamp("created_at").defaultNow(),
 });
 
