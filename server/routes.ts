@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const openai = await getOpenAIClient();
       console.log('Sending request to GPT-4o for complex curriculum structuring...');
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // Strongest model for complex task
+        model: "gpt-4o-mini", // GPT-4o-mini has a much higher TPM limit allowing for 80-page docs
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: "Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul." },
