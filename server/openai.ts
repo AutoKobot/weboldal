@@ -109,7 +109,7 @@ let cacheTimestamp: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Get OpenAI client with API key from environment or database
-async function getOpenAIClient(): Promise<OpenAI> {
+export async function getOpenAIClient(): Promise<OpenAI> {
   const now = Date.now();
 
   // Use cached client if still valid
@@ -133,7 +133,7 @@ async function getOpenAIClient(): Promise<OpenAI> {
 }
 
 // Get Gemini client with API key from environment or database
-async function getGeminiClient(): Promise<GoogleGenerativeAI> {
+export async function getGeminiClient(): Promise<GoogleGenerativeAI> {
   const now = Date.now();
 
   // Use cached client if still valid

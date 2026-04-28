@@ -423,19 +423,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
 
       // 2. Structure curriculum using AI
-      // We use Gemini (Google) if available, otherwise fallback
-      const { generateChatResponse } = await import('./openai');
+      // Use the strongest available AI model (GPT-4o) for curriculum generation because it requires high reasoning
+      const { getOpenAIClient } = await import('./openai');
       const structurePrompt = await ikkService.structureCurriculum(profession.name, kkkText, pttText);
       
-      const aiResponse = await generateChatResponse(
-        structurePrompt,
-        'standalone', // Use standalone mode for simple AI response
-        [],
-        'Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul.'
-      );
+      const openai = await getOpenAIClient();
+      console.log('Sending request to GPT-4o for complex curriculum structuring...');
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // Strongest model for complex task
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: "Te egy szakértő tananyagfejlesztő vagy. Csak érvényes JSON-t adj válaszul." },
+          { role: "user", content: structurePrompt }
+        ],
+        temperature: 0.2, // Alacsony hőmérséklet a stabilabb, determinisztikus kimenetért
+      });
+      
+      let aiResponseText = response.choices[0].message.content || "{}";
 
       // Clean AI response from markdown blocks or extra text
-      let jsonStr = aiResponse.message.trim();
+      let jsonStr = aiResponseText.trim();
+      
+      // Remove any potential markdown block wrappers just in case
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.substring(7);
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.substring(3);
+      }
+      if (jsonStr.endsWith('```')) {
+        jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+      }
+      jsonStr = jsonStr.trim();
       
       // Extract everything between the first { and last }
       const firstBrace = jsonStr.indexOf('{');
@@ -444,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (firstBrace !== -1 && lastBrace !== -1) {
         jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
       } else {
-        console.error('AI response does not contain a JSON object:', aiResponse.message);
+        console.error('AI response does not contain a JSON object:', aiResponseText);
         throw new Error('Az AI válasza nem tartalmaz érvényes JSON struktúrát.');
       }
 

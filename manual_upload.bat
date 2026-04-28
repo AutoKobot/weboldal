@@ -9,7 +9,7 @@ git status -s
 
 echo.
 set /p msg="Add meg a commit uzenetet (vagy Enter): "
-if "%msg%"=="" set msg="Update: Reszletes osztalyzat nyomtatas"
+if "%msg%"=="" set msg="Update: IKK import javitas (GPT-4o)"
 
 echo.
 echo [+] Valtozasok hozzaadasa (git add .)...
