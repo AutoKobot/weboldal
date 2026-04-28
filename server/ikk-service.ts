@@ -151,11 +151,13 @@ export class IKKService {
       SZIGORÚ UTASÍTÁSOK:
       1. NE ÖSSZEFOGLALJ! A cél nem egy rövid vázlat, hanem a teljes képzési terv digitalizálása.
       2. Minden egyes tantárgyat (Subject) vegyél fel, ami a Programtantervben (PTT) szerepel az adott szövegrészletben.
-      3. Minden tantárgy alatt KÜLÖN-KÜLÖN sorold fel az elméleti tananyagegységeket ('theoryModules') és a gyakorlati feladatokat/témaköröket ('practicalModules'). TILOS ÖSSZEVONNI ŐKET! 
-      4. KÜLÖNÖS TEKINTETTEL FIGYELD A SORSZÁMOZÁST ÉS A FELSOROLÁSOKAT! Egy tantárgyhoz tartozó altéma (pl. 3.4.1.1) gyakran ÖNMAGÁBAN IS TÖBB MODULT tartalmaz! Ha egy alpontban gondolatjeleket, felsorolásokat vagy több résztémát látsz, azokat MIND EGY-EGY KÜLÖN MODULKÉNT (tananyagegységként) vedd fel a tömbbe! Ne elégedj meg 1 modul/alpont aránnyal, bontsd ki a legkisebb önálló fogalomkörökre!
-      5. Egy tantárgyhoz ÁLTALÁBAN 10-30 ilyen apró, részletes modul tartozik. Ha egy tantárgynál csak 1-2 modult listázol ki, akkor HIBÁZTÁL. Szigorúan kövesd végig az összes apró résztémát!
-      6. A 'detailedContent' mező legyen alapos. Gyakorlati moduloknál a feladat pontos lépéseit és elvárt eredményeit is rögzítsd.
-      7. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! Kizárólag a szakmai tantárgyakat és a konkrét elméleti/gyakorlati témaköröket keresd!
+      3. HAGYD FIGYELMEN KÍVÜL AZ ADMINISZTRATÍV RÉSZEKET! Ne csinálj modult olyan bekezdésekből, mint "A tantárgy tanításának fő célja", "Az oktató végzettsége", "Eszközjegyzék", "Értékelés"! Kizárólag a TÉNYLEGES TANANYAGOT, a "Témakörök" alatti konkrét tanulási egységeket dolgozd fel!
+      4. Minden tantárgy alatt KÜLÖN-KÜLÖN sorold fel az elméleti tananyagegységeket ('theoryModules') és a gyakorlati feladatokat ('practicalModules'). TILOS ÖSSZEVONNI ŐKET! 
+      5. KÜLÖNÖS TEKINTETTEL FIGYELD A SORSZÁMOZÁST ÉS A FELSOROLÁSOKAT! Egy témakör (pl. 3.4.1.6) ÖNMAGÁBAN IS TÖBB ELMÉLETI ÉS TÖBB GYAKORLATI MODULT tartalmaz! Ha felsorolásokat vagy több résztémát látsz, azokat MIND EGY-EGY KÜLÖN MODULKÉNT vedd fel a megfelelő tömbbe! Bontsd ki a legkisebb önálló fogalomkörökre és részfeladatokra!
+      6. A GYAKORLAT TÖBB RÉSZFELADATBÓL ÁLL! Sose elégedj meg 1 db gyakorlati modullal egy tantárgynál! A gyakorlati képzések mindig tucatnyi specifikus munkafázisból, szerelési/készítési lépésből és mérésből állnak. Ezeket mind külön-külön 'practicalModules' elemként rögzítsd!
+      7. Egy tantárgyhoz ÁLTALÁBAN 10-30 ilyen apró elméleti és 10-20 gyakorlati modul tartozik. Ha egy tantárgynál csak 1-2 modult listázol ki, akkor HIBÁZTÁL. Szigorúan kövesd végig az összes apró résztémát!
+      8. A 'detailedContent' mező legyen alapos. Gyakorlati moduloknál a feladat pontos lépéseit és elvárt eredményeit is rögzítsd.
+      9. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! Kizárólag a szakmai tantárgyakat és a konkrét elméleti/gyakorlati témaköröket keresd!
       
       PTT Szöveg (Programtanterv - Itt vannak a konkrét tantárgyak és modulok!):
       ${pttText.substring(0, 350000)}
