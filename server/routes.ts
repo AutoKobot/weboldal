@@ -472,18 +472,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  );
                  
                  if (!existingSubject) {
-                   existingSubject = { ...subject, modules: [] };
+                   existingSubject = { ...subject, theoryModules: [], practicalModules: [] };
                    mergedCurriculum.subjects.push(existingSubject);
                  }
                  
-                 // Merge modules
-                 if (subject.modules && Array.isArray(subject.modules)) {
-                   for (const mod of subject.modules) {
-                     const isDuplicate = existingSubject.modules.find((m: any) => 
+                 // Merge theory modules
+                 if (subject.theoryModules && Array.isArray(subject.theoryModules)) {
+                   for (const mod of subject.theoryModules) {
+                     const isDuplicate = existingSubject.theoryModules.find((m: any) => 
                        m.title.toLowerCase().trim() === mod.title.toLowerCase().trim()
                      );
                      if (!isDuplicate) {
-                       existingSubject.modules.push(mod);
+                       existingSubject.theoryModules.push(mod);
+                     }
+                   }
+                 }
+                 
+                 // Merge practical modules
+                 if (subject.practicalModules && Array.isArray(subject.practicalModules)) {
+                   for (const mod of subject.practicalModules) {
+                     const isDuplicate = existingSubject.practicalModules.find((m: any) => 
+                       m.title.toLowerCase().trim() === mod.title.toLowerCase().trim()
+                     );
+                     if (!isDuplicate) {
+                       existingSubject.practicalModules.push(mod);
                      }
                    }
                  }
@@ -518,25 +530,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let modulesCreated = 0;
 
       for (const sub of curriculum.subjects) {
-        const newSubject = await storage.createSubject({
-          name: sub.name,
-          description: sub.description,
-          professionId: newProfession.id
-        });
-        subjectsCreated++;
-
-        let moduleCounter = 1;
-        for (const mod of sub.modules) {
-          const newModule = await storage.createModule({
-            title: mod.title,
-            content: mod.detailedContent || mod.conciseContent,
-            conciseContent: mod.conciseContent,
-            detailedContent: mod.detailedContent,
-            subjectId: newSubject.id,
-            moduleNumber: moduleCounter++,
-            isPublished: false 
+        // Create Theory Subject if there are theory modules
+        if (sub.theoryModules && sub.theoryModules.length > 0) {
+          const theorySubject = await storage.createSubject({
+            name: sub.name,
+            description: sub.description,
+            type: "theory",
+            professionId: newProfession.id
           });
-          modulesCreated++;
+          subjectsCreated++;
+
+          let moduleCounter = 1;
+          for (const mod of sub.theoryModules) {
+            await storage.createModule({
+              title: mod.title,
+              content: mod.detailedContent || mod.conciseContent,
+              conciseContent: mod.conciseContent,
+              detailedContent: mod.detailedContent,
+              subjectId: theorySubject.id,
+              moduleNumber: moduleCounter++,
+              isPublished: false 
+            });
+            modulesCreated++;
+          }
+        }
+
+        // Create Practical Subject if there are practical modules
+        if (sub.practicalModules && sub.practicalModules.length > 0) {
+          const practicalSubject = await storage.createSubject({
+            name: sub.name, // The UI will display it under "Gyakorlati képzés"
+            description: sub.description,
+            type: "practical",
+            professionId: newProfession.id
+          });
+          subjectsCreated++;
+
+          let moduleCounter = 1;
+          for (const mod of sub.practicalModules) {
+            await storage.createModule({
+              title: mod.title,
+              content: mod.detailedContent || mod.conciseContent,
+              conciseContent: mod.conciseContent,
+              detailedContent: mod.detailedContent,
+              subjectId: practicalSubject.id,
+              moduleNumber: moduleCounter++,
+              isPublished: false 
+            });
+            modulesCreated++;
+          }
         }
       }
 
