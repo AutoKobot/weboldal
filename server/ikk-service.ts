@@ -231,7 +231,7 @@ ${chunk}
   buildContentPrompt(professionName: string, subjectName: string, modules: RawModule[]): string {
     const moduleList = modules.map((m, i) => `${i + 1}. [${m.type.toUpperCase()}] ${m.title}`).join('\n');
     return `
-Te egy szakképzési tananyagfejlesztő vagy. Az alábbi modulok MINDEGYIKÉHEZ generálj szakmai szöveges tartalmat.
+Te egy szakképzési tananyagfejlesztő és módszertani szakértő vagy. Az alábbi modulok MINDEGYIKÉHEZ generálj szakmai szöveges tartalmat.
 
 Szakma: ${professionName}
 Tantárgy: ${subjectName}
@@ -241,11 +241,19 @@ ${moduleList}
 
 KÖVETELMÉNYEK:
 - Minden modulhoz PONTOSAN 2 mezőt generálj (ne hagyj ki egyet sem!):
-  "conciseContent" → 3-5 tömör, szakmai összefoglaló mondat
-  "detailedContent" → 8-12 részletes szakmai mondat
-    • THEORY modulnál: Elmélet, fogalmak, szabványok, összefüggések kifejtése
-    • PRACTICAL modulnál: Lépésről-lépésre munkafolyamat, eszközök, biztonsági előírások, ellenőrzési módszer
-- A tartalom legyen szakmailag pontos és érthető egy szakképzős diáknak
+  "conciseContent" → 3-5 tömör, szakmai összefoglaló mondat, ami a diákok számára egyértelművé teszi a modul célját.
+  "detailedContent" → 10-15 részletes, jól strukturált (markdown használható) szakmai mondat.
+    
+    • THEORY (elméleti) modulnál: 
+      - Fogalmak, szabványok, összefüggések és a technológia részletes kifejtése.
+    
+    • PRACTICAL (gyakorlati) modulnál SZIGORÚAN TARTALMAZNIA KELL a következőket (HTML/Markdown listákkal):
+      - Szükséges eszközök és anyagok listája.
+      - Biztonságtechnikai és munkavédelmi előírások.
+      - Lépésről-lépésre történő munkafolyamat leírás (mit és hogyan kell csinálni).
+      - Pontos értékelési és osztályozási szempontok a tanár számára (pl. mi számít 5-ös, 4-es munkának, mik a buktatók, pontossági tűrések). Ez kritikus fontosságú a gyakorlati jegyadáshoz!
+
+- A tartalom legyen szakmailag pontos, érthető egy szakképzős diáknak, ugyanakkor a tanár számára is adjon egyértelmű kereteket a számonkéréshez.
 - A "title" mezőt VÁLTOZTATÁS NÉLKÜL másold át az eredeti listából!
 
 VÁLASZ (CSAK JSON, semmi más):
