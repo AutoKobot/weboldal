@@ -6683,7 +6683,13 @@ Platform funkciók és navigáció:
 
       // Get the custom module update message from settings
       const moduleUpdateMessageSetting = await storage.getSystemSetting('ai_module_update_message');
-      const customSystemMessage = moduleUpdateMessageSetting?.value || 'Frissítsd a következő tananyag modult. Használj szakmai nyelvezetet, de egyszerű magyarázatokat. Tartsd meg a lényeges információkat és javítsd a szerkezetet. A tartalom legyen logikus és könnyen érthető. FONTOS: Automatikusan adj hozzá Wikipedia hivatkozásokat a szakmai kifejezésekhez és fogalmakhoz - használj [szöveg](https://hu.wikipedia.org/wiki/Címszó) formátumot. Keress releváns YouTube videó témákat és adj hozzá DataForSEO alapú friss információkat a tartalom gazdagításához.';
+      
+      let customSystemMessage = moduleUpdateMessageSetting?.value || 'Frissítsd a következő tananyag modult. Használj szakmai nyelvezetet, de egyszerű magyarázatokat. Tartsd meg a lényeges információkat és javítsd a szerkezetet. A tartalom legyen logikus és könnyen érthető. FONTOS: Automatikusan adj hozzá Wikipedia hivatkozásokat a szakmai kifejezésekhez és fogalmakhoz - használj [szöveg](https://hu.wikipedia.org/wiki/Címszó) formátumot. Keress releváns YouTube videó témákat és adj hozzá DataForSEO alapú friss információkat a tartalom gazdagításához.';
+
+      // Apply specific prompt for practical modules
+      if (subject?.type === 'practical') {
+        customSystemMessage = 'Dolgozd ki részletesen a megadott GYAKORLATI FELADATOT. A leírásod legyen egy műhelyszintű, lépésről lépésre haladó útmutató (Step-by-step). Mindenképp térj ki az alábbiakra: Szükséges anyagok és szerszámok listája, Balesetvédelmi és munkavédelmi előírások, A feladat végrehajtásának pontos műveleti sorrendje, és a Késztermék/Eredmény minőség-ellenőrzése. Kérlek használj Wikipedia hivatkozásokat a szerszámoknál/anyagoknál [szöveg](https://hu.wikipedia.org/wiki/Címszó) formátumban. Ne adj elméleti tankönyvi bevezetőt, a gyakorlati megvalósításra koncentrálj!';
+      }
 
       try {
         // Use queue manager for safe concurrent processing
