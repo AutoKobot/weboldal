@@ -152,8 +152,9 @@ export class IKKService {
       1. NE ÖSSZEFOGLALJ! A cél nem egy rövid vázlat, hanem a teljes képzési terv digitalizálása.
       2. Minden egyes tantárgyat (Subject) vegyél fel, ami a Programtantervben (PTT) szerepel az adott szövegrészletben.
       3. Minden tantárgy alatt sorold fel az ÖSSZES hozzá tartozó tananyagegységet/modult (Module). Ne hagyj ki egyet sem!
-      4. A 'detailedContent' mező legyen alapos, tartalmazza a konkrét szakmai kulcsszavakat, eszközöket és munkafolyamatokat.
-      5. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! A szövegben a táblázatokból származó ismétlődő, ömlesztett adatok (pl. óraszámok, vizsgakövetelmények) nem a tananyag részei. Ne csinálj modult a vizsgákból vagy az általános óraszám-táblázatokból! Kizárólag a szakmai tantárgyakat és a konkrét szakmai témaköröket (modulokat) keresd!
+      4. KÜLÖNÖS TEKINTETTEL FIGYELD A SORSZÁMOZÁST! A dokumentum logikai felépítését a számozott bekezdések adják (pl. 3.1, 3.4.1 a tantárgy, 3.4.1.6.1 a témakörök/modulok). Használd ezeket a számozásokat a tantárgyak és a hozzájuk tartozó modulok pontos beazonosítására!
+      5. A 'detailedContent' mező legyen alapos, tartalmazza a konkrét szakmai kulcsszavakat, eszközöket és munkafolyamatokat.
+      6. HAGYD FIGYELMEN KÍVÜL A TÁBLÁZATOKAT! A szövegben a táblázatokból származó ismétlődő, ömlesztett adatok (pl. óraszámok, vizsgakövetelmények) nem a tananyag részei. Ne csinálj modult a vizsgákból vagy az általános óraszám-táblázatokból! Kizárólag a szakmai tantárgyakat és a konkrét szakmai témaköröket (modulokat) keresd!
       
       PTT Szöveg (Programtanterv - Itt vannak a konkrét tantárgyak és modulok!):
       ${pttText.substring(0, 350000)}
