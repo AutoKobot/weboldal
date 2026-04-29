@@ -95,6 +95,7 @@ import {
   announcementAcknowledgements,
   type ClassAnnouncement,
   type InsertClassAnnouncement,
+  type AnnouncementAcknowledgement,
   type InsertAnnouncementAcknowledgement,
   practicalGrades,
   type PracticalGrade,
@@ -740,8 +741,8 @@ export class DatabaseStorage implements IStorage {
       // ── Lépés 19: Referenciák törlése és nullázása ────────────────────────────
       await safeStep("References cleanup", async () => {
         await db.update(classes).set({ assignedTeacherId: null }).where(eq(classes.assignedTeacherId, id));
-        await db.update(systemSettings).set({ updatedBy: null }).where(eq(systemSettings.updatedBy, id));
-        await db.update(aiSettings).set({ updatedBy: null }).where(eq(aiSettings.updatedBy, id));
+        await db.update(systemSettings).set({ updatedBy: sql`NULL` }).where(eq(systemSettings.updatedBy, id));
+        await db.update(aiSettings).set({ updatedBy: sql`NULL` }).where(eq(aiSettings.updatedBy, id));
         await db.update(users).set({ schoolAdminId: null }).where(eq(users.schoolAdminId, id));
         await db.update(professions).set({ schoolAdminId: null }).where(eq(professions.schoolAdminId, id));
         await db.update(subjects).set({ schoolAdminId: null }).where(eq(subjects.schoolAdminId, id));
@@ -1393,18 +1394,18 @@ export class DatabaseStorage implements IStorage {
     return discussion;
   }
 
-  async deleteNotification(id: number): Promise<void> {
-    await db.delete(notifications).where(eq(notifications.id, id));
+  async deleteDiscussion(id: number): Promise<void> {
+    await db.delete(discussions).where(eq(discussions.id, id));
   }
 
   // Background Job operations
   async createBackgroundJob(type: string, message: string, data?: any): Promise<any> {
-    const [job] = await db.execute(sql`
+    const result = await db.execute(sql`
       INSERT INTO background_jobs (type, status, progress, message, data)
       VALUES (${type}, 'processing', 0, ${message}, ${JSON.stringify(data) || null})
       RETURNING *
     `);
-    return job;
+    return result.rows[0];
   }
 
   async updateBackgroundJob(id: number, update: { status?: string, progress?: number, message?: string, error?: string, data?: any }): Promise<void> {
@@ -1422,13 +1423,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLatestBackgroundJob(type: string): Promise<any> {
-    const [job] = await db.execute(sql`
+    const result = await db.execute(sql`
       SELECT * FROM background_jobs 
       WHERE type = ${type}
       ORDER BY created_at DESC 
       LIMIT 1
     `);
-    return job;
+    return result.rows[0];
   }
 
   async pinDiscussion(id: number, pinned: boolean): Promise<void> {
@@ -1656,6 +1657,7 @@ export class DatabaseStorage implements IStorage {
         id: classes.id,
         name: classes.name,
         description: classes.description,
+        schoolId: classes.schoolId,
         schoolAdminId: classes.schoolAdminId,
         assignedTeacherId: classes.assignedTeacherId,
         professionId: classes.professionId,
@@ -1943,8 +1945,8 @@ export class DatabaseStorage implements IStorage {
         costUsd: (estimatedCost * 1.5).toFixed(4),
         userId: null,
         moduleId: null,
-        requestData: { type: 'ai_generation', service: service },
-        responseData: { success: true, provider: provider },
+        requestData: JSON.stringify({ type: 'ai_generation', service: service }),
+        responseData: JSON.stringify({ success: true, provider: provider }),
         createdAt: new Date()
       });
 
@@ -2223,6 +2225,16 @@ export class DatabaseStorage implements IStorage {
       .update(notifications)
       .set({ isRead: true })
       .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  }
+
+  async getTestResultForModule(userId: string, moduleId: number): Promise<TestResult | undefined> {
+    const [result] = await db
+      .select()
+      .from(testResults)
+      .where(and(eq(testResults.userId, userId), eq(testResults.moduleId, moduleId)))
+      .orderBy(desc(testResults.createdAt))
+      .limit(1);
+    return result;
   }
 
   async deleteNotification(id: number, userId: string): Promise<void> {
