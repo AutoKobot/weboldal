@@ -30,6 +30,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Static files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+  // Logging for API requests to help debugging
+  app.use('/api', (req, res, next) => {
+    console.log(`[API-DEBUG] ${req.method} ${req.url}`);
+    next();
+  });
+
   // Module Routes
   app.use('/api/admin', adminRouter);
   app.use('/api/school-admin', schoolAdminRouter);
@@ -46,8 +52,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/gamification', gamificationRouter);
   app.use('/api/messages', messagesRouter);
   app.use('/api/privacy', privacyRouter);
-  app.use(['/api/external', '/api/admin'], externalApisRouter);
-  app.use(['/api/public', '/api'], contentRouter); // Mount last as it's the most generic
+  app.use('/api/public', contentRouter);
+  app.use('/api', contentRouter);
+
+  // Global API 404 handler - MUST be after all API routers but BEFORE the SPA fallback
+  app.use('/api/*', (req, res) => {
+    console.log(`[API-404] Route not found: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ 
+      message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+      hint: "Ellenőrizd az útvonalat és a HTTP metódust!"
+    });
+  });
 
   const httpServer = createServer(app);
   return httpServer;

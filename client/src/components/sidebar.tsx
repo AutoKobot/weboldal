@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link, useLocation } from "wouter";
-import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, Users, Search, X, School, User as UserIcon, MessageSquare, Camera } from "lucide-react";
+import { GraduationCap, Home, BookOpen, TrendingUp, Bot, Settings, LogOut, Users, Search, X, School, User as UserIcon, MessageSquare, Camera, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { User } from "@shared/schema";
 import { useState, useEffect } from "react";
@@ -54,6 +54,14 @@ export default function Sidebar({ user }: SidebarProps) {
     queryKey: ['/api/public/modules'],
     retry: false,
   });
+
+  // Fetch AI queue status
+  const { data: queueStatus } = useQuery<any>({
+    queryKey: ["/api/ai/queue-status"],
+    refetchInterval: (data: any) => (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 30000,
+  });
+
+  const totalActive = (queueStatus?.queueSize || 0) + (queueStatus?.processing || 0);
 
   // Search function
   const performSearch = (query: string) => {
@@ -196,6 +204,23 @@ export default function Sidebar({ user }: SidebarProps) {
     <aside className="w-64 bg-white shadow-lg h-full flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-neutral-100 flex-shrink-0 bg-[#635c5c4f]">
+        
+        {totalActive > 0 && (
+          <div className="mb-6 p-3 bg-blue-50/50 border border-blue-100 rounded-lg animate-pulse">
+            <div className="flex items-center gap-2 text-blue-600 mb-1">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">AI Háttérmunka</span>
+            </div>
+            <p className="text-xs text-blue-700 font-medium">
+              {queueStatus?.processing > 0 ? "Feldolgozás alatt..." : "Várakozás a sorban..."}
+            </p>
+            <div className="mt-2 h-1 w-full bg-blue-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: '40%' }}></div>
+            </div>
+            <p className="mt-1 text-[10px] text-blue-500 text-right">{totalActive} elem hátralévő</p>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-700 rounded-lg flex items-center justify-center">

@@ -45,7 +45,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   const generateQuizMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/modules/${moduleId}/quiz`);
+      const response = await apiRequest('GET', `/api/modules/${moduleId}/quiz`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Ismeretlen hiba történt' }));
         throw new Error(errorData.message || 'Nem sikerült a kvíz betöltése');
@@ -291,9 +291,21 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">Változatos kérdéstípusok (sorrend, választás, ikonok) várnak rád.</p>
-          <Button onClick={() => generateQuizMutation.mutate()} disabled={generateQuizMutation.isPending} size="lg">
-            {generateQuizMutation.isPending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Feldolgozás...</>) : "Indítás"}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => generateQuizMutation.mutate()} disabled={generateQuizMutation.isPending} size="lg">
+              {generateQuizMutation.isPending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Feldolgozás...</>) : "Indítás"}
+            </Button>
+            {generateQuizMutation.isError && (
+              <Button variant="outline" onClick={() => {
+                // Manually trigger regeneration if quiz is missing
+                apiRequest('POST', `/api/modules/${moduleId}/regenerate-quizzes`).then(() => {
+                  toast({ title: "Újragenerálás elindítva", description: "Várj pár másodpercet a háttérfolyamatra..." });
+                });
+              }}>
+                Teszt újragenerálása (Admin)
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     );

@@ -12,7 +12,7 @@ import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
@@ -1026,44 +1026,68 @@ export default function ModuleViewer() {
 
                         return (
                           <div className="mt-8 border-t pt-6">
-                            <h3 className="text-lg font-semibold mb-4 text-primary flex items-center">
-                              <Youtube className="w-5 h-5 mr-2" />
+                            <h3 className="text-xl font-bold mb-6 text-primary flex items-center gap-2">
+                              <PlayCircle className="text-red-600" />
                               Kulcsfogalmak videókkal
                             </h3>
-                            {keyConceptsData?.map((concept: any, index: number) => (
-                              <div key={index} className="mb-6 p-4 bg-student-warm rounded-lg">
-                                <h4 className="font-semibold text-neutral-800 mb-2">{concept.concept}</h4>
-                                <p className="text-neutral-700 mb-3">{concept.definition}</p>
-                                {concept.youtubeVideos && concept.youtubeVideos.length > 0 && (
-                                  <div className="space-y-2">
-                                    <h5 className="text-sm font-medium text-neutral-600">Kapcsolódó videók:</h5>
-                                    {concept.youtubeVideos?.map((video: any, videoIndex: number) => (
-                                      <button
-                                        key={videoIndex}
-                                        onClick={() => {
-                                          setSelectedYoutubeVideo({
-                                            title: video.title,
-                                            videoId: video.videoId
-                                          });
-                                          setShowYoutubeModal(true);
-                                        }}
-                                        className="flex items-center gap-3 p-3 bg-student-warm rounded border hover:border-red-300 hover:bg-red-50 transition-colors w-full text-left"
-                                      >
-                                        <Youtube className="w-5 h-5 text-red-600 flex-shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-sm font-medium text-neutral-900 truncate">
-                                            {video.title}
-                                          </div>
-                                          <div className="text-xs text-neutral-600 line-clamp-2">
-                                            {video.description}
-                                          </div>
-                                        </div>
-                                      </button>
-                                    ))}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {keyConceptsData?.map((concept: any, index: number) => (
+                                <div key={index} className="flex flex-col bg-student-warm rounded-xl border border-neutral-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                  <div className="p-4 border-b border-neutral-100">
+                                    <h4 className="font-bold text-neutral-800 mb-1">{concept.concept}</h4>
+                                    <p className="text-sm text-neutral-600 italic line-clamp-3">{concept.definition}</p>
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                  
+                                  <div className="flex-1 bg-neutral-50/50">
+                                    {concept.youtubeVideos && concept.youtubeVideos.length > 0 ? (
+                                      <div className="space-y-1">
+                                        {concept.youtubeVideos?.slice(0, 2).map((video: any, videoIndex: number) => (
+                                          <button
+                                            key={videoIndex}
+                                            onClick={() => {
+                                              setSelectedYoutubeVideo({
+                                                title: video.title,
+                                                videoId: video.videoId
+                                              });
+                                              setShowYoutubeModal(true);
+                                            }}
+                                            className="flex items-center gap-3 p-3 w-full text-left hover:bg-red-50 group transition-colors"
+                                          >
+                                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-600 transition-colors">
+                                              <Youtube className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-semibold text-neutral-900 truncate">
+                                                {video.title}
+                                              </div>
+                                              <div className="text-xs text-neutral-500 line-clamp-1">
+                                                Megtekintés a YouTube-on
+                                              </div>
+                                            </div>
+                                          </button>
+                                        ))}
+                                      </div>
+                                      ) : (
+                                        <div className="p-6 flex flex-col items-center justify-center text-center">
+                                          <div className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center mb-2">
+                                            <Search className="w-5 h-5 text-neutral-400" />
+                                          </div>
+                                          <p className="text-xs font-medium text-neutral-500 mb-2">Nem találtunk konkrét videót</p>
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-8 text-xs gap-1.5 border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200"
+                                            onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(concept.concept + ' oktatás')}`, '_blank')}
+                                          >
+                                            <Youtube className="w-3.5 h-3.5" />
+                                            Keresés a YouTube-on
+                                          </Button>
+                                        </div>
+                                      )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         );
                       } catch (error) {

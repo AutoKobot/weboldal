@@ -413,12 +413,18 @@
   }
 
   /* Allow selection only where it makes sense */
-  .prose, .prose *, .allow-select, input, textarea {
+  .prose, .prose *, .allow-select {
     @apply select-text;
+    cursor: default; /* Prevent the I-beam cursor on static text to avoid 'editable' feel */
+  }
+
+  input, textarea, [contenteditable="true"] {
+    @apply select-text;
+    cursor: text;
   }
   
-  .prose {
-    cursor: auto;
+  .prose h1, .prose h2, .prose h3, .prose p, .prose li {
+    cursor: default;
   }
 
   h1, h2, h3, h4, h5, h6 {

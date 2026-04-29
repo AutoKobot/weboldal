@@ -1587,43 +1587,55 @@ KÖTELEZŐ ELEM: A válaszba illessz be egy Mermaid diagramot (pl. mermaid graph
 
     // Process only 2 most important terms to reduce API calls
     for (const searchTerm of searchTerms.slice(0, 2)) {
-      try {
-        console.log(`🎥 YouTube API call for: "${searchTerm}"`);
+      if (!searchTerm || typeof searchTerm !== 'string' || searchTerm.length < 2) continue;
+      
+      // Safety check: if searchTerm is suspiciously long (e.g., a whole article), truncate it
+      const safeSearchTerm = searchTerm.length > 60 ? searchTerm.substring(0, 60).split('.')[0] : searchTerm;
 
-        // Use optimized cached search
+      try {
+        console.log(`🎥 YouTube API call for: "${safeSearchTerm}"`);
+
         // Use optimized cached search with fallback
-        let educationalQuery = `${searchTerm} oktatás`;
+        let educationalQuery = `${safeSearchTerm} oktatás`;
         let youtubeVideos = await this.searchYouTubeWithCache(educationalQuery);
 
         // If no videos found with "oktatás" suffix, try broader search
         if (!youtubeVideos || youtubeVideos.length === 0) {
-          console.log(`⚠️ No videos found for "${educationalQuery}", trying broader search: "${searchTerm}"`);
-          youtubeVideos = await this.searchYouTubeWithCache(searchTerm);
+          console.log(`⚠️ No videos found for "${educationalQuery}", trying broader search: "${safeSearchTerm}"`);
+          youtubeVideos = await this.searchYouTubeWithCache(safeSearchTerm);
         }
 
-        // Generate AI definition for the concept
-        const definitionPrompt = `Adj egy rövid szakmai definíciót erre a fogalomra: "${searchTerm}". Csak 1-2 mondat, magyar nyelven.`;
-        let definition = `Szakmai fogalom: ${searchTerm}`;
+        // Generate AI definition for the concept - STRICT LENGTH LIMIT
+        const definitionPrompt = `Adj egy NAGYON RÖVID szakmai definíciót (MAXIMUM 20 SZÓ) erre a fogalomra: "${safeSearchTerm}". Magyar nyelven válaszolj.`;
+        let definition = `Szakmai fogalom: ${safeSearchTerm}`;
 
         try {
           const { generateChatResponse } = await import('./openai');
           const defResponse = await generateChatResponse(definitionPrompt, 'chat');
-          definition = defResponse.message.trim();
+          const cleanDef = defResponse.message.trim();
+          
+          // Safety check for definition length
+          if (cleanDef.length > 0 && cleanDef.length < 300) {
+            definition = cleanDef;
+          } else if (cleanDef.length >= 300) {
+            console.log(`⚠️ Definition too long (${cleanDef.length} chars), using fallback`);
+            definition = `A(z) ${safeSearchTerm} egy fontos szakmai fogalom a tananyagban.`;
+          }
         } catch (defError) {
-          console.log(`Definition generation failed for: "${searchTerm}"`);
+          console.log(`Definition generation failed for: "${safeSearchTerm}"`);
         }
 
         enrichedConcepts.push({
-          concept: searchTerm,
+          concept: safeSearchTerm,
           definition,
           youtubeVideos
         });
 
       } catch (error) {
-        console.error(`❌ Error processing YouTube search for "${searchTerm}":`, error);
+        console.error(`❌ Error processing YouTube search for "${safeSearchTerm}":`, error);
         enrichedConcepts.push({
-          concept: searchTerm,
-          definition: `Szakmai fogalom: ${searchTerm}`,
+          concept: safeSearchTerm,
+          definition: `Szakmai fogalom: ${safeSearchTerm}`,
           youtubeVideos: []
         });
       }

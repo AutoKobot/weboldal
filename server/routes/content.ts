@@ -17,6 +17,75 @@ const checkContentEditor = (req: any, res: any, next: any) => {
   return res.status(403).json({ message: "Access denied. Teacher or Admin role required." });
 };
 
+// --- Quizzes (Prioritized) ---
+router.post('/modules/:id/quiz-result', combinedAuth, async (req: any, res) => {
+  try {
+    const moduleId = parseInt(req.params.id);
+    const { score, maxScore, passed, details } = req.body;
+    const result = await storage.createTestResult({
+      userId: req.user.id, moduleId, score, maxScore, passed, details: details || {}, createdAt: new Date()
+    });
+    if (passed) {
+      const user = await storage.getUser(req.user.id);
+      if (user && !user.completedModules?.includes(moduleId)) {
+        await storage.updateUserCompletedModules(req.user.id, [...(user.completedModules || []), moduleId]);
+      }
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to save result" });
+  }
+});
+
+router.post('/quiz/evaluate', combinedAuth, async (req: any, res) => {
+  try {
+    const { question, correctAnswer, userAnswer, explanation } = req.body;
+    const { evaluateAnswer } = await import('../openai');
+    const evaluation = await evaluateAnswer(question, correctAnswer, userAnswer, explanation);
+    res.json(evaluation);
+  } catch (error) {
+    console.error("Evaluation error:", error);
+    res.status(500).json({ message: "Failed to evaluate answer" });
+  }
+});
+
+router.get('/modules/:id/quiz', combinedAuth, async (req: any, res) => {
+  try {
+    const moduleId = parseInt(req.params.id);
+    const module = await storage.getModule(moduleId);
+    if (!module || !module.generatedQuizzes || !Array.isArray(module.generatedQuizzes) || module.generatedQuizzes.length === 0) {
+      return res.status(404).json({ message: "Nincs kvíz generálva ehhez a modulhoz. Kérd meg a tanárod az újragenerálásra!", needsRegeneration: true });
+    }
+    const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
+    res.json({ questions: module.generatedQuizzes[randomIndex] });
+  } catch (error) {
+    console.error("Quiz load error:", error);
+    res.status(500).json({ message: "Failed to load quiz" });
+  }
+});
+
+router.post('/modules/:id/flashcards/import', combinedAuth, checkContentEditor, upload.single('file'), async (req: any, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Nincs fájl' });
+    const moduleId = parseInt(req.params.id);
+    const csvData = fs.readFileSync(req.file.path, 'utf-8');
+    const records = parse(csvData, { columns: true, skip_empty_lines: true });
+
+    const toInsert = records.map((r: any) => ({
+      moduleId,
+      front: String(r.Front || r.Question || Object.values(r)[0] || '').trim(),
+      back: String(r.Back || r.Answer || Object.values(r)[1] || '').trim(),
+    })).filter((f: any) => f.front && f.back);
+
+    if (toInsert.length === 0) return res.status(400).json({ message: 'Nincs érvényes kártya' });
+    const inserted = await storage.bulkCreateFlashcards(toInsert);
+    fs.unlinkSync(req.file.path);
+    res.status(201).json({ count: inserted.length });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to import" });
+  }
+});
+
 // --- Professions ---
 router.get('/professions', combinedAuth, async (req: any, res) => {
   try {
@@ -178,61 +247,6 @@ router.get('/modules/:id/flashcards', combinedAuth, async (req: any, res) => {
     res.json(flashcards);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch flashcards" });
-  }
-});
-
-router.post('/modules/:id/flashcards/import', combinedAuth, checkContentEditor, upload.single('file'), async (req: any, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'Nincs fájl' });
-    const moduleId = parseInt(req.params.id);
-    const csvData = fs.readFileSync(req.file.path, 'utf-8');
-    const records = parse(csvData, { columns: true, skip_empty_lines: true });
-
-    const toInsert = records.map((r: any) => ({
-      moduleId,
-      front: String(r.Front || r.Question || Object.values(r)[0] || '').trim(),
-      back: String(r.Back || r.Answer || Object.values(r)[1] || '').trim(),
-    })).filter((f: any) => f.front && f.back);
-
-    if (toInsert.length === 0) return res.status(400).json({ message: 'Nincs érvényes kártya' });
-    const inserted = await storage.bulkCreateFlashcards(toInsert);
-    fs.unlinkSync(req.file.path);
-    res.status(201).json({ count: inserted.length });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to import" });
-  }
-});
-
-// --- Quizzes ---
-router.post('/modules/:id/quiz-result', combinedAuth, async (req: any, res) => {
-  try {
-    const moduleId = parseInt(req.params.id);
-    const { score, maxScore, passed, details } = req.body;
-    const result = await storage.createTestResult({
-      userId: req.user.id, moduleId, score, maxScore, passed, details: details || {}, createdAt: new Date()
-    });
-    if (passed) {
-      const user = await storage.getUser(req.user.id);
-      if (user && !user.completedModules?.includes(moduleId)) {
-        await storage.updateUserCompletedModules(req.user.id, [...(user.completedModules || []), moduleId]);
-      }
-    }
-    res.status(201).json(result);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to save result" });
-  }
-});
-
-router.get('/modules/:id/quiz', combinedAuth, async (req: any, res) => {
-  try {
-    const module = await storage.getModule(parseInt(req.params.id));
-    if (!module || !module.generatedQuizzes?.length) {
-      return res.status(404).json({ message: "Nincs kvíz generálva", needsRegeneration: true });
-    }
-    const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
-    res.json({ questions: module.generatedQuizzes[randomIndex] });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load quiz" });
   }
 });
 

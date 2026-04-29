@@ -7,6 +7,12 @@ import fs from "fs";
 import path from "path";
 import { promisify } from "util";
 
+export interface QuizEvaluation {
+  score: number;
+  feedback: string;
+  isCorrect: boolean;
+}
+
 /**
  * Fix common Mermaid diagram syntax errors in AI-generated content
  */
@@ -1156,5 +1162,52 @@ export async function generatePresentationImage(prompt: string): Promise<string>
   } catch (error) {
     console.error("Image generation error:", error);
     return "";
+  }
+}
+export async function evaluateAnswer(
+  question: string,
+  correctAnswer: string,
+  userAnswer: string,
+  explanation: string
+): Promise<QuizEvaluation> {
+  try {
+    const openai = await getOpenAIClient();
+
+    const prompt = `Te egy szakértő magyar oktató vagy. Értékeld a diák válaszát a megadott kérdésre.
+    
+Kérdés: "${question}"
+Helyes válasz: "${correctAnswer}"
+Diák válasza: "${userAnswer}"
+Tanári magyarázat a témához: "${explanation}"
+
+Értékelési szempontok:
+1. Ha a diák válasza lényegében megegyezik a helyessel (szinonimák, hasonló megfogalmazás), adj 100 pontot.
+2. Ha részben helyes vagy hiányos, adj 30-70 pontot.
+3. Ha teljesen téves, adj 0 pontot.
+4. Adj rövid, bátorító visszajelzést magyarul.
+
+Válaszolj KIZÁRÓLAG JSON formátumban:
+{
+  "score": szám (0-100),
+  "feedback": "szöveges visszajelzés",
+  "isCorrect": boolean (true ha score >= 60)
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{"score": 0, "feedback": "Hiba az értékelés során", "isCorrect": false}');
+    return result;
+  } catch (error) {
+    console.error("Answer evaluation error:", error);
+    return {
+      score: 0,
+      feedback: "Sajnálom, nem sikerült kiértékelni a választ az AI hiba miatt.",
+      isCorrect: false
+    };
   }
 }

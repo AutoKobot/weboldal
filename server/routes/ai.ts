@@ -292,6 +292,7 @@ router.post('/modules/:id/regenerate', combinedAuth, async (req: any, res) => {
     console.log(`[AI-REGENERATE] Content generated successfully. Saving to database...`);
 
     const updatedModule = await storage.updateModule(moduleId, {
+      content: enhancedContent.detailedVersion, // Sync main content with detailed version
       conciseContent: enhancedContent.conciseVersion,
       detailedContent: enhancedContent.detailedVersion,
       keyConceptsData: enhancedContent.keyConceptsWithVideos,
