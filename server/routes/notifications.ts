@@ -35,7 +35,7 @@ router.get('/stream', combinedAuth, (req: any, res) => {
 
 router.patch('/:id/read', combinedAuth, async (req: any, res) => {
   try {
-    await storage.markNotificationRead(parseInt(req.params.id));
+    await storage.markNotificationRead(parseInt(req.params.id), req.user.id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: "Error" });
@@ -53,7 +53,7 @@ router.post('/read-all', combinedAuth, async (req: any, res) => {
 
 router.delete('/:id', combinedAuth, async (req: any, res) => {
   try {
-    await storage.deleteNotification(parseInt(req.params.id));
+    await storage.deleteNotification(parseInt(req.params.id), req.user.id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: "Error" });

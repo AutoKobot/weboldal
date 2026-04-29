@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, Menu, ArrowRight, Brain, Play, Flame, BarChart3, AlertCircle,
   CheckCircle2, Users, GraduationCap, TrendingUp, Award, Clock, XCircle,
-  ChevronRight, FileText, Bot, MessageSquare, Wrench, Search
+  ChevronRight, FileText, Bot, MessageSquare, Wrench, Search, Sparkles
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
 import { StudentAvatar } from "@/components/StudentAvatar";
@@ -796,7 +796,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                             <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
                             {cls.name}
                           </span>
-                          <UiBadge variant="secondary" className="text-[10px] px-1.5 py-0">{clsStudents.length} tanuló</UiBadge>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{clsStudents.length} tanuló</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 px-4 pb-3">
@@ -848,7 +848,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                 <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <XCircle className="h-5 w-5 text-red-500" />
                   Még nem kezdett el egy modult sem ({noActivityStudents.length} tanuló)
-                  <UiBadge variant="destructive" className="ml-1">{noActivityStudents.length}</UiBadge>
+                  <Badge variant="destructive" className="ml-1">{noActivityStudents.length}</Badge>
                 </h2>
                 <Card className="shadow-sm border-0 ring-1 ring-red-100">
                   <CardContent className="p-0">
@@ -868,8 +868,8 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              {cls && <UiBadge variant="outline" className="text-xs">{cls.name}</UiBadge>}
-                              <UiBadge variant="secondary" className="text-xs">
+                              <Badge variant="outline" className="text-xs">{cls.name}</Badge>  
+                              <Badge variant="secondary" className="text-xs">
                                 {s.completedModules?.length || 0} modul kész
                               </UiBadge>
                               <XCircle className="h-4 w-4 text-red-400" />
@@ -900,22 +900,6 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
 
         </main>
       </div>
-    </div>
-  );
-}
-
-// Komponens definícióhoz tartozó import pótlás, egyedi Badge-re a ShadcnUI-ból
-function Badge({ children, className, variant = "default" }: { children: React.ReactNode, className?: string, variant?: "default" | "secondary" | "destructive" | "outline" }) {
-  const baseStyle = "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
-  const variants = {
-    default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-    secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-    destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-    outline: "text-foreground",
-  };
-  return (
-    <div className={`${baseStyle} ${variants[variant]} ${className}`}>
-      {children}
     </div>
   );
 }
