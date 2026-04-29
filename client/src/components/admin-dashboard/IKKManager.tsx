@@ -49,6 +49,9 @@ export function IKKManager() {
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Limit display to 24 items to prevent browser freeze
+  const displayedProfessions = filteredProfessions.slice(0, 24);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -64,6 +67,11 @@ export function IKKManager() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {searchTerm && (
+            <p className="absolute -bottom-6 left-0 text-[10px] text-muted-foreground">
+              {filteredProfessions.length} találat {filteredProfessions.length > 24 && "(első 24 megjelenítve)"}
+            </p>
+          )}
         </div>
       </div>
 
@@ -74,8 +82,8 @@ export function IKKManager() {
               <CardContent className="h-32" />
             </Card>
           ))
-        ) : filteredProfessions.length > 0 ? (
-          filteredProfessions.map(prof => (
+        ) : displayedProfessions.length > 0 ? (
+          displayedProfessions.map(prof => (
             <Card key={prof.id} className="flex flex-col">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start gap-2">

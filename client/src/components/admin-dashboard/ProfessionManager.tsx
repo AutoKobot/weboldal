@@ -25,11 +25,12 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Plus, Edit, Trash2, BookOpen, 
+  Plus, Edit, Trash2, BookOpen, Globe,
   Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap 
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Profession, insertProfessionSchema } from "./types";
+import { IKKManager } from "./IKKManager";
 
 const iconOptions = [
   { value: "wrench", label: "Kulcs (Hegesztő, Szerelő)", icon: Wrench },
@@ -48,6 +49,7 @@ const iconOptions = [
 export function ProfessionManager({ professions, onSelect }: { professions: Profession[], onSelect: (id: number) => void }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isIKKDialogOpen, setIsIKKDialogOpen] = useState(false);
   const [editingProfession, setEditingProfession] = useState<Profession | null>(null);
 
   const form = useForm({
@@ -115,9 +117,14 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
           <h2 className="text-xl font-semibold">Szakmák kezelése</h2>
           <p className="text-sm text-muted-foreground">Válassz szakmát a tantárgyak és modulok megtekintéséhez</p>
         </div>
-        <Button onClick={() => { setEditingProfession(null); form.reset(); setIsDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> Új Szakma
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsIKKDialogOpen(true)}>
+            <Globe className="h-4 w-4 mr-2" /> IKK Import
+          </Button>
+          <Button onClick={() => { setEditingProfession(null); form.reset(); setIsDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Új Szakma
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -207,6 +214,18 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isIKKDialogOpen} onOpenChange={setIsIKKDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>IKK Szakma Importálás</DialogTitle>
+            <DialogDescription>
+              Válassz szakmát az IKK hivatalos adatbázisából a teljes tananyag automatikus generálásához.
+            </DialogDescription>
+          </DialogHeader>
+          <IKKManager />
         </DialogContent>
       </Dialog>
     </div>

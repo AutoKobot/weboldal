@@ -114,7 +114,6 @@ export default function AdminDashboard() {
             <TabTrigger value="subjects" label="Tantárgyak" icon={<BookOpen className="h-4 w-4" />} />
             <TabTrigger value="modules" label="Modulok" icon={<SettingsIcon className="h-4 w-4" />} />
             <TabTrigger value="ai-modules" label="AI Modulok" icon={<Sparkles className="h-4 w-4" />} color="text-purple-600" />
-            <TabTrigger value="ikk-import" label="IKK Import" icon={<Globe className="h-4 w-4" />} />
             {isAdmin && <TabTrigger value="users" label="Felhasználók" icon={<Users className="h-4 w-4" />} />}
             {isAdmin && <TabTrigger value="schools" label="Iskolák" icon={<School className="h-4 w-4" />} />}
             {isAdmin && <TabTrigger value="costs" label="Költségek" icon={<BarChart3 className="h-4 w-4" />} color="text-green-600" />}
@@ -163,10 +162,6 @@ export default function AdminDashboard() {
                   onModuleCreated={() => queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] })}
                 />
               </div>
-            </TabsContent>
-
-            <TabsContent value="ikk-import">
-              <IKKManager />
             </TabsContent>
 
             {isAdmin && (
