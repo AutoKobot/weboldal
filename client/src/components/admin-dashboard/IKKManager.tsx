@@ -25,9 +25,9 @@ export function IKKManager() {
     queryKey: ["/api/admin/ikk/professions"],
   });
 
-  const { data: importStatus, refetch: refetchStatus } = useQuery<any>({
+  const { data: importStatus } = useQuery<any>({
     queryKey: ["/api/admin/ikk/status"],
-    refetchInterval: (data) => (data?.status === 'processing' ? 2000 : false),
+    refetchInterval: 2000, // Always poll every 2 seconds while on this page
   });
 
   const importMutation = useMutation({
@@ -38,7 +38,6 @@ export function IKKManager() {
     },
     onSuccess: (data) => {
       toast({ title: "Elindítva", description: data.message });
-      refetchStatus();
     },
     onError: (error: Error) => {
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
@@ -46,17 +45,19 @@ export function IKKManager() {
     }
   });
 
-  // Handle completion/error from polled status
-  useState(() => {
+  // Handle completion/error from polled status using useEffect
+  useEffect(() => {
     if (importStatus?.status === 'completed' && isImporting) {
       toast({ title: "Siker", description: importStatus.message });
       queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
       setIsImporting(null);
     } else if (importStatus?.status === 'error' && isImporting) {
-      toast({ title: "Hiba", description: importStatus.error, variant: "destructive" });
+      toast({ title: "Hiba", description: importStatus.error || "Ismeretlen hiba történt", variant: "destructive" });
       setIsImporting(null);
     }
-  });
+  }, [importStatus?.status, isImporting]);
 
   const filteredProfessions = ikkProfessions.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
