@@ -61,7 +61,19 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
     const activeJob = await (storage as any).getLatestBackgroundJob('ikk_import');
     if (activeJob && activeJob.status === 'processing') {
-      return res.status(400).json({ message: 'An import is already in progress' });
+      const createdAt = new Date(activeJob.createdAt || activeJob.created_at).getTime();
+      const now = Date.now();
+      const ageMinutes = (now - createdAt) / (1000 * 60);
+
+      if (ageMinutes < 15) {
+        return res.status(400).json({ message: 'Egy importálás már folyamatban van. Kérjük várjon vagy próbálja újra később.' });
+      } else {
+        console.warn(`[IKK-IMPORT] Elavult munka észlelve (${Math.round(ageMinutes)} perc), engedélyezem az új indítást.`);
+        await (storage as any).updateBackgroundJob(activeJob.id, { 
+          status: 'error', 
+          message: 'Időtúllépés miatt megszakítva (egy másik import váltotta fel).' 
+        });
+      }
     }
 
     // Create new persistent job
@@ -75,18 +87,32 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       const jobId = job.id;
       try {
         console.log(`[IKK-IMPORT] Megkezdve: ${profession.name} (Job: ${jobId})`);
+        
+        await (storage as any).updateBackgroundJob(jobId, { message: "AI szolgáltatás inicializálása...", progress: 2 });
+        
         const { getOpenAIClient } = await import('../openai');
         const openai = await getOpenAIClient();
+        
+        await (storage as any).updateBackgroundJob(jobId, { message: "Kapcsolat ellenőrzése az OpenAI-val...", progress: 4 });
+        // Quick check to see if OpenAI is responsive and key is valid
+        try {
+          await openai.models.list();
+        } catch (openaiErr: any) {
+          throw new Error(`OpenAI hiba: ${openaiErr.message || 'Érvénytelen API kulcs vagy hálózati hiba'}`);
+        }
 
         // Step 1: Get PDF Content
-        await (storage as any).updateBackgroundJob(jobId, { message: "PDF dokumentumok letöltése...", progress: 5 });
+        await (storage as any).updateBackgroundJob(jobId, { message: "PDF dokumentumok letöltése (IKK API)...", progress: 5 });
         const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
         
         // Step 2: Extract structure
         await (storage as any).updateBackgroundJob(jobId, { message: "Szakmai szerkezet elemzése (AI)...", progress: 15 });
         const chunks = ikkService.splitPttIntoSections(pttText);
         
-        if (chunks.length === 0) throw new Error("Nem sikerült tantárgyakat találni a PTT-ben.");
+        if (chunks.length === 0) {
+          console.error(`[IKK-IMPORT] Nincs tantárgy a PTT-ben. PTT szöveg hossza: ${pttText.length}`);
+          throw new Error("Nem sikerült tantárgyakat találni a PTT-ben. Lehet, hogy a PDF nem tartalmazza a várt struktúrát.");
+        }
 
         const mergedSubjectsMap: Map<string, any> = new Map();
 

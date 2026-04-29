@@ -71,13 +71,26 @@ export class IKKService {
       const buffer = Buffer.from(response.data);
       const signature = buffer.slice(0, 4).toString();
       console.log(`Letöltve: ${buffer.length} bájt. Szignatúra: ${signature}`);
+      
       if (signature !== '%PDF') {
         throw new Error(`A szerver nem érvényes PDF-et küldött (ID: ${mediaId}). Tartalom kezdete: ${signature}`);
       }
-      const data = await pdf(buffer);
-      return data.text;
-    } catch (error) {
-      console.error(`Hiba a PDF feldolgozásakor (ID: ${mediaId}):`, error);
+
+      // Check for extremely large PDFs (e.g., > 15MB) that might crash the server
+      const MAX_PDF_SIZE = 15 * 1024 * 1024;
+      if (buffer.length > MAX_PDF_SIZE) {
+        console.warn(`[IKK-SERVICE] Nagyméretű PDF észlelve (${(buffer.length / 1024 / 1024).toFixed(1)} MB). Feldolgozás megkísérlése...`);
+      }
+
+      try {
+        const data = await pdf(buffer);
+        return data.text;
+      } catch (pdfError: any) {
+        console.error(`[IKK-SERVICE] Kritikus hiba a PDF elemzésekor (pdf-parse):`, pdfError);
+        throw new Error(`A PDF dokumentum tartalma nem olvasható: ${pdfError.message}`);
+      }
+    } catch (error: any) {
+      console.error(`Hiba a PDF feldolgozásakor (ID: ${mediaId}):`, error.message);
       throw error;
     }
   }
