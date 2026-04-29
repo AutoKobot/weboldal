@@ -179,14 +179,14 @@ export default function TeacherDashboard() {
             <TabsTrigger value="students" className="flex items-center gap-2 shrink-0">
               <Users className="h-4 w-4" /> Tanulók listája
             </TabsTrigger>
-            <TabsTrigger value="attendance" className="flex items-center gap-2 shrink-0">
-              <ClipboardList className="h-4 w-4" /> Jelenlét
+            <TabsTrigger value="stats" className="flex items-center gap-2 text-blue-700 bg-blue-50/50 shrink-0">
+              <BookOpen className="h-4 w-4" /> Elméleti Statisztika
             </TabsTrigger>
-            <TabsTrigger value="practical" className="flex items-center gap-2 text-blue-700 bg-blue-50/50 shrink-0">
+            <TabsTrigger value="practical" className="flex items-center gap-2 text-orange-700 bg-orange-50/50 shrink-0">
               <Wrench className="h-4 w-4" /> Gyakorlati Értékelés
             </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2 shrink-0">
-              <BarChart3 className="h-4 w-4" /> Statisztika
+            <TabsTrigger value="attendance" className="flex items-center gap-2 shrink-0">
+              <ClipboardList className="h-4 w-4" /> Jelenlét
             </TabsTrigger>
             <TabsTrigger value="roster" className="flex items-center gap-2 shrink-0">
               <Printer className="h-4 w-4" /> Névsor & Nyomtatás
@@ -267,16 +267,11 @@ export default function TeacherDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="practical">
-            <PracticalGradesView 
-              teacherClasses={teacherClasses as any} 
-              students={students as any} 
-              subjects={subjects as any} 
-              modules={modules as any} 
-            />
-          </TabsContent>
-
           <TabsContent value="stats">
+            <div className="mb-4">
+              <Badge className="bg-blue-600 mb-2">ELMÉLETI NÉZET</Badge>
+              <h3 className="text-lg font-semibold">Tesztek és Elméleti Haladás</h3>
+            </div>
             <ClassStatsView 
               teacherClasses={teacherClasses as any} 
               students={students as any} 
@@ -286,6 +281,19 @@ export default function TeacherDashboard() {
               setSelectedStudentId={setSelectedStudentId} 
               timeFilter={timeFilter} 
               setTimeFilter={setTimeFilter} 
+            />
+          </TabsContent>
+
+          <TabsContent value="practical">
+            <div className="mb-4">
+              <Badge className="bg-orange-600 mb-2">GYAKORLATI NÉZET</Badge>
+              <h3 className="text-lg font-semibold">Gyakorlati Értékelés és Jegyek</h3>
+            </div>
+            <PracticalGradesView 
+              teacherClasses={teacherClasses as any} 
+              students={students as any} 
+              subjects={subjects as any} 
+              modules={modules as any} 
             />
           </TabsContent>
 

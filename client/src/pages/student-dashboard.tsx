@@ -52,6 +52,25 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
+  const { data: practicalGrades = [] } = useQuery({
+    queryKey: ['/api/student/practical-grades'],
+    queryFn: async () => {
+      const response = await fetch('/api/student/practical-grades');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: subjects = [] } = useQuery<any[]>({
+    queryKey: ['/api/public/subjects'],
+    queryFn: async () => {
+      const response = await fetch('/api/public/subjects');
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
   // Redirect to home if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -79,7 +98,20 @@ export default function StudentDashboard() {
   }
 
   const completedModules = user.completedModules || [];
-  const { unlockedModules, overallProgress, totalModules } = useProgress(modules, completedModules);
+  
+  // Categorize modules by type
+  const theoryModules = modules.filter(m => {
+    const subject = subjects.find(s => s.id === m.subjectId);
+    return !subject || subject.type === 'theory' || !subject.type;
+  });
+  
+  const practicalModules = modules.filter(m => {
+    const subject = subjects.find(s => s.id === m.subjectId);
+    return subject?.type === 'practical';
+  });
+
+  const { unlockedModules: unlockedTheory, overallProgress: theoryProgress } = useProgress(theoryModules, completedModules);
+  const { unlockedModules: unlockedPractical, overallProgress: practicalProgress } = useProgress(practicalModules, completedModules);
 
   // Calculate Average Grades
   const scoreToGrade = (score: number) => {
@@ -90,23 +122,20 @@ export default function StudentDashboard() {
     return 1;
   };
 
-  const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
   const calculateAverageGrade = (results: any[]) => {
     if (results.length === 0) return null;
     const sum = results.reduce((acc, r) => acc + scoreToGrade(r.score), 0);
     return (sum / results.length).toFixed(1);
   };
 
-  const weeklyResults = testResults.filter((r: any) => new Date(r.createdAt) >= oneWeekAgo);
-  const monthlyResults = testResults.filter((r: any) => new Date(r.createdAt) >= oneMonthAgo);
+  const calculatePracticalAverage = (grades: any[]) => {
+    if (grades.length === 0) return null;
+    const sum = grades.reduce((acc, g) => acc + g.grade, 0);
+    return (sum / grades.length).toFixed(1);
+  };
 
-  const weeklyAvg = calculateAverageGrade(weeklyResults);
-  const monthlyAvg = calculateAverageGrade(monthlyResults);
-  const displayGrade = weeklyAvg !== null ? weeklyAvg : (monthlyAvg !== null ? monthlyAvg : "N/A");
-  const gradeLabel = weeklyAvg !== null ? "Heti átlag" : (monthlyAvg !== null ? "Havi átlag" : "Nincs teszt");
+  const theoryAvg = calculateAverageGrade(testResults);
+  const practicalAvg = calculatePracticalAverage(practicalGrades);
 
   // XP and Level Calculation
   const xp = user.xp || 0;
@@ -119,27 +148,20 @@ export default function StudentDashboard() {
     <div className="flex min-h-screen bg-neutral-50 relative">
       <DynamicBackground />
       <ClassAnnouncementModal />
-      {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar user={user} />
       </div>
 
-      {/* Mobile Navigation */}
       <MobileNav
         isOpen={isMobileNavOpen}
         onClose={() => setIsMobileNavOpen(false)}
         user={user}
       />
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Mobile Header */}
         <header className="bg-white shadow-sm border-b border-neutral-100 lg:hidden">
           <div className="flex items-center justify-between p-4">
-            <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="text-neutral-700"
-            >
+            <button onClick={() => setIsMobileNavOpen(true)} className="text-neutral-700">
               <Menu size={24} />
             </button>
             <h1 className="text-lg font-semibold text-neutral-700">Global Learning System</h1>
@@ -147,25 +169,13 @@ export default function StudentDashboard() {
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 lg:p-8">
-          {/* Welcome Section with Avatar */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <div className="lg:col-span-2 flex flex-col justify-center">
-              <div className="flex flex-col md:flex-row md:items-center justify-between">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="max-w-7xl mx-auto space-y-8">
+            {/* Üdvözlés és XP */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <StudentAvatar user={user} className="w-20 h-20 border-4 border-white shadow-xl" />
                 <div>
-                  <h2 className="text-2xl lg:text-3xl font-bold text-neutral-700 mb-2">
-                    Üdvözlünk, {user.firstName || user.email}!
-                  </h2>
-                  <p className="text-neutral-400">Folytasd a tanulást ott, ahol abbahagytad</p>
-                </div>
-                <div className="mt-4 md:mt-0 bg-white p-4 rounded-xl shadow-sm border border-neutral-100 flex items-center space-x-6">
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center space-x-2 text-orange-500 font-bold text-lg">
-                      <Flame size={24} className={(user.currentStreak || 0) > 0 ? "fill-orange-500" : ""} />
-                      <span>{user.currentStreak || 0} nap</span>
-                    </div>
-                    <span className="text-xs text-neutral-400 uppercase tracking-wider font-semibold">Tűz</span>
                   </div>
 
                   <div className="hidden sm:block w-px h-10 bg-neutral-200"></div>
