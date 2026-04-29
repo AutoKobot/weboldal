@@ -17,6 +17,8 @@ import gamificationRouter from "./gamification";
 import messagesRouter from "./messages";
 import privacyRouter from "./privacy";
 import externalApisRouter from "./external-apis";
+import notificationsRouter from "./notifications";
+import practicalGradesRouter from "./practical-grades";
 import { setupAuth } from "../replitAuth";
 import { setupLocalAuth } from "../localAuth";
 import express from "express";
@@ -52,6 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/gamification', gamificationRouter);
   app.use('/api/messages', messagesRouter);
   app.use('/api/privacy', privacyRouter);
+  app.use('/api/notifications', notificationsRouter);
+  app.use('/api/practical-grades', practicalGradesRouter);
   app.use('/api/public', contentRouter);
   app.use('/api', contentRouter);
 

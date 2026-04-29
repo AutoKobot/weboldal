@@ -9,6 +9,7 @@ import MobileNav from "@/components/mobile-nav";
 import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building } from "lucide-react";
 import type { Profession, Subject } from "@shared/schema";
 

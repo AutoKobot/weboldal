@@ -8,11 +8,11 @@ import OnboardingWizard from "@/components/onboarding-wizard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge as UiBadge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, Menu, ArrowRight, Brain, Play, Flame, BarChart3, AlertCircle,
   CheckCircle2, Users, GraduationCap, TrendingUp, Award, Clock, XCircle,
-  ChevronRight, FileText, Bot, MessageSquare, Wrench
+  ChevronRight, FileText, Bot, MessageSquare, Wrench, Search
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
 import { StudentAvatar } from "@/components/StudentAvatar";

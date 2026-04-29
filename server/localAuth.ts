@@ -257,4 +257,41 @@ export function setupLocalAuth(app: Express) {
       res.json({ message: "Sikeresen kijelentkezett" });
     });
   });
+
+  // Demo login endpoint
+  app.post('/api/auth/demo', async (req, res) => {
+    try {
+      console.log('Demo login request received');
+      let user = await storage.getUserByUsername('BorgaI74');
+      if (!user) {
+        user = await storage.getUser("borga-universal-74");
+      }
+
+      if (!user) {
+        const { hashPassword } = await import('./localAuth');
+        const hashedPassword = await hashPassword("diák");
+        user = await storage.createLocalUser({
+          id: "borga-universal-74",
+          username: "BorgaI74",
+          password: hashedPassword,
+          email: "borga@test.com",
+          firstName: "Imre",
+          lastName: "Borga",
+          authType: "local",
+          role: "student"
+        });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Demo login error:', err);
+          return res.status(500).json({ message: "Demó bejelentkezési hiba" });
+        }
+        res.json(user);
+      });
+    } catch (error) {
+      console.error('Demo login exception:', error);
+      res.status(500).json({ message: "Szerver hiba a demó belépésnél" });
+    }
+  });
 }

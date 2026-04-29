@@ -17,6 +17,7 @@ import {
   Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
