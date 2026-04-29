@@ -868,10 +868,10 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">{cls.name}</Badge>  
+                              {cls && <Badge variant="outline" className="text-xs">{cls.name}</Badge>}
                               <Badge variant="secondary" className="text-xs">
                                 {s.completedModules?.length || 0} modul kész
-                              </UiBadge>
+                              </Badge>
                               <XCircle className="h-4 w-4 text-red-400" />
                             </div>
                           </div>
