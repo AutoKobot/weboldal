@@ -329,6 +329,31 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
+  constructor() {
+    // Automatikus séma-frissítés: Ellenőrizzük és hozzáadjuk a hiányzó oszlopokat
+    this.ensureSchemaUpToDate().catch(err => console.error("Schema update error:", err));
+  }
+
+  private async ensureSchemaUpToDate() {
+    try {
+      console.log("🔍 Adatbázis séma ellenőrzése...");
+      
+      // Ellenőrizzük a modules tábla oszlopait
+      await db.execute(sql`
+        ALTER TABLE modules 
+        ADD COLUMN IF NOT EXISTS concise_content TEXT,
+        ADD COLUMN IF NOT EXISTS detailed_content TEXT,
+        ADD COLUMN IF NOT EXISTS key_concepts_data JSONB,
+        ADD COLUMN IF NOT EXISTS generated_quizzes JSONB,
+        ADD COLUMN IF NOT EXISTS practical_tasks JSONB;
+      `);
+      
+      console.log("✅ Adatbázis séma naprakész.");
+    } catch (error) {
+      console.error("❌ Hiba az adatbázis séma frissítésekor:", error);
+    }
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
