@@ -189,9 +189,9 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
         }
       };
 
-      audio.onerror = (e) => {
+      audio.onerror = (e: any) => {
         const target = e.target as HTMLAudioElement;
-        console.error(`[Audio] Failed to load audio source: ${target?.src || 'unknown'}`, (target as any)?.error);
+        console.error(`[Audio] Failed to load audio source: ${target?.src || 'unknown'}`);
         cleanupCanPlay();
         if (autoAdvance && isPlaying && currentSlideIndex < slides.length - 1) {
           setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 2000);

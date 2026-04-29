@@ -35,8 +35,8 @@ async function checkFiles() {
     data.slice(0, 15).forEach(file => {
       // Csak az igazi fájlokat írjuk ki (a mappáknak nincs mérete)
       if (file.id) {
-          const sizeKb = Math.round(file.metadata?.size / 1024);
-          const date = new Date(file.created_at).toLocaleString('hu-HU');
+          const sizeKb = Math.round((file.metadata?.size || 0) / 1024);
+          const date = file.created_at ? new Date(file.created_at).toLocaleString('hu-HU') : 'ismeretlen';
           console.log(`- ${file.name} (${sizeKb} KB) | ${date}`);
       }
     });

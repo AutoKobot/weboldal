@@ -800,6 +800,12 @@ export type YoutubeVideo = z.infer<typeof youtubeVideoSchema>;
 export type WikipediaLink = z.infer<typeof wikipediaLinkSchema>;
 export type KeyConcept = z.infer<typeof keyConceptSchema>;
 export type KeyConceptsData = z.infer<typeof keyConceptsDataSchema>;
+export type PracticalGrade = typeof practicalGrades.$inferSelect;
+export type InsertPracticalGrade = typeof practicalGrades.$inferInsert;
+export const insertPracticalGradeSchema = createInsertSchema(practicalGrades).omit({
+  id: true,
+  createdAt: true,
+});
 
 // Flashcard types
 export const insertFlashcardSchema = createInsertSchema(flashcards).omit({

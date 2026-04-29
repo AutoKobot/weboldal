@@ -1145,8 +1145,8 @@ export async function generatePresentationImage(prompt: string): Promise<string>
         model: modelName,
         tokenCount: 0,
         costUsd: costUsd.toString(),
-        requestData: { prompt },
-        responseData: { imageUrl: "URL_GEN" } // Don't store full URL to save space
+        requestData: JSON.stringify({ prompt }),
+        responseData: JSON.stringify({ imageUrl: "URL_GEN" }) // Don't store full URL to save space
       });
     } else {
       console.error(`[IMAGE] Failed to produce imageUrl for provider: ${providerName}`);

@@ -148,7 +148,7 @@ export function UserManagement({ users, professions, isLoading }: UserManagement
                   key={user.id} 
                   user={user}
                   professions={professions}
-                  onRoleChange={(r) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
+                  onRoleChange={(r: string) => updateUserRoleMutation.mutate({ userId: user.id, role: r })}
                   onResetPassword={() => { setResetPasswordUserId(user.id); setIsPasswordResetDialogOpen(true); }}
                   onDelete={() => { if (confirm(`Töröljük: ${user.firstName || user.username}?`)) deleteUserMutation.mutate(user.id); }}
                   onUnlockModules={() => { if (confirm('Minden modul feloldása?')) unlockAllModulesMutation.mutate(user.id); }}
@@ -163,7 +163,7 @@ export function UserManagement({ users, professions, isLoading }: UserManagement
       <PasswordResetDialog
         isOpen={isPasswordResetDialogOpen}
         onClose={() => setIsPasswordResetDialogOpen(false)}
-        onReset={(password) => resetPasswordMutation.mutate({ userId: resetPasswordUserId, newPassword: password })}
+        onReset={(password: string) => resetPasswordMutation.mutate({ userId: resetPasswordUserId!, newPassword: password })}
         isPending={resetPasswordMutation.isPending}
       />
     </div>

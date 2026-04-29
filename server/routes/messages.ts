@@ -35,7 +35,7 @@ router.post('/', combinedAuth, async (req: any, res) => {
   try {
     const { receiverId, message } = req.body;
     const newMessage = await storage.createPrivateMessage({
-      senderId: req.user.id, receiverId, message, isRead: false
+      senderId: req.user.id, receiverId, message
     });
     await storage.createNotification({
       userId: receiverId, type: 'private_message', title: 'Új üzenet',

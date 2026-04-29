@@ -19,7 +19,7 @@ import {
   FileText 
 } from "lucide-react";
 import { StudentDetailView } from "./StudentDetailView";
-import { Student, Module, Profession, ClassData as Class } from "./types";
+import { Student, Module, Profession, ClassData as Class, Subject } from "./types";
 
 interface Props {
   students: Student[];

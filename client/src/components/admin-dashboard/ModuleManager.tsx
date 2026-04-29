@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Edit, Trash2, ArrowLeft, 
   Sparkles, Brain, CheckCircle, XCircle, Loader2, Wand2,
-  LayoutGrid, List, MonitorPlay, FileText
+  LayoutGrid, List, MonitorPlay, FileText, X
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Module, insertModuleSchema, Subject } from "./types";

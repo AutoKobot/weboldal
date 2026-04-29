@@ -155,14 +155,12 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
                           <div>
                             <p className="font-bold text-gray-900 leading-tight">{module.title}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="secondary" className="text-[10px] px-1.5 h-4 font-normal">
-                                {moduleGradesCount} / {totalStudents} értékelt
-                              </Badge>
-                              <span className="text-[10px] text-gray-400">|</span>
-                              <span className="text-[10px] text-gray-500 font-medium">{module.sectionCode || 'Gyakorlat'}</span>
-                            </div>
-                          </div>
-                        </div>
+                                <Badge variant="secondary" className="text-[10px] px-1.5 h-4 font-normal">
+                                 {moduleGradesCount} / {totalStudents} értékelt
+                               </Badge>
+                             </div>
+                           </div>
+                         </div>
                         <Button variant="ghost" size="sm" className={`h-8 gap-1.5 ${isExpanded ? 'text-blue-600 bg-blue-50' : 'text-gray-500'}`}>
                           {isExpanded ? 'Bezárás' : 'Osztályozás'}
                           <Wrench className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-12' : ''}`} />
@@ -183,8 +181,12 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200 bg-white">
-                                {filteredStudents
-                                  .sort((a, b) => (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName))
+                                 {filteredStudents
+                                   .sort((a, b) => {
+                                     const nameA = `${a.lastName || ''} ${a.firstName || ''}`.trim();
+                                     const nameB = `${b.lastName || ''} ${b.firstName || ''}`.trim();
+                                     return nameA.localeCompare(nameB);
+                                   })
                                   .map(student => {
                                     const currentGrade = moduleGrades.find(g => g.studentId === student.id && g.moduleId === module.id);
                                     const edit = editingGrades[student.id] || { grade: "", comment: "" };

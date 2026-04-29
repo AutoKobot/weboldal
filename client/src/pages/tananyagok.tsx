@@ -408,7 +408,7 @@ export default function TananyagokPage() {
                         </Card>
                       ))}
 
-                      {subjects.filter(s => (s.type || "theory") === selectedType).length === 0 && (
+                      {subjects.filter((s: any) => (s.type || "theory") === selectedType).length === 0 && (
                         <div className="col-span-full text-center py-12">
                           {selectedType === 'theory' ? (
                             <BookOpen className="mx-auto h-12 w-12 text-neutral-400 mb-4" />

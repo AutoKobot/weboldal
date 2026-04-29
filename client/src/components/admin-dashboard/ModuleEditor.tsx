@@ -51,6 +51,7 @@ export function ModuleEditor({ module, subjects, onSave, onCancel }: ModuleEdito
       moduleNumber: 1,
       subjectId: 0,
       isPublished: false,
+      keyConceptsData: [],
     }
   });
 
@@ -132,7 +133,7 @@ export function ModuleEditor({ module, subjects, onSave, onCancel }: ModuleEdito
           <div className="space-y-4 border-t pt-4">
             <h4 className="font-medium text-sm">Kulcsfogalmak és Tanulókártyák</h4>
             <LinkEditor 
-              keyConceptsData={form.watch("keyConceptsData") || []} 
+              keyConceptsData={(Array.isArray(form.watch("keyConceptsData")) ? form.watch("keyConceptsData") : []) as any} 
               onUpdate={(data) => form.setValue("keyConceptsData", data)} 
             />
             <div className="mt-4">

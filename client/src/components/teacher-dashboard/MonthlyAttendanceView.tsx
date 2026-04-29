@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Users } from "lucide-react";
 import { DayAttendanceEditor } from "./DayAttendanceEditor";
-import type { Student } from "@shared/schema";
+import { Student } from "./types";
 
 interface Props {
   classId: string;
