@@ -61,14 +61,14 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
     const activeJob = await (storage as any).getLatestBackgroundJob('ikk_import');
     if (activeJob && activeJob.status === 'processing') {
-      const createdAt = new Date(activeJob.createdAt || activeJob.created_at).getTime();
+      const lastUpdate = new Date(activeJob.updatedAt || activeJob.updated_at).getTime();
       const now = Date.now();
-      const ageMinutes = (now - createdAt) / (1000 * 60);
+      const idleMinutes = (now - lastUpdate) / (1000 * 60);
 
-      if (ageMinutes < 15) {
-        return res.status(400).json({ message: 'Egy importálás már folyamatban van. Kérjük várjon vagy próbálja újra később.' });
+      if (idleMinutes < 15) {
+        return res.status(400).json({ message: 'Egy importálás már folyamatban van és aktív. Kérjük várjon vagy próbálja újra később.' });
       } else {
-        console.warn(`[IKK-IMPORT] Elavult munka észlelve (${Math.round(ageMinutes)} perc), engedélyezem az új indítást.`);
+        console.warn(`[IKK-IMPORT] Elakadt munka észlelve (nem volt frissítés ${Math.round(idleMinutes)} perce), engedélyezem az új indítást.`);
         await (storage as any).updateBackgroundJob(activeJob.id, { 
           status: 'error', 
           message: 'Időtúllépés miatt megszakítva (egy másik import váltotta fel).' 
