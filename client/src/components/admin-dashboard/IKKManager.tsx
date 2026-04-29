@@ -25,6 +25,11 @@ export function IKKManager() {
     queryKey: ["/api/admin/ikk/professions"],
   });
 
+  const { data: importStatus, refetch: refetchStatus } = useQuery<any>({
+    queryKey: ["/api/admin/ikk/status"],
+    refetchInterval: (data) => (data?.status === 'processing' ? 2000 : false),
+  });
+
   const importMutation = useMutation({
     mutationFn: async (profession: any) => {
       setIsImporting(profession.id);
@@ -32,14 +37,23 @@ export function IKKManager() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: "Siker", description: data.message });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
-      setIsImporting(null);
+      toast({ title: "Elindítva", description: data.message });
+      refetchStatus();
     },
     onError: (error: Error) => {
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
+      setIsImporting(null);
+    }
+  });
+
+  // Handle completion/error from polled status
+  useState(() => {
+    if (importStatus?.status === 'completed' && isImporting) {
+      toast({ title: "Siker", description: importStatus.message });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+      setIsImporting(null);
+    } else if (importStatus?.status === 'error' && isImporting) {
+      toast({ title: "Hiba", description: importStatus.error, variant: "destructive" });
       setIsImporting(null);
     }
   });
@@ -54,6 +68,30 @@ export function IKKManager() {
 
   return (
     <div className="space-y-6">
+      {importStatus?.status === 'processing' && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                <div>
+                  <p className="font-semibold text-blue-900">Importálás folyamatban...</p>
+                  <p className="text-sm text-blue-700">{importStatus.professionName}</p>
+                </div>
+              </div>
+              <Badge className="bg-blue-600">{importStatus.progress}%</Badge>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2.5 mb-2">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
+                style={{ width: `${importStatus.progress}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-blue-600 font-medium animate-pulse">{importStatus.message}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">IKK Tananyag Import</h2>
