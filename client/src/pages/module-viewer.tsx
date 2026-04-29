@@ -998,6 +998,26 @@ export default function ModuleViewer() {
                       })()}
                     </ReactMarkdown>
 
+                    {/* Practical Tasks Section */}
+                    {module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
+                      <div className="mt-8 pt-6 border-t border-neutral-100">
+                        <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                          <CheckCircle className="text-green-600" size={20} />
+                          Gyakorlati Feladatok
+                        </h3>
+                        <div className="grid gap-3">
+                          {module.practicalTasks.map((task: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-3 bg-green-50/50 p-4 rounded-xl border border-green-100/50 hover:bg-green-50 transition-colors">
+                              <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                                {idx + 1}
+                              </span>
+                              <p className="text-neutral-700 leading-relaxed font-medium">{task}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Key Concepts with YouTube Videos */}
                     {(() => {
                       try {

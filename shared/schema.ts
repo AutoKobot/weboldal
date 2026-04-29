@@ -125,6 +125,7 @@ export const modules = pgTable("modules", {
   presentationData: jsonb("presentation_data"), // Új: Strukturált JSON az interaktív HTML prezentációhoz
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
+  practicalTasks: jsonb("practical_tasks"), // Gyakorlati feladatok
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
@@ -651,6 +652,7 @@ export const insertModuleSchema = createInsertSchema(modules).omit({
   presentationUrl: z.string().optional().nullable(),
   keyConceptsData: keyConceptsDataSchema.optional().nullable(),
   generatedQuizzes: z.array(z.any()).optional().nullable(),
+  practicalTasks: z.array(z.any()).optional().nullable(),
   additionalSubjectIds: z.array(z.number()).optional(),
 });
 

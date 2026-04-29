@@ -1,0 +1,198 @@
+import { Router } from "express";
+import { storage } from "../storage";
+import { combinedAuth } from "./middleware";
+import { insertProfessionSchema, insertSubjectSchema, insertModuleSchema } from "@shared/schema";
+import { fixMermaidSyntax } from "../openai";
+import { parse } from 'csv-parse/sync';
+import fs from 'fs';
+import multer from 'multer';
+
+const router = Router();
+const upload = multer({ dest: 'uploads/' });
+
+const checkContentEditor = (req: any, res: any, next: any) => {
+  if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin' || req.user.role === 'school_admin')) {
+    return next();
+  }
+  return res.status(403).json({ message: "Access denied. Teacher or Admin role required." });
+};
+
+// --- Professions ---
+router.get('/professions', combinedAuth, async (req: any, res) => {
+  try {
+    const user = await storage.getUser(req.user.id);
+    const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+    const professions = await storage.getProfessions(schoolAdminId);
+    res.json(professions);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch professions" });
+  }
+});
+
+router.post('/professions', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const data = insertProfessionSchema.parse(req.body);
+    const profession = await storage.createProfession(data);
+    res.json(profession);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create profession" });
+  }
+});
+
+// --- Subjects ---
+router.get('/subjects', combinedAuth, async (req: any, res) => {
+  try {
+    const professionId = req.query.professionId ? parseInt(req.query.professionId as string) : undefined;
+    const subjects = await storage.getSubjects(professionId);
+    res.json(subjects);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch subjects" });
+  }
+});
+
+router.post('/subjects', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const data = insertSubjectSchema.parse(req.body);
+    const subject = await storage.createSubject(data);
+    res.json(subject);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create subject" });
+  }
+});
+
+// --- Modules ---
+router.get('/modules', combinedAuth, async (req: any, res) => {
+  try {
+    const subjectId = req.query.subjectId ? parseInt(req.query.subjectId as string) : undefined;
+    const user = await storage.getUser(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    let modules;
+    if (user.role === 'admin' || user.role === 'teacher') {
+      modules = await storage.getModules(subjectId);
+    } else {
+      modules = await storage.getPublishedModules(subjectId);
+    }
+    
+    const cleaned = modules.map(m => ({
+      ...m,
+      content: m.content ? fixMermaidSyntax(m.content) : m.content,
+      conciseContent: m.conciseContent ? fixMermaidSyntax(m.conciseContent) : m.conciseContent,
+      detailedContent: m.detailedContent ? fixMermaidSyntax(m.detailedContent) : m.detailedContent,
+    }));
+    res.json(cleaned);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch modules" });
+  }
+});
+
+router.get('/modules/:id', combinedAuth, async (req: any, res) => {
+  try {
+    const module = await storage.getModule(parseInt(req.params.id));
+    if (!module) return res.status(404).json({ message: "Module not found" });
+    res.json({
+      ...module,
+      content: module.content ? fixMermaidSyntax(module.content) : module.content,
+      conciseContent: module.conciseContent ? fixMermaidSyntax(module.conciseContent) : module.conciseContent,
+      detailedContent: module.detailedContent ? fixMermaidSyntax(module.detailedContent) : module.detailedContent,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch module" });
+  }
+});
+
+router.patch('/modules/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const moduleId = parseInt(req.params.id);
+    const data = insertModuleSchema.partial().parse(req.body);
+    const module = await storage.updateModule(moduleId, data);
+    res.json(module);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update module" });
+  }
+});
+
+router.post('/modules/:id/complete', combinedAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const moduleId = parseInt(req.params.id);
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const completed = user.completedModules || [];
+    if (!completed.includes(moduleId)) {
+      await storage.updateUserCompletedModules(userId, [...completed, moduleId]);
+      if (req.user.id) req.user.completedModules = [...completed, moduleId];
+    }
+    res.json({ message: "Module completed" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to complete module" });
+  }
+});
+
+// --- Flashcards ---
+router.get('/modules/:id/flashcards', combinedAuth, async (req: any, res) => {
+  try {
+    const flashcards = await storage.getFlashcards(parseInt(req.params.id));
+    res.json(flashcards);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch flashcards" });
+  }
+});
+
+router.post('/modules/:id/flashcards/import', combinedAuth, checkContentEditor, upload.single('file'), async (req: any, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Nincs fájl' });
+    const moduleId = parseInt(req.params.id);
+    const csvData = fs.readFileSync(req.file.path, 'utf-8');
+    const records = parse(csvData, { columns: true, skip_empty_lines: true });
+
+    const toInsert = records.map((r: any) => ({
+      moduleId,
+      front: String(r.Front || r.Question || Object.values(r)[0] || '').trim(),
+      back: String(r.Back || r.Answer || Object.values(r)[1] || '').trim(),
+    })).filter((f: any) => f.front && f.back);
+
+    if (toInsert.length === 0) return res.status(400).json({ message: 'Nincs érvényes kártya' });
+    const inserted = await storage.bulkCreateFlashcards(toInsert);
+    fs.unlinkSync(req.file.path);
+    res.status(201).json({ count: inserted.length });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to import" });
+  }
+});
+
+// --- Quizzes ---
+router.post('/modules/:id/quiz-result', combinedAuth, async (req: any, res) => {
+  try {
+    const moduleId = parseInt(req.params.id);
+    const { score, maxScore, passed, details } = req.body;
+    const result = await storage.createTestResult({
+      userId: req.user.id, moduleId, score, maxScore, passed, details: details || {}, createdAt: new Date()
+    });
+    if (passed) {
+      const user = await storage.getUser(req.user.id);
+      if (user && !user.completedModules?.includes(moduleId)) {
+        await storage.updateUserCompletedModules(req.user.id, [...(user.completedModules || []), moduleId]);
+      }
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to save result" });
+  }
+});
+
+router.get('/modules/:id/quiz', combinedAuth, async (req: any, res) => {
+  try {
+    const module = await storage.getModule(parseInt(req.params.id));
+    if (!module || !module.generatedQuizzes?.length) {
+      return res.status(404).json({ message: "Nincs kvíz generálva", needsRegeneration: true });
+    }
+    const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
+    res.json({ questions: module.generatedQuizzes[randomIndex] });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to load quiz" });
+  }
+});
+
+export default router;

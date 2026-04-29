@@ -29,7 +29,7 @@ import {
   Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap 
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Profession, insertProfessionSchema } from "../types";
+import { Profession, insertProfessionSchema } from "./types";
 
 const iconOptions = [
   { value: "wrench", label: "Kulcs (Hegesztő, Szerelő)", icon: Wrench },

@@ -90,17 +90,13 @@ export class IKKService {
       .filter(a => a.name.toUpperCase().includes('PTT'))
       .sort((a, b) => b.version - a.version)[0];
 
-    let kkkText = '';
-    let pttText = '';
+    const [kkkTextRaw, pttTextRaw] = await Promise.all([
+      kkkAttachment?.media_id ? this.getPdfText(kkkAttachment.media_id).catch(e => { console.error('KKK hiba:', e); return ''; }) : Promise.resolve(''),
+      pttAttachment?.media_id ? this.getPdfText(pttAttachment.media_id).catch(e => { console.error('PTT hiba:', e); return ''; }) : Promise.resolve('')
+    ]);
 
-    if (kkkAttachment?.media_id) {
-      try { kkkText = await this.getPdfText(kkkAttachment.media_id); }
-      catch (e) { console.error('KKK hiba:', e); }
-    }
-    if (pttAttachment?.media_id) {
-      try { pttText = await this.getPdfText(pttAttachment.media_id); }
-      catch (e) { console.error('PTT hiba:', e); }
-    }
+    const kkkText = kkkTextRaw || '';
+    const pttText = pttTextRaw || '';
 
     if (!kkkText && !pttText) {
       const details = profession.attachments?.map(a => `${a.name} (media_id: ${a.media_id})`).join(', ');
@@ -155,12 +151,6 @@ export class IKKService {
 
   // ──────────────────────────────────────────────────────────────────────────
   // PASS 1 – NYERS SZERKEZETI KINYERÉS
-  //
-  // Két dokumentumtípust kezel:
-  //   FORMA A (Hegesztő-stílus): teljes mondatos sorok a témaköri fejezet alatt
-  //   FORMA B (Divatszabó-stílus): bevezető mondat + ‒ gondolatjeles lista
-  //
-  // NEM generál tartalmat – csak az eredeti szöveg sorait listázza modulokként.
   // ──────────────────────────────────────────────────────────────────────────
 
   buildExtractionPrompt(chunk: string): string {
@@ -196,8 +186,6 @@ AMIT KI KELL HAGYNI (NEM modulok!):
     "Teljesen önállóan", "Instrukció alapján", "részben önállóan" stb.)
   ✗ "X/80. oldal" vagy "X/47. oldal" oldalszámok
   ✗ Üres sorok
-
-── MODULOK KÉT FORMÁJA ──
 
 ── MODULOK KÉT FORMÁJA ──
 
@@ -263,19 +251,18 @@ ${chunk}
       ]
     }
   ]
-}`.trim();
+}
+`.trim();
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // PASS 2 – TARTALOMGENERÁLÁS (kis kötegekben, 20 modul / hívás)
-  // Bemenet: tantárgy neve + modul-cím lista
-  // Kimenet: minden modulhoz conciseContent + detailedContent
+  // PASS 2 – TARTALOMGENERÁLÁS
   // ──────────────────────────────────────────────────────────────────────────
 
   buildContentPrompt(professionName: string, subjectName: string, modules: RawModule[]): string {
     const moduleList = modules.map((m, i) => `${i + 1}. [${m.type.toUpperCase()}] ${m.title}`).join('\n');
     return `
-Te egy szakképzési tananyagfejlesztő és módszertani szakértő vagy. Az alábbi modulok MINDEGYIKÉHEZ generálj szakmai szöveges tartalmat.
+Te egy szakképzési tananyagfejlesztő és módszertani szakértő vagy. Az alábbi modulok MINDEGYIKÉHEZ generálj alapvető szakmai tartalmat és gyakorlati feladatokat.
 
 Szakma: ${professionName}
 Tantárgy: ${subjectName}
@@ -284,27 +271,29 @@ MODULOK (${modules.length} db):
 ${moduleList}
 
 KÖVETELMÉNYEK:
-- Minden modulhoz PONTOSAN 2 mezőt generálj (ne hagyj ki egyet sem!):
-  "conciseContent" → 3-5 tömör, szakmai összefoglaló mondat, ami a diákok számára egyértelművé teszi a modul célját.
-  "detailedContent" → 10-15 részletes, jól strukturált (markdown használható) szakmai mondat.
+- Minden modulhoz a következő mezőket generálj:
+  "content" → Alapvető, lényegre törő szakmai tartalom (5-8 mondat, markdown használható).
+  "practicalTasks" → KIZÁRÓLAG GYAKORLATI (PRACTICAL) típusú moduloknál: Egy 3-5 elemből álló lista a konkrét gyakorlati feladatokról. Elméleti modulnál hagyd üresen ([]).
     
     • THEORY (elméleti) modulnál: 
-      - Fogalmak, szabványok, összefüggések és a technológia részletes kifejtése.
+      - A legfontosabb fogalmak és összefüggések tömör kifejtése.
     
-    • PRACTICAL (gyakorlati) modulnál SZIGORÚAN TARTALMAZNIA KELL a következőket (HTML/Markdown listákkal):
-      - Szükséges eszközök és anyagok listája.
-      - Biztonságtechnikai és munkavédelmi előírások.
-      - Lépésről-lépésre történő munkafolyamat leírás (mit és hogyan kell csinálni).
-      - Pontos értékelési és osztályozási szempontok a tanár számára (pl. mi számít 5-ös, 4-es munkának, mik a buktatók, pontossági tűrések). Ez kritikus fontosságú a gyakorlati jegyadáshoz!
+    • PRACTICAL (gyakorlati) modulnál a "content" tartalmazza:
+      - Szükséges eszközök, munkavédelmi előírások és a folyamat rövid leírása.
+    • PRACTICAL modulnál a "practicalTasks" tartalmazza:
+      - Konkrét, elvégzendő feladatok (pl. "Végezzen el egy sarokvarratot PB pozícióban", "Ellenőrizze a varrat minőségét szemrevételezéssel").
 
-- A tartalom legyen szakmailag pontos, érthető egy szakképzős diáknak, ugyanakkor a tanár számára is adjon egyértelmű kereteket a számonkéréshez.
-- A "title" mezőt VÁLTOZTATÁS NÉLKÜL másold át az eredeti listából!
+- A tartalom legyen szakmailag pontos és lényegre törő.
+- A "title" mezőt VÁLTOZTATÁS NÉLKÜL másold át!
 
 VÁLASZ (CSAK JSON, semmi más):
 {
   "modules": [
-    { "title": "3.4.2.6.1 Ruhaipari ábrázolások - Modellrajz", "conciseContent": "...", "detailedContent": "..." },
-    { "title": "...", "conciseContent": "...", "detailedContent": "..." }
+    { 
+      "title": "...", 
+      "content": "...", 
+      "practicalTasks": ["feladat 1", "feladat 2"] 
+    }
   ]
 }`.trim();
   }
