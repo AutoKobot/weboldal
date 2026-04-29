@@ -25,9 +25,13 @@ export function IKKManager() {
     queryKey: ["/api/admin/ikk/professions"],
   });
 
+  const { data: localProfessions = [] } = useQuery<any[]>({
+    queryKey: ["/api/public/professions"],
+  });
+
   const { data: importStatus } = useQuery<any>({
     queryKey: ["/api/admin/ikk/status"],
-    refetchInterval: 2000, // Always poll every 2 seconds while on this page
+    refetchInterval: 2000,
   });
 
   const importMutation = useMutation({
@@ -45,7 +49,6 @@ export function IKKManager() {
     }
   });
 
-  // Handle completion/error from polled status using useEffect
   useEffect(() => {
     if (importStatus?.status === 'completed' && isImporting) {
       toast({ title: "Siker", description: importStatus.message });
@@ -64,7 +67,6 @@ export function IKKManager() {
     p.id.toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Limit display to 24 items to prevent browser freeze
   const displayedProfessions = filteredProfessions.slice(0, 24);
 
   return (
@@ -106,11 +108,6 @@ export function IKKManager() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          {searchTerm && (
-            <p className="absolute -bottom-6 left-0 text-[10px] text-muted-foreground">
-              {filteredProfessions.length} találat {filteredProfessions.length > 24 && "(első 24 megjelenítve)"}
-            </p>
-          )}
         </div>
       </div>
 
@@ -122,46 +119,65 @@ export function IKKManager() {
             </Card>
           ))
         ) : displayedProfessions.length > 0 ? (
-          displayedProfessions.map(prof => (
-            <Card key={prof.id} className="flex flex-col">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start gap-2">
-                  <Badge variant="outline" className="font-mono text-[10px]">{prof.id}</Badge>
-                  {prof.sector && <Badge variant="secondary" className="text-[10px]">{prof.sector.name || prof.sector}</Badge>}
-                </div>
-                <CardTitle className="text-base mt-2 line-clamp-2 min-h-[3rem]">{prof.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 pb-4">
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <BookOpen className="h-3 w-3" />
-                    <span>{prof.subjectsCount || 0} tantárgy</span>
+          displayedProfessions.map(prof => {
+            const localProf = localProfessions.find(lp => lp.name === prof.name);
+            const isImported = !!localProf;
+            
+            return (
+              <Card key={prof.id} className={`flex flex-col ${isImported ? 'border-green-200 bg-green-50/20' : ''}`}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <Badge variant="outline" className="font-mono text-[10px]">{prof.id}</Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      {prof.sector && <Badge variant="secondary" className="text-[10px]">{prof.sector.name || prof.sector}</Badge>}
+                      {isImported && (
+                        <Badge className="bg-green-600 text-[9px] h-4">MÁR IMPORTÁLVA</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <GraduationCap className="h-3 w-3" />
-                    <span>{prof.modulesCount || 0} modul</span>
+                  <CardTitle className="text-base mt-2 line-clamp-2 min-h-[3rem]">{prof.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 pb-4">
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        <span>{prof.subjectsCount || 0} tantárgy</span>
+                      </div>
+                      {isImported && localProf.updatedAt && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Frissítve: {new Date(localProf.updatedAt).toLocaleDateString('hu-HU')}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-50/50">ELMÉLET</Badge>
+                       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-orange-50/50">GYAKORLAT</Badge>
+                    </div>
                   </div>
-                </div>
-                <Button 
-                  className="w-full" 
-                  onClick={() => importMutation.mutate(prof)}
-                  disabled={isImporting !== null}
-                >
-                  {isImporting === prof.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Importálás...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Szakma Importálása
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ))
+                  
+                  <Button 
+                    className={`w-full ${isImported ? 'bg-green-600 hover:bg-green-700' : ''}`} 
+                    onClick={() => importMutation.mutate(prof)}
+                    disabled={isImporting !== null}
+                  >
+                    {isImporting === prof.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Feldolgozás...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        {isImported ? 'Újra-importálás' : 'Szakma Importálása'}
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
           <div className="col-span-full py-12 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

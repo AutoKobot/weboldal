@@ -237,12 +237,18 @@ export default function ModuleCard({
           </div>
           <div className="flex-1 min-w-0 pr-2">
             <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-[10px] h-4">
                 {module.moduleNumber}. modul
               </Badge>
+              {/* Practical Tasks Badge */}
+              {module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
+                <Badge className="bg-orange-600 text-white text-[10px] h-4">
+                  <Wrench size={10} className="mr-1" /> GYAKORLATI FELADATOK
+                </Badge>
+              )}
               {/* AI Enhanced Badge */}
               {(module.conciseContent || module.detailedContent) && (
-                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700">
                   AI Enhanced
                 </Badge>
               )}
@@ -251,6 +257,11 @@ export default function ModuleCard({
             <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
               {module.title}
             </CardTitle>
+            {module.updatedAt && (
+              <p className="text-[9px] text-neutral-400 mt-1">
+                Utolsó frissítés: {new Date(module.updatedAt).toLocaleDateString('hu-HU')}
+              </p>
+            )}
           </div>
         </div>
       </CardHeader>
