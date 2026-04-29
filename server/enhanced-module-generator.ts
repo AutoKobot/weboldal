@@ -134,25 +134,20 @@ export class EnhancedModuleGenerator {
     // SEQUENTIAL PROCESSING - Each step builds on the previous result
 
     // Step 1: Generate internet-enhanced detailed content using original content
-    console.log('🔥 SEQUENTIAL AI STEP 1: Generating internet-enhanced detailed content...');
-    console.log('📝 Original content length:', basicContent.length);
+    console.log(`[ENHANCED-GEN] Step 1: Detailed content...`);
     const internetEnhancedDetailed = await this.generateInternetEnhancedContent(title, basicContent, 'detailed', prompts.internetContentPrompt, subjectName, professionName);
-    console.log('✅ STEP 1 COMPLETED - Enhanced detailed content length:', internetEnhancedDetailed.length);
+    console.log(`[ENHANCED-GEN] Step 1 OK (${internetEnhancedDetailed.length} chars)`);
 
-    // Step 1B: Generate concise version using original content and dedicated prompt
-    console.log('🔥 SEQUENTIAL AI STEP 1B: Generating concise version with dedicated prompt...');
-
-    // Use admin-configured prompt for concise content
+    console.log(`[ENHANCED-GEN] Step 1B: Concise content...`);
     const strictConcisePrompt = prompts.conciseContentPrompt
       .replace('{title}', title)
       .replace('{content}', basicContent)
       .replace('{profession}', professionName || 'Általános')
       .replace('{subject}', subjectName || 'Általános');
 
-    console.log('📝 Concise generation started with admin prompt');
     const conciseResponse = await generateChatResponse(strictConcisePrompt, 'chat');
     const internetEnhancedConcise = conciseResponse.message.trim();
-    console.log('✅ STEP 1B COMPLETED - Concise content length:', internetEnhancedConcise.length);
+    console.log(`[ENHANCED-GEN] Step 1B OK (${internetEnhancedConcise.length} chars)`);
 
     // Use the full concise content without truncation
     let finalConciseContent = internetEnhancedConcise;
@@ -200,17 +195,14 @@ export class EnhancedModuleGenerator {
       console.log(`🔗 DEBUG: First bold link in detailed: ${boldLinkedDetailed.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/)?.[0]}`);
     }
 
-    // Step 3: Parallel YouTube, Mermaid and Quiz processing
-    console.log('🔥 STEP 3: Parallel YouTube search, Mermaid conversion and Quiz generation...');
+    console.log(`[ENHANCED-GEN] Step 3: Parallel Tasks (YouTube terms, SVG, Quizzes)...`);
     const [youtubeSearchTerms, conciseWithSVG, detailedWithSVG, quizSets] = await Promise.all([
       this.generateYouTubeSearchTerms(title, boldLinkedDetailed, prompts.youtubePrompt, subjectName, professionName),
       this.convertMermaidToSVGImages(boldLinkedConcise),
       this.convertMermaidToSVGImages(boldLinkedDetailed),
-      this.generateMultipleQuizSets(title, boldLinkedDetailed)  // Fixed: Use boldLinkedDetailed
+      this.generateMultipleQuizSets(title, boldLinkedDetailed)
     ]);
-
-    console.log('🔍 YouTube search terms generated:', youtubeSearchTerms);
-    console.log('📝 Quiz sets generated:', quizSets.length);
+    console.log(`[ENHANCED-GEN] Step 3 OK (YT terms: ${youtubeSearchTerms.length}, Quizzes: ${quizSets.length})`);
 
     // Step 4: Find YouTube videos (sequential due to API limits)
     console.log('🔥 STEP 4: Finding YouTube videos...');

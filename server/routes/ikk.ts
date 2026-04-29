@@ -49,7 +49,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       return res.status(400).json({ message: 'An import is already in progress' });
     }
 
-    // Start background process
+    // Reset status
     activeImport = {
       status: 'processing',
       progress: 0,
@@ -57,57 +57,55 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       professionName: profession.name
     };
 
-    // Send immediate response to client
+    // Send immediate response
     res.json({ success: true, message: 'Importálás elindítva a háttérben!' });
 
-    // Actual work happens here (not awaited in the main request)
+    // Background Execution
     (async () => {
       try {
-        console.log(`[BACKGROUND] Starting IKK import for: ${profession.name}`);
-        const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
+        console.log(`[IKK-IMPORT] Megkezdve: ${profession.name}`);
         const { getOpenAIClient } = await import('../openai');
         const openai = await getOpenAIClient();
 
-        const chunks = ikkService.splitPttIntoSections(pttText);
-        const mergedSubjects: Map<string, any> = new Map();
-
-        const chunkResults = [];
-        activeImport.message = `Szerkezet elemzése (${chunks.length} rész)...`;
+        // Step 1: Get PDF Content
+        activeImport.message = "PDF dokumentumok letöltése...";
+        activeImport.progress = 5;
+        const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
         
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i];
-          const extractionPrompt = ikkService.buildExtractionPrompt(chunk);
-          try {
-            const response = await openai.chat.completions.create({
-              model: "gpt-4o-mini",
-              response_format: { type: "json_object" },
-              messages: [
-                { role: "system", content: "Te egy precíz dokumentum-elemző vagy. Kizárólag a dokumentumban szereplő szövegeket listázod fel, semmit sem generálsz magadtól. Csak érvényes JSON-t adsz válaszul." },
-                { role: "user", content: extractionPrompt }
-              ],
-              temperature: 0.0,
-            });
-            let jsonStr = (response.choices[0].message.content || '{}').trim();
-            chunkResults.push(JSON.parse(jsonStr.replace(/```json|```/g, '')));
-            
-            activeImport.progress = Math.round(((i + 1) / chunks.length) * 30); // First 30%
-            await new Promise(resolve => setTimeout(resolve, 200));
-          } catch (err) { 
-            console.error(`Chunk error:`, err);
-            chunkResults.push({ subjects: [] }); 
-          }
-        }
+        // Step 2: Extract structure
+        activeImport.message = "Szakmai szerkezet elemzése (AI)...";
+        activeImport.progress = 15;
+        const chunks = ikkService.splitPttIntoSections(pttText);
+        
+        if (chunks.length === 0) throw new Error("Nem sikerült tantárgyakat találni a PTT-ben.");
 
-        for (const parsed of chunkResults) {
-          if (parsed.subjects && Array.isArray(parsed.subjects)) {
-            for (const subject of parsed.subjects) {
-              const key = subject.name?.toLowerCase()?.trim();
+        const rawSubjects: any[] = [];
+        const mergedSubjectsMap: Map<string, any> = new Map();
+
+        for (let i = 0; i < chunks.length; i++) {
+          activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
+          activeImport.progress = 15 + Math.floor((i / chunks.length) * 25);
+
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: "Te egy precíz PTT elemző vagy. Csak valid JSON-t adsz vissza subjects listával." },
+              { role: "user", content: ikkService.buildExtractionPrompt(chunks[i]) }
+            ],
+            temperature: 0,
+          });
+
+          const data = JSON.parse(response.choices[0].message.content || '{"subjects":[]}');
+          if (data.subjects) {
+            for (const sub of data.subjects) {
+              const key = sub.name?.toLowerCase().trim();
               if (!key) continue;
-              if (!mergedSubjects.has(key)) mergedSubjects.set(key, { ...subject, modules: [] });
-              const existing = mergedSubjects.get(key)!;
-              if (subject.modules && Array.isArray(subject.modules)) {
-                for (const mod of subject.modules) {
-                  if (!existing.modules.some((m: any) => m.title?.toLowerCase()?.trim() === mod.title?.toLowerCase()?.trim())) {
+              if (!mergedSubjectsMap.has(key)) mergedSubjectsMap.set(key, { ...sub, modules: [] });
+              const existing = mergedSubjectsMap.get(key);
+              if (sub.modules) {
+                for (const mod of sub.modules) {
+                  if (!existing.modules.some((m: any) => m.title === mod.title)) {
                     existing.modules.push(mod);
                   }
                 }
@@ -116,103 +114,84 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           }
         }
 
-        const rawSubjects = Array.from(mergedSubjects.values());
-        const BATCH_SIZE = 10;
-        
-        activeImport.message = `Tananyag generálása (${rawSubjects.length} tantárgy)...`;
+        const finalSubjects = Array.from(mergedSubjectsMap.values());
+        if (finalSubjects.length === 0) throw new Error("Az AI nem talált feldolgozható tantárgyakat.");
 
-        for (let sIdx = 0; sIdx < rawSubjects.length; sIdx++) {
-          const subject = rawSubjects[sIdx];
-          if (!subject.modules || subject.modules.length === 0) continue;
-          
-          activeImport.message = `Generálás: ${subject.name}...`;
-          const batches = [];
-          for (let i = 0; i < subject.modules.length; i += BATCH_SIZE) {
-            batches.push(subject.modules.slice(i, i + BATCH_SIZE));
-          }
+        // Step 3: Delete existing if any (to avoid duplicates)
+        const allProfs = await storage.getProfessions();
+        const existing = allProfs.find(p => p.name === profession.name);
+        if (existing) {
+          console.log(`[IKK-IMPORT] Meglévő szakma törlése: ${existing.id}`);
+          await storage.deleteProfession(existing.id);
+        }
 
-          const enrichedModules = [];
-          for (let bIdx = 0; bIdx < batches.length; bIdx++) {
-            const batch = batches[bIdx];
-            const contentPrompt = ikkService.buildContentPrompt(profession.name, subject.name, batch);
+        // Step 4: Create new profession
+        const dbProfession = await storage.createProfession({
+          name: profession.name,
+          description: `Importálva az IKK-ról. Ágazat: ${profession.sector?.name || 'N/A'}`,
+          iconName: "book"
+        });
+
+        // Step 5: Generate content and save
+        let totalModules = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
+        let processedModules = 0;
+
+        for (const sub of finalSubjects) {
+          console.log(`[IKK-IMPORT] Tantárgy mentése: ${sub.name}`);
+          const dbSubject = await storage.createSubject({
+            professionId: dbProfession.id,
+            name: sub.name,
+            description: sub.description || "",
+            type: sub.practicalPercent > 0 ? 'practical' : 'theory',
+            orderIndex: 0
+          });
+
+          const BATCH_SIZE = 10;
+          for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
+            const batch = sub.modules.slice(i, i + BATCH_SIZE);
+            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
+            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
+
             try {
-              const response = await openai.chat.completions.create({
+              const res = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 response_format: { type: "json_object" },
                 messages: [
-                  { role: "system", content: "Te egy szakképzési tananyagfejlesztő vagy. Minden felsorolt modulhoz szakmai tartalmat generálsz. Csak érvényes JSON-t adsz válaszul." },
-                  { role: "user", content: contentPrompt }
+                  { role: "system", content: "Tananyagfejlesztő vagy. Generálj szakmai tartalmat és feladatokat JSON formátumban." },
+                  { role: "user", content: ikkService.buildContentPrompt(profession.name, sub.name, batch) }
                 ],
-                temperature: 0.4,
+                temperature: 0.4
               });
-              const parsed = JSON.parse((response.choices[0].message.content || '{}').replace(/```json|```/g, ''));
-              for (let mi = 0; mi < batch.length; mi++) {
-                const rawMod = batch[mi];
-                const enriched = parsed.modules?.[mi] || parsed.modules?.find((m: any) => m.title?.toLowerCase() === rawMod.title?.toLowerCase());
-                enrichedModules.push({
-                  title: rawMod.title, 
-                  type: rawMod.type,
-                  content: enriched?.content || `${rawMod.title} alapvető tartalma.`,
-                  practicalTasks: enriched?.practicalTasks || []
+
+              const contentData = JSON.parse(res.choices[0].message.content || '{"modules":[]}');
+              for (const modData of (contentData.modules || [])) {
+                await storage.createModule({
+                  subjectId: dbSubject.id,
+                  title: modData.title,
+                  content: modData.content,
+                  moduleNumber: processedModules + 1,
+                  practicalTasks: modData.practicalTasks || [],
+                  isPublished: true
                 });
+                processedModules++;
               }
-              await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (err) {
-              batch.forEach((m: any) => enrichedModules.push({ ...m, content: `${m.title}.`, practicalTasks: [] }));
+            } catch (e) {
+              console.error(`[IKK-IMPORT] Hiba a modul batch-nél:`, e);
             }
-            
-            // Progress from 30% to 90%
-            const subjectProgress = (sIdx / rawSubjects.length) * 60;
-            const batchProgress = (bIdx / batches.length) * (60 / rawSubjects.length);
-            activeImport.progress = 30 + Math.round(subjectProgress + batchProgress);
+            await new Promise(r => setTimeout(r, 800));
           }
-          subject.enrichedModules = enrichedModules;
-        }
-
-        activeImport.message = "Mentés az adatbázisba...";
-        activeImport.progress = 95;
-
-        const existingProfessions = await storage.getProfessions();
-        const duplicate = existingProfessions.find(p => p.name === profession.name);
-        if (duplicate) await storage.deleteProfession(duplicate.id);
-
-        const totalModules = rawSubjects.reduce((sum, s) => sum + (s.enrichedModules?.length || 0), 0);
-        const newProfession = await storage.createProfession({
-          name: profession.name,
-          description: `${rawSubjects.length} tantárgy, ${totalModules} modul (IKK PTT alapján).`,
-          iconName: 'GraduationCap'
-        });
-
-        for (const sub of rawSubjects) {
-          const enriched = sub.enrichedModules || [];
-          const theoryMods = enriched.filter((m: any) => m.type === 'theory');
-          const practicalMods = enriched.filter((m: any) => m.type === 'practical');
-
-          const createSubjectWithModules = async (type: 'theory' | 'practical', mods: any[]) => {
-            if (mods.length === 0) return;
-            const subject = await storage.createSubject({
-              name: sub.name, description: sub.description, type, professionId: newProfession.id
-            });
-            await Promise.all(mods.map((mod, i) => 
-              storage.createModule({
-                title: mod.title, content: mod.content,
-                subjectId: subject.id, moduleNumber: i + 1, isPublished: false,
-                practicalTasks: mod.practicalTasks
-              })
-            ));
-          };
-          await createSubjectWithModules('theory', theoryMods);
-          await createSubjectWithModules('practical', practicalMods);
         }
 
         activeImport.status = 'completed';
         activeImport.progress = 100;
-        activeImport.message = 'IKK importálás sikeresen befejeződött!';
-        console.log(`[BACKGROUND] IKK import COMPLETED for: ${profession.name}`);
+        activeImport.message = `Sikeresen importálva: ${dbProfession.name} (${processedModules} modul)`;
+        console.log(`[IKK-IMPORT] KÉSZ: ${profession.name}`);
+
       } catch (err: any) {
-        console.error('[BACKGROUND] IKK import error:', err);
+        console.error("[IKK-IMPORT] KRITIKUS HIBA:", err);
         activeImport.status = 'error';
-        activeImport.error = err.message || 'Ismeretlen hiba történt';
+        activeImport.error = err.message;
+        activeImport.message = `Hiba: ${err.message}`;
       }
     })();
   } catch (error) {

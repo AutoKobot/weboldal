@@ -283,9 +283,13 @@ router.post('/modules/:id/regenerate', combinedAuth, async (req: any, res) => {
       }
     }
 
+    console.log(`[AI-REGENERATE] Starting regeneration for module: ${module.id} (${module.title})`);
+    
     const enhancedContent = await enhancedModuleGenerator.generateEnhancedModule(
       title || module.title, content || module.content, subjectContext, undefined, subjectName, professionName
     );
+
+    console.log(`[AI-REGENERATE] Content generated successfully. Saving to database...`);
 
     const updatedModule = await storage.updateModule(moduleId, {
       conciseContent: enhancedContent.conciseVersion,
@@ -294,10 +298,15 @@ router.post('/modules/:id/regenerate', combinedAuth, async (req: any, res) => {
       generatedQuizzes: enhancedContent.generatedQuizzes
     });
 
+    console.log(`[AI-REGENERATE] Module ${moduleId} updated successfully.`);
     res.json(updatedModule);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error regenerating module:", error);
-    res.status(500).json({ message: "Failed to regenerate module content" });
+    res.status(500).json({ 
+      message: "Failed to regenerate module content",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
