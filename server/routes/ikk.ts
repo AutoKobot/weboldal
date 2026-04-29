@@ -36,9 +36,13 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
     const chunks = ikkService.splitPttIntoSections(pttText);
     const mergedSubjects: Map<string, any> = new Map();
 
-    const chunkResults = await Promise.all(chunks.map(async (chunk, i) => {
+    const chunkResults = [];
+    console.log(`Phase 1: Extracting structure from ${chunks.length} chunks...`);
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
       const extractionPrompt = ikkService.buildExtractionPrompt(chunk);
       try {
+        console.log(`  Processing chunk ${i+1}/${chunks.length}...`);
         const response = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           response_format: { type: "json_object" },
@@ -49,9 +53,14 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           temperature: 0.0,
         });
         let jsonStr = (response.choices[0].message.content || '{}').trim();
-        return JSON.parse(jsonStr.replace(/```json|```/g, ''));
-      } catch (err) { return { subjects: [] }; }
-    }));
+        chunkResults.push(JSON.parse(jsonStr.replace(/```json|```/g, '')));
+        // Small delay to prevent rate limits
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (err) { 
+        console.error(`  Error in chunk ${i+1}:`, err);
+        chunkResults.push({ subjects: [] }); 
+      }
+    }
 
     for (const parsed of chunkResults) {
       if (parsed.subjects && Array.isArray(parsed.subjects)) {
@@ -72,16 +81,23 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
     }
 
     const rawSubjects = Array.from(mergedSubjects.values());
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 10; // Smaller batches
 
-    await Promise.all(rawSubjects.map(async (subject) => {
-      if (!subject.modules || subject.modules.length === 0) return;
+    console.log(`Phase 2: Generating content for ${rawSubjects.length} subjects...`);
+    for (const subject of rawSubjects) {
+      if (!subject.modules || subject.modules.length === 0) continue;
+      
+      console.log(`  Generating content for subject: ${subject.name} (${subject.modules.length} modules)`);
       const batches = [];
-      for (let i = 0; i < subject.modules.length; i += BATCH_SIZE) batches.push(subject.modules.slice(i, i + BATCH_SIZE));
+      for (let i = 0; i < subject.modules.length; i += BATCH_SIZE) {
+        batches.push(subject.modules.slice(i, i + BATCH_SIZE));
+      }
 
-      const batchResults = await Promise.all(batches.map(async (batch) => {
+      const enrichedModules = [];
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b];
+        console.log(`    Processing batch ${b+1}/${batches.length}...`);
         const contentPrompt = ikkService.buildContentPrompt(profession.name, subject.name, batch);
-        const enrichedBatch: any[] = [];
         try {
           const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -96,20 +112,22 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           for (let mi = 0; mi < batch.length; mi++) {
             const rawMod = batch[mi];
             const enriched = parsed.modules?.[mi] || parsed.modules?.find((m: any) => m.title?.toLowerCase() === rawMod.title?.toLowerCase());
-            enrichedBatch.push({
+            enrichedModules.push({
               title: rawMod.title, 
               type: rawMod.type,
               content: enriched?.content || `${rawMod.title} alapvető tartalma.`,
               practicalTasks: enriched?.practicalTasks || []
             });
           }
+          // Small delay between batches
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (err) {
-          batch.forEach((m: any) => enrichedBatch.push({ ...m, content: `${m.title}.`, practicalTasks: [] }));
+          console.error(`    Error in batch ${b+1}:`, err);
+          batch.forEach((m: any) => enrichedModules.push({ ...m, content: `${m.title}.`, practicalTasks: [] }));
         }
-        return enrichedBatch;
-      }));
-      subject.enrichedModules = batchResults.flat();
-    }));
+      }
+      subject.enrichedModules = enrichedModules;
+    }
 
     const existingProfessions = await storage.getProfessions();
     const duplicate = existingProfessions.find(p => p.name === profession.name);
