@@ -435,23 +435,18 @@ export default function ModuleViewer() {
   const regenerateModuleMutation = useMutation({
     mutationFn: async () => {
       setIsRegenerating(true);
-      const response = await apiRequest('POST', `/api/admin/modules/${moduleId}/regenerate-ai`, {
+      const response = await apiRequest('POST', `/api/ai/modules/${moduleId}/regenerate`, {
         title: module?.title || '',
         content: module?.content || ''
       });
       return response.json();
     },
     onSuccess: async () => {
-      // Clear all cache immediately
-      queryClient.clear();
-
-      // Force refetch of the current module
-      await queryClient.refetchQueries({
-        queryKey: [`/api/modules/${moduleId}`],
-        type: 'active'
-      });
-
-      // Also invalidate related queries
+      // Clear and invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: [`/api/modules/${moduleId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/professions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
       queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
 

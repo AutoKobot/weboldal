@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle } from "lucide-react";
+import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle, Wrench } from "lucide-react";
 import type { Module } from "@shared/schema";
 
 interface ModuleCardProps {
@@ -75,11 +75,12 @@ export default function ModuleCard({
       return response.json();
     },
     onSuccess: async () => {
-      // Clear cache and force refetch
-      queryClient.clear();
-      await queryClient.refetchQueries({ queryKey: ['/api/modules'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/public/modules'] });
-
+      // Clear cache and force refetch with correct keys used in dashboards
+      queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/professions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/modules'] }); // legacy
+      
       toast({
         title: "AI Újragenerálás sikeres!",
         description: "A modul tartalmát sikeresen frissítette az AI - webes keresési eredményekkel és videókkal bővítve.",
@@ -241,7 +242,7 @@ export default function ModuleCard({
                 {module.moduleNumber}. modul
               </Badge>
               {/* Practical Tasks Badge */}
-              {module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
+              {Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
                 <Badge className="bg-orange-600 text-white text-[10px] h-4">
                   <Wrench size={10} className="mr-1" /> GYAKORLATI FELADATOK
                 </Badge>

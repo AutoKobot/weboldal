@@ -118,12 +118,16 @@ export function ModuleManager({
       });
     },
     onSuccess: (_, moduleId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      
       setRegeneratingModules(prev => {
         const next = new Set(prev);
         next.delete(moduleId);
         return next;
       });
-      toast({ title: "AI Újragenerálás elindítva", description: "A folyamat a háttérben fut (Tartalom + Teszt)." });
+      toast({ title: "AI Újragenerálás sikeres", description: "A tananyag és a teszt frissült." });
     }
   });
 

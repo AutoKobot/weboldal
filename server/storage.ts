@@ -1402,7 +1402,7 @@ export class DatabaseStorage implements IStorage {
   async createBackgroundJob(type: string, message: string, data?: any): Promise<any> {
     const result = await db.execute(sql`
       INSERT INTO background_jobs (type, status, progress, message, data)
-      VALUES (${type}, 'processing', 0, ${message}, ${JSON.stringify(data) || null})
+      VALUES (${type}, 'processing', 0, ${message}, ${data || null})
       RETURNING *
     `);
     return result.rows[0];
@@ -1416,20 +1416,25 @@ export class DatabaseStorage implements IStorage {
         progress = COALESCE(${update.progress}, progress),
         message = COALESCE(${update.message}, message),
         error = COALESCE(${update.error}, error),
-        data = COALESCE(${JSON.stringify(update.data) || null}, data),
+        data = COALESCE(${update.data || null}, data),
         updated_at = NOW()
       WHERE id = ${id}
     `);
   }
 
   async getLatestBackgroundJob(type: string): Promise<any> {
-    const result = await db.execute(sql`
-      SELECT * FROM background_jobs 
-      WHERE type = ${type}
-      ORDER BY created_at DESC 
-      LIMIT 1
-    `);
-    return result.rows[0];
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM background_jobs 
+        WHERE type = ${type}
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `);
+      return result.rows[0];
+    } catch (error) {
+      console.error(`Error fetching latest background job for ${type}:`, error);
+      return null;
+    }
   }
 
   async pinDiscussion(id: number, pinned: boolean): Promise<void> {
