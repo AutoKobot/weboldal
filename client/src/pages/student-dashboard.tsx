@@ -175,9 +175,7 @@ export default function StudentDashboard() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <StudentAvatar user={user} className="w-20 h-20 border-4 border-white shadow-xl" />
-                <div>
-                  </div>
-
+                <div className="flex items-center gap-4">
                   <div className="hidden sm:block w-px h-10 bg-neutral-200"></div>
 
                   <div className="flex flex-col min-w-[150px]">
@@ -190,100 +188,97 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
-            
-            <div className="lg:col-span-1">
-              <StudentAvatar />
-            </div>
-          </div>
 
-          {/* Progress Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <ProgressCard
-              title="Befejezett modulok"
-              value={completedModules.length}
-              subtitle={`${totalModules}-ből`}
-              icon={BookOpen}
-              color="secondary"
-            />
-            <ProgressCard
-              title="Tanulási idő"
-              value={Math.floor(completedModules.length * 2.5)}
-              subtitle="óra összesen"
-              icon={Clock}
-              color="accent"
-            />
-            <ProgressCard
-              title="AI beszélgetések"
-              value={chatMessages.length}
-              subtitle="üzenet"
-              icon={MessageSquare}
-              color="primary"
-            />
-            <ProgressCard
-              title="Átlagos érdemjegy"
-              value={displayGrade as any}
-              subtitle={gradeLabel}
-              icon={Award}
-              color="secondary"
-            />
-          </div>
-
-          {/* Overall Progress */}
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-semibold text-neutral-700">
-                  Általános haladás
-                </CardTitle>
-                <span className="text-lg font-semibold text-primary">
-                  {overallProgress}%
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Progress value={overallProgress} className="mb-3" />
-              <p className="text-sm text-neutral-400">
-                {completedModules.length} modul a {totalModules}-ből teljesítve
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Modules Grid */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-neutral-700">Elérhető modulok</h3>
+            {/* Progress Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <ProgressCard
+                title="Befejezett modulok"
+                value={completedModules.length}
+                subtitle={`${modules.length}-ből`}
+                icon={BookOpen}
+                color="secondary"
+              />
+              <ProgressCard
+                title="Tanulási idő"
+                value={Math.floor(completedModules.length * 2.5)}
+                subtitle="óra összesen"
+                icon={Clock}
+                color="accent"
+              />
+              <ProgressCard
+                title="AI beszélgetések"
+                value={chatMessages.length}
+                subtitle="üzenet"
+                icon={MessageSquare}
+                color="primary"
+              />
+              <ProgressCard
+                title="Átlagos érdemjegy"
+                value={(theoryAvg || practicalAvg || 'N/A') as any}
+                subtitle="Összesített"
+                icon={Award}
+                color="secondary"
+              />
             </div>
 
-            {modulesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
-                    <div className="h-48 bg-neutral-200 rounded-lg mb-4"></div>
-                    <div className="h-4 bg-neutral-200 rounded mb-2"></div>
-                    <div className="h-3 bg-neutral-200 rounded mb-4"></div>
-                    <div className="h-3 bg-neutral-200 rounded w-1/2"></div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...modules].sort((a, b) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
-                  <ModuleCard
-                    key={module.id}
-                    module={module}
-                    isCompleted={completedModules.includes(module.id)}
-                    userRole="student"
-                    isUnlocked={unlockedModules.has(module.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            {/* Overall Progress */}
+            <Card className="mb-8">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold text-neutral-700">
+                    Általános haladás
+                  </CardTitle>
+                  <span className="text-lg font-semibold text-primary">
+                    {Math.round(((theoryProgress + practicalProgress) / 2))}%
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Progress value={(theoryProgress + practicalProgress) / 2} className="mb-3" />
+                <p className="text-sm text-neutral-400">
+                  {completedModules.length} modul a {modules.length}-ből teljesítve
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* AI Tutor Section */}
-          <ChatInterface userId={user.id} />
+            {/* Modules Grid */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-neutral-700">Elérhető modulok</h3>
+              </div>
+
+              {modulesLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+                      <div className="h-48 bg-neutral-200 rounded-lg mb-4"></div>
+                      <div className="h-4 bg-neutral-200 rounded mb-2"></div>
+                      <div className="h-3 bg-neutral-200 rounded mb-4"></div>
+                      <div className="h-3 bg-neutral-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...modules].sort((a, b) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
+                    <ModuleCard
+                      key={module.id}
+                      module={module}
+                      isCompleted={completedModules.includes(module.id)}
+                      userRole="student"
+                      isUnlocked={unlockedTheory.has(module.id) || unlockedPractical.has(module.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* AI Tutor Section */}
+            <ChatInterface userId={user.id} />
+          </div>
         </main>
       </div>
     </div>
   );
 }
+
