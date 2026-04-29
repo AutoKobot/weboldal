@@ -37,7 +37,21 @@ let activeImport: {
 };
 
 router.get('/status', combinedAuth, adminOnly, async (req, res) => {
-  res.json(activeImport);
+  try {
+    const latestJob = await (storage as any).getLatestBackgroundJob('ikk_import');
+    if (!latestJob) {
+      return res.json({ status: 'idle', progress: 0, message: '', professionName: '' });
+    }
+    res.json({
+      status: latestJob.status,
+      progress: latestJob.progress,
+      message: latestJob.message,
+      professionName: latestJob.data?.professionName || '',
+      error: latestJob.error
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch import status' });
+  }
 });
 
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
@@ -45,46 +59,42 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
     const { profession } = req.body;
     if (!profession) return res.status(400).json({ message: 'Profession data is required' });
 
-    if (activeImport.status === 'processing') {
+    const activeJob = await (storage as any).getLatestBackgroundJob('ikk_import');
+    if (activeJob && activeJob.status === 'processing') {
       return res.status(400).json({ message: 'An import is already in progress' });
     }
 
-    // Reset status
-    activeImport = {
-      status: 'processing',
-      progress: 0,
-      message: 'Előkészítés...',
-      professionName: profession.name
-    };
+    // Create new persistent job
+    const job = await (storage as any).createBackgroundJob('ikk_import', 'Előkészítés...', { professionName: profession.name });
 
     // Send immediate response
-    res.json({ success: true, message: 'Importálás elindítva a háttérben!' });
+    res.json({ success: true, message: 'Importálás elindítva a háttérben!', jobId: job.id });
 
     // Background Execution
     (async () => {
+      const jobId = job.id;
       try {
-        console.log(`[IKK-IMPORT] Megkezdve: ${profession.name}`);
+        console.log(`[IKK-IMPORT] Megkezdve: ${profession.name} (Job: ${jobId})`);
         const { getOpenAIClient } = await import('../openai');
         const openai = await getOpenAIClient();
 
         // Step 1: Get PDF Content
-        activeImport.message = "PDF dokumentumok letöltése...";
-        activeImport.progress = 5;
+        await (storage as any).updateBackgroundJob(jobId, { message: "PDF dokumentumok letöltése...", progress: 5 });
         const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
         
         // Step 2: Extract structure
-        activeImport.message = "Szakmai szerkezet elemzése (AI)...";
-        activeImport.progress = 15;
+        await (storage as any).updateBackgroundJob(jobId, { message: "Szakmai szerkezet elemzése (AI)...", progress: 15 });
         const chunks = ikkService.splitPttIntoSections(pttText);
         
         if (chunks.length === 0) throw new Error("Nem sikerült tantárgyakat találni a PTT-ben.");
 
-        const rawSubjects: any[] = [];
         const mergedSubjectsMap: Map<string, any> = new Map();
 
         for (let i = 0; i < chunks.length; i++) {
-          activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
-          activeImport.progress = 15 + Math.floor((i / chunks.length) * 25);
+          await (storage as any).updateBackgroundJob(jobId, { 
+            message: `Szerkezet elemzése (${i + 1}/${chunks.length})...`,
+            progress: 15 + Math.floor((i / chunks.length) * 25)
+          });
 
           const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -117,7 +127,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const finalSubjects = Array.from(mergedSubjectsMap.values());
         if (finalSubjects.length === 0) throw new Error("Az AI nem talált feldolgozható tantárgyakat.");
 
-        // Step 3: Delete existing if any (to avoid duplicates)
+        // Step 3: Delete existing if any
         const allProfs = await storage.getProfessions();
         const existing = allProfs.find(p => p.name === profession.name);
         if (existing) {
@@ -137,7 +147,6 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         let processedModules = 0;
 
         for (const sub of finalSubjects) {
-          console.log(`[IKK-IMPORT] Tantárgy mentése: ${sub.name}`);
           const dbSubject = await storage.createSubject({
             professionId: dbProfession.id,
             name: sub.name,
@@ -149,8 +158,10 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           const BATCH_SIZE = 10;
           for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
             const batch = sub.modules.slice(i, i + BATCH_SIZE);
-            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
-            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
+            await (storage as any).updateBackgroundJob(jobId, {
+              message: `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`,
+              progress: 40 + Math.floor((processedModules / totalModules) * 55)
+            });
 
             try {
               const res = await openai.chat.completions.create({
@@ -182,16 +193,20 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           }
         }
 
-        activeImport.status = 'completed';
-        activeImport.progress = 100;
-        activeImport.message = `Sikeresen importálva: ${dbProfession.name} (${processedModules} modul)`;
+        await (storage as any).updateBackgroundJob(jobId, {
+          status: 'completed',
+          progress: 100,
+          message: `Sikeresen importálva: ${dbProfession.name} (${processedModules} modul)`
+        });
         console.log(`[IKK-IMPORT] KÉSZ: ${profession.name}`);
 
       } catch (err: any) {
         console.error("[IKK-IMPORT] KRITIKUS HIBA:", err);
-        activeImport.status = 'error';
-        activeImport.error = err.message;
-        activeImport.message = `Hiba: ${err.message}`;
+        await (storage as any).updateBackgroundJob(jobId, {
+          status: 'error',
+          error: err.message,
+          message: `Hiba: ${err.message}`
+        });
       }
     })();
   } catch (error) {

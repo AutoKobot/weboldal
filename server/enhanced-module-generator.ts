@@ -196,17 +196,52 @@ export class EnhancedModuleGenerator {
     }
 
     console.log(`[ENHANCED-GEN] Step 3: Parallel Tasks (YouTube terms, SVG, Quizzes)...`);
+    
+    // We run these in parallel but handle their errors individually
     const [youtubeSearchTerms, conciseWithSVG, detailedWithSVG, quizSets] = await Promise.all([
-      this.generateYouTubeSearchTerms(title, boldLinkedDetailed, prompts.youtubePrompt, subjectName, professionName),
-      this.convertMermaidToSVGImages(boldLinkedConcise),
-      this.convertMermaidToSVGImages(boldLinkedDetailed),
-      this.generateMultipleQuizSets(title, boldLinkedDetailed)
+      (async () => {
+        try {
+          return await this.generateYouTubeSearchTerms(title, boldLinkedDetailed, prompts.youtubePrompt, subjectName, professionName);
+        } catch (e) {
+          console.error("[ENHANCED-GEN] YouTube search terms failed, skipping...", e);
+          return [];
+        }
+      })(),
+      (async () => {
+        try {
+          return await this.convertMermaidToSVGImages(boldLinkedConcise);
+        } catch (e) {
+          console.error("[ENHANCED-GEN] Mermaid conversion for concise failed, skipping...", e);
+          return boldLinkedConcise;
+        }
+      })(),
+      (async () => {
+        try {
+          return await this.convertMermaidToSVGImages(boldLinkedDetailed);
+        } catch (e) {
+          console.error("[ENHANCED-GEN] Mermaid conversion for detailed failed, skipping...", e);
+          return boldLinkedDetailed;
+        }
+      })(),
+      (async () => {
+        try {
+          return await this.generateMultipleQuizSets(title, boldLinkedDetailed);
+        } catch (e) {
+          console.error("[ENHANCED-GEN] Quiz generation failed, skipping...", e);
+          return [];
+        }
+      })()
     ]);
     console.log(`[ENHANCED-GEN] Step 3 OK (YT terms: ${youtubeSearchTerms.length}, Quizzes: ${quizSets.length})`);
 
     // Step 4: Find YouTube videos (sequential due to API limits)
     console.log('🔥 STEP 4: Finding YouTube videos...');
-    const keyConceptsWithVideos = await this.enrichWithYouTubeVideos(youtubeSearchTerms);
+    let keyConceptsWithVideos: any[] = [];
+    try {
+      keyConceptsWithVideos = await this.enrichWithYouTubeVideos(youtubeSearchTerms);
+    } catch (e) {
+      console.error("[ENHANCED-GEN] YouTube enrichment failed, skipping...", e);
+    }
     console.log('✅ STEP 4 COMPLETED - YouTube videos found:', keyConceptsWithVideos.length);
 
     // DEBUG: Final content check before return

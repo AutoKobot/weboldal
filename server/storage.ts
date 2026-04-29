@@ -347,6 +347,21 @@ export class DatabaseStorage implements IStorage {
         ADD COLUMN IF NOT EXISTS generated_quizzes JSONB,
         ADD COLUMN IF NOT EXISTS practical_tasks JSONB;
       `);
+
+      // Létrehozzuk a background_jobs táblát ha nincs
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS background_jobs (
+          id SERIAL PRIMARY KEY,
+          type VARCHAR(50) NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'processing',
+          progress INTEGER DEFAULT 0,
+          message TEXT,
+          data JSONB,
+          error TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `);
       
       console.log("✅ Adatbázis séma naprakész.");
     } catch (error) {
@@ -1378,8 +1393,42 @@ export class DatabaseStorage implements IStorage {
     return discussion;
   }
 
-  async deleteDiscussion(id: number): Promise<void> {
-    await db.delete(discussions).where(eq(discussions.id, id));
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
+  }
+
+  // Background Job operations
+  async createBackgroundJob(type: string, message: string, data?: any): Promise<any> {
+    const [job] = await db.execute(sql`
+      INSERT INTO background_jobs (type, status, progress, message, data)
+      VALUES (${type}, 'processing', 0, ${message}, ${JSON.stringify(data) || null})
+      RETURNING *
+    `);
+    return job;
+  }
+
+  async updateBackgroundJob(id: number, update: { status?: string, progress?: number, message?: string, error?: string, data?: any }): Promise<void> {
+    await db.execute(sql`
+      UPDATE background_jobs 
+      SET 
+        status = COALESCE(${update.status}, status),
+        progress = COALESCE(${update.progress}, progress),
+        message = COALESCE(${update.message}, message),
+        error = COALESCE(${update.error}, error),
+        data = COALESCE(${JSON.stringify(update.data) || null}, data),
+        updated_at = NOW()
+      WHERE id = ${id}
+    `);
+  }
+
+  async getLatestBackgroundJob(type: string): Promise<any> {
+    const [job] = await db.execute(sql`
+      SELECT * FROM background_jobs 
+      WHERE type = ${type}
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
+    return job;
   }
 
   async pinDiscussion(id: number, pinned: boolean): Promise<void> {
