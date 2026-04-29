@@ -1400,26 +1400,37 @@ export class DatabaseStorage implements IStorage {
 
   // Background Job operations
   async createBackgroundJob(type: string, message: string, data?: any): Promise<any> {
-    const result = await db.execute(sql`
-      INSERT INTO background_jobs (type, status, progress, message, data)
-      VALUES (${type}, 'processing', 0, ${message}, ${data || null})
-      RETURNING *
-    `);
-    return result.rows[0];
+    try {
+      const result = await db.execute(sql`
+        INSERT INTO background_jobs (type, status, progress, message, data)
+        VALUES (${type}, 'processing', 0, ${message}, ${data || null})
+        RETURNING *
+      `);
+      
+      const rows = Array.isArray(result) ? result : (result.rows || []);
+      return rows[0];
+    } catch (error) {
+      console.error("Error creating background job:", error);
+      throw error;
+    }
   }
 
   async updateBackgroundJob(id: number, update: { status?: string, progress?: number, message?: string, error?: string, data?: any }): Promise<void> {
-    await db.execute(sql`
-      UPDATE background_jobs 
-      SET 
-        status = COALESCE(${update.status}, status),
-        progress = COALESCE(${update.progress}, progress),
-        message = COALESCE(${update.message}, message),
-        error = COALESCE(${update.error}, error),
-        data = COALESCE(${update.data || null}, data),
-        updated_at = NOW()
-      WHERE id = ${id}
-    `);
+    try {
+      await db.execute(sql`
+        UPDATE background_jobs 
+        SET 
+          status = COALESCE(${update.status}, status),
+          progress = COALESCE(${update.progress}, progress),
+          message = COALESCE(${update.message}, message),
+          error = COALESCE(${update.error}, error),
+          data = COALESCE(${update.data || null}, data),
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+      `);
+    } catch (error) {
+      console.error("Error updating background job:", error);
+    }
   }
 
   async getLatestBackgroundJob(type: string): Promise<any> {
@@ -1430,7 +1441,8 @@ export class DatabaseStorage implements IStorage {
         ORDER BY created_at DESC 
         LIMIT 1
       `);
-      return result.rows[0];
+      const rows = Array.isArray(result) ? result : (result.rows || []);
+      return rows[0];
     } catch (error) {
       console.error(`Error fetching latest background job for ${type}:`, error);
       return null;
