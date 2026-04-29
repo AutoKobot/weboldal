@@ -1192,41 +1192,7 @@ export class DatabaseStorage implements IStorage {
     return setting;
   }
 
-  // AI settings operations
-  async getAISettings(): Promise<AISetting | undefined> {
-    const [settings] = await db.select().from(aiSettings).limit(1);
-    return settings || undefined;
-  }
 
-  async updateAISettings(settingsData: any, updatedBy: string): Promise<AISetting> {
-    // Check if AI settings exist
-    const existing = await this.getAISettings();
-
-    if (existing) {
-      // Update existing settings
-      const [updated] = await db
-        .update(aiSettings)
-        .set({
-          ...settingsData,
-          updatedBy,
-          updatedAt: new Date(),
-        })
-        .where(eq(aiSettings.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      // Create new settings
-      const [created] = await db
-        .insert(aiSettings)
-        .values({
-          ...settingsData,
-          updatedBy,
-          updatedAt: new Date(),
-        })
-        .returning();
-      return created;
-    }
-  }
 
   // Community operations
   async getCommunityGroups(professionId?: number): Promise<CommunityGroup[]> {

@@ -5,9 +5,9 @@ import { insertChatMessageSchema } from "@shared/schema";
 import { 
   generateChatResponse, 
   generateStreamingChatResponse, 
-  generateSpeech, 
-  enhancedModuleGenerator 
+  generateSpeech 
 } from "../openai";
+import { enhancedModuleGenerator } from "../enhanced-module-generator";
 
 const router = Router();
 
