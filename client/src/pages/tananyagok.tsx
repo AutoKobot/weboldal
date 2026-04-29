@@ -197,20 +197,24 @@ export default function TananyagokPage() {
           {/* Profession Selection */}
           {!selectedProfession && (
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-neutral-800 mb-4">
-                1. Válassza ki a szakmát
-              </h2>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                    1. Válassza ki a szakmát
+                  </h2>
+                  <p className="text-slate-500 font-medium">Kezdje el szakmai karrierjét a megfelelő irány kiválasztásával</p>
+                </div>
+                <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 uppercase tracking-widest text-[10px] font-bold">Összesen {professions.length} szakma</Badge>
+              </div>
+
               {professionsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="flex items-center justify-center py-24">
+                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent shadow-xl"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {professions.map((profession: Profession) => {
                     const IconComponent = getIconForProfession(profession);
-                    // Ha admin vagy tanár, minden elérhető
-                    // Ha tanuló és nincs még hozzárendelt szakma, minden választható
-                    // Ha tanuló és már van hozzárendelt szakma, csak azok érhetők el
                     const hasAssignedProfessions = user?.assignedProfessionIds && user.assignedProfessionIds.length > 0;
                     const isAccessible = user?.role === 'admin' || user?.role === 'teacher' ||
                       (!hasAssignedProfessions && user?.role === 'student') ||
@@ -219,47 +223,54 @@ export default function TananyagokPage() {
                     return (
                       <Card
                         key={profession.id}
-                        className={`neumorphism hover-lift gradient-overlay transition-all duration-300 flex flex-col h-full ${isAccessible
-                            ? "cursor-pointer interactive-element"
-                            : "opacity-50 cursor-not-allowed"
-                          } border-0`}
+                        className={`relative overflow-hidden group transition-all duration-500 border-none shadow-xl h-full flex flex-col ${isAccessible
+                            ? "cursor-pointer hover:shadow-2xl hover:shadow-primary/20"
+                            : "opacity-60 cursor-not-allowed grayscale"
+                          }`}
                         onClick={() => isAccessible && handleProfessionSelect(profession.id)}
                       >
-                        <CardHeader className="pb-3 flex-shrink-0">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                        {/* Decorative background for card */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all duration-700"></div>
+                        
+                        <CardHeader className="pb-4 relative z-10">
+                          <div className="flex items-start justify-between">
+                            <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 border border-white/10 p-0 overflow-hidden">
                               {profession.iconUrl ? (
                                 <img
                                   src={profession.iconUrl}
                                   alt={profession.name}
-                                  className="w-10 h-10 object-contain"
+                                  className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <IconComponent className="text-white" size={28} />
+                                <IconComponent className="text-primary w-10 h-10" />
                               )}
                             </div>
-                            <div className="flex-1 min-w-0 pr-2">
-                              <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
-                                {profession.name}
-                              </CardTitle>
+                            <div className={`p-2 rounded-full ${isAccessible ? 'bg-primary/10 text-primary' : 'bg-slate-200 text-slate-400'}`}>
+                              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                             </div>
-                            <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
+                          </div>
+                          
+                          <div className="mt-6">
+                            <CardTitle className="text-xl font-black text-slate-900 leading-tight mb-2 tracking-tight group-hover:text-primary transition-colors">
+                              {profession.name}
+                            </CardTitle>
+                            {isAccessible && <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none font-bold text-[9px] px-2 py-0">ELÉRHETŐ</Badge>}
                           </div>
                         </CardHeader>
 
-                        <CardContent className="flex flex-col flex-grow">
+                        <CardContent className="flex flex-col flex-grow relative z-10">
                           <div className="flex-grow">
                             {profession.description && (
-                              <p className="text-neutral-600 text-sm leading-relaxed line-clamp-3 mb-4">
+                              <p className="text-slate-500 text-sm leading-relaxed line-clamp-3 mb-6 font-medium">
                                 {profession.description}
                               </p>
                             )}
                           </div>
 
                           <Button
-                            className={`w-full mt-auto transition-colors ${isAccessible
-                                ? "bg-primary hover:bg-primary/90"
-                                : "bg-neutral-300 cursor-not-allowed"
+                            className={`w-full py-6 rounded-xl font-black transition-all ${isAccessible
+                                ? "bg-slate-900 hover:bg-primary text-white shadow-lg"
+                                : "bg-slate-200 text-slate-400 cursor-not-allowed"
                               }`}
                             disabled={!isAccessible}
                             onClick={(e) => {
@@ -269,8 +280,8 @@ export default function TananyagokPage() {
                               }
                             }}
                           >
-                            <BookOpen className="mr-2" size={16} />
-                            Tantárgyak megtekintése
+                            <BookOpen className="mr-2 h-5 w-5" />
+                            Szakmai Program
                           </Button>
                         </CardContent>
                       </Card>
@@ -287,55 +298,64 @@ export default function TananyagokPage() {
               {!selectedType ? (
                 // --- KATEGÓRIA VÁLASZTÁS (Elmélet vs Gyakorlat) ---
                 <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-neutral-800">
-                      Válasszon képzéstípust
-                    </h2>
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
+                    <div>
+                      <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                        Válasszon képzéstípust
+                      </h2>
+                      <p className="text-slate-500 font-medium">A kiválasztott szakma elméleti vagy gyakorlati moduljai</p>
+                    </div>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       onClick={handleBackToProfessions}
-                      className="flex items-center space-x-2"
+                      className="flex items-center space-x-2 text-slate-500 hover:text-primary font-bold transition-colors"
                     >
-                      <ArrowLeft size={16} />
+                      <ArrowLeft size={18} />
                       <span>Vissza a szakmákhoz</span>
                     </Button>
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                  <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                     {/* Elméleti Képzés Kártya */}
                     <Card 
-                      className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-blue-100 overflow-hidden group"
+                      className="group cursor-pointer relative overflow-hidden bg-slate-900 border-none shadow-2xl transition-all duration-500 hover:shadow-blue-500/20"
                       onClick={() => setSelectedType("theory")}
                     >
-                      <div className="h-32 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                        <BookOpen className="text-white w-16 h-16 group-hover:scale-110 transition-transform duration-300" />
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="text-2xl text-center text-blue-900">Elméleti Képzés</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-center text-muted-foreground">
-                          Szakmai tananyagok, elméleti modulok, vizsgakövetelmények és tudásanyagok elsajátítása.
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-600/20 transition-all"></div>
+                      
+                      <div className="p-10 flex flex-col items-center text-center relative z-10">
+                        <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(37,99,235,0.4)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                          <BookOpen className="text-white w-12 h-12" />
+                        </div>
+                        <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Elméleti Képzés</h3>
+                        <p className="text-slate-400 text-lg leading-relaxed font-light mb-8 max-w-xs">
+                          Szakmai tananyagok, interaktív bemutatók és vizsgakövetelmények.
                         </p>
-                      </CardContent>
+                        <Button className="bg-white text-slate-950 hover:bg-blue-50 font-black px-8 py-6 rounded-xl shadow-xl transition-all group-hover:px-10">
+                          Kezdés <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                      </div>
                     </Card>
 
                     {/* Gyakorlati Képzés Kártya */}
                     <Card 
-                      className="cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-orange-100 overflow-hidden group"
+                      className="group cursor-pointer relative overflow-hidden bg-slate-950 border-none shadow-2xl transition-all duration-500 hover:shadow-orange-500/20"
                       onClick={() => setSelectedType("practical")}
                     >
-                      <div className="h-32 bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-                        <Wrench className="text-white w-16 h-16 group-hover:scale-110 transition-transform duration-300" />
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="text-2xl text-center text-orange-900">Gyakorlati Képzés</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-center text-muted-foreground">
-                          Gyakorlati feladatok, műhelymunka lépései, szerelési és kivitelezési útmutatók.
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-orange-600/20 transition-all"></div>
+
+                      <div className="p-10 flex flex-col items-center text-center relative z-10">
+                        <div className="w-24 h-24 bg-orange-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(249,115,22,0.4)] group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500">
+                          <Wrench className="text-white w-12 h-12" />
+                        </div>
+                        <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Gyakorlati Képzés</h3>
+                        <p className="text-slate-400 text-lg leading-relaxed font-light mb-8 max-w-xs">
+                          Műhelymunka, szerelési útmutatók és gyakorlati értékelések.
                         </p>
-                      </CardContent>
+                        <Button className="bg-orange-600 text-white hover:bg-orange-500 font-black px-8 py-6 rounded-xl shadow-xl transition-all group-hover:px-10">
+                          Kezdés <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                      </div>
                     </Card>
                   </div>
                 </div>

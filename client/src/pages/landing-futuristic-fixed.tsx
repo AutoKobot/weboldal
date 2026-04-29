@@ -15,7 +15,8 @@ import {
   Globe,
   Rocket,
   Target,
-  GraduationCap
+  GraduationCap,
+  MonitorPlay
 } from "lucide-react";
 import { Link } from "wouter";
 import AnimatedAIBackground from "@/components/animated-ai-background";
@@ -97,32 +98,33 @@ export default function FuturisticLanding() {
           <div className="max-w-5xl mx-auto space-y-10 relative z-10">
             {/* Hero Badge */}
             <div className="inline-flex animate-bounce-slow">
-              <Badge className="bg-white/10 backdrop-blur-md text-cyan-300 border border-cyan-400/30 text-sm md:text-base px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+              <Badge className="bg-white/10 backdrop-blur-md text-cyan-300 border border-cyan-400/30 text-sm md:text-base px-5 py-2.5 rounded-full shadow-[0_0_20px_rgba(34,211,238,0.25)]">
                 <Sparkles className="w-5 h-5 mr-2 text-yellow-300" />
-                A következő generációs oktatási platform
+                Az IKK által elismert digitális tananyag-ökoszisztéma
               </Badge>
             </div>
 
             {/* Main Heading */}
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight tracking-tighter">
-              A Jövő <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 filter drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
-                Oktatása
+              A Tanulás <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-500 to-indigo-500 filter drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+                Új Dimenziója
               </span>
-              {" "}Itt Van
             </h1>
 
             {/* Subtitle */}
             <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-light">
-              Tapasztald meg a mesterséges intelligencia nyújtotta páratlan tanulási élményt.
-              Személyre szabott tartalom, interaktív AI oktatók és modern szakmai közösségek.
+              Minden amire szükséged van a modern szakmai képzéshez. 
+              <span className="text-cyan-400 font-medium"> AI alapú tananyagok</span>, 
+              <span className="text-purple-400 font-medium"> interaktív prezentációk</span> és 
+              <span className="text-blue-400 font-medium"> intelligens kiértékelés</span> egyetlen platformon.
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
               <Button
                 size="lg"
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 border-0 px-8 py-6 text-xl font-bold rounded-full shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all hover:scale-105"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-0 px-10 py-7 text-xl font-black rounded-full shadow-[0_0_40px_rgba(34,211,238,0.4)] transition-all hover:scale-105"
                 onClick={async () => {
                   try {
                     const res = await fetch('/api/auth/demo', { method: 'POST' });
@@ -132,17 +134,17 @@ export default function FuturisticLanding() {
                   } catch (e) { console.error("Demo login failed", e) }
                 }}
               >
-                <Play className="w-6 h-6 mr-3" />
-                Demo Indítása Regisztráció Nélkül
+                <Play className="w-6 h-6 mr-3 fill-white" />
+                Demo Indítása Azonnal
               </Button>
               <Link href="/student-auth">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40 px-8 py-6 text-xl rounded-full backdrop-blur-md transition-all font-medium"
+                  className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/40 px-8 py-7 text-xl rounded-full backdrop-blur-md transition-all font-bold"
                 >
                   <GraduationCap className="w-6 h-6 mr-3 text-cyan-400" />
-                  Kezdd el most
+                  Regisztráció
                 </Button>
               </Link>
             </div>
@@ -150,13 +152,13 @@ export default function FuturisticLanding() {
             {/* Stats - Modern Glass Look */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-20 max-w-4xl mx-auto">
               {[
-                { value: "1000+", label: "Aktív tanuló", color: "text-cyan-400" },
-                { value: "50+", label: "Szakmai Modul", color: "text-blue-400" },
-                { value: "95%", label: "Elégedettség", color: "text-purple-400" },
+                { value: "24/7", label: "AI Oktatási Asszisztens", color: "text-cyan-400" },
+                { value: "IKK", label: "Hivatalos Tananyagok", color: "text-blue-400" },
+                { value: "3D/HTML", label: "Interaktív Bemutatók", color: "text-purple-400" },
               ].map((stat, i) => (
-                <div key={i} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transform transition-all hover:-translate-y-2 hover:bg-white/10 hover:border-white/20">
-                  <div className={`text-4xl md:text-5xl font-black ${stat.color} mb-2 drop-shadow-lg`}>{stat.value}</div>
-                  <div className="text-slate-400 font-medium tracking-wide uppercase text-sm">{stat.label}</div>
+                <div key={i} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transform transition-all hover:-translate-y-2 hover:bg-white/10 hover:border-white/20 shadow-xl">
+                  <div className={`text-3xl md:text-4xl font-black ${stat.color} mb-2 drop-shadow-lg`}>{stat.value}</div>
+                  <div className="text-slate-400 font-bold tracking-widest uppercase text-[10px]">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -167,23 +169,24 @@ export default function FuturisticLanding() {
         <section className="relative z-20 py-24 px-6 bg-slate-950/50 backdrop-blur-xl border-y border-white/5">
           <div className="max-w-6xl mx-auto text-center">
             <Badge variant="outline" className="mb-6 border-cyan-500/40 text-cyan-300 bg-cyan-500/10 px-4 py-1.5 uppercase tracking-widest text-xs font-bold rounded-full">
-              Platform Bemutató
+              ÚJDONSÁG: Interaktív Tanulás
             </Badge>
 
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Fedezd fel az
+              Tanulj 
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
-                {" "}AI Platform{" "}
+                {" "}Vizuálisan{" "}
               </span>
-              lehetőségeit
+              és Interaktívan
             </h2>
 
-            <p className="text-lg md:text-xl text-slate-400 mb-16 max-w-3xl mx-auto font-light">
-              Műszerfalak, interaktív bemutatók és intelligens analitika egy helyen. Csak válassz egy funkciót.
+            <p className="text-lg md:text-xl text-slate-400 mb-16 max-w-3xl mx-auto font-light leading-relaxed">
+              Az AI által generált modulokhoz mostantól látványos, interaktív bemutatók és 
+              személyre szabott hangalapú magyarázatok készülnek. Éld át a tananyagot!
             </p>
 
-            <div className="max-w-5xl mx-auto relative rounded-3xl overflow-hidden p-[2px] bg-gradient-to-br from-cyan-500/30 via-purple-500/30 to-blue-500/30">
-              <div className="bg-slate-950 rounded-[22px] p-2 md:p-6 shadow-2xl">
+            <div className="max-w-5xl mx-auto relative rounded-3xl overflow-hidden p-[1px] bg-gradient-to-br from-cyan-500/50 via-purple-500/50 to-blue-500/50 shadow-[0_0_50px_rgba(34,211,238,0.2)]">
+              <div className="bg-slate-950 rounded-[23px] p-2 md:p-4">
                 <PresentationSlideshow variant="dark" />
               </div>
             </div>
@@ -195,26 +198,25 @@ export default function FuturisticLanding() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20 lg:mb-28">
               <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
-                Miért a
+                Forradalmi 
                 <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent filter drop-shadow-sm">
-                  {" "}Global Learning{" "}
+                  {" "}Digitális Oktatás{" "}
                 </span>
-                rendszer?
               </h2>
               <p className="text-xl text-slate-400 max-w-2xl mx-auto font-light">
-                Egyedülálló technológiai megoldások, amik a maximális teljesítményre sarkallnak.
+                A legmodernebb AI technológiák és a hivatalos képzési keretrendszer találkozása.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
               {/* Feature Cards with Glass & Hover Effects */}
               {[
-                { icon: Brain, title: "AI Asszisztens", color: "from-cyan-400 to-blue-500", shadow: "shadow-cyan-500/20", desc: "Intelligens chatbot, amely 24/7 segít kérdéseidben és azonnal elmagyarázza a legbonyolultabb fogalmakat." },
-                { icon: Users, title: "Közösségi Tanulás", color: "from-purple-400 to-pink-500", shadow: "shadow-purple-500/20", desc: "Csatlakozz elit szakmai közösségekhez, dolgozz projekteken és inspirálódj mások sikereiből." },
-                { icon: Target, title: "Személyre Szabott", color: "from-orange-400 to-red-500", shadow: "shadow-orange-500/20", desc: "Teljesen adaptív tanulási útvonalak, amelyek másodpercről másodpercre igazodnak az igényeidhez." },
-                { icon: Award, title: "Progresszív Rendszer", color: "from-green-400 to-emerald-500", shadow: "shadow-green-500/20", desc: "Moduláris, egymásra épülő szintek automatikus haladáskövetéssel és instant visszajelzésekkel." },
-                { icon: TrendingUp, title: "Élő Analitika", color: "from-blue-400 to-indigo-500", shadow: "shadow-blue-500/20", desc: "Részletes, gyönyörű teljesítmény műszerfalak prediktív AI elemzésekkel és egyéni fókuszpontokkal." },
-                { icon: Shield, title: "Enterprise Biztonság", color: "from-violet-400 to-purple-500", shadow: "shadow-violet-500/20", desc: "Páratlan, banki szintű titkosítás és felhő alapú adatvédelem minden egyes interakciódnál." },
+                { icon: Brain, title: "IKK Alapú AI Generálás", color: "from-cyan-400 to-blue-500", shadow: "shadow-cyan-500/20", desc: "A hivatalos képzési program (IKK) alapján, egyetlen kattintással generálunk teljes, szakmailag hitelesített modulokat." },
+                { icon: MonitorPlay, title: "Interaktív Prezentációk", color: "from-blue-400 to-indigo-500", shadow: "shadow-blue-500/20", desc: "Minden modulhoz automatikus, látványos interaktív HTML bemutató készül, AI képgenerálással és hanggal." },
+                { icon: Zap, title: "Intelligens Kvíz Rendszer", color: "from-orange-400 to-red-500", shadow: "shadow-orange-500/20", desc: "Személyre szabott tesztek, ahol az AI valós időben értékeli a válaszaidat és ad szakmai magyarázatot a hibáidra." },
+                { icon: Cpu, title: "Adaptív Tananyagok", color: "from-purple-400 to-pink-500", shadow: "shadow-purple-500/20", desc: "A tartalom dinamikusan alkalmazkodik a tudásszintedhez. Tömörített és részletes verziók közül is választhatsz." },
+                { icon: TrendingUp, title: "Prediktív Analitika", color: "from-green-400 to-emerald-500", shadow: "shadow-green-500/20", desc: "Kövesd nyomon a haladásodat modern műszerfalakon, ahol az AI előrejelzi a várható eredményeidet." },
+                { icon: Globe, title: "Szakmai Wikipedia", color: "from-violet-400 to-purple-500", shadow: "shadow-violet-500/20", desc: "Automatikusan linkelt szakkifejezések és integrált tudástár, hogy soha ne akadj el egyetlen ismeretlen fogalomnál sem." },
               ].map((item, idx) => (
                 <div key={idx} className="group relative rounded-3xl bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 hover:bg-slate-800/60 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 overflow-hidden overflow-visible">
                   {/* Glowing background blob on hover */}

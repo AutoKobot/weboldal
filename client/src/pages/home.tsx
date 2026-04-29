@@ -221,61 +221,85 @@ export default function HomePage() {
 
           {/* Main Top Section: Next Task or Start Here */}
           {isBeginner ? (
-            <Card className="bg-gradient-to-br from-primary to-blue-700 text-white border-none shadow-lg">
-              <CardContent className="p-8">
+            <Card className="relative overflow-hidden bg-slate-900 border-none shadow-2xl group transition-all duration-500 hover:shadow-cyan-500/10">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-cyan-500/30 transition-colors"></div>
+              <CardContent className="p-8 relative z-10">
                 <div className="max-w-2xl">
-                  <Badge variant="outline" className="mb-4 text-white border-white/50 bg-white/10 uppercase tracking-wide">Kezdd itt</Badge>
-                  <h2 className="text-3xl font-bold mb-4">Üdv a fedélzeten!</h2>
-                  <p className="text-lg opacity-90 mb-6">
-                    A legjobb, amit most tehetsz, hogy kiválasztod a szakmád és elkezded az első tantárgyad moduljait. Szakmai utad itt veszi kezdetét.
+                  <Badge className="mb-4 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-widest text-[10px] font-bold">Kezdd itt</Badge>
+                  <h2 className="text-3xl lg:text-4xl font-black text-white mb-4 tracking-tight">Üdv a fedélzeten, {user.firstName}!</h2>
+                  <p className="text-lg text-slate-300 mb-8 leading-relaxed font-light">
+                    A legjobb, amit most tehetsz, hogy kiválasztod a szakmád és elkezded az első tantárgyad moduljait. 
+                    <span className="text-cyan-400 font-medium"> Szakmai utad itt veszi kezdetét.</span>
                   </p>
                   <Button
                     onClick={() => navigate('/tananyagok')}
                     size="lg"
-                    className="bg-white text-primary hover:bg-neutral-100 font-bold"
+                    className="bg-white text-slate-950 hover:bg-cyan-50 font-black px-8 py-6 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95"
                   >
-                    Szakma és Modulok kiválasztása <ArrowRight className="ml-2" size={20} />
+                    Szakma kiválasztása <ArrowRight className="ml-2" size={20} />
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ) : allModules.length === 0 ? (
-            <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-none shadow-lg">
-              <CardContent className="p-8">
+            <Card className="relative overflow-hidden bg-slate-900 border-none shadow-2xl group transition-all duration-500 hover:shadow-orange-500/10">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-orange-500/30 transition-colors"></div>
+              <CardContent className="p-8 relative z-10">
                 <div className="max-w-2xl">
-                  <Badge variant="outline" className="mb-4 text-white border-white/50 bg-white/10 uppercase tracking-wide">Szakma kiválasztása</Badge>
-                  <h2 className="text-3xl font-bold mb-4">Válassz szakmát a folytatáshoz!</h2>
-                  <p className="text-lg opacity-90 mb-6">
-                    Még nincs kiválasztott szakmád, vagy a tanár még nem rendelt hozzád tantárgyakat. Válassz szakmát, hogy elérd a modulokat!
+                  <Badge className="mb-4 bg-orange-500/20 text-orange-400 border border-orange-500/30 uppercase tracking-widest text-[10px] font-bold">Szakma kiválasztása</Badge>
+                  <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Válassz szakmát a folytatáshoz!</h2>
+                  <p className="text-lg text-slate-300 mb-8 leading-relaxed font-light">
+                    Még nincs kiválasztott szakmád, vagy a tanár még nem rendelt hozzád tantárgyakat. 
+                    Válassz szakmát, hogy elérd a <span className="text-orange-400 font-medium">prémium AI modulokat!</span>
                   </p>
                   <Button
                     onClick={() => navigate('/tananyagok')}
                     size="lg"
-                    className="bg-white text-amber-700 hover:bg-neutral-100 font-bold"
+                    className="bg-orange-500 text-white hover:bg-orange-400 font-black px-8 py-6 rounded-xl shadow-xl transition-all hover:scale-105 active:scale-95"
                   >
-                    Szakma és Modulok kiválasztása <ArrowRight className="ml-2" size={20} />
+                    Szakma keresése <Search className="ml-2" size={20} />
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-gradient-to-br from-indigo-600 to-primary text-white border-none shadow-lg">
-              <CardContent className="p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
-                  <Badge variant="outline" className="mb-3 text-white border-white/50 bg-white/10 uppercase tracking-wide">
-                    {allDone ? '🎉 Gratulálunk!' : 'Következő feladatod'}
-                  </Badge>
-                  <h2 className="text-2xl lg:text-3xl font-bold mb-2">
+            <Card className="relative overflow-hidden bg-slate-950 border-none shadow-2xl group transition-all duration-500 hover:shadow-indigo-500/20">
+              {/* Decorative backgrounds */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-indigo-600/30 transition-all duration-1000"></div>
+              <div className="absolute bottom-0 left-1/3 w-40 h-40 bg-blue-600/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+              <CardContent className="p-6 lg:p-10 relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-widest text-[10px] font-bold">
+                      {allDone ? '🎉 Gratulálunk!' : 'Következő feladatod'}
+                    </Badge>
+                    {!allDone && <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 uppercase tracking-widest text-[10px] font-bold">AKTÍV</Badge>}
+                  </div>
+
+                  <h2 className="text-3xl lg:text-4xl font-black text-white mb-3 tracking-tight">
                     {allDone
                       ? 'Minden modult teljesítettél!'
                       : (nextModule?.title || 'Modul betöltése...')}
                   </h2>
-                  <p className="text-white/80 flex items-center mb-6 text-sm lg:text-base">
-                    <BookOpen size={16} className="mr-2" />
-                    {allDone
-                      ? 'Böngéssz a tananyagok között és ismételj!'
-                      : `${nextSubject?.name || 'Tantárgy'} • Körülbelül 15 perc`}
-                  </p>
+
+                  <div className="flex flex-wrap items-center gap-4 mb-8 text-slate-400 font-medium">
+                    <div className="flex items-center bg-white/5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                      <BookOpen size={16} className="mr-2 text-indigo-400" />
+                      <span className="text-sm">{allDone ? 'Böngéssz tovább' : (nextSubject?.name || 'Tantárgy')}</span>
+                    </div>
+                    {!allDone && (
+                      <div className="flex items-center bg-white/5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                        <Clock size={16} className="mr-2 text-blue-400" />
+                        <span className="text-sm">~15 perc</span>
+                      </div>
+                    )}
+                    <div className="flex items-center bg-white/5 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                      <Sparkles size={16} className="mr-2 text-yellow-400" />
+                      <span className="text-sm">AI Generált</span>
+                    </div>
+                  </div>
+
                   <Button
                     onClick={() => {
                       if (allDone) {
@@ -285,27 +309,42 @@ export default function HomePage() {
                       }
                     }}
                     size="lg"
-                    className="bg-white text-primary hover:bg-neutral-100 font-bold w-full sm:w-auto"
+                    className="bg-white text-slate-950 hover:bg-indigo-50 font-black px-10 py-7 text-lg rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95 group/btn w-full sm:w-auto"
                     disabled={!nextModule && !allDone}
                   >
-                    <Play className="mr-2" fill="currentColor" size={16} />
-                    {allDone ? 'Tananyagok böngészése' : 'Folytatás'}
+                    <Play className="mr-2 fill-slate-950 group-hover/btn:scale-110 transition-transform" size={20} />
+                    {allDone ? 'Tananyagok böngészése' : 'Tanulás folytatása'}
                   </Button>
                 </div>
-                {/* Összesített haladás */}
-                <div className="bg-white/10 backdrop-blur rounded-xl p-5 w-full md:w-64 flex-shrink-0 border border-white/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-sm">Összesített haladás</span>
-                    <span className="bg-white/20 text-xs px-2 py-1 rounded-full">{completedCount}/{allModules.length} modul</span>
+
+                {/* Összesített haladás Glass Look */}
+                <div className="bg-white/5 backdrop-blur-xl rounded-[2rem] p-8 w-full md:w-80 flex-shrink-0 border border-white/10 shadow-2xl relative overflow-hidden group/progress">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover/progress:bg-white/10"></div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-bold text-white tracking-wide text-sm">Kurzus Haladás</span>
+                    <Badge variant="outline" className="bg-white/10 text-white border-white/20 font-bold px-2 py-0">
+                      {completedCount}/{allModules.length}
+                    </Badge>
                   </div>
-                  <Progress value={allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0} className="h-2 mb-3 bg-white/20" indicatorClassName="bg-white" />
-                  <p className="text-xs text-white/80">
-                    {allDone
-                      ? '🏆 Teljes tananyagot elvégezted!'
-                      : allModules.length - completedCount > 0
-                        ? `Még ${allModules.length - completedCount} modul van hátra!`
-                        : ''}
-                  </p>
+
+                  <div className="relative h-4 w-full bg-white/10 rounded-full overflow-hidden mb-4 p-[2px]">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+                      style={{ width: `${allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-slate-400 font-medium">
+                      {allDone
+                        ? '🏆 Teljesítve'
+                        : `${allModules.length - completedCount} modul van hátra`}
+                    </p>
+                    <span className="text-xl font-black text-white">
+                      {allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0}%
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -436,46 +475,77 @@ export default function HomePage() {
           </div>
 
           {/* AI Info Block */}
-          <Card className="bg-[#f8fafc] border-blue-100 shadow-sm overflow-hidden">
-            <div className="flex flex-col md:flex-row">
-              <div className="p-6 md:p-8 md:w-1/2 flex flex-col justify-center">
-                <div className="flex items-center mb-4 text-blue-700">
-                  <Brain className="mr-2" size={24} />
-                  <h3 className="text-xl font-bold">Miben segít az AI Asszisztens?</h3>
+          <Card className="relative overflow-hidden bg-slate-900 border-none shadow-2xl group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none group-hover:bg-blue-600/20 transition-all duration-700"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+            <div className="flex flex-col md:flex-row relative z-10">
+              <div className="p-8 md:p-12 md:w-1/2 flex flex-col justify-center">
+                <div className="flex items-center mb-6">
+                  <div className="p-3 bg-blue-500/20 rounded-2xl mr-4 border border-blue-500/30">
+                    <Brain className="text-blue-400" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white tracking-tight">AI Tanulási Asszisztens</h3>
+                    <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">Mindig rendelkezésedre áll</p>
+                  </div>
                 </div>
-                <p className="text-neutral-600 mb-6 text-sm lg:text-base leading-relaxed">
-                  A chatbotod mindig rendelkezésre áll, hogy a tananyaggal kapcsolatban a segítségedre legyen. Nem helyettesít téged, de nagyszerű tanulótárs!
+                <p className="text-slate-300 mb-8 text-lg leading-relaxed font-light">
+                  A chatbotod 24/7 elérhető, hogy a tananyaggal kapcsolatban a segítségedre legyen. 
+                  <span className="text-white font-medium"> Azonnali válaszok, mélyebb megértés.</span>
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     onClick={() => navigate('/chat')}
-                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200"
+                    size="lg"
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-6 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all hover:scale-105 active:scale-95"
                   >
-                    Indítsd el az AI Chatet
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                    Beszélgetés Indítása
                   </Button>
                 </div>
               </div>
 
-              <div className="bg-white md:w-1/2 p-6 md:p-8 border-t md:border-t-0 md:border-l border-blue-50">
-                <div className="space-y-4">
+              <div className="bg-white/5 backdrop-blur-md md:w-1/2 p-8 md:p-12 border-t md:border-t-0 md:border-l border-white/10">
+                <div className="space-y-8">
                   <div>
-                    <h4 className="flex items-center font-bold text-green-700 text-sm mb-2 uppercase tracking-wide">
-                      <CheckCircle2 size={16} className="mr-2" /> Mire KIVÁLÓ:
+                    <h4 className="flex items-center font-black text-cyan-400 text-sm mb-4 uppercase tracking-widest">
+                      <div className="w-6 h-6 rounded-full bg-cyan-400/20 flex items-center justify-center mr-3 border border-cyan-400/30">
+                        <CheckCircle2 size={12} />
+                      </div>
+                      Mire KIVÁLÓ:
                     </h4>
-                    <ul className="text-sm text-neutral-600 space-y-2 ml-6 list-disc marker:text-green-500">
-                      <li>Bonyolult fogalmak érthető, egyszerű elmagyarázása</li>
-                      <li>Kvízhez és vizsgához való felkészítő gyakorlófeladatok generálása</li>
-                      <li>Konkrét, a tananyaghoz vagy szakmához kapcsolódó példák</li>
+                    <ul className="space-y-3">
+                      {[
+                        "Bonyolult szakmai fogalmak egyszerűsítése",
+                        "Egyéni gyakorlófeladatok generálása",
+                        "Személyre szabott tanulási tippek"
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-center text-slate-300 text-sm group/li">
+                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 mr-3 group-hover/li:scale-150 transition-transform"></div>
+                          {item}
+                        </li>
+                      ))}
                     </ul>
                   </div>
                   <div className="pt-2">
-                    <h4 className="flex items-center font-bold text-red-700 text-sm mb-2 uppercase tracking-wide">
-                      <AlertCircle size={16} className="mr-2" /> Mire NEM használható:
+                    <h4 className="flex items-center font-black text-rose-400 text-sm mb-4 uppercase tracking-widest">
+                      <div className="w-6 h-6 rounded-full bg-rose-400/20 flex items-center justify-center mr-3 border border-rose-400/30">
+                        <AlertCircle size={12} />
+                      </div>
+                      Mire NEM való:
                     </h4>
-                    <ul className="text-sm text-neutral-600 space-y-2 ml-6 list-disc marker:text-red-400">
-                      <li>Nem írja meg helyetted a házi feladatot</li>
-                      <li>Nem oldja meg önállóan a vizsgateszteket</li>
-                      <li>Puszkázásra nem alkalmas</li>
+                    <ul className="space-y-3">
+                      {[
+                        "Vizsgák és tesztek megoldása helyetted",
+                        "Házi feladatok önálló megírása",
+                        "Nem szakmai beszélgetések"
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-center text-slate-400 text-sm group/li">
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-3 group-hover/li:scale-150 transition-transform"></div>
+                          {item}
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 </div>
@@ -596,27 +666,42 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
       </div>
       <MobileNav isOpen={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} user={user} />
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-slate-50/50">
         {/* Fejléc */}
-        <header className="bg-white border-b px-6 py-3 shadow-sm">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setIsMobileNavOpen(true)} className="lg:hidden">
-              <Menu size={18} />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <GraduationCap className="h-6 w-6 text-blue-600" />
-                Szia, {user.firstName || 'Tanár'}! 👋
-              </h1>
-              <p className="text-gray-500 text-xs mt-0">Az alábbiakban láthatod az osztályaid összefoglaló statisztikáit.</p>
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200 px-6 py-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => setIsMobileNavOpen(true)} className="lg:hidden hover:bg-slate-100">
+                <Menu size={20} />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
+                  <div className="p-1.5 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
+                    <GraduationCap className="h-5 w-5 text-white" />
+                  </div>
+                  Üdvözlöm, {user.lastName} {user.firstName}!
+                </h1>
+                <p className="text-slate-500 text-sm font-medium mt-0.5">Vezérlőpult • {new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
             </div>
-            <Button size="sm" className="ml-auto h-8 text-xs" onClick={() => navigate('/teacher')}>
-              Részletes nézet <ChevronRight className="ml-1 h-3 w-3" />
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                className="hidden md:flex bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs"
+                onClick={() => navigate('/teacher/content')}
+              >
+                <Bot className="mr-2 h-4 w-4 text-blue-600" />
+                AI Tartalomkezelő
+              </Button>
+              <Button size="sm" className="h-10 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95" onClick={() => navigate('/teacher')}>
+                Részletes Statisztika <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </header>
 
-        <main className="p-4 max-w-7xl mx-auto space-y-6">
+        <main className="p-6 max-w-7xl mx-auto space-y-8">
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-gray-400">
@@ -628,23 +713,24 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
           ) : (<>
 
             {/* ── Összesítő kártyák ── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: "Osztályok", value: totalClasses, sub: null, icon: <Users className="h-4 w-4 text-blue-500" />, bg: "bg-blue-50" },
-                { label: "Tanulók", value: totalStudents, sub: `${noActivityStudents.length} új`, icon: <GraduationCap className="h-4 w-4 text-purple-500" />, bg: "bg-purple-50" },
-                { label: "Befejezett modulok", value: totalCompletedModules, sub: totalStudents > 0 ? `${Math.round(totalCompletedModules / totalStudents * 10) / 10} / tan.` : null, icon: <FileText className="h-4 w-4 text-green-500" />, bg: "bg-green-50" },
-                { label: "Átlagos jegy", value: avgGrade !== null ? avgGrade : "–", sub: avgScorePct !== null ? `${avgScorePct}%` : "Nincs adat", icon: <Award className="h-4 w-4 text-yellow-500" />, bg: "bg-yellow-50" },
+                { label: "Aktív Osztályok", value: totalClasses, sub: "Kezelt csoportok", icon: <Users className="h-6 w-6 text-blue-600" />, bg: "bg-blue-50", border: "border-blue-100" },
+                { label: "Összes Tanuló", value: totalStudents, sub: `${noActivityStudents.length} inaktív`, icon: <GraduationCap className="h-6 w-6 text-purple-600" />, bg: "bg-purple-50", border: "border-purple-100" },
+                { label: "Befejezett Modulok", value: totalCompletedModules, sub: "Sikeres teljesítések", icon: <FileText className="h-6 w-6 text-green-600" />, bg: "bg-green-50", border: "border-green-100" },
+                { label: "Tanulmányi Átlag", value: avgGrade !== null ? avgGrade.toFixed(1) : "–", sub: avgScorePct !== null ? `${avgScorePct}% teljesítmény` : "Nincs adat", icon: <Award className="h-6 w-6 text-amber-600" />, bg: "bg-amber-50", border: "border-amber-100" },
               ].map(stat => (
-                <Card key={stat.label} className="shadow-sm border-0 ring-1 ring-gray-100">
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center shrink-0`}>
-                        {stat.icon}
-                      </div>
+                <Card key={stat.label} className={`relative overflow-hidden shadow-sm border ${stat.border} hover:shadow-md transition-all duration-300 group`}>
+                  <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} rounded-full blur-3xl -mr-12 -mt-12 opacity-50 group-hover:opacity-80 transition-opacity`}></div>
+                  <CardContent className="p-6 relative z-10">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xl font-black text-gray-900 leading-none">{stat.value}</p>
-                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-tight mt-1">{stat.label}</p>
-                        {stat.sub && <p className="text-[9px] text-gray-400 leading-tight">{stat.sub}</p>}
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
+                        {stat.sub && <p className="text-xs text-slate-500 font-medium mt-1">{stat.sub}</p>}
+                      </div>
+                      <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500`}>
+                        {stat.icon}
                       </div>
                     </div>
                   </CardContent>
