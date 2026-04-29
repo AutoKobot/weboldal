@@ -46,28 +46,28 @@ export function UserManagement({ users, professions, isLoading }: UserManagement
 
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
-      const res = await apiRequest("PATCH", `/api/users/${userId}/role`, { role });
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/role`, { role });
       return res.json();
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Szerepkör sikeresen frissítve" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     }
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      await apiRequest("DELETE", `/api/users/${userId}`);
+      await apiRequest("DELETE", `/api/admin/users/${userId}`);
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Felhasználó törölve" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     }
   });
 
   const unlockAllModulesMutation = useMutation({
     mutationFn: async (userId: string) => {
-      await apiRequest("POST", `/api/users/${userId}/unlock-all-modules`);
+      await apiRequest("POST", `/api/admin/users/${userId}/unlock-all-modules`);
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Minden modul feloldva a tanuló számára" });
@@ -76,7 +76,7 @@ export function UserManagement({ users, professions, isLoading }: UserManagement
 
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ userId, newPassword }: any) => {
-      await apiRequest("POST", `/api/users/${userId}/reset-password`, { newPassword });
+      await apiRequest("POST", `/api/admin/users/${userId}/reset-password`, { newPassword });
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Jelszó sikeresen visszaállítva" });
@@ -176,12 +176,12 @@ function UserRow({ user, professions, onRoleChange, onResetPassword, onDelete, o
 
   const updateUserSchoolMutation = useMutation({
     mutationFn: async ({ userId, schoolId }: { userId: string, schoolId: number | null }) => {
-      const res = await apiRequest("PATCH", `/api/users/${userId}/school`, { schoolId });
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/school`, { schoolId });
       return await res.json();
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Iskola sikeresen hozzárendelve" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     }
   });
 
@@ -285,10 +285,10 @@ function ProfessionAssignmentForm({ userId, currentProfessions }: any) {
 
   const updateProfessionsMutation = useMutation({
     mutationFn: async ({ userId, professionIds }: { userId: string, professionIds: number[] }) => {
-      await apiRequest("PUT", `/api/users/${userId}/assigned-professions`, { professionIds });
+      await apiRequest("PUT", `/api/admin/users/${userId}/assigned-professions`, { professionIds });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({ title: "Sikeres frissítés", description: "A szakma hozzárendelések frissítve lettek." });
     }
   });

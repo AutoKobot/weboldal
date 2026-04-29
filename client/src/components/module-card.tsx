@@ -32,6 +32,7 @@ export default function ModuleCard({
   const [previewVersion, setPreviewVersion] = useState<'concise' | 'detailed'>('detailed');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isRegeneratingQuizzes, setIsRegeneratingQuizzes] = useState(false);
+  const [isGeneratingPresentation, setIsGeneratingPresentation] = useState(false);
 
   const completeModuleMutation = useMutation({
     mutationFn: async () => {
@@ -67,7 +68,7 @@ export default function ModuleCard({
   const regenerateModuleMutation = useMutation({
     mutationFn: async () => {
       setIsRegenerating(true);
-      const response = await apiRequest('POST', `/api/admin/modules/${module.id}/regenerate-ai`, {
+      const response = await apiRequest('POST', `/api/ai/modules/${module.id}/regenerate`, {
         title: module.title,
         content: module.content
       });
@@ -109,7 +110,7 @@ export default function ModuleCard({
   const regenerateQuizzesMutation = useMutation({
     mutationFn: async () => {
       setIsRegeneratingQuizzes(true);
-      const response = await apiRequest('POST', `/api/admin/modules/${module.id}/regenerate-quizzes`);
+      const response = await apiRequest('POST', `/api/ai/modules/${module.id}/regenerate-quizzes`);
       return response.json();
     },
     onSuccess: async () => {
@@ -134,6 +135,29 @@ export default function ModuleCard({
         variant: "destructive",
       });
       setIsRegeneratingQuizzes(false);
+    },
+  });
+
+  const generatePresentationMutation = useMutation({
+    mutationFn: async () => {
+      setIsGeneratingPresentation(true);
+      const response = await apiRequest('POST', `/api/ai/modules/${module.id}/generate-presentation`);
+      return response.json();
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Siker!",
+        description: "Az interaktív HTML generálás elindítva a háttérben.",
+      });
+      setIsGeneratingPresentation(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült elindítani a generálást.",
+        variant: "destructive",
+      });
+      setIsGeneratingPresentation(false);
     },
   });
 
@@ -316,7 +340,7 @@ export default function ModuleCard({
                 </Badge>
                 <span className="text-neutral-400">Admin nézet</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -325,7 +349,7 @@ export default function ModuleCard({
                     regenerateModuleMutation.mutate();
                   }}
                   disabled={isRegenerating || isRegeneratingQuizzes}
-                  className="flex-1 text-xs h-7 px-1"
+                  className="flex-1 text-xs h-7 px-1 min-w-[80px]"
                   title="A teljes modul (írásos tartalom, videók, Wikipédia linkek) újragenerálása"
                 >
                   {isRegenerating ? (
@@ -336,7 +360,7 @@ export default function ModuleCard({
                   ) : (
                     <>
                       <Wand2 className="w-3 h-3 mr-1" />
-                      Modul
+                      AI Modul
                     </>
                   )}
                 </Button>
@@ -348,7 +372,7 @@ export default function ModuleCard({
                     regenerateQuizzesMutation.mutate();
                   }}
                   disabled={isRegenerating || isRegeneratingQuizzes}
-                  className="flex-1 text-xs h-7 px-1"
+                  className="flex-1 text-xs h-7 px-1 min-w-[80px]"
                   title="Csak a tesztkérdések újragenerálása"
                 >
                   {isRegeneratingQuizzes ? (
@@ -359,7 +383,30 @@ export default function ModuleCard({
                   ) : (
                     <>
                       <HelpCircle className="w-3 h-3 mr-1" />
-                      Tesztek
+                      AI Teszt
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    generatePresentationMutation.mutate();
+                  }}
+                  disabled={isGeneratingPresentation}
+                  className="w-full text-xs h-7 px-1 mt-1"
+                  title="Interaktív HTML prezentáció generálása"
+                >
+                  {isGeneratingPresentation ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                      HTML...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3 h-3 mr-1" />
+                      Interaktív HTML
                     </>
                   )}
                 </Button>

@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, School as SchoolIcon, UserPlus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
 import { School, User, schoolAdminFormSchema } from "./types";
 
 export function SchoolManagement() {
@@ -32,7 +33,7 @@ export function SchoolManagement() {
   });
 
   const { data: users = [] } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/admin/users"],
   });
 
   const schoolAdmins = users.filter(u => u.role === 'school_admin');
@@ -93,7 +94,7 @@ export function SchoolManagement() {
       toast({ title: "Siker", description: "Iskolai admin létrehozva" });
       setIsSchoolAdminDialogOpen(false);
       schoolAdminForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     }
   });
 

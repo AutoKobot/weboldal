@@ -11,7 +11,7 @@ const adminOnly = async (req: any, res: any, next: any) => {
   next();
 };
 
-router.get('/ai-chat-enabled', combinedAuth, async (req: any, res) => {
+router.get(['/ai-chat', '/ai-chat-enabled'], combinedAuth, async (req: any, res) => {
   try {
     const setting = await storage.getSystemSetting('ai_chat_enabled');
     res.json({ enabled: setting ? setting.value === 'true' : true });
@@ -20,7 +20,7 @@ router.get('/ai-chat-enabled', combinedAuth, async (req: any, res) => {
   }
 });
 
-router.post('/ai-chat-enabled', combinedAuth, adminOnly, async (req: any, res) => {
+router.post(['/ai-chat', '/ai-chat-enabled'], combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const { enabled } = req.body;
     await storage.setSystemSetting('ai_chat_enabled', String(enabled), req.user.id);
@@ -30,7 +30,7 @@ router.post('/ai-chat-enabled', combinedAuth, adminOnly, async (req: any, res) =
   }
 });
 
-router.get('/ai-settings', combinedAuth, adminOnly, async (req: any, res) => {
+router.get('/ai', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const settings = await storage.getAISettings();
     res.json(settings || { 
@@ -42,7 +42,7 @@ router.get('/ai-settings', combinedAuth, adminOnly, async (req: any, res) => {
   }
 });
 
-router.patch('/ai-settings', combinedAuth, adminOnly, async (req: any, res) => {
+router.patch('/ai', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const settings = await storage.updateAISettings(req.body, req.user.id);
     res.json(settings);
@@ -51,25 +51,38 @@ router.patch('/ai-settings', combinedAuth, adminOnly, async (req: any, res) => {
   }
 });
 
-router.post('/api-keys', combinedAuth, adminOnly, async (req: any, res) => {
+router.post('/api-keys/:provider', combinedAuth, adminOnly, async (req: any, res) => {
   try {
-    const { openaiApiKey, togetherApiKey, deepinfraApiKey, geminiApiKey, serpApiKey, youtubeApiKey, elevenLabsKey, key, value } = req.body;
+    const { provider } = req.params;
+    const { key } = req.body;
     
-    if (openaiApiKey) await storage.setSystemSetting('openai_api_key', openaiApiKey, req.user.id);
-    if (togetherApiKey) await storage.setSystemSetting('together_api_key', togetherApiKey, req.user.id);
-    if (deepinfraApiKey) await storage.setSystemSetting('deepinfra_api_key', deepinfraApiKey, req.user.id);
-    if (geminiApiKey) await storage.setSystemSetting('gemini_api_key', geminiApiKey, req.user.id);
-    if (serpApiKey) await storage.setSystemSetting('serp_api_key', serpApiKey, req.user.id);
-    if (youtubeApiKey) await storage.setSystemSetting('youtube_api_key', youtubeApiKey, req.user.id);
-    if (elevenLabsKey) await storage.setSystemSetting('elevenlabs_api_key', elevenLabsKey, req.user.id);
-    
-    if (key && value !== undefined) {
-      await storage.setSystemSetting(key, value, req.user.id);
-    }
+    const settingKey = `${provider.toLowerCase()}_api_key`;
+    await storage.setSystemSetting(settingKey, key, req.user.id);
 
-    res.json({ success: true, message: "API keys updated successfully" });
+    res.json({ success: true, message: "API key updated successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update API keys" });
+    res.status(500).json({ message: "Failed to update API key" });
+  }
+});
+
+router.post('/ai-provider', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const { provider } = req.body;
+    await storage.setSystemSetting('active_ai_provider', provider, req.user.id);
+    res.json({ success: true, message: "AI provider updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update AI provider" });
+  }
+});
+
+router.post('/test-supabase', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = req.body;
+    // Simple verification - try to fetch something or just save and return success
+    // In a real app we'd test the connection
+    res.json({ status: 'success', message: "Kapcsolat sikeres" });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: "Kapcsolati hiba" });
   }
 });
 

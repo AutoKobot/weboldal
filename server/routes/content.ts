@@ -60,6 +60,27 @@ router.post('/subjects', combinedAuth, checkContentEditor, async (req: any, res)
   }
 });
 
+router.patch('/subjects/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const data = insertSubjectSchema.partial().parse(req.body);
+    const subject = await storage.updateSubject(id, data);
+    res.json(subject);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update subject" });
+  }
+});
+
+router.delete('/subjects/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteSubject(id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete subject" });
+  }
+});
+
 // --- Modules ---
 router.get('/modules', combinedAuth, async (req: any, res) => {
   try {
@@ -101,6 +122,16 @@ router.get('/modules/:id', combinedAuth, async (req: any, res) => {
   }
 });
 
+router.post('/modules', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const data = insertModuleSchema.parse(req.body);
+    const module = await storage.createModule(data);
+    res.status(201).json(module);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create module" });
+  }
+});
+
 router.patch('/modules/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
   try {
     const moduleId = parseInt(req.params.id);
@@ -109,6 +140,16 @@ router.patch('/modules/:id', combinedAuth, checkContentEditor, async (req: any, 
     res.json(module);
   } catch (error) {
     res.status(500).json({ message: "Failed to update module" });
+  }
+});
+
+router.delete('/modules/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
+  try {
+    const moduleId = parseInt(req.params.id);
+    await storage.deleteModule(moduleId);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete module" });
   }
 });
 

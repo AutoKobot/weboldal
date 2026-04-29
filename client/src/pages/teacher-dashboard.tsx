@@ -12,8 +12,14 @@ import {
   Wrench,
   BookOpen,
   Calendar,
-  GraduationCap
+  GraduationCap,
+  ArrowLeft,
+  Menu
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import Sidebar from "@/components/sidebar";
+import MobileNav from "@/components/mobile-nav";
 import { 
   Select, 
   SelectContent, 
@@ -36,7 +42,9 @@ import { Student, Module, Subject, Profession, ClassData } from "@/components/te
 
 export default function TeacherDashboard() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("students");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Shared state for filters and selections
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
@@ -113,23 +121,55 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      <header className="bg-white border-b sticky top-0 z-40 no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">Oktatói Portál</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:block text-right">
-              <p className="text-sm font-medium text-gray-900">Szakmai Oktató</p>
-              <p className="text-xs text-gray-500">Műhelyvezető</p>
-            </div>
-          </div>
+    <div className="flex min-h-screen bg-gray-50 relative">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block lg:w-64 lg:flex-shrink-0">
+        <div className="sticky top-0 h-screen overflow-y-auto">
+          <Sidebar user={user} />
         </div>
-      </header>
+      </div>
+
+      {/* Mobile Navigation */}
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
+        user={user}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white border-b sticky top-0 z-40 no-print">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileNavOpen(true)}
+                className="lg:hidden flex-shrink-0"
+              >
+                <Menu size={20} />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setLocation('/')}
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mr-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Vissza
+              </Button>
+              <div className="bg-blue-600 p-2 rounded-lg hidden sm:block">
+                <GraduationCap className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900">Oktatói Portál</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{user?.firstName || 'Szakmai'} {user?.lastName || 'Oktató'}</p>
+                <p className="text-xs text-gray-500">Műhelyvezető</p>
+              </div>
+            </div>
+          </div>
+        </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -274,6 +314,7 @@ export default function TeacherDashboard() {
           </TabsContent>
         </Tabs>
       </main>
+      </div>
     </div>
   );
 }

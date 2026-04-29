@@ -51,6 +51,33 @@ router.put('/users/:id/role', combinedAuth, adminOnly, async (req: any, res) => 
   }
 });
 
+router.patch('/users/:id/role', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const { role } = req.body;
+
+    if (!['admin', 'student', 'teacher', 'school_admin'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    // Megakadályozzuk az utolsó admin lefokozását
+    if (role !== 'admin') {
+      const allUsers = await storage.getAllUsers();
+      const adminCount = allUsers.filter((u: any) => u.role === 'admin').length;
+      const targetUser = await storage.getUser(targetUserId);
+      if (targetUser?.role === 'admin' && adminCount <= 1) {
+        return res.status(400).json({ message: "Nem távolítható el az utolsó adminisztrátor szerepköre" });
+      }
+    }
+
+    await storage.updateUserRole(targetUserId, role);
+    res.json({ message: "User role updated successfully" });
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    res.status(500).json({ message: "Failed to update user role" });
+  }
+});
+
 router.put('/users/:id/school-admin', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const targetUserId = req.params.id;
@@ -129,6 +156,46 @@ router.patch('/users/:id/school', combinedAuth, adminOnly, async (req: any, res)
   }
 });
 
+router.post('/users/:id/unlock-all-modules', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const allModules = await storage.getModules();
+    const moduleIds = allModules.map((m: any) => m.id);
+    await storage.updateUserCompletedModules(targetUserId, moduleIds);
+    res.json({ message: "All modules unlocked" });
+  } catch (error) {
+    console.error("Error unlocking modules:", error);
+    res.status(500).json({ message: "Failed to unlock modules" });
+  }
+});
+
+router.post('/users/:id/reset-password', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+    await storage.updateUserPassword(targetUserId, newPassword);
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
+});
+
+router.put('/users/:id/assigned-professions', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const { professionIds } = req.body;
+    await storage.updateUserAssignedProfessions(targetUserId, professionIds);
+    res.json({ message: "Assigned professions updated" });
+  } catch (error) {
+    console.error("Error updating assigned professions:", error);
+    res.status(500).json({ message: "Failed to update assigned professions" });
+  }
+});
+
 router.put('/users/:id/password', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const targetUserId = req.params.id;
@@ -199,6 +266,31 @@ router.put('/messages/:id/respond', combinedAuth, adminOnly, async (req: any, re
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: "Failed to respond" });
+  }
+});
+
+router.get('/queue-status', combinedAuth, adminOnly, async (req, res) => {
+  try {
+    const { aiQueueManager } = await import('../ai-queue-manager');
+    res.json(aiQueueManager.getQueueStatus());
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch queue status" });
+  }
+});
+
+router.get('/costs/stats', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const year = parseInt(req.query.year as string) || new Date().getFullYear();
+    const month = parseInt(req.query.month as string) || (new Date().getMonth() + 1);
+    
+    // Alapértelmezett üres statisztikák ha nincs még adat
+    res.json({
+      apiStats: [],
+      monthlyCosts: [],
+      totalCosts: 0
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch cost stats" });
   }
 });
 

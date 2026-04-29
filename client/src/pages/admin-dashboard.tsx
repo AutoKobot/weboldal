@@ -47,7 +47,7 @@ export default function AdminDashboard() {
   });
 
   const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/admin/users"],
   });
 
   const { data: apiStatus } = useQuery<any>({
@@ -96,11 +96,9 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Rendszer felügyelet és tananyag adminisztráció</p>
           </div>
           <div className="flex items-center gap-3">
-            {!isAdmin && (
-              <Button variant="outline" onClick={() => window.location.href = "/"} className="h-9 gap-2">
-                <ArrowLeft className="h-4 w-4" /> Vissza a tanári oldalra
-              </Button>
-            )}
+            <Button variant="outline" onClick={() => window.location.href = "/"} className="h-9 gap-2">
+              <ArrowLeft size={16} /> Vissza
+            </Button>
             <Button variant="ghost" onClick={handleLogout} className="h-9 gap-2 text-destructive">
               <LogOut className="h-4 w-4" /> Kijelentkezés
             </Button>

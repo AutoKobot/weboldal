@@ -34,20 +34,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', adminRouter);
   app.use('/api/school-admin', schoolAdminRouter);
   app.use('/api/teacher', teacherRouter);
-  app.use('/api/costs', costsRouter);
-  app.use('/api/ikk', ikkRouter);
-  app.use('/api/schedules', schedulesRouter);
+  app.use(['/api/admin/costs', '/api/costs'], costsRouter);
+  app.use(['/api/admin/ikk', '/api/ikk'], ikkRouter);
+  app.use(['/api/schedules', '/api/lesson-schedules'], schedulesRouter);
   app.use('/api/ai', aiRouter);
   app.use('/api/announcements', announcementsRouter);
-  app.use('/api/settings', settingsRouter);
-  app.use('/api/public', contentRouter);
+  app.use(['/api/settings', '/api/admin/settings'], settingsRouter);
   app.use('/api/community', communityRouter);
   app.use('/api/upload', uploadRouter);
   app.use('/api/auth', authRouter);
   app.use('/api/gamification', gamificationRouter);
   app.use('/api/messages', messagesRouter);
   app.use('/api/privacy', privacyRouter);
-  app.use('/api/external', externalApisRouter);
+  app.use(['/api/external', '/api/admin'], externalApisRouter);
+  app.use(['/api/public', '/api'], contentRouter); // Mount last as it's the most generic
 
   const httpServer = createServer(app);
   return httpServer;

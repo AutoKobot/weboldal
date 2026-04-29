@@ -26,7 +26,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Edit, Trash2, ArrowLeft, 
-  Sparkles, Brain, CheckCircle, XCircle, Loader2, Wand2 
+  Sparkles, Brain, CheckCircle, XCircle, Loader2, Wand2,
+  LayoutGrid, List, MonitorPlay, FileText
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Module, insertModuleSchema, Subject } from "./types";
@@ -41,8 +42,10 @@ export function ModuleManager({
 }: any) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [regeneratingModules, setRegeneratingModules] = useState<Set<number>>(new Set());
+  const [presentingModules, setPresentingModules] = useState<Set<number>>(new Set());
 
   const selectedSubject = subjects.find((s: Subject) => s.id === selectedSubjectId);
   const filteredModules = modules.filter((m: Module) => m.subjectId === selectedSubjectId);
@@ -109,7 +112,7 @@ export function ModuleManager({
     mutationFn: async (moduleId: number) => {
       setRegeneratingModules(prev => new Set(prev).add(moduleId));
       const mod = modules.find((m: any) => m.id === moduleId);
-      await apiRequest("POST", `/api/admin/modules/${moduleId}/regenerate-ai`, {
+      await apiRequest("POST", `/api/ai/modules/${moduleId}/regenerate`, {
         title: mod.title,
         content: mod.content
       });
@@ -120,7 +123,22 @@ export function ModuleManager({
         next.delete(moduleId);
         return next;
       });
-      toast({ title: "AI Újragenerálás elindítva", description: "A folyamat a háttérben fut." });
+      toast({ title: "AI Újragenerálás elindítva", description: "A folyamat a háttérben fut (Tartalom + Teszt)." });
+    }
+  });
+
+  const generatePresentationMutation = useMutation({
+    mutationFn: async (moduleId: number) => {
+      setPresentingModules(prev => new Set(prev).add(moduleId));
+      await apiRequest("POST", `/api/ai/modules/${moduleId}/generate-presentation`);
+    },
+    onSuccess: (_, moduleId) => {
+      setPresentingModules(prev => {
+        const next = new Set(prev);
+        next.delete(moduleId);
+        return next;
+      });
+      toast({ title: "Interaktív HTML generálás elindítva", description: "A folyamat a háttérben fut." });
     }
   });
 
@@ -147,6 +165,24 @@ export function ModuleManager({
           </div>
         </div>
         <div className="flex gap-2">
+          <div className="flex border rounded-md p-1 bg-muted/30 mr-2">
+            <Button 
+              variant={viewMode === 'grid' ? "secondary" : "ghost"} 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewMode === 'list' ? "secondary" : "ghost"} 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
           <Button variant="outline" onClick={() => {
             if(confirm('Minden modul tartalmát fejlesszük az AI segítségével?')) {
               filteredModules.forEach((m: any) => regenerateMutation.mutate(m.id));
@@ -160,43 +196,82 @@ export function ModuleManager({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
         {filteredModules.sort((a: any, b: any) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
-          <Card key={module.id} className="group hover:border-primary transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="w-8 h-8 flex items-center justify-center p-0 rounded-full font-bold bg-muted">
+          <Card key={module.id} className={`group hover:border-primary transition-all duration-300 ${viewMode === 'grid' ? 'h-full flex flex-col shadow-sm hover:shadow-md' : ''}`}>
+            <CardHeader className={`flex flex-row items-center justify-between ${viewMode === 'grid' ? 'pb-2' : 'py-3'}`}>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <Badge variant="outline" className="w-8 h-8 flex items-center justify-center p-0 rounded-full font-bold bg-muted shrink-0">
                   {module.moduleNumber}
                 </Badge>
-                <div>
-                  <CardTitle className="text-base font-bold">{module.title}</CardTitle>
+                <div className="min-w-0">
+                  <CardTitle className={`font-bold truncate ${viewMode === 'grid' ? 'text-lg' : 'text-base'}`}>{module.title}</CardTitle>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant={module.isPublished ? "default" : "secondary"} className="text-[10px] h-4">
                       {module.isPublished ? "Publikálva" : "Piszkozat"}
                     </Badge>
-                    {regeneratingModules.has(module.id) && (
+                    {(regeneratingModules.has(module.id) || presentingModules.has(module.id)) && (
                       <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-blue-50 text-blue-600 animate-pulse">
-                        <Loader2 className="h-2 w-2 animate-spin" /> AI generálás...
+                        <Loader2 className="h-2 w-2 animate-spin" /> 
+                        {regeneratingModules.has(module.id) ? "AI..." : "HTML..."}
                       </Badge>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => togglePublishMutation.mutate({ id: module.id, isPublished: !module.isPublished })}>
-                  {module.isPublished ? "Visszavonás" : "Közzététel"}
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => regenerateMutation.mutate(module.id)} title="AI fejlesztés">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(module)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { if(confirm('Törli?')) deleteMutation.mutate(module.id); }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {viewMode === 'list' && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => togglePublishMutation.mutate({ id: module.id, isPublished: !module.isPublished })}>
+                    {module.isPublished ? "Visszavonás" : "Közzététel"}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => regenerateMutation.mutate(module.id)} title="AI fejlesztés + Teszt">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => generatePresentationMutation.mutate(module.id)} title="Interaktív HTML generálás">
+                    <MonitorPlay className="h-4 w-4 text-blue-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(module)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { if(confirm('Törli?')) deleteMutation.mutate(module.id); }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </CardHeader>
+            {viewMode === 'grid' && (
+              <CardContent className="flex-1 flex flex-col justify-between pt-2">
+                <div className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                  {module.content ? module.content.substring(0, 100) + '...' : 'Nincs tartalom'}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t">
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => regenerateMutation.mutate(module.id)} disabled={regeneratingModules.has(module.id)}>
+                    <Sparkles className="h-3 w-3 mr-2 text-purple-500" /> Tartalom+Teszt
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => generatePresentationMutation.mutate(module.id)} disabled={presentingModules.has(module.id)}>
+                    <MonitorPlay className="h-3 w-3 mr-2 text-blue-500" /> Interaktív HTML
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => handleEdit(module)}>
+                    <Edit className="h-3 w-3 mr-2" /> Szerkesztés
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8 text-destructive hover:text-destructive" onClick={() => { if(confirm('Törli?')) deleteMutation.mutate(module.id); }}>
+                    <Trash2 className="h-3 w-3 mr-2" /> Törlés
+                  </Button>
+                  <Button 
+                    variant={module.isPublished ? "outline" : "default"} 
+                    size="sm" 
+                    className={`w-full col-span-2 mt-2 h-10 font-bold transition-all ${!module.isPublished ? "bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg text-white border-none" : ""}`} 
+                    onClick={() => togglePublishMutation.mutate({ id: module.id, isPublished: !module.isPublished })}
+                  >
+                    {module.isPublished ? (
+                      <><X className="w-4 h-4 mr-2" /> Visszavonás</>
+                    ) : (
+                      <><CheckCircle className="w-4 h-4 mr-2" /> Közzététel</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            )}
           </Card>
         ))}
       </div>

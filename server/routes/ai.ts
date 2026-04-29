@@ -231,6 +231,28 @@ router.post('/modules/:id/generate-presentation', combinedAuth, async (req: any,
   }
 });
 
+router.post('/modules/:id/regenerate-quizzes', combinedAuth, async (req: any, res) => {
+  try {
+    const moduleId = parseInt(req.params.id);
+    const user = await storage.getUser(req.user.id);
+    if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const module = await storage.getModule(moduleId);
+    if (!module) return res.status(404).json({ message: "Module not found" });
+
+    const { aiQueueManager } = await import('../ai-queue-manager');
+    aiQueueManager.queueAIQuizRegeneration(module.id, module.title, module.detailedContent || module.content)
+      .catch(err => console.error(`Background quiz regeneration error:`, err));
+
+    res.status(202).json({ success: true, message: "Queued", status: "queued" });
+  } catch (error) {
+    console.error("Error regenerating quizzes:", error);
+    res.status(500).json({ message: "Failed to regenerate quizzes" });
+  }
+});
+
 router.post('/modules/:id/regenerate', combinedAuth, async (req: any, res) => {
   try {
     const moduleId = parseInt(req.params.id);
