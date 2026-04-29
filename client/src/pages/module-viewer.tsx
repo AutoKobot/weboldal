@@ -999,7 +999,7 @@ export default function ModuleViewer() {
                     </ReactMarkdown>
 
                     {/* Practical Tasks Section */}
-                    {module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
+                    {!!module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
                       <div className="mt-8 pt-6 border-t border-neutral-100">
                         <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
                           <CheckCircle className="text-green-600" size={20} />

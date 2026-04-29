@@ -112,6 +112,8 @@ export default function TeacherDashboard() {
     enabled: !!rosterQueryKey,
   });
 
+  if (!user) return null;
+
   if (studentsLoading || classesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -268,16 +270,16 @@ export default function TeacherDashboard() {
           <TabsContent value="practical">
             <PracticalGradesView 
               teacherClasses={teacherClasses as any} 
-              students={students} 
-              subjects={subjects} 
-              modules={modules} 
+              students={students as any} 
+              subjects={subjects as any} 
+              modules={modules as any} 
             />
           </TabsContent>
 
           <TabsContent value="stats">
             <ClassStatsView 
               teacherClasses={teacherClasses as any} 
-              students={students} 
+              students={students as any} 
               selectedClassId={selectedClassId} 
               setSelectedClassId={setSelectedClassId} 
               selectedStudentId={selectedStudentId} 
@@ -309,7 +311,7 @@ export default function TeacherDashboard() {
           <TabsContent value="announcements">
             <AnnouncementsView 
               teacherClasses={teacherClasses as any} 
-              students={students} 
+              students={students as any} 
             />
           </TabsContent>
         </Tabs>

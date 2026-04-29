@@ -46,7 +46,7 @@ export function IKKManager() {
 
   const filteredProfessions = ikkProfessions.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.id.toLowerCase().includes(searchTerm.toLowerCase())
+    p.id.toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Limit display to 24 items to prevent browser freeze
@@ -88,7 +88,7 @@ export function IKKManager() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start gap-2">
                   <Badge variant="outline" className="font-mono text-[10px]">{prof.id}</Badge>
-                  {prof.sector && <Badge variant="secondary" className="text-[10px]">{prof.sector}</Badge>}
+                  {prof.sector && <Badge variant="secondary" className="text-[10px]">{prof.sector.name || prof.sector}</Badge>}
                 </div>
                 <CardTitle className="text-base mt-2 line-clamp-2 min-h-[3rem]">{prof.name}</CardTitle>
               </CardHeader>
