@@ -49,18 +49,30 @@ export function IKKManager() {
     }
   });
 
+  // Track previous status to detect transitions
+  const [lastStatus, setLastStatus] = useState<string | null>(null);
+
   useEffect(() => {
-    if (importStatus?.status === 'completed' && isImporting) {
-      toast({ title: "Siker", description: importStatus.message });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
-      setIsImporting(null);
-    } else if (importStatus?.status === 'error' && isImporting) {
-      toast({ title: "Hiba", description: importStatus.error || "Ismeretlen hiba történt", variant: "destructive" });
+    // If status transitioned from processing to completed/error
+    if (lastStatus === 'processing' && importStatus?.status !== 'processing') {
+      if (importStatus?.status === 'completed') {
+        toast({ title: "Siker", description: importStatus.message || "Az importálás sikeresen befejeződött!" });
+        // Invalidate all related queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
+      } else if (importStatus?.status === 'error') {
+        toast({ title: "Hiba", description: importStatus.error || "Hiba történt az importálás során", variant: "destructive" });
+      }
       setIsImporting(null);
     }
-  }, [importStatus?.status, isImporting]);
+    
+    if (importStatus?.status) {
+      setLastStatus(importStatus.status);
+    }
+  }, [importStatus?.status, lastStatus]);
 
   const filteredProfessions = ikkProfessions.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
