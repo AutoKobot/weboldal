@@ -871,22 +871,6 @@ export class DatabaseStorage implements IStorage {
     return profession;
   }
 
-  async deleteProfession(id: number): Promise<void> {
-    // Cascading deletion to avoid FK constraints
-    // 1. Delete modules belonging to subjects of this profession
-    const professionSubjects = await db.select().from(subjects).where(eq(subjects.professionId, id));
-    const subjectIds = professionSubjects.map(s => s.id);
-    
-    if (subjectIds.length > 0) {
-      await db.delete(modules).where(inArray(modules.subjectId, subjectIds));
-      // 2. Delete subjects
-      await db.delete(subjects).where(eq(subjects.professionId, id));
-    }
-    
-    // 3. Finally delete the profession
-    await db.delete(professions).where(eq(professions.id, id));
-  }
-
   async createProfession(professionData: InsertProfession): Promise<Profession> {
     const [profession] = await db
       .insert(professions)
@@ -989,7 +973,10 @@ export class DatabaseStorage implements IStorage {
       await this.deleteModule(module.id);
     }
 
-    // 3. Delete the subject
+    // 3. Delete many-to-many assignments
+    await db.delete(moduleSubjectAssignments).where(eq(moduleSubjectAssignments.subjectId, id));
+
+    // 4. Delete the subject
     await db.delete(subjects).where(eq(subjects.id, id));
     console.log(`✅ Subject ${id} deleted`);
   }
@@ -1151,10 +1138,13 @@ export class DatabaseStorage implements IStorage {
     // 5. Delete test results related to this module
     await db.delete(testResults).where(eq(testResults.moduleId, id));
 
-    // 6. Delete many-to-many assignments
+    // 6. Delete practical grades related to this module
+    await db.delete(practicalGrades).where(eq(practicalGrades.moduleId, id));
+
+    // 7. Delete many-to-many assignments
     await db.delete(moduleSubjectAssignments).where(eq(moduleSubjectAssignments.moduleId, id));
 
-    // 7. Finally delete the module
+    // 8. Finally delete the module
     await db.delete(modules).where(eq(modules.id, id));
     console.log(`✅ Module ${id} deleted`);
   }
