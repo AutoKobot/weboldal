@@ -10,7 +10,7 @@ import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building } from "lucide-react";
+import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock } from "lucide-react";
 import type { Profession, Subject } from "@shared/schema";
 
 export default function TananyagokPage() {
@@ -406,6 +406,11 @@ export default function TananyagokPage() {
                                 <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
                                   {subject.name}
                                 </CardTitle>
+                                {subject.hours && (
+                                  <Badge variant="outline" className="mt-1 bg-white/50 text-[10px] h-4 border-neutral-200">
+                                    <Clock size={10} className="mr-1" /> {subject.hours} óra
+                                  </Badge>
+                                )}
                               </div>
                               <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
                             </div>

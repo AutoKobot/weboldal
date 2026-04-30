@@ -765,7 +765,9 @@ export default function ModuleViewer() {
             {/* Module Header */}
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-2">
-                <Badge variant="outline">#{module.moduleNumber}. modul</Badge>
+                <Badge variant="outline">
+                  {module.sectionCode ? `${module.sectionCode}` : `#${module.moduleNumber}. modul`}
+                </Badge>
                 {isCompleted && (
                   <Badge className="bg-secondary text-secondary-foreground">
                     <CheckCircle className="mr-1" size={14} />

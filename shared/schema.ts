@@ -100,6 +100,7 @@ export const subjects = pgTable("subjects", {
   description: text("description"),
   type: varchar("type").notNull().default("theory"), // "theory" vagy "practical"
   orderIndex: integer("order_index").notNull().default(0),
+  hours: integer("hours"), // Óraszám (pl. 72 óra)
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
@@ -116,6 +117,7 @@ export const modules = pgTable("modules", {
   detailedContent: text("detailed_content"), // Bővített verzió
   keyConceptsData: jsonb("key_concepts_data"), // JSON struktura a kulcsfogalmakhoz és videókhoz
   moduleNumber: integer("module_number").notNull(),
+  sectionCode: varchar("section_code", { length: 50 }), // Fejezetszám (pl. 3.3.2.6.1)
   videoUrl: varchar("video_url"), // Feltöltött videó vagy YouTube URL
   audioUrl: varchar("audio_url"), // Feltöltött podcast/hang fájl
   imageUrl: varchar("image_url"), // Modul borítókép

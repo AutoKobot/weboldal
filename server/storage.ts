@@ -190,6 +190,7 @@ export interface IStorage {
   getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]>;
   getModule(id: number): Promise<Module | undefined>;
   createModule(module: InsertModule): Promise<Module>;
+  bulkCreateModules(modulesList: InsertModule[]): Promise<Module[]>;
   updateModule(id: number, module: Partial<InsertModule>): Promise<Module>;
   deleteModule(id: number): Promise<void>;
 
@@ -1109,6 +1110,11 @@ export class DatabaseStorage implements IStorage {
     return newModule;
   }
 
+  async bulkCreateModules(modulesList: InsertModule[]): Promise<Module[]> {
+    if (modulesList.length === 0) return [];
+    return await db.insert(modules).values(modulesList).returning();
+  }
+
   async updateModule(id: number, moduleData: Partial<InsertModule>): Promise<Module> {
     const { additionalSubjectIds, ...data } = moduleData as any;
     
@@ -1433,7 +1439,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db.execute(sql`
         INSERT INTO background_jobs (type, status, progress, message, data)
-        VALUES (${type}, 'processing', 0, ${message}, ${data || null})
+        VALUES (${type}, 'processing', 0, ${message}, ${data ?? null})
         RETURNING *
       `);
       
@@ -1450,11 +1456,11 @@ export class DatabaseStorage implements IStorage {
       await db.execute(sql`
         UPDATE background_jobs 
         SET 
-          status = COALESCE(${update.status}, status),
-          progress = COALESCE(${update.progress}, progress),
-          message = COALESCE(${update.message}, message),
-          error = COALESCE(${update.error}, error),
-          data = COALESCE(${update.data || null}, data),
+          status = COALESCE(${update.status ?? null}, status),
+          progress = COALESCE(${update.progress ?? null}, progress),
+          message = COALESCE(${update.message ?? null}, message),
+          error = COALESCE(${update.error ?? null}, error),
+          data = COALESCE(${update.data ?? null}, data),
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
       `);

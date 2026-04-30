@@ -29,6 +29,7 @@ export interface RawSubject {
   code: string;
   description: string;
   practicalPercent: number;
+  hours?: number;
   modules: RawModule[];
 }
 
@@ -209,6 +210,7 @@ Keresd a "A képzés órakeretének legalább X%-át gyakorlati helyszínen" sor
   X = 50  → practicalPercent = 50,  modulok type = "practical"
   X = 100 → practicalPercent = 100, modulok type = "practical"
 Ha nincs ilyen sor → practicalPercent = 0, type = "theory"
+Ha a tantárgy neve tartalmazza a "gyakorlat" szót → practicalPercent = 100, type = "practical"
 
 ── MODULOK HELYE ──
 Modulok KIZÁRÓLAG az "A tantárgy témakörei" c. fejezet UTÁN találhatók!
@@ -246,8 +248,22 @@ Ha sor kötőjellel végződik és a következő sor folytatja → fűzd össze:
   "útvo-" + "nalak, egyéb infrastruktúra"  → "útvonalak, egyéb infrastruktúra"
   "szerkesztésé-" + "hez szükséges..."     → "szerkesztéséhez szükséges..."
 
-── MODUL CÍM FORMÁTUMA ──
-"AlfejezeteKód AlfejezestCím - Sor szövege"
+── VÁLASZ FORMÁTUMA ──
+Kizárólag egy JSON objektumot adj vissza:
+{
+  "subjects": [
+    {
+      "name": "Tantárgy neve",
+      "hours": 72,
+      "practicalPercent": 0,
+      "modules": [
+        { "title": "Modul szövege", "type": "theory", "sectionCode": "X.X.X.X.X" }
+      ]
+    }
+  ]
+}
+ "hours" = a törtszám ELŐTTI szám (pl. "72/72 óra" esetén 72).
+ "sectionCode" = a legközelebbi fejezetkód (pl. 3.3.2.6.1).
 
 Hegesztő példák (Forma A):
   "3.3.2.6.1 Munkabiztonság - A munkavédelem fogalma, szakterületei"
@@ -294,7 +310,7 @@ ${chunk}
   // ──────────────────────────────────────────────────────────────────────────
 
   buildContentPrompt(professionName: string, subjectName: string, modules: RawModule[]): string {
-    const moduleList = modules.map((m, i) => `${i + 1}. [${m.type.toUpperCase()}] ${m.title}`).join('\n');
+    const moduleList = modules.map((m, i) => `${i + 1}. [${(m.type || 'theory').toUpperCase()}] ${m.title}`).join('\n');
     return `
 Te egy szakképzési tananyagfejlesztő és módszertani szakértő vagy. Az alábbi modulok MINDEGYIKÉHEZ generálj alapvető szakmai tartalmat és gyakorlati feladatokat.
 

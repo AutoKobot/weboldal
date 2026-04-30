@@ -239,7 +239,7 @@ export default function ModuleCard({
           <div className="flex-1 min-w-0 pr-2">
             <div className="flex items-center gap-2 mb-1">
               <Badge variant="outline" className="text-[10px] h-4">
-                {module.moduleNumber}. modul
+                {module.sectionCode ? `${module.sectionCode}` : `${module.moduleNumber}. modul`}
               </Badge>
               {/* Practical Tasks Badge */}
               {Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
