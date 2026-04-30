@@ -6,7 +6,7 @@ import * as schema from "../shared/schema";
 // Configure Neon for serverless environments
 neonConfig.webSocketConstructor = ws;
 neonConfig.useSecureWebSocket = true;
-neonConfig.pipelineConnect = false;
+neonConfig.pipelineConnect = true;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -19,7 +19,7 @@ export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 15, // Reduced to avoid exceeding Neon connection limits
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  connectionTimeoutMillis: 30000,
   maxUses: Infinity,
   allowExitOnIdle: false,
 });

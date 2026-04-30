@@ -38,17 +38,26 @@ let activeImport: {
 
 router.get('/status', combinedAuth, adminOnly, async (req, res) => {
   try {
+    // If we have an active import in memory, return it first (more real-time)
+    if (activeImport.status === 'processing') {
+      return res.json(activeImport);
+    }
+
     const latestJob = await (storage as any).getLatestBackgroundJob('ikk_import');
     if (!latestJob) {
       return res.json({ status: 'idle', progress: 0, message: '', professionName: '' });
     }
-    res.json({
+
+    // Sync memory state with DB state if memory is idle but DB has a job
+    const statusData = {
       status: latestJob.status,
       progress: latestJob.progress,
       message: latestJob.message,
       professionName: latestJob.data?.professionName || '',
       error: latestJob.error
-    });
+    };
+    
+    res.json(statusData);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch import status' });
   }
@@ -79,23 +88,39 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
     // Create new persistent job
     const job = await (storage as any).createBackgroundJob('ikk_import', 'Előkészítés...', { professionName: profession.name });
 
+    // Update memory state for polling
+    activeImport = {
+      status: 'processing',
+      progress: 0,
+      message: 'Előkészítés...',
+      professionName: profession.name
+    };
+
     // Send immediate response
     res.json({ success: true, message: 'Importálás elindítva a háttérben!', jobId: job.id });
 
-    // Background Execution
-    (async () => {
+    // Background Execution - Start after a short delay to ensure DB connections are stabilized
+    setTimeout(async () => {
       const jobId = job.id;
       try {
+        console.log(`[IKK-IMPORT-DEBUG] Háttérfolyamat indítása... Job: ${jobId}`);
         console.log(`[IKK-IMPORT] Megkezdve: ${profession.name} (Job: ${jobId})`);
         
-        await (storage as any).updateBackgroundJob(jobId, { message: "AI szolgáltatás inicializálása...", progress: 2 });
+        console.log(`[IKK-IMPORT-DEBUG] Status frissítése (AI inicializálás előtt)...`);
+        activeImport.message = "AI szolgáltatás inicializálása...";
+        activeImport.progress = 2;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
+        console.log(`[IKK-IMPORT-DEBUG] Status frissítve.`);
         
         console.time(`openai-init-${jobId}`);
+        console.log(`[IKK-IMPORT-DEBUG] OpenAI kliens betöltése...`);
         const { getOpenAIClient } = await import('../openai');
         const openai = await getOpenAIClient();
         console.timeEnd(`openai-init-${jobId}`);
         
-        await (storage as any).updateBackgroundJob(jobId, { message: "Kapcsolat ellenőrzése az OpenAI-val...", progress: 4 });
+        activeImport.message = "Kapcsolat ellenőrzése az OpenAI-val...";
+        activeImport.progress = 4;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
         console.time(`openai-check-${jobId}`);
         try {
           await openai.models.list();
@@ -106,7 +131,9 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         }
 
         // Step 1: Get PDF Content
-        await (storage as any).updateBackgroundJob(jobId, { message: "PDF dokumentumok letöltése (IKK API)...", progress: 5 });
+        activeImport.message = "PDF dokumentumok letöltése (IKK API)...";
+        activeImport.progress = 5;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
         console.log(`[IKK-IMPORT] PDF letöltés indítva...`);
         console.time(`pdf-content-${jobId}`);
         const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
@@ -114,7 +141,9 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         console.log(`[IKK-IMPORT] PDF letöltés kész. KKK: ${kkkText.length}, PTT: ${pttText.length}`);
         
         // Step 2: Extract structure
-        await (storage as any).updateBackgroundJob(jobId, { message: "Szakmai szerkezet elemzése (AI)...", progress: 15 });
+        activeImport.message = "Szakmai szerkezet elemzése (AI)...";
+        activeImport.progress = 15;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
         const chunks = ikkService.splitPttIntoSections(pttText);
         
         if (chunks.length === 0) {
@@ -125,9 +154,11 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const mergedSubjectsMap: Map<string, any> = new Map();
 
         for (let i = 0; i < chunks.length; i++) {
+          activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
+          activeImport.progress = 15 + Math.floor((i / chunks.length) * 25);
           await (storage as any).updateBackgroundJob(jobId, { 
-            message: `Szerkezet elemzése (${i + 1}/${chunks.length})...`,
-            progress: 15 + Math.floor((i / chunks.length) * 25)
+            message: activeImport.message,
+            progress: activeImport.progress
           });
 
           const response = await openai.chat.completions.create({
@@ -192,9 +223,11 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           const BATCH_SIZE = 10;
           for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
             const batch = sub.modules.slice(i, i + BATCH_SIZE);
+            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
+            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
             await (storage as any).updateBackgroundJob(jobId, {
-              message: `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`,
-              progress: 40 + Math.floor((processedModules / totalModules) * 55)
+              message: activeImport.message,
+              progress: activeImport.progress
             });
 
             try {
@@ -227,22 +260,28 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           }
         }
 
+        activeImport.status = 'completed';
+        activeImport.progress = 100;
+        activeImport.message = `Sikeresen importálva: ${dbProfession.name} (${processedModules} modul)`;
         await (storage as any).updateBackgroundJob(jobId, {
-          status: 'completed',
-          progress: 100,
-          message: `Sikeresen importálva: ${dbProfession.name} (${processedModules} modul)`
+          status: activeImport.status,
+          progress: activeImport.progress,
+          message: activeImport.message
         });
         console.log(`[IKK-IMPORT] KÉSZ: ${profession.name}`);
 
       } catch (err: any) {
         console.error("[IKK-IMPORT] KRITIKUS HIBA:", err);
+        activeImport.status = 'error';
+        activeImport.error = err.message;
+        activeImport.message = `Hiba: ${err.message}`;
         await (storage as any).updateBackgroundJob(jobId, {
-          status: 'error',
-          error: err.message,
-          message: `Hiba: ${err.message}`
+          status: activeImport.status,
+          error: activeImport.error,
+          message: activeImport.message
         });
       }
-    })();
+    }, 500);
   } catch (error) {
     console.error('IKK import indítási hiba:', error);
     res.status(500).json({ message: 'Failed to start IKK import' });
