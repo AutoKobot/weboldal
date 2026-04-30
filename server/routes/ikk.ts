@@ -2,6 +2,8 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
 import { ikkService } from "../ikk-service";
+import { sql } from "drizzle-orm";
+import { db } from "../db";
 
 const router = Router();
 
@@ -93,14 +95,28 @@ router.post('/cancel', combinedAuth, adminOnly, async (req, res) => {
 });
 
 router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
-  activeImport = {
-    status: 'idle',
-    progress: 0,
-    message: '',
-    professionName: '',
-    activeJobId: null
-  };
-  res.json({ success: true });
+  try {
+    // 1. Memory reset
+    activeImport = {
+      status: 'idle',
+      progress: 0,
+      message: '',
+      professionName: '',
+      activeJobId: null
+    };
+
+    // 2. Database "Hard Reset" - mark all stuck jobs as error
+    await db.execute(sql`
+      UPDATE background_jobs 
+      SET status = 'error', message = 'Kényszerített leállítás (Reset)', updated_at = CURRENT_TIMESTAMP
+      WHERE type = 'ikk_import' AND status = 'processing'
+    `);
+
+    res.json({ success: true, message: "Minden folyamat leállítva és törölve." });
+  } catch (error) {
+    console.error("Reset error:", error);
+    res.status(500).json({ message: "Hiba a törlés során" });
+  }
 });
 
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
