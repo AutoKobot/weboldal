@@ -129,8 +129,8 @@ export function RosterView({
                    <>
                       <TableRow key={s.id}>
                          <TableCell className="font-medium">{s.lastName} {s.firstName}</TableCell>
-                         <TableCell>{s.stats.attendanceCount} óra</TableCell>
-                         <TableCell>{s.stats.completedCount} db</TableCell>
+                         <TableCell>{s.stats?.attendanceCount || 0} óra</TableCell>
+                         <TableCell>{s.stats?.completedCount || 0} db</TableCell>
                          <TableCell className="no-print">
                             <Button variant="ghost" size="sm" onClick={() => toggleStudent(s.id)}>
                                {rosterExpandedStudents.has(s.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
