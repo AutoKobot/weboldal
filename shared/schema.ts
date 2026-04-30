@@ -444,6 +444,7 @@ export const announcementAcknowledgements = pgTable("announcement_acknowledgemen
 export const lessonSchedules = pgTable("lesson_schedules", {
   id: serial("id").primaryKey(),
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
+  classId: integer("class_id").references(() => classes.id), // Opcionális: osztályspecifikus órarend
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   periodNumber: integer("period_number").notNull(), // 1, 2, 3, ... (hányadik tanóra)
   startHour: integer("start_hour").notNull(),   // pl. 8  (08:00)
@@ -456,8 +457,28 @@ export const lessonSchedules = pgTable("lesson_schedules", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (t) => ({
-  lessonScheduleUnique: uniqueIndex("lesson_schedule_unique").on(t.schoolId, t.periodNumber, t.scheduleGroup),
+  lessonScheduleUnique: uniqueIndex("lesson_schedule_unique").on(t.schoolId, t.periodNumber, t.scheduleGroup, t.classId),
 }));
+
+export const dailyAttendance = pgTable("daily_attendance", {
+  id: serial("id").primaryKey(),
+  studentId: varchar("student_id").references(() => users.id).notNull(),
+  classId: integer("class_id").references(() => classes.id).notNull(),
+  date: varchar("date").notNull(), // "YYYY-MM-DD"
+  status: varchar("status").notNull().default("present"),
+  actualStart: varchar("actual_start"), // pl. "08:00"
+  actualEnd: varchar("actual_end"),     // pl. "15:00"
+  notes: text("notes"),
+  recordedBy: varchar("recorded_by").notNull().default("auto"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (t) => ({
+  dailyAttendanceUnique: uniqueIndex("daily_attendance_unique").on(t.studentId, t.date),
+}));
+
+export const insertDailyAttendanceSchema = createInsertSchema(dailyAttendance);
+export type InsertDailyAttendance = z.infer<typeof insertDailyAttendanceSchema>;
+export type DailyAttendance = typeof dailyAttendance.$inferSelect;
 
 // Attendance table – jelenlét nyilvántartás (tanóránkénti, automatikus login alapján)
 export const attendance = pgTable("attendance", {
@@ -468,6 +489,8 @@ export const attendance = pgTable("attendance", {
   date: varchar("date").notNull(), // "YYYY-MM-DD" formátum
   periodNumber: integer("period_number").notNull(), // hányadik óra
   status: varchar("status").notNull().default("present"), // "present" | "absent" | "late" | "excused"
+  actualStart: varchar("actual_start"), // ÚJ: Tényleges érkezés (pl. "08:15")
+  actualEnd: varchar("actual_end"),     // ÚJ: Tényleges távozás (pl. "14:30")
   recordedAt: timestamp("recorded_at").defaultNow(), // mikor lett rögzítve
   recordedBy: varchar("recorded_by").notNull().default("auto"), // "auto" | tanár userId
   loginAt: timestamp("login_at"), // mikor lépett be a diák

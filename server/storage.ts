@@ -78,14 +78,13 @@ import {
   type InsertNotification,
   discussionReactions,
   type DiscussionReaction,
-  // Jelenlét
   attendance,
-  studentDailyNotes,
+  dailyAttendance,
   lessonSchedules,
   type Attendance,
   type InsertAttendance,
-  type StudentDailyNote,
-  type InsertStudentDailyNote,
+  type DailyAttendance,
+  type InsertDailyAttendance,
   type LessonSchedule,
   type InsertLessonSchedule,
   studentAvatars,
@@ -100,6 +99,9 @@ import {
   practicalGrades,
   type PracticalGrade,
   type InsertPracticalGrade,
+  studentDailyNotes,
+  type StudentDailyNote,
+  type InsertStudentDailyNote,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, notExists, asc } from "drizzle-orm";
@@ -301,13 +303,17 @@ export interface IStorage {
   getLessonSchedules(schoolAdminId: string, scheduleGroup?: string): Promise<LessonSchedule[]>;
   upsertLessonSchedules(schedules: InsertLessonSchedule[]): Promise<LessonSchedule[]>;
 
-  // Attendance auto-recording
-  recordLoginAttendance(studentId: string, loginAt?: Date): Promise<Attendance | null>;
+  // Attendance
+  getAttendance(studentId: string, date: string): Promise<any[]>;
   getAttendanceByClass(classId: number, date: string): Promise<any[]>;
   getAttendanceByClassRange(classId: number, startDate: string, endDate: string): Promise<any[]>;
   getAttendanceByStudent(studentId: string, startDate: string, endDate: string): Promise<Attendance[]>;
   updateAttendanceStatus(attendanceId: number, status: string, teacherId: string): Promise<Attendance>;
   upsertAttendance(data: InsertAttendance): Promise<Attendance>;
+
+  // Daily Attendance
+  getDailyAttendanceByClass(classId: number, date?: string, startDate?: string, endDate?: string): Promise<any[]>;
+  upsertDailyAttendance(data: any): Promise<any>;
 
   // Student daily notes
   getStudentDailyNotes(studentId: string, teacherId: string, date?: string): Promise<StudentDailyNote[]>;
@@ -2298,14 +2304,28 @@ export class DatabaseStorage implements IStorage {
   // ── Jelenlét implementáció ─────────────────────────────────────────────────
 
 
-  async getLessonSchedules(schoolAdminId: string, scheduleGroup: string = 'morning'): Promise<LessonSchedule[]> {
+  async getLessonSchedules(schoolAdminId: string, scheduleGroup: string = 'morning', classId?: number): Promise<LessonSchedule[]> {
+    const conditions = [
+      eq(lessonSchedules.schoolAdminId, schoolAdminId),
+      eq(lessonSchedules.scheduleGroup, scheduleGroup)
+    ];
+
+    if (classId) {
+      // First try to get class-specific schedules
+      const classSpecific = await db
+        .select()
+        .from(lessonSchedules)
+        .where(and(...conditions, eq(lessonSchedules.classId, classId)))
+        .orderBy(lessonSchedules.periodNumber);
+      
+      if (classSpecific.length > 0) return classSpecific;
+    }
+
+    // Fallback to global schedules (where classId is null)
     return await db
       .select()
       .from(lessonSchedules)
-      .where(and(
-        eq(lessonSchedules.schoolAdminId, schoolAdminId),
-        eq(lessonSchedules.scheduleGroup, scheduleGroup)
-      ))
+      .where(and(...conditions, isNull(lessonSchedules.classId)))
       .orderBy(lessonSchedules.periodNumber);
   }
 
@@ -2319,7 +2339,7 @@ export class DatabaseStorage implements IStorage {
         .insert(lessonSchedules)
         .values(s)
         .onConflictDoUpdate({
-          target: [lessonSchedules.schoolAdminId, lessonSchedules.periodNumber, lessonSchedules.scheduleGroup],
+          target: [lessonSchedules.schoolAdminId, lessonSchedules.periodNumber, lessonSchedules.scheduleGroup, lessonSchedules.classId],
           set: {
             startHour: s.startHour,
             startMinute: s.startMinute,
@@ -2336,76 +2356,72 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async recordLoginAttendance(studentId: string, loginAt: Date = new Date()): Promise<Attendance | null> {
-    const user = await this.getUser(studentId);
-    if (!user || user.role !== 'student' || !user.classId) return null;
 
-    const dateStr = loginAt.toISOString().split('T')[0];
-    const hour = loginAt.getHours();
-    const minute = loginAt.getMinutes();
-    const currentTimeInMinutes = hour * 60 + minute;
 
-    // Osztály adatainak lekérése a műszak (scheduleGroup) meghatározásához
-    const [classData] = await db.select().from(classes).where(eq(classes.id, user.classId));
-    const scheduleGroup = classData?.scheduleGroup || 'morning';
-
-    // Iskola admin ID lekérése
-    const schoolAdminId = user.schoolAdminId;
-    if (!schoolAdminId) return null;
-
-    const schedules = await this.getLessonSchedules(schoolAdminId, scheduleGroup);
-    let activePeriod: number | null = null;
-
-    if (schedules.length > 0) {
-      // Megkeressük az aktuális periódust
-      for (const s of schedules) {
-        if (!s.isActive) continue;
-        const startTotal = s.startHour * 60 + s.startMinute;
-        const endTotal = s.endHour * 60 + s.endMinute;
-        
-        // Adjunk egy nagyobb puffert (pl. bejöhet 15 perccel előbb)
-        // És ha az órák között van 5-10 perc szünet, azt is kezeljük le
-        if (currentTimeInMinutes >= startTotal - 15 && currentTimeInMinutes <= endTotal + 2) {
-          activePeriod = s.periodNumber;
-          break;
-        }
-      }
-    } else {
-      // Fallback: ha nincs órarend beállítva
-      // Délelőtti: 8-16h
-      // Délutáni: 13-21h
-      if (scheduleGroup === 'morning') {
-        if (hour >= 7 && hour < 17) { // 07:45-től már az 1. órát számoljuk
-          const totalMins = hour * 60 + minute;
-          if (totalMins >= 7 * 60 + 45) { // 7:45 után
-             activePeriod = Math.floor((totalMins - 7 * 60) / 60) + 1;
-             if (activePeriod > 8) activePeriod = 8;
-          }
-        }
-      } else {
-        if (hour >= 12 && hour < 22) {
-          const totalMins = hour * 60 + minute;
-          if (totalMins >= 12 * 60 + 45) {
-             activePeriod = Math.floor((totalMins - 12 * 60) / 60) + 1;
-             if (activePeriod > 8) activePeriod = 8;
-          }
-        }
-      }
+  async getDailyAttendanceByClass(classId: number, date?: string, startDate?: string, endDate?: string): Promise<any[]> {
+    let condition = sql`da.date = ${date}`;
+    if (startDate && endDate) {
+      condition = sql`da.date >= ${startDate} AND da.date <= ${endDate}`;
     }
 
-    if (activePeriod === null) return null;
-
-    // Rögzítés
-    return await this.upsertAttendance({
-      studentId,
-      classId: user.classId,
-      date: dateStr,
-      periodNumber: activePeriod,
-      status: 'present',
-      loginAt: loginAt,
-      recordedBy: 'auto',
-    });
+    const rows = await db.execute(sql`
+      SELECT
+        u.id as student_id,
+        u.first_name,
+        u.last_name,
+        u.username,
+        da.id as daily_id,
+        da.date,
+        da.status,
+        da.actual_start,
+        da.actual_end,
+        da.notes
+      FROM users u
+      LEFT JOIN daily_attendance da ON da.student_id = u.id AND ${condition}
+      WHERE u.class_id = ${classId} AND u.role = 'student'
+      ORDER BY u.last_name, u.first_name, da.date
+    `);
+    return rows.rows;
   }
+
+  async upsertDailyAttendance(data: any): Promise<any> {
+    const [row] = await db
+      .insert(dailyAttendance)
+      .values({
+        studentId: data.studentId,
+        classId: data.classId,
+        date: data.date,
+        status: data.status,
+        actualStart: data.actualStart,
+        actualEnd: data.actualEnd,
+        notes: data.notes,
+        recordedBy: data.recordedBy,
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: [dailyAttendance.studentId, dailyAttendance.date],
+        set: {
+          status: data.status,
+          actualStart: data.actualStart,
+          actualEnd: data.actualEnd,
+          notes: data.notes,
+          recordedBy: data.recordedBy,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
+    return row;
+  }
+
+  async getAttendance(studentId: string, date: string): Promise<any[]> {
+    return await db.select().from(attendance).where(
+      and(
+        eq(attendance.studentId, studentId),
+        eq(attendance.date, date)
+      )
+    );
+  }
+
 
   async getAttendanceByClass(classId: number, date: string): Promise<any[]> {
     // Elsőnek lekérjük az osztály és a kapcsolódó admin adatait, hogy tudjuk az aktuális órát
@@ -2420,7 +2436,7 @@ export class DatabaseStorage implements IStorage {
 
     let currentPeriod: number | null = null;
     if (isToday && classData.schoolAdminId) {
-      const schedules = await this.getLessonSchedules(classData.schoolAdminId, classData.scheduleGroup || 'morning');
+      const schedules = await this.getLessonSchedules(classData.schoolAdminId, classData.scheduleGroup || 'morning', classId);
       for (const s of schedules) {
         if (!s.isActive) continue;
         const startTotal = s.startHour * 60 + s.startMinute;
@@ -2466,6 +2482,8 @@ export class DatabaseStorage implements IStorage {
     `);
     return rows.rows;
   }
+
+
 
   async getAttendanceByClassRange(classId: number, startDate: string, endDate: string): Promise<any[]> {
     const rows = await db.execute(sql`

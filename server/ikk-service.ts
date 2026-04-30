@@ -275,16 +275,13 @@ ${chunk}
 {
   "subjects": [
     {
-      "name": "Textiltermékek gyártástechnológiája",
-      "code": "3.4.2",
-      "description": "Varrástechnológiai alapismeretek és alkatrész-technológiák elsajátítása.",
+      "name": "Tantárgy Pontos Neve",
+      "code": "X.X.X",
+      "description": "A tantárgy tartalmának rövid összefoglalása a dokumentum alapján.",
       "practicalPercent": 0,
       "modules": [
-        { "title": "3.4.2.6.1 Ruhaipari ábrázolások - Modellrajz", "type": "theory", "sectionCode": "3.4.2.6.1" },
-        { "title": "3.4.2.6.1 Ruhaipari ábrázolások - Gyártmányrajz", "type": "theory", "sectionCode": "3.4.2.6.1" },
-        { "title": "3.4.2.6.1 Ruhaipari ábrázolások - Részletrajz", "type": "theory", "sectionCode": "3.4.2.6.1" },
-        { "title": "3.4.2.6.2 Varrástechnológia - Varrással kapcsolatos alapfogalmak", "type": "theory", "sectionCode": "3.4.2.6.2" },
-        { "title": "3.4.2.6.3 Alkatrész-technológia - A ruházati termékek záródási lehetőségei", "type": "theory", "sectionCode": "3.4.2.6.3" }
+        { "title": "X.X.X.X.X Fejezetcím - Modul konkrét szövege", "type": "theory", "sectionCode": "X.X.X.X.X" },
+        { "title": "X.X.X.X.X Fejezetcím - Másik modul szövege", "type": "theory", "sectionCode": "X.X.X.X.X" }
       ]
     }
   ]

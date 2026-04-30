@@ -10,7 +10,7 @@ import {
   DialogTitle, 
   DialogDescription 
 } from "@/components/ui/dialog";
-import { Users } from "lucide-react";
+import { Users, Clock, AlertCircle, Calendar } from "lucide-react";
 import { DayAttendanceEditor } from "./DayAttendanceEditor";
 import { Student } from "./types";
 
@@ -27,8 +27,8 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
   const endDate = endOfMonth.toISOString().split('T')[0];
   const daysInMonth = endOfMonth.getDate();
 
-  const { data: attendanceData = [], isLoading } = useQuery<any[]>({
-    queryKey: [`/api/teacher/classes/${classId}/attendance?startDate=${startDate}&endDate=${endDate}`],
+  const { data: dailyAttendance = [], isLoading } = useQuery<any[]>({
+    queryKey: [`/api/teacher/classes/${classId}/daily-attendance?startDate=${startDate}&endDate=${endDate}`],
     enabled: !!classId && classId !== 'all',
   });
 
@@ -43,39 +43,52 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
   }, [studentsData, classId]);
 
   const attendanceMap = useMemo(() => {
-    const map: Record<string, Record<string, Record<number, string>>> = {};
-    attendanceData.forEach(row => {
+    const map: Record<string, Record<string, any>> = {};
+    dailyAttendance.forEach(row => {
+      if (!row.date) return;
       if (!map[row.student_id]) map[row.student_id] = {};
-      if (!map[row.student_id][row.date]) map[row.student_id][row.date] = {};
-      map[row.student_id][row.date][row.period_number] = row.status;
+      map[row.student_id][row.date] = row;
     });
     return map;
-  }, [attendanceData]);
+  }, [dailyAttendance]);
 
   const dayNumbers = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  // Helper to calculate hours between two time strings
+  const calculateHours = (start: string | null, end: string | null) => {
+    if (!start || !end) return 0;
+    try {
+      const [sH, sM] = start.split(':').map(Number);
+      const [eH, eM] = end.split(':').map(Number);
+      const diffMins = (eH * 60 + eM) - (sH * 60 + sM);
+      return Math.max(0, diffMins / 60);
+    } catch (e) {
+      return 0;
+    }
+  };
 
   if (isLoading) return (
     <div className="py-20 text-center">
       <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-      <p className="text-gray-500">Havi adatok betöltése...</p>
+      <p className="text-gray-500">Havi összesítés betöltése...</p>
     </div>
   );
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border-blue-100">
+      <Card className="overflow-hidden border-blue-100 shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto max-h-[70vh]">
+          <div className="overflow-x-auto max-h-[75vh]">
             <Table className="border-collapse table-fixed w-full">
               <TableHeader className="bg-gray-50 sticky top-0 z-30">
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[220px] w-[220px] border-r shadow-[2px_0_5_rgba(0,0,0,0.05)] font-bold text-gray-700 px-4">Tanuló</TableHead>
-                  <TableHead className="sticky left-[220px] bg-blue-50 z-40 min-w-[80px] w-[80px] border-r text-center text-[10px] font-bold text-gray-500 uppercase px-1 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Összesítő</TableHead>
+                  <TableHead className="sticky left-0 bg-gray-50 z-40 min-w-[200px] w-[200px] border-r shadow-[2px_0_5px_rgba(0,0,0,0.05)] font-bold text-gray-700 px-4">Tanuló</TableHead>
+                  <TableHead className="sticky left-[200px] bg-blue-50 z-40 min-w-[100px] w-[100px] border-r text-center text-[10px] font-bold text-gray-500 uppercase px-1 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Havi Összesen</TableHead>
                   {dayNumbers.map(d => {
                     const date = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), d);
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                     return (
-                      <TableHead key={d} className={`text-center p-0.5 min-w-[28px] w-[28px] border-r text-[10px] font-bold ${isWeekend ? 'bg-red-50 text-red-400' : 'text-gray-600'}`}>
+                      <TableHead key={d} className={`text-center p-0.5 min-w-[32px] w-[32px] border-r text-[10px] font-bold ${isWeekend ? 'bg-red-50 text-red-400' : 'text-gray-600'}`}>
                         {d}
                       </TableHead>
                     );
@@ -84,12 +97,23 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
               </TableHeader>
               <TableBody>
                 {classStudents.map(student => {
-                  const studentData = attendanceMap[student.id] || {};
-                  const stats = { present: 0, absent: 0, late: 0, excused: 0 };
-                  Object.values(studentData).forEach(day => {
-                    Object.values(day).forEach(status => {
-                      if (status in stats) stats[status as keyof typeof stats]++;
-                    });
+                  const studentRecords = attendanceMap[student.id] || {};
+                  
+                  // Calculate Totals
+                  let totalHours = 0;
+                  let absentDays = 0;
+                  let excusedDays = 0;
+                  let lateCount = 0;
+
+                  Object.values(studentRecords).forEach(rec => {
+                    if (rec.status === 'present' || rec.status === 'late') {
+                      totalHours += calculateHours(rec.actual_start, rec.actual_end);
+                      if (rec.status === 'late') lateCount++;
+                    } else if (rec.status === 'absent') {
+                      absentDays++;
+                    } else if (rec.status === 'excused') {
+                      excusedDays++;
+                    }
                   });
 
                   return (
@@ -101,51 +125,52 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
                               {student.lastName?.[0]}{student.firstName?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="truncate max-w-[150px]">{student.lastName} {student.firstName}</span>
+                          <span className="truncate max-w-[130px]">{student.lastName} {student.firstName}</span>
                         </div>
                       </TableCell>
                       
-                      <TableCell className="sticky left-[220px] bg-blue-50/10 z-20 border-r p-1.5 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
-                         <div className="grid grid-cols-1 gap-y-0.5 text-[10px] font-bold">
-                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">J:</span><span className="text-green-600">{stats.present}</span></div>
-                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">H:</span><span className="text-red-600">{stats.absent}</span></div>
-                            <div className="flex justify-between gap-1"><span className="text-gray-400 font-normal">I:</span><span className="text-blue-600">{stats.excused}</span></div>
+                      <TableCell className="sticky left-[200px] bg-blue-50/10 z-20 border-r p-1.5 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                         <div className="flex flex-col gap-0.5 text-[10px] font-bold leading-tight">
+                            <div className="flex justify-between gap-1 text-blue-700"><span>Óra:</span><span>{totalHours.toFixed(1)}h</span></div>
+                            <div className="flex justify-between gap-1 text-red-600"><span>H:</span><span>{absentDays}n</span></div>
+                            <div className="flex justify-between gap-1 text-green-600"><span>I:</span><span>{excusedDays}n</span></div>
                          </div>
                       </TableCell>
 
                       {dayNumbers.map(d => {
                         const dateStr = `${month}-${d.toString().padStart(2, '0')}`;
-                        const dayPeriods = studentData[dateStr] || {};
+                        const record = studentRecords[dateStr];
                         const date = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), d);
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-                        const dayCounts = { present: 0, absent: 0, excused: 0 };
-                        Object.values(dayPeriods).forEach(status => {
-                          if (status === 'present') dayCounts.present++;
-                          else if (status === 'absent') dayCounts.absent++;
-                          else if (status === 'excused') dayCounts.excused++;
-                        });
                         
+                        let cellContent = null;
+                        let cellColor = "";
+
+                        if (record) {
+                          if (record.status === 'present') {
+                            cellContent = "✓";
+                            cellColor = "text-green-600";
+                          } else if (record.status === 'late') {
+                            cellContent = "K";
+                            cellColor = "text-yellow-600";
+                          } else if (record.status === 'absent') {
+                            cellContent = "H";
+                            cellColor = "text-red-600";
+                          } else if (record.status === 'excused') {
+                            cellContent = "I";
+                            cellColor = "text-blue-600";
+                          }
+                        }
+
                         return (
                           <TableCell 
                             key={d} 
-                            className={`p-0.5 border-r text-center cursor-pointer group relative hover:bg-gray-100 ${isWeekend ? 'bg-red-50/30' : ''}`}
+                            className={`p-0.5 border-r text-center cursor-pointer group relative hover:bg-gray-100 ${isWeekend ? 'bg-red-50/20' : ''}`}
                             onClick={() => setSelectedDayInfo({ studentId: student.id, studentName: `${student.lastName} ${student.firstName}`, date: dateStr })}
                           >
-                            <div className="flex flex-col gap-0 justify-center items-center min-h-[24px]">
-                               {dayCounts.present > 0 && (
-                                 <span className="text-[11px] font-bold text-green-600 leading-none" title="Jelen">{dayCounts.present}</span>
-                               )}
-                               {dayCounts.absent > 0 && (
-                                 <span className="text-[11px] font-bold text-red-600 leading-none" title="Hiányzás">{dayCounts.absent}</span>
-                               )}
-                               {dayCounts.excused > 0 && (
-                                 <span className="text-[11px] font-bold text-blue-600 leading-none" title="Igazolt">{dayCounts.excused}</span>
-                               )}
-                               {!Object.keys(dayPeriods).length && !isWeekend && (
-                                 <span className="text-[8px] text-gray-200 opacity-0 group-hover:opacity-100">.</span>
-                               )}
-                            </div>
+                            <span className={`text-[11px] font-bold ${cellColor}`}>
+                              {cellContent}
+                            </span>
                           </TableCell>
                         );
                       })}
@@ -158,11 +183,19 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-4 text-xs text-gray-500 bg-white p-3 rounded-lg border">
-         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-500"></div> Jelen</div>
-         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div> Hiányzik</div>
-         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Igazolt</div>
-         <div className="ml-auto italic">* Kattintson egy cellára a módosításhoz vagy igazoláshoz.</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center gap-4 text-[10px] text-gray-500 bg-white p-3 rounded-lg border border-gray-100">
+           <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded bg-green-500"></div> Jelen (✓)</div>
+           <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded bg-red-500"></div> Hiányzik (H)</div>
+           <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded bg-blue-500"></div> Igazolt (I)</div>
+           <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded bg-yellow-500"></div> Késő (K)</div>
+        </div>
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center gap-3">
+          <Clock className="h-4 w-4 text-blue-600" />
+          <p className="text-[10px] text-blue-800">
+            <strong>Havi Összesen:</strong> Az összesített óraszám a napi érkezési és távozási időpontok különbsége alapján számítódik.
+          </p>
+        </div>
       </div>
 
       <Dialog open={!!selectedDayInfo} onOpenChange={() => setSelectedDayInfo(null)}>
@@ -182,7 +215,11 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
                     studentId={selectedDayInfo.studentId} 
                     date={selectedDayInfo.date} 
                     classId={classId}
-                    onClose={() => setSelectedDayInfo(null)}
+                    onClose={() => {
+                      setSelectedDayInfo(null);
+                      // Refresh the grid
+                      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${classId}/daily-attendance?startDate=${startDate}&endDate=${endDate}`] });
+                    }}
                  />
                )}
             </div>

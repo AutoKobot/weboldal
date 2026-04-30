@@ -116,11 +116,10 @@ router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
       activeJobId: null
     };
 
-    // 2. Database "Hard Reset" - mark all stuck jobs as error
+    // 2. Database "Hard Reset" - Delete all ikk_import jobs to clear UI state
     await db.execute(sql`
-      UPDATE background_jobs 
-      SET status = 'error', message = 'Kényszerített leállítás (Reset)', updated_at = CURRENT_TIMESTAMP
-      WHERE type = 'ikk_import' AND status = 'processing'
+      DELETE FROM background_jobs 
+      WHERE type = 'ikk_import'
     `);
 
     res.json({ success: true, message: "Minden folyamat leállítva és törölve." });

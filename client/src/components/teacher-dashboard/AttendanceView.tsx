@@ -1,12 +1,24 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Pencil, Save, X as XIcon, GraduationCap, ClipboardList } from "lucide-react";
+import { 
+  Pencil, 
+  Save, 
+  X as XIcon, 
+  Loader2, 
+  CheckCircle2, 
+  CalendarDays,
+  UserCheck,
+  Clock,
+  ArrowRight
+} from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Props {
   attendanceClassId: string;
@@ -15,259 +27,290 @@ interface Props {
 
 export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteText, setNoteText] = useState<string>("");
   const [savingNote, setSavingNote] = useState(false);
-  const { toast } = useToast();
 
-  const { data: attData = [], isLoading: attLoading } = useQuery<any[]>({
-    queryKey: [`/api/teacher/classes/${attendanceClassId}/attendance?date=${attendanceDate}`],
-    enabled: attendanceClassId !== 'all',
-    refetchInterval: 30_000,
-  });
-
-  const { data: notesData = [] } = useQuery<any[]>({
-    queryKey: [`/api/teacher/classes/${attendanceClassId}/notes?date=${attendanceDate}`],
+  // Queries
+  const { data: dailyData = [], isLoading: dailyLoading } = useQuery<any[]>({
+    queryKey: [`/api/teacher/classes/${attendanceClassId}/daily-attendance?date=${attendanceDate}`],
     enabled: attendanceClassId !== 'all',
   });
 
-  const notesByStudent = useMemo(() => {
-    const map: Record<string, string> = {};
-    notesData.forEach((n: any) => { map[n.student_id] = n.note; });
-    return map;
-  }, [notesData]);
+  const { data: classList = [] } = useQuery<any[]>({
+    queryKey: ["/api/teacher/classes"],
+  });
 
-  const byPeriod = useMemo(() => {
-    const map: Record<number, any[]> = {};
-    attData.forEach((row: any) => {
-      if (!map[row.period_number]) map[row.period_number] = [];
-      map[row.period_number].push(row);
-    });
-    return map;
-  }, [attData]);
+  const currentClass = useMemo(() => {
+    return classList.find(c => c.id.toString() === attendanceClassId);
+  }, [classList, attendanceClassId]);
 
-  const periods = Object.keys(byPeriod).map(Number).sort((a, b) => a - b);
+  const defaultTimes = useMemo(() => {
+    const isMorning = currentClass?.scheduleGroup !== 'afternoon';
+    return {
+      start: isMorning ? "08:00" : "15:00",
+      end: isMorning ? "15:00" : "22:00"
+    };
+  }, [currentClass]);
 
-  const statusColor = (s: string) => {
-    if (s === 'present') return 'bg-green-100 text-green-800 border-green-300';
-    if (s === 'late') return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    if (s === 'excused') return 'bg-blue-100 text-blue-800 border-blue-300';
-    return 'bg-red-100 text-red-800 border-red-300';
-  };
-
-  const statusLabel = (s: string) => {
-    if (s === 'present') return 'Jelen';
-    if (s === 'late') return 'Késő';
-    if (s === 'excused') return 'Igazolt';
-    return 'Hiányzik';
-  };
-
-  const handleStatusChange = async (attendanceId: number, newStatus: string, studentData?: any) => {
-    try {
-      if (attendanceId === -1 && studentData) {
-        await fetch(`/api/teacher/classes/${attendanceClassId}/attendance`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            studentId: studentData.student_id,
-            date: attendanceDate,
-            periodNumber: studentData.period_number,
-            status: newStatus,
-          }),
-        });
-      } else {
-        await fetch(`/api/teacher/attendance/${attendanceId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ status: newStatus }),
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/attendance?date=${attendanceDate}`] });
-    } catch (error) {
-      console.error("Attendance update error:", error);
-      toast({
-        variant: "destructive",
-        title: "Hiba",
-        description: "Nem sikerült módosítani a jelenléti állapotot."
+  // Mutations
+  const updateDailyMutation = useMutation({
+    mutationFn: async (record: any) => {
+      await apiRequest("POST", `/api/teacher/classes/${attendanceClassId}/daily-attendance`, { 
+        records: [record] 
       });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/daily-attendance?date=${attendanceDate}`] });
+    }
+  });
+
+  const bulkPresentMutation = useMutation({
+    mutationFn: async () => {
+      const records = dailyData.map(d => ({
+        studentId: d.student_id,
+        date: attendanceDate,
+        status: 'present',
+        actualStart: defaultTimes.start,
+        actualEnd: defaultTimes.end
+      }));
+      
+      await apiRequest("POST", `/api/teacher/classes/${attendanceClassId}/daily-attendance`, { records });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/daily-attendance?date=${attendanceDate}`] });
+      toast({ title: "Sikeres frissítés", description: "Mindenki jelenlétét alaphelyzetbe állítottuk." });
+    }
+  });
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'present': return 'bg-green-100 text-green-800 border-green-200';
+      case 'absent': return 'bg-red-100 text-red-800 border-red-200';
+      case 'late': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'excused': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-gray-50 text-gray-400 border-gray-200';
     }
   };
 
-  const handleSaveNote = async (studentId: string) => {
-    setSavingNote(true);
-    try {
-      await fetch(`/api/teacher/students/${studentId}/notes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          date: attendanceDate,
-          note: noteText,
-          classId: parseInt(attendanceClassId),
-        }),
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/notes?date=${attendanceDate}`] });
-      setEditingNote(null);
-      setNoteText("");
-      toast({
-        title: "Mentve",
-        description: "A megjegyzést sikeresen elmentettük."
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Hiba",
-        description: "Nem sikerült elmenteni a megjegyzést."
-      });
-    } finally {
-      setSavingNote(false);
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'present': return 'Jelen';
+      case 'absent': return 'Hiányzik (Igazolatlan)';
+      case 'late': return 'Késő';
+      case 'excused': return 'Igazolt Hiányzás';
+      default: return 'Nincs rögzítve';
     }
   };
 
-  if (attLoading) {
+  if (dailyLoading) {
     return (
-      <Card className="p-10 text-center">
-        <GraduationCap className="h-10 w-10 mx-auto text-blue-400 animate-spin mb-3" />
-        <p className="text-gray-500">Jelenléti adatok betöltése...</p>
-      </Card>
-    );
-  }
-
-  if (attData.length === 0) {
-    return (
-      <Card className="p-10 text-center border-dashed">
-        <ClipboardList className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-        <p className="text-gray-500 font-medium">Ezen a napon még nincs automatikusan rögzített jelenléti adat.</p>
-        <p className="text-gray-400 text-sm mt-1">A diákok bejelentkezésekor automatikusan rögzítődik a jelenlétük.</p>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="h-10 w-10 text-blue-500 animate-spin mb-4" />
+        <p className="text-gray-500">Adatok betöltése...</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {(['present', 'late', 'excused', 'absent'] as const).map(status => {
-          const count = attData.filter((r: any) => r.status === status).length;
-          return (
-            <div key={status} className={`rounded-lg p-3 border text-center ${statusColor(status)}`}>
-              <p className="text-2xl font-bold">{count}</p>
-              <p className="text-xs font-medium">{statusLabel(status)}</p>
-            </div>
-          );
-        })}
+    <div className="space-y-6">
+      {/* Header Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5 text-gray-400" />
+          <h2 className="text-xl font-bold text-gray-900">
+            {new Date(attendanceDate).toLocaleDateString('hu-HU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </h2>
+          <Badge variant="outline" className="ml-2 uppercase text-[10px]">
+            {currentClass?.scheduleGroup === 'afternoon' ? 'Délutános' : 'Délelőttös'}
+          </Badge>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+            onClick={() => bulkPresentMutation.mutate()}
+            disabled={bulkPresentMutation.isPending}
+          >
+            {bulkPresentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+            Mindenki Jelen (Alapértelmezett: {defaultTimes.start}-{defaultTimes.end})
+          </Button>
+        </div>
       </div>
 
-      {periods.map(period => (
-        <Card key={period}>
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-500" />
-              {period}. tanóra
-              <Badge variant="secondary" className="ml-auto">
-                {byPeriod[period].length} diák
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-2 pb-4">
-            <div className="space-y-2">
-              {byPeriod[period]
-                .sort((a: any, b: any) => `${a.last_name}${a.first_name}`.localeCompare(`${b.last_name}${b.first_name}`, 'hu'))
-                .map((row: any) => {
-                  const studentId = row.student_id;
-                  const isEditingThisNote = editingNote === studentId;
-                  const existingNote = notesByStudent[studentId];
-
-                  return (
-                    <div key={`${studentId}-${period}`} className="flex flex-col gap-1 p-2 rounded-lg bg-gray-50 border">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm flex-1 min-w-0 truncate">
-                          {row.last_name} {row.first_name || ''}
-                          <span className="text-gray-400 font-normal ml-1 text-xs">@{row.username}</span>
-                        </span>
-
-                        {row.login_at && (
-                          <span className="text-xs text-gray-400 hidden sm:inline">
-                            {new Date(row.login_at).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-
-                        <Select
-                          value={row.status}
-                          onValueChange={s => handleStatusChange(row.id, s, row)}
-                        >
-                          <SelectTrigger className={`h-8 w-28 text-xs border font-medium ${statusColor(row.status)}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="present">Jelen</SelectItem>
-                            <SelectItem value="late">Késő</SelectItem>
-                            <SelectItem value="excused">Igazolt</SelectItem>
-                            <SelectItem value="absent">Hiányzik</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <button
-                          onClick={() => {
-                            if (isEditingThisNote) {
-                              setEditingNote(null);
-                              setNoteText("");
-                            } else {
-                              setEditingNote(studentId);
-                              setNoteText(existingNote || "");
-                            }
-                          }}
-                          className={`p-1.5 rounded transition-colors ${
-                            existingNote
-                              ? 'text-orange-500 hover:bg-orange-50'
-                              : 'text-gray-400 hover:bg-gray-200'
-                          }`}
-                          title={existingNote ? 'Megjegyzés szerkesztése' : 'Megjegyzés hozzáadása'}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      {existingNote && !isEditingThisNote && (
-                        <p className="text-xs text-orange-700 bg-orange-50 rounded px-2 py-1 ml-2 border border-orange-200">
-                          📝 {existingNote}
-                        </p>
-                      )}
-
-                      {isEditingThisNote && (
-                        <div className="flex gap-2 ml-2 mt-1">
-                          <Textarea
-                            className="text-sm h-16 resize-none flex-1"
-                            placeholder="Napi megjegyzés..."
-                            value={noteText}
-                            onChange={e => setNoteText(e.target.value)}
-                            autoFocus
-                          />
-                          <div className="flex flex-col gap-1">
-                            <button
-                              onClick={() => handleSaveNote(studentId)}
-                              disabled={savingNote}
-                              className="p-1.5 rounded bg-green-500 text-white hover:bg-green-600 disabled:opacity-50"
-                            >
-                              <Save className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => { setEditingNote(null); setNoteText(""); }}
-                              className="p-1.5 rounded bg-gray-200 text-gray-600 hover:bg-gray-300"
-                            >
-                              <XIcon className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
+      {/* Daily Attendance Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b">
+              <th className="p-4 text-left font-bold text-gray-700 min-w-[200px] border-r">Tanuló Neve</th>
+              <th className="p-4 text-center min-w-[180px] border-r">Állapot</th>
+              <th className="p-4 text-center min-w-[120px] border-r">Érkezés (Kezdés)</th>
+              <th className="p-4 text-center min-w-[120px] border-r">Távozás</th>
+              <th className="p-4 text-right">Megjegyzés</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dailyData.map(row => {
+              const status = row.status || 'absent';
+              const isAbsent = status === 'absent' || status === 'excused';
+              
+              return (
+                <tr key={row.student_id} className={`border-b hover:bg-gray-50/50 transition-colors ${isAbsent ? 'bg-gray-50/30' : ''}`}>
+                  <td className="p-4 font-medium border-r">
+                    <div className="flex flex-col">
+                      <span>{row.last_name} {row.first_name}</span>
+                      <span className="text-[10px] text-gray-400">@{row.username}</span>
                     </div>
-                  );
-                })}
+                  </td>
+                  
+                  <td className="p-4 border-r text-center">
+                    <Select 
+                      value={status} 
+                      onValueChange={(s) => updateDailyMutation.mutate({
+                        studentId: row.student_id,
+                        date: attendanceDate,
+                        status: s,
+                        actualStart: s === 'absent' || s === 'excused' ? null : (row.actual_start || defaultTimes.start),
+                        actualEnd: s === 'absent' || s === 'excused' ? null : (row.actual_end || defaultTimes.end)
+                      })}
+                    >
+                      <SelectTrigger className={`h-9 w-full font-medium border-2 ${getStatusStyle(status)}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="present">Jelen</SelectItem>
+                        <SelectItem value="late">Késő</SelectItem>
+                        <SelectItem value="excused">Igazolt hiányzás</SelectItem>
+                        <SelectItem value="absent">Hiányzik (Igazolatlan)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+
+                  <td className="p-4 border-r text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Clock className={`h-4 w-4 ${isAbsent ? 'text-gray-300' : 'text-blue-500'}`} />
+                      <Input 
+                        type="time" 
+                        value={row.actual_start || (isAbsent ? "" : defaultTimes.start)}
+                        disabled={isAbsent}
+                        onChange={(e) => updateDailyMutation.mutate({
+                          studentId: row.student_id,
+                          date: attendanceDate,
+                          status: status === 'absent' || status === 'excused' ? 'present' : status,
+                          actualStart: e.target.value,
+                          actualEnd: row.actual_end || defaultTimes.end
+                        })}
+                        className={`h-9 w-24 text-center font-mono ${isAbsent ? 'opacity-30' : ''}`}
+                      />
+                    </div>
+                  </td>
+
+                  <td className="p-4 border-r text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <ArrowRight className={`h-4 w-4 ${isAbsent ? 'text-gray-300' : 'text-orange-500'}`} />
+                      <Input 
+                        type="time" 
+                        value={row.actual_end || (isAbsent ? "" : defaultTimes.end)}
+                        disabled={isAbsent}
+                        onChange={(e) => updateDailyMutation.mutate({
+                          studentId: row.student_id,
+                          date: attendanceDate,
+                          status: status === 'absent' || status === 'excused' ? 'present' : status,
+                          actualStart: row.actual_start || defaultTimes.start,
+                          actualEnd: e.target.value
+                        })}
+                        className={`h-9 w-24 text-center font-mono ${isAbsent ? 'opacity-30' : ''}`}
+                      />
+                    </div>
+                  </td>
+
+                  <td className="p-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      {row.notes && (
+                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] max-w-[150px] truncate">
+                          {row.notes}
+                        </Badge>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setEditingNote(row.student_id);
+                          setNoteText(row.notes || "");
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-gray-400" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend & Instructions */}
+      <Card className="bg-blue-50/50 border-blue-100">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-blue-700">
+          <div className="flex gap-4">
+            <p><strong>Javaslat:</strong> Használd a "Mindenki Jelen" gombot a gyors kezdéshez.</p>
+            <p><strong>Késés:</strong> Állítsd a státuszt "Késő"-re, és módosítsd az Érkezés időpontját.</p>
+          </div>
+          <p className="italic">* A módosítások azonnal mentésre kerülnek.</p>
+        </CardContent>
+      </Card>
+
+      {/* Note Edit Modal */}
+      {editingNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md shadow-2xl">
+            <div className="p-6 space-y-4">
+              <h3 className="text-lg font-bold">Megjegyzés hozzáadása</h3>
+              <Textarea 
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Pl. igazolást hozott, orvosnál volt..."
+                className="min-h-[120px]"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditingNote(null)}>Mégse</Button>
+                <Button 
+                  onClick={async () => {
+                    setSavingNote(true);
+                    try {
+                      const student = dailyData.find(d => d.student_id === editingNote);
+                      await apiRequest("POST", `/api/teacher/classes/${attendanceClassId}/daily-attendance`, {
+                        records: [{
+                          studentId: editingNote,
+                          date: attendanceDate,
+                          status: student?.status || 'present',
+                          actualStart: student?.actual_start || defaultTimes.start,
+                          actualEnd: student?.actual_end || defaultTimes.end,
+                          notes: noteText
+                        }]
+                      });
+                      queryClient.invalidateQueries({ queryKey: [`/api/teacher/classes/${attendanceClassId}/daily-attendance?date=${attendanceDate}`] });
+                      setEditingNote(null);
+                      toast({ title: "Sikeres mentés" });
+                    } finally {
+                      setSavingNote(false);
+                    }
+                  }}
+                  disabled={savingNote}
+                >
+                  {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mentés"}
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ))}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

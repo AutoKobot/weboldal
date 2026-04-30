@@ -237,6 +237,43 @@ router.patch('/attendance/:id', combinedAuth, checkTeacher, async (req: any, res
   }
 });
 
+router.get('/classes/:id/daily-attendance', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const classId = parseInt(req.params.id);
+    const { date, startDate, endDate } = req.query;
+    const rows = await storage.getDailyAttendanceByClass(
+      classId, 
+      date as string, 
+      startDate as string, 
+      endDate as string
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching daily attendance:", error);
+    res.status(500).json({ message: "Failed to fetch daily attendance" });
+  }
+});
+
+router.post('/classes/:id/daily-attendance', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const classId = parseInt(req.params.id);
+    const { records } = req.body; // Array of { studentId, date, status, actualStart, actualEnd, notes }
+    const results = [];
+    for (const rec of records) {
+      const row = await storage.upsertDailyAttendance({
+        ...rec,
+        classId,
+        recordedBy: req.user.id
+      });
+      results.push(row);
+    }
+    res.json(results);
+  } catch (error) {
+    console.error("Error updating daily attendance:", error);
+    res.status(500).json({ message: "Failed to update daily attendance" });
+  }
+});
+
 router.post('/classes/:id/attendance', combinedAuth, checkTeacher, async (req: any, res) => {
   try {
     const { studentId, date, periodNumber, status } = req.body;
@@ -248,6 +285,70 @@ router.post('/classes/:id/attendance', combinedAuth, checkTeacher, async (req: a
   } catch (error) {
     console.error("Error recording attendance:", error);
     res.status(500).json({ message: "Failed to record attendance" });
+  }
+});
+
+router.post('/classes/:id/attendance/bulk', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const { records } = req.body; // Array of { studentId, date, periodNumber, status }
+    const classId = parseInt(req.params.id);
+    const teacherId = req.user.id;
+    
+    const results = [];
+    for (const rec of records) {
+      const row = await storage.upsertAttendance({
+        ...rec,
+        classId,
+        teacherId,
+        recordedBy: teacherId
+      });
+      results.push(row);
+    }
+    res.json(results);
+  } catch (error) {
+    console.error("Error in bulk attendance:", error);
+    res.status(500).json({ message: "Failed to record bulk attendance" });
+  }
+});
+
+router.get('/classes/:id/schedules', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+
+    const schedules = await storage.getLessonSchedules(
+      classData.schoolAdminId || '',
+      classData.scheduleGroup || 'morning',
+      classId
+    );
+    res.json(schedules);
+  } catch (error) {
+    console.error("Error fetching class schedules:", error);
+    res.status(500).json({ message: "Failed to fetch schedules" });
+  }
+});
+
+router.post('/classes/:id/schedules', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const classId = parseInt(req.params.id);
+    const { schedules } = req.body; // Array of InsertLessonSchedule
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+
+    const formattedSchedules = schedules.map((s: any) => ({
+      ...s,
+      classId,
+      schoolId: classData.schoolId,
+      schoolAdminId: classData.schoolAdminId,
+      scheduleGroup: classData.scheduleGroup || 'morning'
+    }));
+
+    const results = await storage.upsertLessonSchedules(formattedSchedules);
+    res.json(results);
+  } catch (error) {
+    console.error("Error updating class schedules:", error);
+    res.status(500).json({ message: "Failed to update schedules" });
   }
 });
 
