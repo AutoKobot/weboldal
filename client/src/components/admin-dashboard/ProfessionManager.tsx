@@ -70,6 +70,8 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/professions"] });
       setIsDialogOpen(false);
       form.reset();
       toast({ title: "Siker", description: "Szakma létrehozva" });
@@ -83,6 +85,8 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/professions"] });
       setIsDialogOpen(false);
       setEditingProfession(null);
       form.reset();
@@ -96,6 +100,8 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/professions"] });
       toast({ title: "Siker", description: "Szakma törölve" });
     }
   });

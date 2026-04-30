@@ -856,6 +856,22 @@ export class DatabaseStorage implements IStorage {
     return profession;
   }
 
+  async deleteProfession(id: number): Promise<void> {
+    // Cascading deletion to avoid FK constraints
+    // 1. Delete modules belonging to subjects of this profession
+    const professionSubjects = await db.select().from(subjects).where(eq(subjects.professionId, id));
+    const subjectIds = professionSubjects.map(s => s.id);
+    
+    if (subjectIds.length > 0) {
+      await db.delete(modules).where(inArray(modules.subjectId, subjectIds));
+      // 2. Delete subjects
+      await db.delete(subjects).where(eq(subjects.professionId, id));
+    }
+    
+    // 3. Finally delete the profession
+    await db.delete(professions).where(eq(professions.id, id));
+  }
+
   async createProfession(professionData: InsertProfession): Promise<Profession> {
     const [profession] = await db
       .insert(professions)

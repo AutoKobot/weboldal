@@ -83,9 +83,11 @@ export function IKKManager() {
         // Invalidate all related queries to refresh the UI
         queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/professions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
         queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
         queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/status"] });
       } else if (importStatus?.status === 'error') {
         toast({ title: "Hiba", description: importStatus.error || "Hiba történt az importálás során", variant: "destructive" });
       }
