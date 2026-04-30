@@ -15,11 +15,21 @@ export default function ProgressPage() {
 
   const { data: modules = [] as Module[] } = useQuery<Module[]>({
     queryKey: ['/api/modules'],
+    queryFn: async () => {
+      const res = await fetch('/api/modules');
+      if (!res.ok) throw new Error('Failed to fetch modules');
+      return res.json();
+    },
     retry: false,
   });
 
   const { data: practicalGrades = [] } = useQuery<PracticalGrade[]>({
     queryKey: ["/api/practical-grades/student", user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/practical-grades/student/${user?.id}`);
+      if (!res.ok) throw new Error('Failed to fetch practical grades');
+      return res.json();
+    },
     enabled: !!user?.id,
   });
 

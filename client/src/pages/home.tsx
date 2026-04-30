@@ -47,11 +47,21 @@ export default function HomePage() {
 
   const { data: allModules = [] } = useQuery<Module[]>({
     queryKey: ['/api/public/modules'],
+    queryFn: async () => {
+      const res = await fetch('/api/public/modules');
+      if (!res.ok) throw new Error('Failed to fetch modules');
+      return res.json();
+    },
     retry: false
   });
 
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ['/api/public/subjects'],
+    queryFn: async () => {
+      const res = await fetch('/api/public/subjects');
+      if (!res.ok) throw new Error('Failed to fetch subjects');
+      return res.json();
+    },
     retry: false
   });
 

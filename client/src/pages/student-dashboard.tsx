@@ -14,13 +14,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, Clock, MessageSquare, Menu, Award, Flame } from "lucide-react";
 import { StudentAvatar } from "@/components/StudentAvatar";
-import type { Module } from "@shared/schema";
+import type { Module, Profession } from "@shared/schema";
 import ClassAnnouncementModal from "@/components/ClassAnnouncementModal";
 
 export default function StudentDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
+    queryKey: ['/api/public/professions'],
+    queryFn: async () => {
+      const res = await fetch('/api/public/professions');
+      if (!res.ok) throw new Error('Failed to fetch professions');
+      return res.json();
+    },
+    retry: false,
+  });
 
   const { data: modules = [], isLoading: modulesLoading } = useQuery<Module[]>({
     queryKey: ['/api/public/modules'],
@@ -52,12 +62,12 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  const { data: practicalGrades = [] } = useQuery({
+  const { data: practicalGrades = [], isLoading: practicalLoading } = useQuery<any[]>({
     queryKey: ['/api/student/practical-grades'],
     queryFn: async () => {
-      const response = await fetch('/api/student/practical-grades');
-      if (!response.ok) return [];
-      return response.json();
+      const res = await fetch('/api/student/practical-grades');
+      if (!res.ok) throw new Error('Failed to fetch practical grades');
+      return res.json();
     },
     enabled: !!user,
   });
@@ -174,7 +184,7 @@ export default function StudentDashboard() {
             {/* Üdvözlés és XP */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <StudentAvatar user={user} className="w-20 h-20 border-4 border-white shadow-xl" />
+                <StudentAvatar />
                 <div className="flex items-center gap-4">
                   <div className="hidden sm:block w-px h-10 bg-neutral-200"></div>
 

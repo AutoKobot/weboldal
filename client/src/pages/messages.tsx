@@ -81,17 +81,33 @@ export default function MessagesPage() {
   // Fetch all messages for the current user
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
+    queryFn: async () => {
+      const res = await fetch("/api/messages");
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
     refetchInterval: 5000, // Poll every 5 seconds
   });
 
   // Fetch conversation partners (users we've talked to)
   const { data: partners = [], isLoading: partnersLoading } = useQuery<UserDetails[]>({
     queryKey: ["/api/messages/partners"],
+    queryFn: async () => {
+      const res = await fetch("/api/messages/partners");
+      if (!res.ok) throw new Error("Failed to fetch partners");
+      return res.json();
+    }
   });
 
   // Fetch all students if teacher, or assigned teacher if student
   const { data: allAvailableUsers = [] } = useQuery<UserDetails[]>({
     queryKey: [user?.role === 'teacher' ? "/api/teacher/students" : `/api/user/details/${user?.id}`],
+    queryFn: async () => {
+      const url = user?.role === 'teacher' ? "/api/teacher/students" : `/api/user/details/${user?.id}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch available users");
+      return res.json();
+    },
     enabled: !!user,
   });
 

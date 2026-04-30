@@ -36,6 +36,11 @@ export default function TananyagokPage() {
 
   const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
     queryKey: ['/api/public/professions'],
+    queryFn: async () => {
+      const res = await fetch('/api/public/professions');
+      if (!res.ok) throw new Error('Failed to fetch professions');
+      return res.json();
+    },
     retry: false,
   });
 
