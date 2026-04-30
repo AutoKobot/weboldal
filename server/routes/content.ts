@@ -91,7 +91,13 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
   try {
     const user = await storage.getUser(req.user.id);
     const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
-    const professions = await storage.getProfessions(schoolAdminId);
+    let professions = await storage.getProfessions(schoolAdminId);
+
+    // Demo restriction
+    if (user?.username === 'BorgaI74') {
+      professions = professions.filter(p => p.name.toLowerCase().includes('hegesztő')).slice(0, 1);
+    }
+
     res.json(professions);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch professions" });
@@ -112,7 +118,13 @@ router.post('/professions', combinedAuth, checkContentEditor, async (req: any, r
 router.get('/subjects', combinedAuth, async (req: any, res) => {
   try {
     const professionId = req.query.professionId ? parseInt(req.query.professionId as string) : undefined;
-    const subjects = await storage.getSubjects(professionId);
+    let subjects = await storage.getSubjects(professionId);
+
+    // Demo restriction
+    if (req.user?.username === 'BorgaI74') {
+      subjects = subjects.slice(0, 3);
+    }
+
     res.json(subjects);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch subjects" });
@@ -164,12 +176,18 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
       modules = await storage.getPublishedModules(subjectId);
     }
     
-    const cleaned = modules.map(m => ({
+    let cleaned = modules.map(m => ({
       ...m,
       content: m.content ? fixMermaidSyntax(m.content) : m.content,
       conciseContent: m.conciseContent ? fixMermaidSyntax(m.conciseContent) : m.conciseContent,
       detailedContent: m.detailedContent ? fixMermaidSyntax(m.detailedContent) : m.detailedContent,
     }));
+
+    // Demo restriction
+    if (user.username === 'BorgaI74') {
+      cleaned = cleaned.slice(0, 3);
+    }
+
     res.json(cleaned);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch modules" });
