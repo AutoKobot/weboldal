@@ -43,8 +43,8 @@ router.get('/status', combinedAuth, adminOnly, async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // If we have an active import in memory, return it first (more real-time)
-    if (activeImport.status === 'processing') {
+    // If we have any active or recently finished import in memory, return it (faster than DB)
+    if (activeImport.status !== 'idle') {
       return res.json(activeImport);
     }
 
@@ -87,6 +87,16 @@ router.post('/cancel', combinedAuth, adminOnly, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Hiba a leállítás során.' });
   }
+});
+
+router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
+  activeImport = {
+    status: 'idle',
+    progress: 0,
+    message: '',
+    professionName: ''
+  };
+  res.json({ success: true });
 });
 
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {

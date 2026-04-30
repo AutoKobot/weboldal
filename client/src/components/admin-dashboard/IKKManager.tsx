@@ -63,6 +63,15 @@ export function IKKManager() {
     }
   });
 
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/admin/ikk/reset");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/status"] });
+    }
+  });
+
   // Track previous status to detect transitions
   const [lastStatus, setLastStatus] = useState<string | null>(null);
 
@@ -97,37 +106,79 @@ export function IKKManager() {
 
   return (
     <div className="space-y-6">
-      {importStatus?.status === 'processing' && (
-        <Card className="border-blue-200 bg-blue-50/50">
+      {importStatus?.status && importStatus.status !== 'idle' && (
+        <Card className={`border-2 ${
+          importStatus.status === 'processing' ? 'border-blue-200 bg-blue-50/50' : 
+          importStatus.status === 'completed' ? 'border-green-200 bg-green-50/50' : 
+          'border-red-200 bg-red-50/50'
+        }`}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                {importStatus.status === 'processing' ? (
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                ) : importStatus.status === 'completed' ? (
+                  <Badge className="bg-green-600">KÉSZ</Badge>
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                )}
                 <div>
-                  <p className="font-semibold text-blue-900">Importálás folyamatban...</p>
-                  <p className="text-sm text-blue-700">{importStatus.professionName}</p>
+                  <p className={`font-semibold ${
+                    importStatus.status === 'processing' ? 'text-blue-900' : 
+                    importStatus.status === 'completed' ? 'text-green-900' : 
+                    'text-red-900'
+                  }`}>
+                    {importStatus.status === 'processing' ? 'Importálás folyamatban...' : 
+                     importStatus.status === 'completed' ? 'Importálás sikeres!' : 
+                     'Importálás megszakítva/Hiba'}
+                  </p>
+                  <p className="text-sm opacity-80">{importStatus.professionName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className="bg-blue-600">{importStatus.progress}%</Badge>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="h-7 px-2 text-[10px] uppercase font-bold"
-                  onClick={() => cancelMutation.mutate()}
-                  disabled={cancelMutation.isPending}
-                >
-                  {cancelMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Stop"}
-                </Button>
+                <Badge className={
+                  importStatus.status === 'processing' ? 'bg-blue-600' : 
+                  importStatus.status === 'completed' ? 'bg-green-600' : 
+                  'bg-red-600'
+                }>{importStatus.progress}%</Badge>
+                
+                {importStatus.status === 'processing' ? (
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="h-7 px-2 text-[10px] uppercase font-bold"
+                    onClick={() => cancelMutation.mutate()}
+                    disabled={cancelMutation.isPending}
+                  >
+                    {cancelMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Stop"}
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 px-2 text-[10px] uppercase font-bold"
+                    onClick={() => resetMutation.mutate()}
+                  >
+                    Törlés
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="w-full bg-blue-200 rounded-full h-2.5 mb-2">
+            <div className="w-full bg-black/5 rounded-full h-2.5 mb-2">
               <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
+                className={`h-2.5 rounded-full transition-all duration-500 ${
+                  importStatus.status === 'processing' ? 'bg-blue-600' : 
+                  importStatus.status === 'completed' ? 'bg-green-600' : 
+                  'bg-red-600'
+                }`} 
                 style={{ width: `${importStatus.progress}%` }}
               ></div>
             </div>
-            <p className="text-xs text-blue-600 font-medium animate-pulse">{importStatus.message}</p>
+            <p className={`text-xs font-medium ${
+              importStatus.status === 'processing' ? 'text-blue-600 animate-pulse' : 
+              importStatus.status === 'completed' ? 'text-green-600' : 
+              'text-red-600'
+            }`}>{importStatus.message}</p>
           </CardContent>
         </Card>
       )}
