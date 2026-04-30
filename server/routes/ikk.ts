@@ -54,8 +54,17 @@ router.get('/status', combinedAuth, adminOnly, async (req, res) => {
 
     const latestJob = await (storage as any).getLatestBackgroundJob('ikk_import');
     
-    // If the DB job is not processing, consider the system idle (avoids showing old errors after reset)
-    if (!latestJob || latestJob.status !== 'processing') {
+    // If we have no job at all, we are idle
+    if (!latestJob) {
+      return res.json({ status: 'idle', progress: 0, message: '', professionName: '', activeJobId: null });
+    }
+
+    // If memory is idle but DB has a job, report the DB state
+    // But don't show "completed" or "error" forever - if it's older than 5 minutes and memory is idle, show idle
+    const lastUpdate = new Date(latestJob.updatedAt || latestJob.updated_at).getTime();
+    const isRecent = (Date.now() - lastUpdate) < (5 * 60 * 1000);
+
+    if (latestJob.status !== 'processing' && !isRecent) {
       return res.json({ status: 'idle', progress: 0, message: '', professionName: '', activeJobId: null });
     }
 
@@ -292,6 +301,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         }
 
         // Step 4: Create new profession
+        let totalModules = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
         const professionDescription = `Importálva az IKK-ról. Ágazat: ${profession.sector?.name || profession.sector || 'N/A'}. (${finalSubjects.length} tantárgy, ${totalModules} modul). Azonosító: ${profession.okjId || 'N/A'}`;
         
         const dbProfession = await storage.createProfession({
@@ -301,7 +311,6 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         });
 
         // Step 5: Generate content and save
-        let totalModules = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
         let processedModules = 0;
 
         for (const sub of finalSubjects) {

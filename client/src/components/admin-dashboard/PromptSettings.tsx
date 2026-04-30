@@ -21,13 +21,13 @@ export function PromptSettings() {
     textExplanationPrompt: "",
   });
 
-  const { data: systemMessageData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/system-message"] });
-  const { data: internetContentPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/internet-content-prompt"] });
-  const { data: conciseContentPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/concise-content-prompt"] });
-  const { data: wikipediaPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/wikipedia-prompt"] });
-  const { data: youtubePromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/youtube-prompt"] });
-  const { data: audioExplanationPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/audio-explanation-prompt"] });
-  const { data: textExplanationPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/text-explanation-prompt"] });
+  const { data: systemMessageData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_system_message"] });
+  const { data: internetContentPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_internet_content_prompt"] });
+  const { data: conciseContentPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/concise-content-prompt"] });
+  const { data: wikipediaPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_wikipedia_prompt"] });
+  const { data: youtubePromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_youtube_prompt"] });
+  const { data: audioExplanationPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/audio-explanation-prompt"] });
+  const { data: textExplanationPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/text-explanation-prompt"] });
 
   useEffect(() => {
     if (systemMessageData) setPrompts(p => ({ ...p, systemMessage: systemMessageData.message }));
@@ -59,11 +59,21 @@ export function PromptSettings() {
 
   const updatePromptMutation = useMutation({
     mutationFn: async ({ key, message }: { key: string, message: string }) => {
-      await apiRequest("POST", `/api/admin/settings/${key}`, { message });
+      // Map to backend keys
+      let backendKey = key;
+      if (['system-message', 'internet-content-prompt', 'wikipedia-prompt', 'youtube-prompt'].includes(key)) {
+        backendKey = `ai_${key.replace(/-/g, '_')}`;
+      }
+      await apiRequest("POST", `/api/admin/settings/prompts/${backendKey}`, { message });
     },
     onSuccess: (_, variables) => {
       toast({ title: "Siker", description: "Prompt mentve" });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/settings/${variables.key}`] });
+      let key = variables.key;
+      let backendKey = key;
+      if (['system-message', 'internet-content-prompt', 'wikipedia-prompt', 'youtube-prompt'].includes(key)) {
+        backendKey = `ai_${key.replace(/-/g, '_')}`;
+      }
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/settings/prompts/${backendKey}`] });
     }
   });
 
