@@ -43,6 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/school-admin', schoolAdminRouter);
   app.use('/api/teacher', teacherRouter);
   app.use(['/api/admin/costs', '/api/costs'], costsRouter);
+  app.use('/api/admin', costsRouter);
   app.use(['/api/admin/ikk', '/api/ikk'], ikkRouter);
   app.use(['/api/schedules', '/api/lesson-schedules'], schedulesRouter);
   app.use('/api/ai', aiRouter);
