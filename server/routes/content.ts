@@ -93,8 +93,8 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
     const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
     let professions = await storage.getProfessions(schoolAdminId);
 
-    // Demo restriction
-    if (user?.username === 'BorgaI74') {
+    // Demo restriction - ONLY for dedicated DemoUser
+    if (user?.username === 'DemoUser') {
       professions = professions.filter(p => p.name.toLowerCase().includes('hegesztő')).slice(0, 1);
     }
 
@@ -120,8 +120,8 @@ router.get('/subjects', combinedAuth, async (req: any, res) => {
     const professionId = req.query.professionId ? parseInt(req.query.professionId as string) : undefined;
     let subjects = await storage.getSubjects(professionId);
 
-    // Demo restriction
-    if (req.user?.username === 'BorgaI74') {
+    // Demo restriction - ONLY for dedicated DemoUser
+    if (req.user?.username === 'DemoUser') {
       subjects = subjects.slice(0, 3);
     }
 
@@ -183,8 +183,8 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
       detailedContent: m.detailedContent ? fixMermaidSyntax(m.detailedContent) : m.detailedContent,
     }));
 
-    // Demo restriction
-    if (user.username === 'BorgaI74') {
+    // Demo restriction - ONLY for dedicated DemoUser
+    if (user.username === 'DemoUser') {
       cleaned = cleaned.slice(0, 3);
     }
 

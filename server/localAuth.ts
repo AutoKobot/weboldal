@@ -262,21 +262,21 @@ export function setupLocalAuth(app: Express) {
   app.post('/api/auth/demo', async (req, res) => {
     try {
       console.log('Demo login request received');
-      let user = await storage.getUserByUsername('BorgaI74');
+      let user = await storage.getUserByUsername('DemoUser');
       if (!user) {
-        user = await storage.getUser("borga-universal-74");
+        user = await storage.getUser("demo-universal-user");
       }
 
       if (!user) {
         const { hashPassword } = await import('./localAuth');
-        const hashedPassword = await hashPassword("diák");
+        const hashedPassword = await hashPassword("demo123");
         user = await storage.createLocalUser({
-          id: "borga-universal-74",
-          username: "BorgaI74",
+          id: "demo-universal-user",
+          username: "DemoUser",
           password: hashedPassword,
-          email: "borga@test.com",
-          firstName: "Imre",
-          lastName: "Borga",
+          email: "demo@autokobot.hu",
+          firstName: "Demo",
+          lastName: "Felhasználó",
           authType: "local",
           role: "student"
         });
