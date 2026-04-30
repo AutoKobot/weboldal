@@ -53,8 +53,10 @@ router.get('/status', combinedAuth, adminOnly, async (req, res) => {
     }
 
     const latestJob = await (storage as any).getLatestBackgroundJob('ikk_import');
-    if (!latestJob) {
-      return res.json({ status: 'idle', progress: 0, message: '', professionName: '' });
+    
+    // If the DB job is not processing, consider the system idle (avoids showing old errors after reset)
+    if (!latestJob || latestJob.status !== 'processing') {
+      return res.json({ status: 'idle', progress: 0, message: '', professionName: '', activeJobId: null });
     }
 
     // Sync memory state with DB state if memory is idle but DB has a job
