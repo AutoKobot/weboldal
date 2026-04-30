@@ -292,9 +292,11 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         }
 
         // Step 4: Create new profession
+        const professionDescription = `Importálva az IKK-ról. Ágazat: ${profession.sector?.name || profession.sector || 'N/A'}. (${finalSubjects.length} tantárgy, ${totalModules} modul). Azonosító: ${profession.okjId || 'N/A'}`;
+        
         const dbProfession = await storage.createProfession({
           name: profession.name,
-          description: `Importálva az IKK-ról. Ágazat: ${profession.sector?.name || 'N/A'}`,
+          description: professionDescription,
           iconName: "book"
         });
 
