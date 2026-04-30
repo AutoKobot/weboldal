@@ -278,20 +278,5 @@ router.get('/queue-status', combinedAuth, adminOnly, async (req, res) => {
   }
 });
 
-router.get('/costs/stats', combinedAuth, adminOnly, async (req: any, res) => {
-  try {
-    const year = parseInt(req.query.year as string) || new Date().getFullYear();
-    const month = parseInt(req.query.month as string) || (new Date().getMonth() + 1);
-    
-    // Alapértelmezett üres statisztikák ha nincs még adat
-    res.json({
-      apiStats: [],
-      monthlyCosts: [],
-      totalCosts: 0
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch cost stats" });
-  }
-});
-
+// End of routes
 export default router;

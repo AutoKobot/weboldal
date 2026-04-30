@@ -1720,47 +1720,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiCallStats(year?: number, month?: number): Promise<any> {
-    let baseQuery = db
-      .select({
-        provider: apiCalls.provider,
-        service: apiCalls.service,
-        totalCalls: sql<number>`count(*)::int`,
-        totalCost: sql<number>`sum(${apiCalls.costUsd})::float`,
-        totalTokens: sql<number>`sum(${apiCalls.tokenCount})::int`,
-      })
-      .from(apiCalls);
+    try {
+      let baseQuery = db
+        .select({
+          provider: apiCalls.provider,
+          service: apiCalls.service,
+          totalCalls: sql<number>`count(*)::int`,
+          totalCost: sql<number>`sum(coalesce(${apiCalls.costUsd}::float, 0))`,
+          totalTokens: sql<number>`sum(coalesce(${apiCalls.tokenCount}::int, 0))`,
+        })
+        .from(apiCalls);
 
-    if (year && month) {
-      return await baseQuery
-        .where(
-          and(
-            sql`extract(year from ${apiCalls.createdAt}) = ${year}`,
-            sql`extract(month from ${apiCalls.createdAt}) = ${month}`
+      if (year && month) {
+        return await baseQuery
+          .where(
+            and(
+              sql`extract(year from ${apiCalls.createdAt}) = ${year}`,
+              sql`extract(month from ${apiCalls.createdAt}) = ${month}`
+            )
           )
-        )
-        .groupBy(apiCalls.provider, apiCalls.service);
-    } else if (year) {
-      return await baseQuery
-        .where(sql`extract(year from ${apiCalls.createdAt}) = ${year}`)
-        .groupBy(apiCalls.provider, apiCalls.service);
-    }
+          .groupBy(apiCalls.provider, apiCalls.service);
+      } else if (year) {
+        return await baseQuery
+          .where(sql`extract(year from ${apiCalls.createdAt}) = ${year}`)
+          .groupBy(apiCalls.provider, apiCalls.service);
+      }
 
-    return await baseQuery.groupBy(apiCalls.provider, apiCalls.service);
+      return await baseQuery.groupBy(apiCalls.provider, apiCalls.service);
+    } catch (error) {
+      console.error('Error fetching API call stats:', error);
+      return [];
+    }
   }
 
   async getMonthlyCosts(year?: number): Promise<MonthlyCost[]> {
-    if (year) {
+    try {
+      if (year) {
+        return await db
+          .select()
+          .from(monthlyCosts)
+          .where(eq(monthlyCosts.year, year))
+          .orderBy(desc(monthlyCosts.year), desc(monthlyCosts.month));
+      }
+
       return await db
         .select()
         .from(monthlyCosts)
-        .where(eq(monthlyCosts.year, year))
         .orderBy(desc(monthlyCosts.year), desc(monthlyCosts.month));
+    } catch (error) {
+      console.error('Error fetching monthly costs:', error);
+      return [];
     }
-
-    return await db
-      .select()
-      .from(monthlyCosts)
-      .orderBy(desc(monthlyCosts.year), desc(monthlyCosts.month));
   }
 
   // Calculate monthly API costs from api_calls table
@@ -1768,7 +1778,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db
         .select({
-          totalCost: sql<string>`COALESCE(SUM(CAST(${apiCalls.costUsd} AS DECIMAL)), 0)`
+          totalCost: sql<string>`COALESCE(SUM(CAST(COALESCE(${apiCalls.costUsd}, '0') AS DECIMAL)), 0)`
         })
         .from(apiCalls)
         .where(

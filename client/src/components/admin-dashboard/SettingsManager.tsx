@@ -52,10 +52,15 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
   const [showYoutubeKey, setShowYoutubeKey] = useState(false);
 
   // Supabase state
-  const [supabaseUrl, setSupabaseUrl] = useState(aiSettings?.supabaseUrl || "");
-  const [supabaseAnonKey, setSupabaseAnonKey] = useState(aiSettings?.supabaseAnonKey || "");
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
   const [supabaseStatus, setSupabaseStatus] = useState<any>(null);
   const [checkingSupabase, setCheckingSupabase] = useState(false);
+
+  useEffect(() => {
+    if (aiSettings?.supabaseUrl) setSupabaseUrl(aiSettings.supabaseUrl);
+    if (aiSettings?.supabaseAnonKey) setSupabaseAnonKey(aiSettings.supabaseAnonKey);
+  }, [aiSettings]);
 
   const updateAIProviderMutation = useMutation({
     mutationFn: async (provider: string) => {
