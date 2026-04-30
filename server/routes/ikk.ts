@@ -38,6 +38,11 @@ let activeImport: {
 
 router.get('/status', combinedAuth, adminOnly, async (req, res) => {
   try {
+    // Disable caching for status updates to avoid 304 Not Modified issues
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     // If we have an active import in memory, return it first (more real-time)
     if (activeImport.status === 'processing') {
       return res.json(activeImport);
@@ -60,6 +65,27 @@ router.get('/status', combinedAuth, adminOnly, async (req, res) => {
     res.json(statusData);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch import status' });
+  }
+});
+
+router.post('/cancel', combinedAuth, adminOnly, async (req, res) => {
+  try {
+    const latestJob = await (storage as any).getLatestBackgroundJob('ikk_import');
+    if (latestJob && latestJob.status === 'processing') {
+      activeImport.status = 'error';
+      activeImport.message = 'Felhasználó által megszakítva.';
+      activeImport.error = 'Cancelled by user';
+      
+      await (storage as any).updateBackgroundJob(latestJob.id, {
+        status: 'error',
+        message: 'Megszakítva.',
+        error: 'User cancelled'
+      });
+      return res.json({ success: true, message: 'Importálás leállítva.' });
+    }
+    res.json({ success: false, message: 'Nincs futó importálás.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Hiba a leállítás során.' });
   }
 });
 
@@ -154,6 +180,11 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const mergedSubjectsMap: Map<string, any> = new Map();
 
         for (let i = 0; i < chunks.length; i++) {
+          if (activeImport.status === 'error') {
+            console.log(`[IKK-IMPORT] Megszakítva a ciklusban (User cancel).`);
+            return;
+          }
+
           activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
           activeImport.progress = 15 + Math.floor((i / chunks.length) * 25);
           await (storage as any).updateBackgroundJob(jobId, { 
@@ -212,6 +243,10 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         let processedModules = 0;
 
         for (const sub of finalSubjects) {
+          if (activeImport.status === 'error') {
+            console.log(`[IKK-IMPORT] Megszakítva a tartalom generálásnál (User cancel).`);
+            return;
+          }
           const dbSubject = await storage.createSubject({
             professionId: dbProfession.id,
             name: sub.name,

@@ -49,6 +49,20 @@ export function IKKManager() {
     }
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/ikk/cancel");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Leállítás", description: data.message });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/status"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+    }
+  });
+
   // Track previous status to detect transitions
   const [lastStatus, setLastStatus] = useState<string | null>(null);
 
@@ -94,7 +108,18 @@ export function IKKManager() {
                   <p className="text-sm text-blue-700">{importStatus.professionName}</p>
                 </div>
               </div>
-              <Badge className="bg-blue-600">{importStatus.progress}%</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-blue-600">{importStatus.progress}%</Badge>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="h-7 px-2 text-[10px] uppercase font-bold"
+                  onClick={() => cancelMutation.mutate()}
+                  disabled={cancelMutation.isPending}
+                >
+                  {cancelMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Stop"}
+                </Button>
+              </div>
             </div>
             <div className="w-full bg-blue-200 rounded-full h-2.5 mb-2">
               <div 
