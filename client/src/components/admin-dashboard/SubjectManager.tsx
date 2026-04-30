@@ -24,7 +24,8 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Subject, insertSubjectSchema, Profession } from "./types";
 
@@ -41,6 +42,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
     defaultValues: {
       name: "",
       description: "",
+      type: "theory",
       professionId: selectedProfessionId,
     }
   });
@@ -52,6 +54,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] }); // Refresh counts
       setIsDialogOpen(false);
       form.reset();
       toast({ title: "Siker", description: "Tantárgy létrehozva" });
@@ -60,11 +63,12 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: any) => {
-      const res = await apiRequest("PUT", `/api/subjects/${id}`, data);
+      const res = await apiRequest("PATCH", `/api/subjects/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] }); // Refresh counts
       setIsDialogOpen(false);
       setEditingSubject(null);
       form.reset();
@@ -78,6 +82,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] }); // Refresh counts
       toast({ title: "Siker", description: "Tantárgy törölve" });
     }
   });
@@ -87,6 +92,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
     form.reset({
       name: subject.name,
       description: subject.description || "",
+      type: subject.type || "theory",
       professionId: subject.professionId,
     });
     setIsDialogOpen(true);
@@ -102,14 +108,14 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
             <p className="text-sm text-muted-foreground">{filteredSubjects.length} tantárgy</p>
           </div>
         </div>
-        <Button onClick={() => { setEditingSubject(null); form.reset({ professionId: selectedProfessionId }); setIsDialogOpen(true); }}>
+        <Button onClick={() => { setEditingSubject(null); form.reset({ professionId: selectedProfessionId, type: 'theory' }); setIsDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Új Tantárgy
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSubjects.map((subject: Subject) => (
-          <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer" onClick={() => onSelect(subject.id)}>
+          <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(subject.id)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-base font-bold">{subject.name}</CardTitle>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -121,8 +127,21 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground line-clamp-2">{subject.description}</p>
+            <CardContent className="flex-1 pb-4">
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{subject.description}</p>
+              
+              <div className="flex gap-1.5 mt-auto">
+                {(subject.type === 'theory' || subject.type === 'both' || !subject.type) && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 border-blue-200 text-blue-700 flex items-center gap-1">
+                    <GraduationCap className="h-2.5 w-2.5" /> ELMÉLET
+                  </Badge>
+                )}
+                {(subject.type === 'practical' || subject.type === 'both') && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50 border-orange-200 text-orange-700 flex items-center gap-1">
+                    <Wrench className="h-2.5 w-2.5" /> GYAKORLAT
+                  </Badge>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -142,6 +161,25 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
                   <FormItem>
                     <FormLabel>Megnevezés</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Típus</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Válassz típust" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="theory">Elmélet</SelectItem>
+                        <SelectItem value="practical">Gyakorlat</SelectItem>
+                        <SelectItem value="both">Mindkettő</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />

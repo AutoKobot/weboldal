@@ -835,11 +835,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Profession operations
-  async getProfessions(schoolAdminId?: string | null): Promise<Profession[]> {
+  async getProfessions(schoolAdminId?: string | null): Promise<any[]> {
+    let query;
     if (schoolAdminId === null) {
-      return await db.select().from(professions).where(isNull(professions.schoolAdminId)).orderBy(professions.name);
+      query = db.select().from(professions).where(isNull(professions.schoolAdminId)).orderBy(professions.name);
     } else if (schoolAdminId) {
-      return await db.select().from(professions)
+      query = db.select().from(professions)
         .where(
           or(
             isNull(professions.schoolAdminId),
@@ -847,8 +848,22 @@ export class DatabaseStorage implements IStorage {
           )
         )
         .orderBy(professions.name);
+    } else {
+      query = db.select().from(professions).orderBy(professions.name);
     }
-    return await db.select().from(professions).orderBy(professions.name);
+
+    const profs = await query;
+    
+    // Augment with subject counts
+    return await Promise.all(profs.map(async (p) => {
+      const subjs = await db.select().from(subjects).where(eq(subjects.professionId, p.id));
+      return {
+        ...p,
+        theoryCount: subjs.filter(s => s.type === 'theory' || s.type === 'both' || !s.type).length,
+        practicalCount: subjs.filter(s => s.type === 'practical' || s.type === 'both').length,
+        subjectCount: subjs.length
+      };
+    }));
   }
 
   async getProfession(id: number): Promise<Profession | undefined> {

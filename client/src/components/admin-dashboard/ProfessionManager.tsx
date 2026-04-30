@@ -25,6 +25,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Edit, Trash2, BookOpen, Globe,
   Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap 
@@ -47,7 +48,7 @@ const iconOptions = [
   { value: "graduation-cap", label: "Sisak (Oktatás)", icon: GraduationCap },
 ];
 
-export function ProfessionManager({ professions, onSelect }: { professions: Profession[], onSelect: (id: number) => void }) {
+export function ProfessionManager({ professions, onSelect }: { professions: (Profession & { theoryCount?: number, practicalCount?: number, subjectCount?: number })[], onSelect: (id: number) => void }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isIKKDialogOpen, setIsIKKDialogOpen] = useState(false);
@@ -138,7 +139,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
         {professions.map(prof => {
           const IconComp = iconOptions.find(o => o.value === prof.iconName)?.icon || BookOpen;
           return (
-            <Card key={prof.id} className="group hover:border-primary transition-colors cursor-pointer" onClick={() => onSelect(prof.id)}>
+            <Card key={prof.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(prof.id)}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-primary/10 rounded-lg text-primary">
@@ -155,8 +156,24 @@ export function ProfessionManager({ professions, onSelect }: { professions: Prof
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground line-clamp-2">{prof.description}</p>
+              <CardContent className="flex-1 pb-4">
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{prof.description}</p>
+                
+                <div className="space-y-2 mt-auto">
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <BookOpen className="h-3 w-3" />
+                    <span>{prof.subjectCount || 0} tantárgy</span>
+                  </div>
+                  
+                  <div className="flex gap-1.5">
+                    {(prof.theoryCount || 0) > 0 && (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700">ELMÉLET</Badge>
+                    )}
+                    {(prof.practicalCount || 0) > 0 && (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700">GYAKORLAT</Badge>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           );
