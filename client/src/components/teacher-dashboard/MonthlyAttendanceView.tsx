@@ -29,11 +29,21 @@ export function MonthlyAttendanceView({ classId, month }: Props) {
 
   const { data: dailyAttendance = [], isLoading } = useQuery<any[]>({
     queryKey: [`/api/teacher/classes/${classId}/daily-attendance?startDate=${startDate}&endDate=${endDate}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/teacher/classes/${classId}/daily-attendance?startDate=${startDate}&endDate=${endDate}`);
+      if (!res.ok) throw new Error("Hiba a havi jelenléti adatok lekérésekor");
+      return res.json();
+    },
     enabled: !!classId && classId !== 'all',
   });
 
   const { data: studentsData = [] } = useQuery<Student[]>({
     queryKey: ["/api/teacher/students"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/students");
+      if (!res.ok) throw new Error("Hiba a tanulók betöltésekor");
+      return res.json();
+    }
   });
 
   const classStudents = useMemo(() => {

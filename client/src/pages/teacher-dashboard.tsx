@@ -69,6 +69,11 @@ export default function TeacherDashboard() {
   // Global Data Queries
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ["/api/teacher/students"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/students");
+      if (!res.ok) throw new Error("Hiba a tanulók betöltésekor");
+      return res.json();
+    },
     refetchInterval: 15000,
   });
 
@@ -86,6 +91,11 @@ export default function TeacherDashboard() {
 
   const { data: teacherClasses = [], isLoading: classesLoading } = useQuery<ClassData[]>({
     queryKey: ["/api/teacher/classes"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/classes");
+      if (!res.ok) throw new Error("Hiba az osztályok lekérésekor");
+      return res.json();
+    }
   });
 
   // Roster Query logic

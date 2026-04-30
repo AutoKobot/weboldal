@@ -35,11 +35,21 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
   // Queries
   const { data: dailyData = [], isLoading: dailyLoading } = useQuery<any[]>({
     queryKey: [`/api/teacher/classes/${attendanceClassId}/daily-attendance?date=${attendanceDate}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/teacher/classes/${attendanceClassId}/daily-attendance?date=${attendanceDate}`);
+      if (!res.ok) throw new Error("Hiba a jelenléti adatok lekérésekor");
+      return res.json();
+    },
     enabled: attendanceClassId !== 'all',
   });
 
   const { data: classList = [] } = useQuery<any[]>({
     queryKey: ["/api/teacher/classes"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/classes");
+      if (!res.ok) throw new Error("Hiba az osztályok lekérésekor");
+      return res.json();
+    }
   });
 
   const currentClass = useMemo(() => {
