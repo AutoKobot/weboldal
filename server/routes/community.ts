@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
-import { insertCommunityGroupSchema, insertCommunityProjectSchema, insertDiscussionSchema } from "@shared/schema";
+import { insertCommunityGroupSchema, insertCommunityProjectSchema, insertDiscussionSchema, users, discussions } from "@shared/schema";
+import { db } from "../db";
+import { inArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -51,6 +53,9 @@ router.get('/groups', combinedAuth, async (req: any, res) => {
     const professionId = req.query.professionId ? parseInt(req.query.professionId as string) : undefined;
     const groups = await storage.getCommunityGroups(professionId);
     const userId = req.user.id;
+    
+    // Optimized: Get all members for all relevant groups in one query (if supported by storage)
+    // For now, if getGroupMembers is called many times, we can at least make it more efficient
     const enriched = await Promise.all(groups.map(async (g) => {
       const members = await storage.getGroupMembers(g.id);
       return { ...g, realMemberCount: members.length, isMember: members.some(m => m.userId === userId) };
@@ -96,23 +101,53 @@ router.get('/discussions', combinedAuth, async (req: any, res) => {
     }
     if (tag) rows = rows.filter(d => d.tags?.includes(tag as string));
 
-    const enriched = await Promise.all(rows.map(async (d) => {
-      const author = await storage.getUser(d.authorId);
-      const replies = await storage.getReplies(d.id);
-      const reactions = await storage.getReactionsForDiscussions([d.id]);
+    if (rows.length === 0) return res.json([]);
+
+    const discussionIds = rows.map(d => d.id);
+    const authorIds = [...new Set(rows.map(d => d.authorId))];
+
+    // Batch fetch all needed data
+    const [allAuthors, allReplies, allReactions] = await Promise.all([
+      db.select().from(users).where(inArray(users.id, authorIds)),
+      db.select({ id: discussions.id, parentId: discussions.parentId }).from(discussions).where(inArray(discussions.parentId, discussionIds)),
+      storage.getReactionsForDiscussions(discussionIds)
+    ]);
+
+    // Create maps for efficient lookups
+    const authorMap = new Map(allAuthors.map(a => [a.id, a]));
+    const repliesByParent = new Map<number, any[]>();
+    allReplies.forEach(r => {
+      if (r.parentId) {
+        if (!repliesByParent.has(r.parentId)) repliesByParent.set(r.parentId, []);
+        repliesByParent.get(r.parentId)!.push(r);
+      }
+    });
+    
+    const reactionsByDiscussion = new Map<number, any[]>();
+    allReactions.forEach(r => {
+      if (!reactionsByDiscussion.has(r.discussionId)) reactionsByDiscussion.set(r.discussionId, []);
+      reactionsByDiscussion.get(r.discussionId)!.push(r);
+    });
+
+    const enriched = rows.map((d) => {
+      const author = authorMap.get(d.authorId);
+      const replies = repliesByParent.get(d.id) || [];
+      const reactions = reactionsByDiscussion.get(d.id) || [];
+      
       const reactionMap: any = {};
       reactions.forEach(r => {
         if (!reactionMap[r.emoji]) reactionMap[r.emoji] = { count: 0, mine: false };
         reactionMap[r.emoji].count++;
         if (r.userId === req.user.id) reactionMap[r.emoji].mine = true;
       });
+
       return { 
         ...d, 
         author: { username: author?.username, profileImageUrl: author?.profileImageUrl },
         replyCount: replies.length,
         reactions: reactionMap
       };
-    }));
+    });
     res.json(enriched);
   } catch (e) { res.status(500).json({ message: "Error" }); }
 });

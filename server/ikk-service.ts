@@ -82,12 +82,21 @@ export class IKKService {
         console.warn(`[IKK-SERVICE] Nagyméretű PDF észlelve (${(buffer.length / 1024 / 1024).toFixed(1)} MB). Feldolgozás megkísérlése...`);
       }
 
+      console.log(`[IKK-SERVICE] PDF elemzése megkezdve (ID: ${mediaId})...`);
+      console.time(`pdf-parse-${mediaId}`);
       try {
+        if (buffer.length < 100) {
+           throw new Error(`A letöltött fájl túl kicsi (${buffer.length} bájt), valószínűleg nem érvényes PDF.`);
+        }
+        
         const data = await pdf(buffer);
+        console.timeEnd(`pdf-parse-${mediaId}`);
+        console.log(`[IKK-SERVICE] PDF elemzése kész (ID: ${mediaId}). Oldalak száma: ${data.numpages || 'ismeretlen'}, Szöveg hossza: ${data.text?.length || 0} karakter.`);
         return data.text;
       } catch (pdfError: any) {
-        console.error(`[IKK-SERVICE] Kritikus hiba a PDF elemzésekor (pdf-parse):`, pdfError);
-        throw new Error(`A PDF dokumentum tartalma nem olvasható: ${pdfError.message}`);
+        console.timeEnd(`pdf-parse-${mediaId}`);
+        console.error(`[IKK-SERVICE] Kritikus hiba a PDF elemzésekor (pdf-parse) ID ${mediaId}:`, pdfError);
+        throw new Error(`A PDF dokumentum tartalma nem olvasható (ID: ${mediaId}): ${pdfError.message}`);
       }
     } catch (error: any) {
       console.error(`Hiba a PDF feldolgozásakor (ID: ${mediaId}):`, error.message);
@@ -103,10 +112,25 @@ export class IKKService {
       .filter(a => a.name.toUpperCase().includes('PTT'))
       .sort((a, b) => b.version - a.version)[0];
 
-    const [kkkTextRaw, pttTextRaw] = await Promise.all([
-      kkkAttachment?.media_id ? this.getPdfText(kkkAttachment.media_id).catch(e => { console.error('KKK hiba:', e); return ''; }) : Promise.resolve(''),
-      pttAttachment?.media_id ? this.getPdfText(pttAttachment.media_id).catch(e => { console.error('PTT hiba:', e); return ''; }) : Promise.resolve('')
-    ]);
+    console.log(`[IKK-SERVICE] Dokumentumok feldolgozása szekvenciálisan (KKK majd PTT)...`);
+    
+    let kkkTextRaw = '';
+    if (kkkAttachment?.media_id) {
+      try {
+        kkkTextRaw = await this.getPdfText(kkkAttachment.media_id);
+      } catch (e) {
+        console.error('KKK hiba:', e);
+      }
+    }
+
+    let pttTextRaw = '';
+    if (pttAttachment?.media_id) {
+      try {
+        pttTextRaw = await this.getPdfText(pttAttachment.media_id);
+      } catch (e) {
+        console.error('PTT hiba:', e);
+      }
+    }
 
     const kkkText = kkkTextRaw || '';
     const pttText = pttTextRaw || '';

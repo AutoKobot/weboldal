@@ -56,29 +56,43 @@ router.get('/home-stats', combinedAuth, checkTeacher, async (req: any, res) => {
       ...directStudents.filter((s: any) => !studentsInClasses.find((sc: any) => sc.id === s.id)),
     ];
 
-    const studentsWithResults = await Promise.all(
-      allStudents.map(async (student: any) => {
-        const results = await db.select({
-          id: testResultsTable.id,
-          moduleId: testResultsTable.moduleId,
-          score: testResultsTable.score,
-          passed: testResultsTable.passed,
-          createdAt: testResultsTable.createdAt,
-        }).from(testResultsTable).where(eqDrizzle(testResultsTable.userId, student.id)).orderBy(testResultsTable.createdAt);
-        return {
-          id: student.id,
-          username: student.username,
-          firstName: student.firstName,
-          lastName: student.lastName,
-          email: student.email,
-          classId: student.classId,
-          completedModules: student.completedModules || [],
-          lastActiveDate: student.lastActiveDate,
-          currentStreak: student.currentStreak,
-          testResults: results,
-        };
+    let studentsWithResults: any[] = [];
+    if (allStudents.length > 0) {
+      const allStudentIds = allStudents.map((s: any) => s.id);
+      
+      // Batch fetch all test results for all students in one query
+      const allResults = await db.select({
+        id: testResultsTable.id,
+        userId: testResultsTable.userId,
+        moduleId: testResultsTable.moduleId,
+        score: testResultsTable.score,
+        passed: testResultsTable.passed,
+        createdAt: testResultsTable.createdAt,
       })
-    );
+      .from(testResultsTable)
+      .where(inArray(testResultsTable.userId, allStudentIds))
+      .orderBy(testResultsTable.createdAt);
+
+      // Group results by userId
+      const resultsByUser: Record<string, any[]> = {};
+      allResults.forEach(r => {
+        if (!resultsByUser[r.userId]) resultsByUser[r.userId] = [];
+        resultsByUser[r.userId].push(r);
+      });
+
+      studentsWithResults = allStudents.map((student: any) => ({
+        id: student.id,
+        username: student.username,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        classId: student.classId,
+        completedModules: student.completedModules || [],
+        lastActiveDate: student.lastActiveDate,
+        currentStreak: student.currentStreak,
+        testResults: resultsByUser[student.id] || [],
+      }));
+    }
 
     res.json({ classes: teacherClasses, students: studentsWithResults });
   } catch (error) {

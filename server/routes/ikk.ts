@@ -90,20 +90,28 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         
         await (storage as any).updateBackgroundJob(jobId, { message: "AI szolgáltatás inicializálása...", progress: 2 });
         
+        console.time(`openai-init-${jobId}`);
         const { getOpenAIClient } = await import('../openai');
         const openai = await getOpenAIClient();
+        console.timeEnd(`openai-init-${jobId}`);
         
         await (storage as any).updateBackgroundJob(jobId, { message: "Kapcsolat ellenőrzése az OpenAI-val...", progress: 4 });
-        // Quick check to see if OpenAI is responsive and key is valid
+        console.time(`openai-check-${jobId}`);
         try {
           await openai.models.list();
+          console.timeEnd(`openai-check-${jobId}`);
         } catch (openaiErr: any) {
+          console.timeEnd(`openai-check-${jobId}`);
           throw new Error(`OpenAI hiba: ${openaiErr.message || 'Érvénytelen API kulcs vagy hálózati hiba'}`);
         }
 
         // Step 1: Get PDF Content
         await (storage as any).updateBackgroundJob(jobId, { message: "PDF dokumentumok letöltése (IKK API)...", progress: 5 });
+        console.log(`[IKK-IMPORT] PDF letöltés indítva...`);
+        console.time(`pdf-content-${jobId}`);
         const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
+        console.timeEnd(`pdf-content-${jobId}`);
+        console.log(`[IKK-IMPORT] PDF letöltés kész. KKK: ${kkkText.length}, PTT: ${pttText.length}`);
         
         // Step 2: Extract structure
         await (storage as any).updateBackgroundJob(jobId, { message: "Szakmai szerkezet elemzése (AI)...", progress: 15 });

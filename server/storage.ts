@@ -336,6 +336,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async ensureSchemaUpToDate() {
+    console.time("schema-update");
     try {
       console.log("🔍 Adatbázis séma ellenőrzése...");
       
@@ -367,6 +368,8 @@ export class DatabaseStorage implements IStorage {
       console.log("✅ Adatbázis séma naprakész.");
     } catch (error) {
       console.error("❌ Hiba az adatbázis séma frissítésekor:", error);
+    } finally {
+      console.timeEnd("schema-update");
     }
   }
 

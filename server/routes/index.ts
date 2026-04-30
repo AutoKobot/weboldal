@@ -56,6 +56,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/privacy', privacyRouter);
   app.use('/api/notifications', notificationsRouter);
   app.use('/api/practical-grades', practicalGradesRouter);
+  app.use('/api/admin', externalApisRouter);
+  app.use('/api', externalApisRouter);
   app.use('/api/public', contentRouter);
   app.use('/api', contentRouter);
 

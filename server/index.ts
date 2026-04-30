@@ -31,8 +31,18 @@ app.use(compression());
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  
+  if (path.startsWith("/api")) {
+    log(`>>> START: ${req.method} ${path}`);
+  }
 
+  const timeout = setTimeout(() => {
+    if (!res.writableEnded) {
+      log(`!!! HANGING REQUEST: ${req.method} ${path} is taking > 15s`);
+    }
+  }, 15000);
+
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
@@ -40,15 +50,16 @@ app.use((req, res, next) => {
   };
 
   res.on("finish", () => {
+    clearTimeout(timeout);
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      let logLine = `<<< END: ${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 120) {
+        logLine = logLine.slice(0, 119) + "…";
       }
 
       log(logLine);
@@ -64,9 +75,8 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
+    console.error("Express Error Handler:", err);
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after

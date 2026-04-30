@@ -14,13 +14,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+console.log('Initializing database pool with max 15 connections...');
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 100, // Megnövelt csatlakozási limit a nagyobb terhelés kiszolgálására
-  idleTimeoutMillis: 20000,
-  connectionTimeoutMillis: 5000,
-  maxUses: Infinity, // Allow unlimited uses per connection
-  allowExitOnIdle: false, // Don't let the pool exit when idle
+  max: 15, // Reduced to avoid exceeding Neon connection limits
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  maxUses: Infinity,
+  allowExitOnIdle: false,
 });
 
 // Add error handling for the pool to prevent crashes

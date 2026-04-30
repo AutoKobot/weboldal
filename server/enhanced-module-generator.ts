@@ -195,43 +195,35 @@ export class EnhancedModuleGenerator {
       console.log(`🔗 DEBUG: First bold link in detailed: ${boldLinkedDetailed.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/)?.[0]}`);
     }
 
-    console.log(`[ENHANCED-GEN] Step 3: Parallel Tasks (YouTube terms, SVG, Quizzes)...`);
+    console.log(`[ENHANCED-GEN] Step 3: Sequential Tasks (YouTube terms, SVG, Quizzes)...`);
     
-    // We run these in parallel but handle their errors individually
-    const [youtubeSearchTerms, conciseWithSVG, detailedWithSVG, quizSets] = await Promise.all([
-      (async () => {
-        try {
-          return await this.generateYouTubeSearchTerms(title, boldLinkedDetailed, prompts.youtubePrompt, subjectName, professionName);
-        } catch (e) {
-          console.error("[ENHANCED-GEN] YouTube search terms failed, skipping...", e);
-          return [];
-        }
-      })(),
-      (async () => {
-        try {
-          return await this.convertMermaidToSVGImages(boldLinkedConcise);
-        } catch (e) {
-          console.error("[ENHANCED-GEN] Mermaid conversion for concise failed, skipping...", e);
-          return boldLinkedConcise;
-        }
-      })(),
-      (async () => {
-        try {
-          return await this.convertMermaidToSVGImages(boldLinkedDetailed);
-        } catch (e) {
-          console.error("[ENHANCED-GEN] Mermaid conversion for detailed failed, skipping...", e);
-          return boldLinkedDetailed;
-        }
-      })(),
-      (async () => {
-        try {
-          return await this.generateMultipleQuizSets(title, boldLinkedDetailed);
-        } catch (e) {
-          console.error("[ENHANCED-GEN] Quiz generation failed, skipping...", e);
-          return [];
-        }
-      })()
-    ]);
+    let youtubeSearchTerms: any[] = [];
+    try {
+      youtubeSearchTerms = await this.generateYouTubeSearchTerms(title, boldLinkedDetailed, prompts.youtubePrompt, subjectName, professionName);
+    } catch (e) {
+      console.error("[ENHANCED-GEN] YouTube search terms failed, skipping...", e);
+    }
+
+    let conciseWithSVG = boldLinkedConcise;
+    try {
+      conciseWithSVG = await this.convertMermaidToSVGImages(boldLinkedConcise);
+    } catch (e) {
+      console.error("[ENHANCED-GEN] Mermaid conversion for concise failed, skipping...", e);
+    }
+
+    let detailedWithSVG = boldLinkedDetailed;
+    try {
+      detailedWithSVG = await this.convertMermaidToSVGImages(boldLinkedDetailed);
+    } catch (e) {
+      console.error("[ENHANCED-GEN] Mermaid conversion for detailed failed, skipping...", e);
+    }
+
+    let quizSets: any[] = [];
+    try {
+      quizSets = await this.generateMultipleQuizSets(title, boldLinkedDetailed);
+    } catch (e) {
+      console.error("[ENHANCED-GEN] Quiz generation failed, skipping...", e);
+    }
     console.log(`[ENHANCED-GEN] Step 3 OK (YT terms: ${youtubeSearchTerms.length}, Quizzes: ${quizSets.length})`);
 
     // Step 4: Find YouTube videos (sequential due to API limits)
