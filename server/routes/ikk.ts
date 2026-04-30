@@ -28,12 +28,14 @@ let activeImport: {
   progress: number;
   message: string;
   professionName: string;
+  activeJobId: number | null;
   error?: string;
 } = {
   status: 'idle',
   progress: 0,
   message: '',
-  professionName: ''
+  professionName: '',
+  activeJobId: null
 };
 
 router.get('/status', combinedAuth, adminOnly, async (req, res) => {
@@ -59,6 +61,7 @@ router.get('/status', combinedAuth, adminOnly, async (req, res) => {
       progress: latestJob.progress,
       message: latestJob.message,
       professionName: latestJob.data?.professionName || '',
+      activeJobId: latestJob.id,
       error: latestJob.error
     };
     
@@ -94,7 +97,8 @@ router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
     status: 'idle',
     progress: 0,
     message: '',
-    professionName: ''
+    professionName: '',
+    activeJobId: null
   };
   res.json({ success: true });
 });
@@ -129,7 +133,8 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       status: 'processing',
       progress: 0,
       message: 'Előkészítés...',
-      professionName: profession.name
+      professionName: profession.name,
+      activeJobId: job.id
     };
 
     // Send immediate response
@@ -139,10 +144,19 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
     setTimeout(async () => {
       const jobId = job.id;
       try {
+        // Validation: If this is not the current active job, stop immediately
+        if (activeImport.activeJobId !== jobId) {
+          console.log(`[IKK-IMPORT] Zombi munka észlelve (#${jobId}), leállítás.`);
+          return;
+        }
+
         console.log(`[IKK-IMPORT-DEBUG] Háttérfolyamat indítása... Job: ${jobId}`);
         console.log(`[IKK-IMPORT] Megkezdve: ${profession.name} (Job: ${jobId})`);
         
         console.log(`[IKK-IMPORT-DEBUG] Status frissítése (AI inicializálás előtt)...`);
+        
+        // Final check before starting
+        if (activeImport.status === 'error') return;
         activeImport.message = "AI szolgáltatás inicializálása...";
         activeImport.progress = 2;
         await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
