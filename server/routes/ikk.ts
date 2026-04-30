@@ -208,6 +208,24 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         console.timeEnd(`pdf-content-${jobId}`);
         console.log(`[IKK-IMPORT] PDF letöltés kész. KKK: ${kkkText.length}, PTT: ${pttText.length}`);
         
+        // Step 1.5: Validate content matches profession (Security Check)
+        activeImport.message = "Dokumentumok hitelesítése...";
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message });
+        
+        const validationResponse = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "Te egy szakértő vagy, aki eldönti, hogy egy tananyag-dokumentum egy adott szakmához tartozik-e. Csak 'IGEN' vagy 'NEM' választ adj." },
+            { role: "user", content: `A kiválasztott szakma: ${profession.name}. A dokumentum részlete: ${pttText.substring(0, 1000)}. Ez a dokumentum ehhez a szakmához tartozik?` }
+          ],
+          max_tokens: 10
+        });
+
+        const isValid = validationResponse.choices[0].message.content?.trim().toUpperCase().includes('IGEN');
+        if (!isValid) {
+          throw new Error(`Szakmai dokumentum eltérés! A letöltött PDF nem a(z) ${profession.name} szakmához tartozik. (Valószínűleg IKK oldali hiba)`);
+        }
+
         // Step 2: Extract structure
         activeImport.message = "Szakmai szerkezet elemzése (AI)...";
         activeImport.progress = 15;
