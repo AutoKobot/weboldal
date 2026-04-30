@@ -355,7 +355,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                   content: modData.content,
                   moduleNumber: processedModules + 1,
                   practicalTasks: modData.practicalTasks || [],
-                  isPublished: true
+                  isPublished: false
                 });
                 processedModules++;
               }
