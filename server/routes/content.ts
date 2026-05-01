@@ -111,8 +111,11 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
 
     res.json(professions);
   } catch (error) {
-    console.error("Fetch professions error:", error);
-    res.status(500).json({ message: "Failed to fetch professions" });
+    console.error("Fetch professions error details:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch professions", 
+      error: error instanceof Error ? error.message : String(error) 
+    });
   }
 });
 
@@ -216,8 +219,11 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
 
     res.json(cleaned);
   } catch (error) {
-    console.error("Fetch modules error:", error);
-    res.status(500).json({ message: "Failed to fetch modules" });
+    console.error("Fetch modules error details:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch modules", 
+      error: error instanceof Error ? error.message : String(error) 
+    });
   }
 });
 

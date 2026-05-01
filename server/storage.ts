@@ -347,19 +347,26 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("🔍 Adatbázis séma ellenőrzése...");
       
-      // Ellenőrizzük a táblák oszlopait
-      await db.execute(sql`
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255);
-        ALTER TABLE professions ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255);
-        ALTER TABLE subjects ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255);
-        
-        ALTER TABLE modules 
-        ADD COLUMN IF NOT EXISTS concise_content TEXT,
-        ADD COLUMN IF NOT EXISTS detailed_content TEXT,
-        ADD COLUMN IF NOT EXISTS key_concepts_data JSONB,
-        ADD COLUMN IF NOT EXISTS generated_quizzes JSONB,
-        ADD COLUMN IF NOT EXISTS practical_tasks JSONB;
-      `);
+      // Separate statements for better compatibility and error tracking
+      const statements = [
+        { name: "users.school_admin_id", sql: sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255)` },
+        { name: "professions.school_admin_id", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255)` },
+        { name: "subjects.school_admin_id", sql: sql`ALTER TABLE subjects ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255)` },
+        { name: "modules.concise_content", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS concise_content TEXT` },
+        { name: "modules.detailed_content", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS detailed_content TEXT` },
+        { name: "modules.key_concepts_data", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS key_concepts_data JSONB` },
+        { name: "modules.generated_quizzes", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS generated_quizzes JSONB` },
+        { name: "modules.practical_tasks", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS practical_tasks JSONB` },
+      ];
+
+      for (const statement of statements) {
+        try {
+          await db.execute(statement.sql);
+          // console.log(`  ✅ Oszlop ellenőrizve: ${statement.name}`);
+        } catch (e: any) {
+          console.warn(`  ⚠️ Figyelmeztetés (${statement.name}): ${e.message}`);
+        }
+      }
 
       // Létrehozzuk a background_jobs táblát ha nincs
       await db.execute(sql`
@@ -376,9 +383,9 @@ export class DatabaseStorage implements IStorage {
         );
       `);
       
-      console.log("✅ Adatbázis séma naprakész.");
+      console.log("✅ Adatbázis séma ellenőrzése kész.");
     } catch (error) {
-      console.error("❌ Hiba az adatbázis séma frissítésekor:", error);
+      console.error("❌ Kritikus hiba az adatbázis séma frissítésekor:", error);
     } finally {
       console.timeEnd("schema-update");
     }
