@@ -225,6 +225,20 @@ router.post('/professions', combinedAuth, adminOnly, async (req: any, res) => {
   }
 });
 
+router.get('/professions/:id', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const profession = await storage.getProfession(id);
+    if (!profession) {
+      return res.status(404).json({ message: "Profession not found" });
+    }
+    res.json(profession);
+  } catch (error) {
+    console.error("Error fetching profession:", error);
+    res.status(500).json({ message: "Failed to fetch profession" });
+  }
+});
+
 router.put('/professions/:id', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);

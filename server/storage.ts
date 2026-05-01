@@ -358,8 +358,14 @@ export class DatabaseStorage implements IStorage {
         { name: "modules.key_concepts_data", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS key_concepts_data JSONB` },
         { name: "modules.generated_quizzes", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS generated_quizzes JSONB` },
         { name: "modules.practical_tasks", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS practical_tasks JSONB` },
-        { name: "modules.section_code", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS section_code VARCHAR(50)` },
+        { name: "subjects.code", sql: sql`ALTER TABLE subjects ADD COLUMN IF NOT EXISTS code VARCHAR(50)` },
+        { name: "subjects.type", sql: sql`ALTER TABLE subjects ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'theory'` },
         { name: "subjects.hours", sql: sql`ALTER TABLE subjects ADD COLUMN IF NOT EXISTS hours INTEGER` },
+        { name: "subjects.school_id", sql: sql`ALTER TABLE subjects ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id)` },
+        { name: "modules.section_code", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS section_code VARCHAR(50)` },
+        { name: "modules.type", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'theory'` },
+        { name: "modules.school_id", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id)` },
+        { name: "classes.profession_id", sql: sql`ALTER TABLE classes ADD COLUMN IF NOT EXISTS profession_id INTEGER REFERENCES professions(id)` },
       ];
 
       for (const statement of statements) {
