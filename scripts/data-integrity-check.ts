@@ -1,51 +1,35 @@
 import { db } from "../server/db";
 import { professions, subjects, modules, testResults, users } from "../shared/schema";
-import { eq, isNull, notInArray, sql } from "drizzle-orm";
+import { eq, ilike, sql } from "drizzle-orm";
 
 async function checkIntegrity() {
-  console.log("=== GLOBAL LEARNING SYSTEM - DETAILED DATA INTEGRITY CHECK ===\n");
+  console.log("=== SEARCHING FOR 'HEGESZTŐ' IN DATABASE ===\n");
 
-  // 0. Count all core entities
-  const profCount = await db.select({ count: sql<number>`count(*)` }).from(professions);
-  const subCount = await db.select({ count: sql<number>`count(*)` }).from(subjects);
-  const modCount = await db.select({ count: sql<number>`count(*)` }).from(modules);
-  
-  console.log(`Total Professions in DB: ${profCount[0].count}`);
-  console.log(`Total Subjects in DB:    ${subCount[0].count}`);
-  console.log(`Total Modules in DB:     ${modCount[0].count}`);
-  console.log("");
+  // 1. Search in Professions
+  const profs = await db.select().from(professions).where(sql`${professions.name} ILIKE '%hegesztő%'`);
+  console.log(`Professions matching 'hegesztő': ${profs.length}`);
+  profs.forEach(p => console.log(`  - ID: ${p.id}, Name: ${p.name}`));
 
-  // 1. Check for orphaned Subjects (no profession)
-  // Check if profession_id exists in professions table
-  const orphanedSubjects = await db.execute(sql`
-    SELECT s.id, s.name, s.profession_id 
-    FROM subjects s 
-    LEFT JOIN professions p ON s.profession_id = p.id 
-    WHERE p.id IS NULL
-  `);
-  
-  console.log(`Orphaned Subjects (pointing to non-existent profession): ${orphanedSubjects.rows.length}`);
-  if (orphanedSubjects.rows.length > 0) {
-    orphanedSubjects.rows.slice(0, 10).forEach(s => console.log(`  - ID: ${s.id}, Name: ${s.name}, TargetProfID: ${s.profession_id}`));
-  }
+  // 2. Search in Subjects
+  const subs = await db.select().from(subjects).where(sql`${subjects.name} ILIKE '%hegesztő%'`);
+  console.log(`Subjects matching 'hegesztő': ${subs.length}`);
+  subs.forEach(s => console.log(`  - ID: ${s.id}, Name: ${s.name}, ProfID: ${s.professionId}`));
 
-  // 2. Sample Professions
-  if (Number(profCount[0].count) > 0) {
-    console.log("\nSample Professions (First 5):");
-    const samples = await db.select().from(professions).limit(5);
-    samples.forEach(p => console.log(`  - ID: ${p.id}, Name: ${p.name}, schoolAdminId: ${p.schoolAdminId}`));
-  }
+  // 3. Search in Modules
+  const mods = await db.select().from(modules).where(sql`${modules.title} ILIKE '%hegesztő%'`);
+  console.log(`Modules matching 'hegesztő' in title: ${mods.length}`);
+  mods.slice(0, 5).forEach(m => console.log(`  - ID: ${m.id}, Title: ${m.title}, SubjID: ${m.subjectId}`));
 
-  // 3. User Role Check
-  console.log("\nAdmin Users:");
-  const admins = await db.select().from(users).where(sql`${users.role} IN ('admin', 'school_admin')`);
-  admins.forEach(a => console.log(`  - Username: ${a.username}, Role: ${a.role}, schoolAdminId: ${a.schoolAdminId}, schoolId: ${a.schoolId}`));
+  // 4. List ALL professions to be 100% sure
+  console.log("\n--- COMPLETE LIST OF ALL PROFESSIONS ---");
+  const allProfs = await db.select().from(professions);
+  allProfs.forEach(p => console.log(`  - ID: ${p.id}, Name: ${p.name}, Admin: ${p.schoolAdminId}`));
 
-  console.log("\n=== CHECK COMPLETE ===");
+  console.log("\n=== SEARCH COMPLETE ===");
   process.exit(0);
 }
 
 checkIntegrity().catch(err => {
-  console.error("Integrity check failed:", err);
+  console.error("Search failed:", err);
   process.exit(1);
 });
