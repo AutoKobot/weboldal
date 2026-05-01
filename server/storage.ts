@@ -383,6 +383,24 @@ export class DatabaseStorage implements IStorage {
           updated_at TIMESTAMP DEFAULT NOW()
         );
       `);
+
+      // Létrehozzuk a daily_attendance táblát ha nincs
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS daily_attendance (
+          id SERIAL PRIMARY KEY,
+          student_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+          date VARCHAR(10) NOT NULL,
+          status VARCHAR(20) NOT NULL DEFAULT 'present',
+          actual_start VARCHAR(10),
+          actual_end VARCHAR(10),
+          notes TEXT,
+          recorded_by VARCHAR(255) NOT NULL DEFAULT 'auto',
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW(),
+          CONSTRAINT daily_attendance_unique UNIQUE (student_id, date)
+        );
+      `);
       
       console.log("✅ Adatbázis séma ellenőrzése kész.");
     } catch (error) {
@@ -2496,29 +2514,46 @@ export class DatabaseStorage implements IStorage {
 
 
   async getDailyAttendanceByClass(classId: number, date?: string, startDate?: string, endDate?: string): Promise<any[]> {
-    let condition = sql`da.date = ${date}`;
-    if (startDate && endDate) {
-      condition = sql`da.date >= ${startDate} AND da.date <= ${endDate}`;
-    }
+    try {
+      let condition: any;
+      if (startDate && endDate) {
+        condition = sql`da.date >= ${startDate} AND da.date <= ${endDate}`;
+      } else if (date) {
+        condition = sql`da.date = ${date}`;
+      } else {
+        // No date filter – just return students without attendance data
+        condition = sql`FALSE`;
+      }
 
-    const rows = await db.execute(sql`
-      SELECT
-        u.id as student_id,
-        u.first_name,
-        u.last_name,
-        u.username,
-        da.id as daily_id,
-        da.date,
-        da.status,
-        da.actual_start,
-        da.actual_end,
-        da.notes
-      FROM users u
-      LEFT JOIN daily_attendance da ON da.student_id = u.id AND ${condition}
-      WHERE u.class_id = ${classId} AND u.role = 'student'
-      ORDER BY u.last_name, u.first_name, da.date
-    `);
-    return rows.rows;
+      const rows = await db.execute(sql`
+        SELECT
+          u.id as student_id,
+          u.first_name,
+          u.last_name,
+          u.username,
+          da.id as daily_id,
+          da.date,
+          da.status,
+          da.actual_start,
+          da.actual_end,
+          da.notes
+        FROM users u
+        LEFT JOIN daily_attendance da ON da.student_id = u.id AND ${condition}
+        WHERE u.class_id = ${classId} AND u.role = 'student'
+        ORDER BY u.last_name, u.first_name, da.date
+      `);
+      return rows.rows;
+    } catch (error) {
+      console.error('getDailyAttendanceByClass error:', error);
+      // Fallback: return just the student list without attendance data
+      const students = await db.execute(sql`
+        SELECT id as student_id, first_name, last_name, username
+        FROM users
+        WHERE class_id = ${classId} AND role = 'student'
+        ORDER BY last_name, first_name
+      `);
+      return students.rows;
+    }
   }
 
   async upsertDailyAttendance(data: any): Promise<any> {
