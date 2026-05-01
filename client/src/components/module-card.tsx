@@ -233,8 +233,8 @@ export default function ModuleCard({
                 className="w-12 h-12 object-cover rounded-lg"
               />
             ) : (
-              <span className="text-white text-xl font-bold">
-                {module.sectionCode ? module.sectionCode.split('.').pop() : `#${module.moduleNumber}`}
+              <span className="text-white text-lg font-bold text-center px-1 break-all">
+                {module.sectionCode ? module.sectionCode.split('.').slice(-2).join('.') : `#${module.moduleNumber}`}
               </span>
             )}
           </div>
@@ -263,7 +263,7 @@ export default function ModuleCard({
               {getStatusIcon()}
             </div>
             <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
-              {module.title}
+              {module.title.replace(/^\d+(\.\d+)*[a-z]?\s*/, '').trim()}
             </CardTitle>
             {module.updatedAt && (
               <p className="text-[9px] text-neutral-400 mt-1">

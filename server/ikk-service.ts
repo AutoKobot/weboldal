@@ -109,45 +109,47 @@ export class IKKService {
 
   splitPttIntoSections(text: string): string[] {
     if (!text) return [];
-    const sections = text.split(/(?=\n\s*\d+\.\d+(\.\d+)?\s+[^\n]+tantárgy)/i);
-    if (sections.length <= 2) {
-      const CHUNK_SIZE = 8000;
-      const OVERLAP = 1500;
-      const chunks = [];
-      for (let i = 0; i < text.length; i += CHUNK_SIZE - OVERLAP) {
-        chunks.push(text.substring(i, i + CHUNK_SIZE));
+    
+    // First try splitting by subjects
+    const rawSections = text.split(/(?=\n\s*\d+\.\d+(\.\d+)?\s+[^\n]+tantárgy)/i);
+    
+    const CHUNK_SIZE = 10000;
+    const OVERLAP = 2000;
+    const finalChunks: string[] = [];
+
+    for (const section of rawSections) {
+      if (section.length <= CHUNK_SIZE) {
+        if (section.length > 100) finalChunks.push(section.trim());
+      } else {
+        // If a single subject section is too long, chunk it with overlap
+        for (let i = 0; i < section.length; i += CHUNK_SIZE - OVERLAP) {
+          const chunk = section.substring(i, i + CHUNK_SIZE);
+          if (chunk.length > 100) finalChunks.push(chunk.trim());
+          if (i + CHUNK_SIZE >= section.length) break;
+        }
       }
-      return chunks;
     }
-    return sections.map(s => s.trim()).filter(s => s.length > 500);
+
+    return finalChunks;
   }
 
   buildExtractionPrompt(chunk: string): string {
     return `
-Te egy PTT (Programtanterv) dokumentum-elemző vagy.
+Te egy PTT (Programtanterv) dokumentum-elemző szakértő vagy. A feladatod a szakmai tartalom kinyerése a LEGRÉSZLETESEBB szinten.
 
-── TANTÁRGY FELISMERÉS ──
-Tantárgy = minden sor, amelynek VÉGÉN szerepel az "óra" szó egy törtszám után (pl. "72/72 óra").
-
-── ELMÉLET/GYAKORLAT ELDÖNTÉSE (SZIGORÚ) ──
-Minden tantárgy fejezetében (3.X.X) keresd meg a ".4"-es alpontot (pl. 3.4.4.4 vagy 3.1.1.4).
-Szabály: 
-- Ha a ".4"-es pontnál a százalék > 0% (pl. "legalább 90%-át gyakorlati helyszínen") → A tantárgy és minden modulja PRACTICAL.
-- Ha a ".4"-es pontnál a százalék 0% → A tantárgy és minden modulja THEORY.
-- Ha nincs ilyen pont, de a névben benne van a "gyakorlat" szó → PRACTICAL.
+── TANTÁRGY ÉS MODUL STRUKTÚRA ──
+1. TANTÁRGY: Minden "X.X.X [Név] tantárgy [óra] óra" formátumú egységet rögzíts.
+2. MODULOK (KRITIKUS): A "Témakörök" (3.X.X.6) fejezetek alatt található ÖSSZES elemet vedd fel külön-külön modulként!
+   - Minden felsorolt sort (akkor is, ha nincs előtte szám, csak kötőjel vagy pötty) külön modulnak tekints.
+   - Ha egy fejezetet (pl. 3.5.1.6.1) több modulra bontasz, a "sectionCode" végére fűzz egy kisbetűt: 3.5.1.6.1.a, 3.5.1.6.1.b, stb.
 
 ── EXTRAKCIÓS SZABÁLYOK ──
-Elemezd ezt a PTT (Szakmai Képzési Program) részletet és bontsd fel tanórákra (modulokra).
+- CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot a címbe! (Helyes: "A hegesztőív fizikája", Helytelen: "3.4.1.2 A hegesztőív fizikája").
+- TÍPUS: 
+  - Ha a leírás cselekvést (mérés, vágás, készítés, beállítás) sugall -> "practical".
+  - Ha fogalmakat, elméletet, szabályokat ír le -> "theory".
 
-FONTOS SZABÁLYOK:
-1. Ha egy témakörhöz (pl. "Hegesztés alapjai") tartozik elméleti ÉS gyakorlati leírás is, akkor azt KÉT KÜLÖN MODULRA bontsd szét!
-   - Az egyik legyen "theory" típusú, a címe maradhat az eredeti.
-   - A másik legyen "practical" típusú, a címe elé írd oda: "[GYAKORLAT]".
-2. A modulok címeit fordítsd át TANULÓI szemléletre (ne "A tantárgy célja", hanem pl. "Hegesztési folyamat céljai").
-3. "sectionCode" mezőbe írd a PTT-beli fejezetszámot (pl. 3.4.1.6.2).
-4. Csak szakmai tartalmat vegyél fel, az adminisztratív részeket hagyd ki.
-
-VÁLASZ FORMÁTUMA (JSON):
+VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
   "subjects": [
     {
@@ -156,14 +158,14 @@ VÁLASZ FORMÁTUMA (JSON):
       "hours": 72,
       "practicalPercent": 50,
       "modules": [
-        { "title": "Téma címe", "type": "theory", "sectionCode": "3.X.X.1" },
-        { "title": "[GYAKORLAT] Téma címe", "type": "practical", "sectionCode": "3.X.X.1" }
+        { "title": "Szakmai cím 1", "type": "theory", "sectionCode": "3.X.X.6.1.a" },
+        { "title": "Szakmai cím 2", "type": "practical", "sectionCode": "3.X.X.6.1.b" }
       ]
     }
   ]
 }
 
-PTT SZÖVEG:
+ELEMEZENDŐ SZÖVEG:
 ${chunk}
 `.trim();
   }
