@@ -208,7 +208,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
         const mergedSubjectsMap: Map<string, any> = new Map();
         let analysisProgress = 0;
-        await runParallel(chunks, 2, async (chunk, i) => {
+        await runParallel(chunks, 1, async (chunk, i) => {
           if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
 
           activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
@@ -282,14 +282,20 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             hours: sub.hours || null
           });
 
-          const BATCH_SIZE = 15;
+          const BATCH_SIZE = 10; // Slightly smaller batches for stability
           const batches = [];
           for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
             batches.push(sub.modules.slice(i, i + BATCH_SIZE));
           }
 
-          await runParallel(batches, 5, async (batch) => {
+          // Safety delay between subjects
+          await new Promise(r => setTimeout(r, 1000));
+
+          await runParallel(batches, 2, async (batch, batchIndex) => {
             if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
+
+            // Small staggered delay for parallel batches to avoid simultaneous AI hits
+            if (batchIndex > 0) await new Promise(r => setTimeout(r, batchIndex * 500));
 
             const res = await withRetry(async () => {
               const openai = await getOpenAIClient();
