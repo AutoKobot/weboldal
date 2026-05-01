@@ -99,12 +99,13 @@ export class EnhancedModuleGenerator {
     subjectContext?: string,
     customSystemMessage?: string,
     subjectName?: string,
-    professionName?: string
+    professionName?: string,
+    moduleType?: 'theory' | 'practical'
   ): Promise<EnhancedModuleContent> {
     const timeout = 300000; // 5 minute timeout
 
     return Promise.race([
-      this.performEnhancement(title, basicContent, subjectContext, customSystemMessage, subjectName, professionName),
+      this.performEnhancement(title, basicContent, subjectContext, customSystemMessage, subjectName, professionName, moduleType),
       new Promise<EnhancedModuleContent>((_, reject) =>
         setTimeout(() => reject(new Error('Generation timeout after 5 minutes')), timeout)
       )
@@ -126,10 +127,17 @@ export class EnhancedModuleGenerator {
     subjectContext?: string,
     customSystemMessage?: string,
     subjectName?: string,
-    professionName?: string
+    professionName?: string,
+    moduleType?: 'theory' | 'practical'
   ): Promise<EnhancedModuleContent> {
     // Load specialized prompts from database
     const prompts = await this.loadPrompts();
+
+    // Adjust prompts if module is practical
+    if (moduleType === 'practical') {
+      prompts.internetContentPrompt = 'Készíts részletes szakmai gyakorlati útmutatót az internet segítségével! Írd le LÉPÉSRŐL LÉPÉSRE, hogy hogyan kell biztonságosan, a megfelelő szerszámokkal elvégezni az adott feladatot! KÖTELEZŐ Munkavédelmi és biztonsági előírások, szükséges eszközök listája. Modulcím: {title}, Eredeti tartalom: {content}';
+      prompts.conciseContentPrompt = 'Készíts tömör gyakorlati lépéssort az alábbi feladathoz maximum 250-300 szóban:\n\nCím: {title}\nEredeti tartalom: {content}\nSzakma: {profession}\n\nKÖVETELMÉNYEK:\n- Konkrét gyakorlati lépések\n- Szükséges eszközök\n- Munkavédelem\n- NE ismételd meg a részletes verziót\n\nVálasz:';
+    }
 
     // SEQUENTIAL PROCESSING - Each step builds on the previous result
 
@@ -219,10 +227,14 @@ export class EnhancedModuleGenerator {
     }
 
     let quizSets: any[] = [];
-    try {
-      quizSets = await this.generateMultipleQuizSets(title, boldLinkedDetailed);
-    } catch (e) {
-      console.error("[ENHANCED-GEN] Quiz generation failed, skipping...", e);
+    if (moduleType !== 'practical') {
+      try {
+        quizSets = await this.generateMultipleQuizSets(title, boldLinkedDetailed);
+      } catch (e) {
+        console.error("[ENHANCED-GEN] Quiz generation failed, skipping...", e);
+      }
+    } else {
+      console.log("[ENHANCED-GEN] Skipping quizzes for practical module");
     }
     console.log(`[ENHANCED-GEN] Step 3 OK (YT terms: ${youtubeSearchTerms.length}, Quizzes: ${quizSets.length})`);
 

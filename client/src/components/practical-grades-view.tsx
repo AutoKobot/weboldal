@@ -169,6 +169,25 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
 
                       {isExpanded && (
                         <div className="p-0 bg-gray-50/50 border-t rounded-b-lg animate-in fade-in slide-in-from-top-1 duration-200">
+                          
+                          {/* IKK Feladatlista – segítség az osztályozáshoz */}
+                          {Array.isArray((module as any).practicalTasks) && (module as any).practicalTasks.length > 0 && (
+                            <div className="px-4 pt-3 pb-2 bg-amber-50 border-b border-amber-100">
+                              <p className="text-[10px] font-bold uppercase text-amber-700 mb-2 flex items-center gap-1.5">
+                                <Wrench className="h-3 w-3" />
+                                IKK Feladatleírás (értékelési szempontok)
+                              </p>
+                              <ul className="space-y-1">
+                                {((module as any).practicalTasks as string[]).map((task, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-xs text-amber-900">
+                                    <span className="mt-0.5 flex-shrink-0 h-4 w-4 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
+                                    <span>{task}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm border-collapse">
                               <thead className="bg-gray-100/80 text-gray-600 uppercase text-[10px] font-bold">

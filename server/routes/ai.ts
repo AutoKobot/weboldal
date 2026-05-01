@@ -286,7 +286,7 @@ router.post('/modules/:id/regenerate', combinedAuth, async (req: any, res) => {
     console.log(`[AI-REGENERATE] Starting regeneration for module: ${module.id} (${module.title})`);
     
     const enhancedContent = await enhancedModuleGenerator.generateEnhancedModule(
-      title || module.title, content || module.content, subjectContext, undefined, subjectName, professionName
+      title || module.title, content || module.content, subjectContext, undefined, subjectName, professionName, module.type as 'theory' | 'practical'
     );
 
     console.log(`[AI-REGENERATE] Content generated successfully. Saving to database...`);

@@ -146,7 +146,7 @@ export function RosterView({
                                      <div className="space-y-1">
                                         {(s.testResults || []).map((tr: any) => (
                                            <div key={tr.id} className="text-xs flex justify-between">
-                                              <span>Modul #{tr.moduleId}</span>
+                                              <span>{tr.moduleTitle || `Modul #${tr.moduleId}`}</span>
                                               <span className="font-bold">{tr.score}% ({tr.grade})</span>
                                            </div>
                                         ))}
