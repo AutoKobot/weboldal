@@ -365,6 +365,7 @@ export class DatabaseStorage implements IStorage {
         { name: "modules.section_code", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS section_code VARCHAR(50)` },
         { name: "modules.type", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'theory'` },
         { name: "modules.school_id", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS school_id INTEGER REFERENCES schools(id)` },
+        { name: "professions.code", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS code VARCHAR(50)` },
         { name: "classes.profession_id", sql: sql`ALTER TABLE classes ADD COLUMN IF NOT EXISTS profession_id INTEGER REFERENCES professions(id)` },
       ];
 
@@ -892,17 +893,17 @@ export class DatabaseStorage implements IStorage {
     const baseQuery = db.select({
       id: professions.id,
       name: professions.name,
+      code: professions.code,
       description: professions.description,
       schoolAdminId: professions.schoolAdminId,
       createdAt: professions.createdAt,
       updatedAt: professions.updatedAt,
-      subjectCount: sql<number>`count(${subjects.id})::int`,
-      theoryCount: sql<number>`count(CASE WHEN ${subjects.type} IN ('theory', 'both') OR ${subjects.type} IS NULL THEN 1 END)::int`,
-      practicalCount: sql<number>`count(CASE WHEN ${subjects.type} IN ('practical', 'both') THEN 1 END)::int`,
+      subjectCount: sql<number>`(SELECT count(*)::int FROM subjects WHERE profession_id = ${professions.id})`,
+      moduleCount: sql<number>`(SELECT count(*)::int FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id})`,
+      theoryCount: sql<number>`(SELECT count(*)::int FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'theory')`,
+      practicalCount: sql<number>`(SELECT count(*)::int FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'practical')`,
     })
-    .from(professions)
-    .leftJoin(subjects, eq(professions.id, subjects.professionId))
-    .groupBy(professions.id);
+    .from(professions);
 
     if (conditions.length > 0) {
       return await baseQuery.where(and(...conditions)).orderBy(professions.name);
@@ -1019,6 +1020,8 @@ export class DatabaseStorage implements IStorage {
     const baseQuery = db.select({
       id: subjects.id,
       name: subjects.name,
+      code: subjects.code,
+      type: subjects.type,
       description: subjects.description,
       professionId: subjects.professionId,
       schoolAdminId: subjects.schoolAdminId,
@@ -1031,10 +1034,26 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(modules, eq(subjects.id, modules.subjectId))
     .groupBy(subjects.id);
 
+    let results;
     if (conditions.length > 0) {
-      return await baseQuery.where(and(...conditions)).orderBy(subjects.name);
+      results = await baseQuery.where(and(...conditions));
+    } else {
+      results = await baseQuery;
     }
-    return await baseQuery.orderBy(subjects.name);
+
+    // Natural numeric sorting for subject code (e.g., 3.4.2 < 3.4.10)
+    return (results as any[]).sort((a, b) => {
+      if (a.code && b.code) {
+        const partsA = a.code.split('.').map(Number);
+        const partsB = b.code.split('.').map(Number);
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+          const valA = partsA[i] || 0;
+          const valB = partsB[i] || 0;
+          if (valA !== valB) return valA - valB;
+        }
+      }
+      return a.name.localeCompare(b.name);
+    });
   }
 
   async getSubject(id: number): Promise<Subject | undefined> {
@@ -1147,6 +1166,8 @@ export class DatabaseStorage implements IStorage {
         conciseContent: modules.conciseContent,
         detailedContent: modules.detailedContent,
         moduleNumber: modules.moduleNumber,
+        sectionCode: modules.sectionCode,
+        type: modules.type,
         imageUrl: modules.imageUrl,
         isPublished: modules.isPublished,
         schoolId: modules.schoolId,
@@ -1156,13 +1177,30 @@ export class DatabaseStorage implements IStorage {
       })
       .from(modules);
 
+    let results;
     if (conditions.length > 0) {
-      return (await query.where(and(...conditions)).orderBy(asc(modules.moduleNumber), asc(modules.title))) as any;
+      results = await query.where(and(...conditions));
+    } else {
+      results = await query;
     }
-    return (await query.orderBy(asc(modules.moduleNumber), asc(modules.title))) as any;
+
+    // Natural numeric sorting for sectionCode (e.g., 3.4.4.2 < 3.4.4.10)
+    return (results as any[]).sort((a, b) => {
+      if (a.sectionCode && b.sectionCode) {
+        const partsA = a.sectionCode.split('.').map(Number);
+        const partsB = b.sectionCode.split('.').map(Number);
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+          const valA = partsA[i] || 0;
+          const valB = partsB[i] || 0;
+          if (valA !== valB) return valA - valB;
+        }
+      }
+      // Fallback to moduleNumber if no sectionCode or codes are identical
+      return (a.moduleNumber || 0) - (b.moduleNumber || 0) || a.title.localeCompare(b.title);
+    });
   }
 
-  async getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
+  async getPublishedModules(subjectId?: number, schoolAdminId?: string | null, professionId?: number): Promise<Module[]> {
     const conditions = [eq(modules.isPublished, true)];
 
     if (subjectId) {
@@ -1178,6 +1216,18 @@ export class DatabaseStorage implements IStorage {
         )
       );
       if (subjectFilter) conditions.push(subjectFilter);
+    } else if (professionId) {
+      // If no subjectId but professionId is provided, filter modules by subjects belonging to that profession
+      conditions.push(
+        exists(
+          db.select()
+            .from(subjects)
+            .where(and(
+              eq(subjects.id, modules.subjectId),
+              eq(subjects.professionId, professionId)
+            ))
+        )
+      );
     }
 
     if (schoolAdminId === null) {
@@ -1190,7 +1240,7 @@ export class DatabaseStorage implements IStorage {
       if (adminFilter) conditions.push(adminFilter);
     }
 
-    return (await db
+    const results = await db
       .select({
         id: modules.id,
         subjectId: modules.subjectId,
@@ -1199,6 +1249,8 @@ export class DatabaseStorage implements IStorage {
         conciseContent: modules.conciseContent,
         detailedContent: modules.detailedContent,
         moduleNumber: modules.moduleNumber,
+        sectionCode: modules.sectionCode,
+        type: modules.type,
         imageUrl: modules.imageUrl,
         isPublished: modules.isPublished,
         schoolId: modules.schoolId,
@@ -1207,8 +1259,21 @@ export class DatabaseStorage implements IStorage {
         updatedAt: modules.updatedAt
       })
       .from(modules)
-      .where(and(...conditions))
-      .orderBy(asc(modules.moduleNumber), asc(modules.title))) as any;
+      .where(and(...conditions));
+
+    // Natural numeric sorting for sectionCode (e.g., 3.4.4.2 < 3.4.4.10)
+    return (results as any[]).sort((a, b) => {
+      if (a.sectionCode && b.sectionCode) {
+        const partsA = a.sectionCode.split('.').map(Number);
+        const partsB = b.sectionCode.split('.').map(Number);
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+          const valA = partsA[i] || 0;
+          const valB = partsB[i] || 0;
+          if (valA !== valB) return valA - valB;
+        }
+      }
+      return (a.moduleNumber || 0) - (b.moduleNumber || 0) || a.title.localeCompare(b.title);
+    });
   }
 
   async getModule(id: number): Promise<Module | undefined> {

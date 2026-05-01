@@ -140,38 +140,58 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
           const IconComp = iconOptions.find(o => o.value === prof.iconName)?.icon || BookOpen;
           return (
             <Card key={prof.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(prof.id)}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                    <IconComp className="h-5 w-5" />
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    {prof.code && (
+                      <Badge variant="secondary" className="font-mono text-[10px] bg-slate-100 text-slate-600 border-slate-200">
+                        {prof.code}
+                      </Badge>
+                    )}
+                    <span className="text-[10px] text-muted-foreground">
+                      ID: {prof.id}
+                    </span>
                   </div>
-                  <CardTitle className="text-base font-bold">{prof.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-primary/10 rounded-md text-primary">
+                      <IconComp className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-base font-bold">{prof.name}</CardTitle>
+                  </div>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(prof); }}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli?')) deleteMutation.mutate(prof.id); }}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a szakmát minden adatával?')) deleteMutation.mutate(prof.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 pb-4">
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{prof.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-4 h-8">{prof.description}</p>
                 
-                <div className="space-y-2 mt-auto">
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <BookOpen className="h-3 w-3" />
-                    <span>{prof.subjectCount || 0} tantárgy</span>
+                <div className="space-y-3 mt-auto">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <BookOpen className="h-3 w-3" />
+                      <span>{prof.subjectCount || 0} tantárgy</span>
+                      <span className="text-slate-300">•</span>
+                      <span>{prof.moduleCount || 0} modul</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(prof.updatedAt || prof.createdAt).toLocaleDateString('hu-HU')}</span>
+                    </div>
                   </div>
                   
                   <div className="flex gap-1.5">
-                    {(prof.theoryCount || 0) > 0 && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700">ELMÉLET</Badge>
-                    )}
-                    {(prof.practicalCount || 0) > 0 && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700">GYAKORLAT</Badge>
-                    )}
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
+                      <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} ELMÉLET
+                    </Badge>
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
+                      <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} GYAKORLAT
+                    </Badge>
                   </div>
                 </div>
               </CardContent>

@@ -1,0 +1,2882 @@
+[
+  {
+    "name": "AIQueueManager",
+    "type": "class",
+    "line": 21,
+    "file": "server\\ai-queue-manager.ts"
+  },
+  {
+    "name": "constructor",
+    "type": "method",
+    "line": 28,
+    "file": "server\\ai-queue-manager.ts"
+  },
+  {
+    "name": "getQueueStatus",
+    "type": "method",
+    "line": 219,
+    "file": "server\\ai-queue-manager.ts"
+  },
+  {
+    "name": "shutdown",
+    "type": "method",
+    "line": 596,
+    "file": "server\\ai-queue-manager.ts"
+  },
+  {
+    "name": "aiQueueManager",
+    "type": "const",
+    "line": 613,
+    "file": "server\\ai-queue-manager.ts"
+  },
+  {
+    "name": "pool",
+    "type": "const",
+    "line": 18,
+    "file": "server\\db.ts"
+  },
+  {
+    "name": "db",
+    "type": "const",
+    "line": 69,
+    "file": "server\\db.ts"
+  },
+  {
+    "name": "EnhancedModuleContent",
+    "type": "interface",
+    "line": 8,
+    "file": "server\\enhanced-module-generator.ts"
+  },
+  {
+    "name": "EnhancedModuleGenerator",
+    "type": "class",
+    "line": 34,
+    "file": "server\\enhanced-module-generator.ts"
+  },
+  {
+    "name": "generateMultipleQuizSets",
+    "type": "method",
+    "line": 1841,
+    "file": "server\\enhanced-module-generator.ts"
+  },
+  {
+    "name": "convertMermaidToSVGImages",
+    "type": "method",
+    "line": 1907,
+    "file": "server\\enhanced-module-generator.ts"
+  },
+  {
+    "name": "enhancedModuleGenerator",
+    "type": "const",
+    "line": 1914,
+    "file": "server\\enhanced-module-generator.ts"
+  },
+  {
+    "name": "RawModule",
+    "type": "interface",
+    "line": 21,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "RawSubject",
+    "type": "interface",
+    "line": 27,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "IKKService",
+    "type": "class",
+    "line": 36,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "getProfessions",
+    "type": "method",
+    "line": 40,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "getPdfText",
+    "type": "method",
+    "line": 56,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "getProfessionContent",
+    "type": "method",
+    "line": 76,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "splitPttIntoSections",
+    "type": "method",
+    "line": 110,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "buildExtractionPrompt",
+    "type": "method",
+    "line": 125,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "buildContentPrompt",
+    "type": "method",
+    "line": 171,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "structureCurriculum",
+    "type": "method",
+    "line": 208,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "ikkService",
+    "type": "const",
+    "line": 213,
+    "file": "server\\ikk-service.ts"
+  },
+  {
+    "name": "hashPassword",
+    "type": "function",
+    "line": 11,
+    "file": "server\\localAuth.ts"
+  },
+  {
+    "name": "comparePasswords",
+    "type": "function",
+    "line": 17,
+    "file": "server\\localAuth.ts"
+  },
+  {
+    "name": "setupLocalAuth",
+    "type": "function",
+    "line": 24,
+    "file": "server\\localAuth.ts"
+  },
+  {
+    "name": "MermaidService",
+    "type": "class",
+    "line": 8,
+    "file": "server\\mermaid-service.ts"
+  },
+  {
+    "name": "constructor",
+    "type": "method",
+    "line": 11,
+    "file": "server\\mermaid-service.ts"
+  },
+  {
+    "name": "generateSVG",
+    "type": "method",
+    "line": 21,
+    "file": "server\\mermaid-service.ts"
+  },
+  {
+    "name": "generatePNG",
+    "type": "method",
+    "line": 129,
+    "file": "server\\mermaid-service.ts"
+  },
+  {
+    "name": "mermaidService",
+    "type": "const",
+    "line": 135,
+    "file": "server\\mermaid-service.ts"
+  },
+  {
+    "name": "MultiApiService",
+    "type": "class",
+    "line": 5,
+    "file": "server\\multiApiService.ts"
+  },
+  {
+    "name": "searchInternet",
+    "type": "method",
+    "line": 14,
+    "file": "server\\multiApiService.ts"
+  },
+  {
+    "name": "searchYoutube",
+    "type": "method",
+    "line": 93,
+    "file": "server\\multiApiService.ts"
+  },
+  {
+    "name": "generateSpeech",
+    "type": "method",
+    "line": 126,
+    "file": "server\\multiApiService.ts"
+  },
+  {
+    "name": "routeTask",
+    "type": "method",
+    "line": 218,
+    "file": "server\\multiApiService.ts"
+  },
+  {
+    "name": "multiApiService",
+    "type": "const",
+    "line": 263,
+    "file": "server\\multiApiService.ts"
+  },
+  {
+    "name": "QuizEvaluation",
+    "type": "interface",
+    "line": 10,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "fixMermaidSyntax",
+    "type": "function",
+    "line": 19,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "getOpenAIClient",
+    "type": "function",
+    "line": 118,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "getGeminiClient",
+    "type": "function",
+    "line": 142,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "ChatResponse",
+    "type": "interface",
+    "line": 180,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "QuizQuestion",
+    "type": "interface",
+    "line": 185,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "QuizEvaluation",
+    "type": "interface",
+    "line": 192,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generateStreamingChatResponse",
+    "type": "function",
+    "line": 204,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generateChatResponse",
+    "type": "function",
+    "line": 396,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "explainConcept",
+    "type": "function",
+    "line": 518,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generateSpeech",
+    "type": "function",
+    "line": 542,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generateSynchronizedStreamingResponse",
+    "type": "function",
+    "line": 600,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "transcribeAudio",
+    "type": "function",
+    "line": 748,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generateQuizQuestions",
+    "type": "function",
+    "line": 815,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generateQuizFromModule",
+    "type": "function",
+    "line": 819,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "evaluateAnswer",
+    "type": "function",
+    "line": 866,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "PresentationSlide",
+    "type": "interface",
+    "line": 958,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generatePresentationData",
+    "type": "function",
+    "line": 973,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "generatePresentationImage",
+    "type": "function",
+    "line": 1028,
+    "file": "server\\openai.ts"
+  },
+  {
+    "name": "getSession",
+    "type": "function",
+    "line": 38,
+    "file": "server\\replitAuth.ts"
+  },
+  {
+    "name": "setupAuth",
+    "type": "function",
+    "line": 88,
+    "file": "server\\replitAuth.ts"
+  },
+  {
+    "name": "registerRoutes",
+    "type": "function",
+    "line": 27,
+    "file": "server\\routes\\index.ts"
+  },
+  {
+    "name": "studentActivityTracker",
+    "type": "const",
+    "line": 4,
+    "file": "server\\routes\\middleware.ts"
+  },
+  {
+    "name": "userSyncTracker",
+    "type": "const",
+    "line": 5,
+    "file": "server\\routes\\middleware.ts"
+  },
+  {
+    "name": "combinedAuth",
+    "type": "const",
+    "line": 8,
+    "file": "server\\routes\\middleware.ts"
+  },
+  {
+    "name": "SearchOptimizer",
+    "type": "class",
+    "line": 5,
+    "file": "server\\search-optimizer.ts"
+  },
+  {
+    "name": "generateConciseQueries",
+    "type": "method",
+    "line": 34,
+    "file": "server\\search-optimizer.ts"
+  },
+  {
+    "name": "generateDetailedQueries",
+    "type": "method",
+    "line": 57,
+    "file": "server\\search-optimizer.ts"
+  },
+  {
+    "name": "optimizeQuery",
+    "type": "method",
+    "line": 86,
+    "file": "server\\search-optimizer.ts"
+  },
+  {
+    "name": "searchOptimizer",
+    "type": "const",
+    "line": 110,
+    "file": "server\\search-optimizer.ts"
+  },
+  {
+    "name": "IStorage",
+    "type": "interface",
+    "line": 109,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUniqueApiProviders",
+    "type": "method",
+    "line": 150,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "toggleReaction",
+    "type": "method",
+    "line": 240,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "DatabaseStorage",
+    "type": "class",
+    "line": 338,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "constructor",
+    "type": "method",
+    "line": 341,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAllUsers",
+    "type": "method",
+    "line": 437,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAllStudents",
+    "type": "method",
+    "line": 441,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAllTeachers",
+    "type": "method",
+    "line": 445,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getStudentsByTeacher",
+    "type": "method",
+    "line": 449,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertUser",
+    "type": "method",
+    "line": 458,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createLocalUser",
+    "type": "method",
+    "line": 480,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createUser",
+    "type": "method",
+    "line": 494,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateUserRole",
+    "type": "method",
+    "line": 521,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateUserProfession",
+    "type": "method",
+    "line": 579,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateUserAssignedProfessions",
+    "type": "method",
+    "line": 589,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateUserCompletedModules",
+    "type": "method",
+    "line": 599,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateUserPassword",
+    "type": "method",
+    "line": 610,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "setUserPassword",
+    "type": "method",
+    "line": 621,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateUserSchoolAdmin",
+    "type": "method",
+    "line": 630,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignStudentToTeacher",
+    "type": "method",
+    "line": 637,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "removeStudentFromTeacher",
+    "type": "method",
+    "line": 647,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteUser",
+    "type": "method",
+    "line": 657,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateSchoolAdmin",
+    "type": "method",
+    "line": 818,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getSchools",
+    "type": "method",
+    "line": 831,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createSchool",
+    "type": "method",
+    "line": 840,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateSchool",
+    "type": "method",
+    "line": 845,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteSchool",
+    "type": "method",
+    "line": 854,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignUserToSchool",
+    "type": "method",
+    "line": 870,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignClassToSchool",
+    "type": "method",
+    "line": 874,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getProfessions",
+    "type": "method",
+    "line": 884,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createProfession",
+    "type": "method",
+    "line": 919,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateProfession",
+    "type": "method",
+    "line": 927,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteProfession",
+    "type": "method",
+    "line": 936,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getSubjects",
+    "type": "method",
+    "line": 1008,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createSubject",
+    "type": "method",
+    "line": 1064,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateSubject",
+    "type": "method",
+    "line": 1072,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteSubject",
+    "type": "method",
+    "line": 1081,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getModules",
+    "type": "method",
+    "line": 1131,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPublishedModules",
+    "type": "method",
+    "line": 1203,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createModule",
+    "type": "method",
+    "line": 1272,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "bulkCreateModules",
+    "type": "method",
+    "line": 1286,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateModule",
+    "type": "method",
+    "line": 1291,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteModule",
+    "type": "method",
+    "line": 1307,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getFlashcards",
+    "type": "method",
+    "line": 1338,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createFlashcard",
+    "type": "method",
+    "line": 1342,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteFlashcardsByModule",
+    "type": "method",
+    "line": 1350,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "bulkCreateFlashcards",
+    "type": "method",
+    "line": 1354,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getModuleAssignments",
+    "type": "method",
+    "line": 1360,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateModuleAssignments",
+    "type": "method",
+    "line": 1368,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getChatMessages",
+    "type": "method",
+    "line": 1380,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createChatMessage",
+    "type": "method",
+    "line": 1393,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteChatMessages",
+    "type": "method",
+    "line": 1401,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "setSystemSetting",
+    "type": "method",
+    "line": 1424,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getCommunityGroups",
+    "type": "method",
+    "line": 1448,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createCommunityGroup",
+    "type": "method",
+    "line": 1460,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateCommunityGroup",
+    "type": "method",
+    "line": 1468,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteCommunityGroup",
+    "type": "method",
+    "line": 1483,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "joinCommunityGroup",
+    "type": "method",
+    "line": 1519,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "leaveCommunityGroup",
+    "type": "method",
+    "line": 1525,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getGroupMembers",
+    "type": "method",
+    "line": 1531,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getCommunityLeaderboard",
+    "type": "method",
+    "line": 1535,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getCommunityProjects",
+    "type": "method",
+    "line": 1557,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createCommunityProject",
+    "type": "method",
+    "line": 1569,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "joinProject",
+    "type": "method",
+    "line": 1577,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getProjectParticipants",
+    "type": "method",
+    "line": 1583,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getDiscussions",
+    "type": "method",
+    "line": 1588,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getReplies",
+    "type": "method",
+    "line": 1615,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createDiscussion",
+    "type": "method",
+    "line": 1621,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteDiscussion",
+    "type": "method",
+    "line": 1629,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createBackgroundJob",
+    "type": "method",
+    "line": 1634,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateBackgroundJob",
+    "type": "method",
+    "line": 1650,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getLatestBackgroundJob",
+    "type": "method",
+    "line": 1668,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "pinDiscussion",
+    "type": "method",
+    "line": 1684,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "toggleReaction",
+    "type": "method",
+    "line": 1691,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getReactionsForDiscussions",
+    "type": "method",
+    "line": 1716,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createPeerReview",
+    "type": "method",
+    "line": 1723,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPeerReviews",
+    "type": "method",
+    "line": 1731,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createAdminMessage",
+    "type": "method",
+    "line": 1736,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAdminMessages",
+    "type": "method",
+    "line": 1744,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUserAdminMessages",
+    "type": "method",
+    "line": 1748,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "respondToAdminMessage",
+    "type": "method",
+    "line": 1754,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getClassesBySchoolAdmin",
+    "type": "method",
+    "line": 1768,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getStudentsByClass",
+    "type": "method",
+    "line": 1802,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getStudentsBySchoolAdmin",
+    "type": "method",
+    "line": 1830,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getTeachersBySchoolAdmin",
+    "type": "method",
+    "line": 1862,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createClass",
+    "type": "method",
+    "line": 1889,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateClass",
+    "type": "method",
+    "line": 1897,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteClass",
+    "type": "method",
+    "line": 1906,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignStudentToClass",
+    "type": "method",
+    "line": 1917,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "addStudentToClass",
+    "type": "method",
+    "line": 1924,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "removeStudentFromClass",
+    "type": "method",
+    "line": 1937,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignTeacherToClass",
+    "type": "method",
+    "line": 1948,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignProfessionToClass",
+    "type": "method",
+    "line": 1962,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "assignTeacherToClassById",
+    "type": "method",
+    "line": 1976,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "logApiCall",
+    "type": "method",
+    "line": 2008,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getApiCallStats",
+    "type": "method",
+    "line": 2016,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getMonthlyCosts",
+    "type": "method",
+    "line": 2050,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "calculateMonthlyApiCosts",
+    "type": "method",
+    "line": 2071,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "ensureCurrentMonthCostEntry",
+    "type": "method",
+    "line": 2093,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateMonthlyCost",
+    "type": "method",
+    "line": 2164,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertMonthlyCost",
+    "type": "method",
+    "line": 2176,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getApiPricing",
+    "type": "method",
+    "line": 2214,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertApiPricing",
+    "type": "method",
+    "line": 2222,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteApiPricing",
+    "type": "method",
+    "line": 2256,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUniqueApiProviders",
+    "type": "method",
+    "line": 2263,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "recordSimpleApiCall",
+    "type": "method",
+    "line": 2277,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "calculateApiCost",
+    "type": "method",
+    "line": 2301,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "saveUserConsent",
+    "type": "method",
+    "line": 2340,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUserConsents",
+    "type": "method",
+    "line": 2348,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createPrivacyRequest",
+    "type": "method",
+    "line": 2362,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPrivacyRequests",
+    "type": "method",
+    "line": 2370,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updatePrivacyRequestStatus",
+    "type": "method",
+    "line": 2384,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "exportUserData",
+    "type": "method",
+    "line": 2404,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteUserPersonalData",
+    "type": "method",
+    "line": 2437,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createTestResult",
+    "type": "method",
+    "line": 2444,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getTestResultsByUser",
+    "type": "method",
+    "line": 2455,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getTestResultsByModule",
+    "type": "method",
+    "line": 2462,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getClassesByTeacher",
+    "type": "method",
+    "line": 2522,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createNotification",
+    "type": "method",
+    "line": 2547,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getNotifications",
+    "type": "method",
+    "line": 2555,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUnreadCount",
+    "type": "method",
+    "line": 2564,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "markNotificationRead",
+    "type": "method",
+    "line": 2572,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "markAllNotificationsRead",
+    "type": "method",
+    "line": 2579,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteNotification",
+    "type": "method",
+    "line": 2596,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getLessonSchedules",
+    "type": "method",
+    "line": 2606,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertLessonSchedules",
+    "type": "method",
+    "line": 2631,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getDailyAttendanceByClass",
+    "type": "method",
+    "line": 2660,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertDailyAttendance",
+    "type": "method",
+    "line": 2703,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAttendance",
+    "type": "method",
+    "line": 2732,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAttendanceByClass",
+    "type": "method",
+    "line": 2742,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAttendanceByClassRange",
+    "type": "method",
+    "line": 2804,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAttendanceByStudent",
+    "type": "method",
+    "line": 2819,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateAttendanceStatus",
+    "type": "method",
+    "line": 2831,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertAttendance",
+    "type": "method",
+    "line": 2840,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getStudentDailyNotes",
+    "type": "method",
+    "line": 2877,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getClassDailyNotes",
+    "type": "method",
+    "line": 2890,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "upsertStudentDailyNote",
+    "type": "method",
+    "line": 2903,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteStudentDailyNote",
+    "type": "method",
+    "line": 2918,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAttendanceExportData",
+    "type": "method",
+    "line": 2925,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "selectStudentAvatar",
+    "type": "method",
+    "line": 2994,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateStudentAvatar",
+    "type": "method",
+    "line": 3052,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "releaseStudentAvatar",
+    "type": "method",
+    "line": 3062,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createAnnouncement",
+    "type": "method",
+    "line": 3067,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAnnouncementsByClass",
+    "type": "method",
+    "line": 3075,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getActiveAnnouncementsForStudent",
+    "type": "method",
+    "line": 3083,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUnacknowledgedAnnouncements",
+    "type": "method",
+    "line": 3099,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "acknowledgeAnnouncement",
+    "type": "method",
+    "line": 3125,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getAnnouncementStats",
+    "type": "method",
+    "line": 3140,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deleteAnnouncement",
+    "type": "method",
+    "line": 3173,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updateAISettings",
+    "type": "method",
+    "line": 3215,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createPrivateMessage",
+    "type": "method",
+    "line": 3264,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPrivateMessages",
+    "type": "method",
+    "line": 3269,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getUnreadPrivateMessageCount",
+    "type": "method",
+    "line": 3275,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "markPrivateMessagesRead",
+    "type": "method",
+    "line": 3283,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getConversationPartners",
+    "type": "method",
+    "line": 3293,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPracticalGradesByStudent",
+    "type": "method",
+    "line": 3307,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPracticalGradesByModule",
+    "type": "method",
+    "line": 3313,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "getPracticalGradesByTeacher",
+    "type": "method",
+    "line": 3318,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "createPracticalGrade",
+    "type": "method",
+    "line": 3335,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "updatePracticalGrade",
+    "type": "method",
+    "line": 3340,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "deletePracticalGrade",
+    "type": "method",
+    "line": 3349,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "storage",
+    "type": "const",
+    "line": 3354,
+    "file": "server\\storage.ts"
+  },
+  {
+    "name": "uploadToSupabase",
+    "type": "function",
+    "line": 96,
+    "file": "server\\supabase.ts"
+  },
+  {
+    "name": "cleanupModuleStorage",
+    "type": "function",
+    "line": 147,
+    "file": "server\\supabase.ts"
+  },
+  {
+    "name": "supabase",
+    "type": "const",
+    "line": 188,
+    "file": "server\\supabase.ts"
+  },
+  {
+    "name": "log",
+    "type": "function",
+    "line": 11,
+    "file": "server\\vite.ts"
+  },
+  {
+    "name": "setupVite",
+    "type": "function",
+    "line": 22,
+    "file": "server\\vite.ts"
+  },
+  {
+    "name": "serveStatic",
+    "type": "function",
+    "line": 71,
+    "file": "server\\vite.ts"
+  },
+  {
+    "name": "presentationImages",
+    "type": "const",
+    "line": 11,
+    "file": "client\\src\\assets\\presentation-images.ts"
+  },
+  {
+    "name": "CostsManager",
+    "type": "function",
+    "line": 41,
+    "file": "client\\src\\components\\admin-dashboard\\CostsManager.tsx"
+  },
+  {
+    "name": "DashboardOverview",
+    "type": "function",
+    "line": 10,
+    "file": "client\\src\\components\\admin-dashboard\\DashboardOverview.tsx"
+  },
+  {
+    "name": "IKKManager",
+    "type": "function",
+    "line": 19,
+    "file": "client\\src\\components\\admin-dashboard\\IKKManager.tsx"
+  },
+  {
+    "name": "ModuleEditor",
+    "type": "function",
+    "line": 34,
+    "file": "client\\src\\components\\admin-dashboard\\ModuleEditor.tsx"
+  },
+  {
+    "name": "ModuleManager",
+    "type": "function",
+    "line": 36,
+    "file": "client\\src\\components\\admin-dashboard\\ModuleManager.tsx"
+  },
+  {
+    "name": "ProfessionManager",
+    "type": "function",
+    "line": 51,
+    "file": "client\\src\\components\\admin-dashboard\\ProfessionManager.tsx"
+  },
+  {
+    "name": "PromptSettings",
+    "type": "function",
+    "line": 11,
+    "file": "client\\src\\components\\admin-dashboard\\PromptSettings.tsx"
+  },
+  {
+    "name": "SchoolManagement",
+    "type": "function",
+    "line": 25,
+    "file": "client\\src\\components\\admin-dashboard\\SchoolManagement.tsx"
+  },
+  {
+    "name": "SettingsManager",
+    "type": "function",
+    "line": 30,
+    "file": "client\\src\\components\\admin-dashboard\\SettingsManager.tsx"
+  },
+  {
+    "name": "SubjectManager",
+    "type": "function",
+    "line": 32,
+    "file": "client\\src\\components\\admin-dashboard\\SubjectManager.tsx"
+  },
+  {
+    "name": "DashboardStats",
+    "type": "interface",
+    "line": 8,
+    "file": "client\\src\\components\\admin-dashboard\\types.ts"
+  },
+  {
+    "name": "ApiStatus",
+    "type": "interface",
+    "line": 20,
+    "file": "client\\src\\components\\admin-dashboard\\types.ts"
+  },
+  {
+    "name": "AISettings",
+    "type": "interface",
+    "line": 28,
+    "file": "client\\src\\components\\admin-dashboard\\types.ts"
+  },
+  {
+    "name": "schoolAdminFormSchema",
+    "type": "const",
+    "line": 35,
+    "file": "client\\src\\components\\admin-dashboard\\types.ts"
+  },
+  {
+    "name": "UserManagement",
+    "type": "function",
+    "line": 34,
+    "file": "client\\src\\components\\admin-dashboard\\UserManagement.tsx"
+  },
+  {
+    "name": "EnhancedModuleForm",
+    "type": "function",
+    "line": 18,
+    "file": "client\\src\\components\\enhanced-module-form.tsx"
+  },
+  {
+    "name": "FBXAvatar",
+    "type": "function",
+    "line": 182,
+    "file": "client\\src\\components\\FBXAvatar.tsx"
+  },
+  {
+    "name": "UrlInput",
+    "type": "function",
+    "line": 191,
+    "file": "client\\src\\components\\file-upload.tsx"
+  },
+  {
+    "name": "FileList",
+    "type": "function",
+    "line": 223,
+    "file": "client\\src\\components\\file-upload.tsx"
+  },
+  {
+    "name": "FlashcardImport",
+    "type": "function",
+    "line": 16,
+    "file": "client\\src\\components\\flashcard-import.tsx"
+  },
+  {
+    "name": "FlashcardQuiz",
+    "type": "function",
+    "line": 12,
+    "file": "client\\src\\components\\flashcard-quiz.tsx"
+  },
+  {
+    "name": "LinkEditor",
+    "type": "function",
+    "line": 15,
+    "file": "client\\src\\components\\link-editor.tsx"
+  },
+  {
+    "name": "PracticalGradesView",
+    "type": "function",
+    "line": 25,
+    "file": "client\\src\\components\\practical-grades-view.tsx"
+  },
+  {
+    "name": "SlideDragDrop",
+    "type": "function",
+    "line": 19,
+    "file": "client\\src\\components\\presentation-interactive\\SlideDragDrop.tsx"
+  },
+  {
+    "name": "SlideHotspots",
+    "type": "function",
+    "line": 21,
+    "file": "client\\src\\components\\presentation-interactive\\SlideHotspots.tsx"
+  },
+  {
+    "name": "SlideQuiz",
+    "type": "function",
+    "line": 16,
+    "file": "client\\src\\components\\presentation-interactive\\SlideQuiz.tsx"
+  },
+  {
+    "name": "PresentationPlayer",
+    "type": "function",
+    "line": 86,
+    "file": "client\\src\\components\\presentation-player.tsx"
+  },
+  {
+    "name": "StudentAvatar",
+    "type": "function",
+    "line": 14,
+    "file": "client\\src\\components\\StudentAvatar.tsx"
+  },
+  {
+    "name": "AnnouncementsView",
+    "type": "function",
+    "line": 28,
+    "file": "client\\src\\components\\teacher-dashboard\\AnnouncementsView.tsx"
+  },
+  {
+    "name": "AttendanceView",
+    "type": "function",
+    "line": 28,
+    "file": "client\\src\\components\\teacher-dashboard\\AttendanceView.tsx"
+  },
+  {
+    "name": "ClassStatsView",
+    "type": "function",
+    "line": 20,
+    "file": "client\\src\\components\\teacher-dashboard\\ClassStatsView.tsx"
+  },
+  {
+    "name": "DayAttendanceEditor",
+    "type": "function",
+    "line": 17,
+    "file": "client\\src\\components\\teacher-dashboard\\DayAttendanceEditor.tsx"
+  },
+  {
+    "name": "MonthlyAttendanceView",
+    "type": "function",
+    "line": 24,
+    "file": "client\\src\\components\\teacher-dashboard\\MonthlyAttendanceView.tsx"
+  },
+  {
+    "name": "RosterView",
+    "type": "function",
+    "line": 29,
+    "file": "client\\src\\components\\teacher-dashboard\\RosterView.tsx"
+  },
+  {
+    "name": "StudentDetailView",
+    "type": "function",
+    "line": 23,
+    "file": "client\\src\\components\\teacher-dashboard\\StudentDetailView.tsx"
+  },
+  {
+    "name": "StudentListView",
+    "type": "function",
+    "line": 31,
+    "file": "client\\src\\components\\teacher-dashboard\\StudentListView.tsx"
+  },
+  {
+    "name": "TestResult",
+    "type": "interface",
+    "line": 1,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "Student",
+    "type": "interface",
+    "line": 11,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "Module",
+    "type": "interface",
+    "line": 27,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "Subject",
+    "type": "interface",
+    "line": 35,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "Profession",
+    "type": "interface",
+    "line": 42,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "ClassData",
+    "type": "interface",
+    "line": 48,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "GradeResult",
+    "type": "interface",
+    "line": 54,
+    "file": "client\\src\\components\\teacher-dashboard\\types.ts"
+  },
+  {
+    "name": "ThemeProvider",
+    "type": "function",
+    "line": 23,
+    "file": "client\\src\\components\\theme-provider.tsx"
+  },
+  {
+    "name": "useTheme",
+    "type": "const",
+    "line": 66,
+    "file": "client\\src\\components\\theme-provider.tsx"
+  },
+  {
+    "name": "BadgeProps",
+    "type": "interface",
+    "line": 26,
+    "file": "client\\src\\components\\ui\\badge.tsx"
+  },
+  {
+    "name": "ButtonProps",
+    "type": "interface",
+    "line": 36,
+    "file": "client\\src\\components\\ui\\button.tsx"
+  },
+  {
+    "name": "CalendarProps",
+    "type": "interface",
+    "line": 8,
+    "file": "client\\src\\components\\ui\\calendar.tsx"
+  },
+  {
+    "name": "ChartConfig",
+    "type": "interface",
+    "line": 11,
+    "file": "client\\src\\components\\ui\\chart.tsx"
+  },
+  {
+    "name": "Toaster",
+    "type": "function",
+    "line": 11,
+    "file": "client\\src\\components\\ui\\toaster.tsx"
+  },
+  {
+    "name": "useIsMobile",
+    "type": "function",
+    "line": 5,
+    "file": "client\\src\\hooks\\use-mobile.tsx"
+  },
+  {
+    "name": "reducer",
+    "type": "const",
+    "line": 74,
+    "file": "client\\src\\hooks\\use-toast.ts"
+  },
+  {
+    "name": "useAudioAnalyzer",
+    "type": "function",
+    "line": 3,
+    "file": "client\\src\\hooks\\useAudioAnalyzer.ts"
+  },
+  {
+    "name": "useAuth",
+    "type": "function",
+    "line": 4,
+    "file": "client\\src\\hooks\\useAuth.ts"
+  },
+  {
+    "name": "useProgress",
+    "type": "function",
+    "line": 4,
+    "file": "client\\src\\hooks\\useProgress.ts"
+  },
+  {
+    "name": "useScrollAnimation",
+    "type": "function",
+    "line": 9,
+    "file": "client\\src\\hooks\\useScrollAnimation.ts"
+  },
+  {
+    "name": "useParallax",
+    "type": "function",
+    "line": 42,
+    "file": "client\\src\\hooks\\useScrollAnimation.ts"
+  },
+  {
+    "name": "useSmoothScroll",
+    "type": "function",
+    "line": 63,
+    "file": "client\\src\\hooks\\useScrollAnimation.ts"
+  },
+  {
+    "name": "isUnauthorizedError",
+    "type": "function",
+    "line": 1,
+    "file": "client\\src\\lib\\authUtils.ts"
+  },
+  {
+    "name": "AvatarDefinition",
+    "type": "interface",
+    "line": 1,
+    "file": "client\\src\\lib\\avatars.ts"
+  },
+  {
+    "name": "isFirebaseEnabled",
+    "type": "function",
+    "line": 31,
+    "file": "client\\src\\lib\\firebase.ts"
+  },
+  {
+    "name": "signInWithGoogle",
+    "type": "function",
+    "line": 36,
+    "file": "client\\src\\lib\\firebase.ts"
+  },
+  {
+    "name": "handleGoogleRedirect",
+    "type": "function",
+    "line": 44,
+    "file": "client\\src\\lib\\firebase.ts"
+  },
+  {
+    "name": "apiRequest",
+    "type": "function",
+    "line": 10,
+    "file": "client\\src\\lib\\queryClient.ts"
+  },
+  {
+    "name": "queryClient",
+    "type": "const",
+    "line": 44,
+    "file": "client\\src\\lib\\queryClient.ts"
+  },
+  {
+    "name": "cn",
+    "type": "function",
+    "line": 5,
+    "file": "client\\src\\lib\\utils.ts"
+  },
+  {
+    "name": "extractTextFromMarkdown",
+    "type": "function",
+    "line": 9,
+    "file": "client\\src\\lib\\utils.ts"
+  },
+  {
+    "name": "sessions",
+    "type": "const",
+    "line": 20,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "schools",
+    "type": "const",
+    "line": 31,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "School",
+    "type": "interface",
+    "line": 43,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertSchool",
+    "type": "interface",
+    "line": 44,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertSchoolSchema",
+    "type": "const",
+    "line": 45,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "users",
+    "type": "const",
+    "line": 52,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "professions",
+    "type": "const",
+    "line": 83,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "subjects",
+    "type": "const",
+    "line": 96,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "modules",
+    "type": "const",
+    "line": 112,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "moduleSubjectAssignments",
+    "type": "const",
+    "line": 144,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "flashcards",
+    "type": "const",
+    "line": 152,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "chatMessages",
+    "type": "const",
+    "line": 161,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "testResults",
+    "type": "const",
+    "line": 175,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "practicalGrades",
+    "type": "const",
+    "line": 190,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "usersRelations",
+    "type": "const",
+    "line": 205,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "schoolsRelations",
+    "type": "const",
+    "line": 215,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "professionsRelations",
+    "type": "const",
+    "line": 223,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "subjectsRelations",
+    "type": "const",
+    "line": 227,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "modulesRelations",
+    "type": "const",
+    "line": 232,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "moduleSubjectAssignmentsRelations",
+    "type": "const",
+    "line": 240,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "flashcardsRelations",
+    "type": "const",
+    "line": 245,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "chatMessagesRelations",
+    "type": "const",
+    "line": 249,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "practicalGradesRelations",
+    "type": "const",
+    "line": 260,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "systemSettings",
+    "type": "const",
+    "line": 278,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "aiSettings",
+    "type": "const",
+    "line": 288,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "communityGroups",
+    "type": "const",
+    "line": 301,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "groupMembers",
+    "type": "const",
+    "line": 314,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "communityProjects",
+    "type": "const",
+    "line": 323,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "projectParticipants",
+    "type": "const",
+    "line": 337,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "discussions",
+    "type": "const",
+    "line": 346,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "discussionReactions",
+    "type": "const",
+    "line": 361,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "peerReviews",
+    "type": "const",
+    "line": 370,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "adminMessages",
+    "type": "const",
+    "line": 381,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "privateMessages",
+    "type": "const",
+    "line": 393,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "classes",
+    "type": "const",
+    "line": 407,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "classAnnouncements",
+    "type": "const",
+    "line": 421,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "announcementAcknowledgements",
+    "type": "const",
+    "line": 435,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "lessonSchedules",
+    "type": "const",
+    "line": 448,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "dailyAttendance",
+    "type": "const",
+    "line": 467,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertDailyAttendanceSchema",
+    "type": "const",
+    "line": 483,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertDailyAttendance",
+    "type": "interface",
+    "line": 484,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "DailyAttendance",
+    "type": "interface",
+    "line": 485,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "attendance",
+    "type": "const",
+    "line": 488,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "studentDailyNotes",
+    "type": "const",
+    "line": 511,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "studentAvatars",
+    "type": "const",
+    "line": 523,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertUserSchema",
+    "type": "const",
+    "line": 541,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "localUserRegisterSchema",
+    "type": "const",
+    "line": 557,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "localUserLoginSchema",
+    "type": "const",
+    "line": 571,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "apiCalls",
+    "type": "const",
+    "line": 577,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "monthlyCosts",
+    "type": "const",
+    "line": 591,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ApiCall",
+    "type": "interface",
+    "line": 606,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertApiCall",
+    "type": "interface",
+    "line": 607,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "MonthlyCost",
+    "type": "interface",
+    "line": 609,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertMonthlyCost",
+    "type": "interface",
+    "line": 610,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertApiCallSchema",
+    "type": "const",
+    "line": 612,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertMonthlyCostSchema",
+    "type": "const",
+    "line": 613,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "apiPricing",
+    "type": "const",
+    "line": 616,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ApiPricing",
+    "type": "interface",
+    "line": 628,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertApiPricing",
+    "type": "interface",
+    "line": 629,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertApiPricingSchema",
+    "type": "const",
+    "line": 631,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertProfessionSchema",
+    "type": "const",
+    "line": 633,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertSubjectSchema",
+    "type": "const",
+    "line": 640,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "youtubeVideoSchema",
+    "type": "const",
+    "line": 648,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "wikipediaLinkSchema",
+    "type": "const",
+    "line": 656,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "keyConceptSchema",
+    "type": "const",
+    "line": 662,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "keyConceptsDataSchema",
+    "type": "const",
+    "line": 669,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertModuleSchema",
+    "type": "const",
+    "line": 671,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertChatMessageSchema",
+    "type": "const",
+    "line": 686,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "communityGroupsRelations",
+    "type": "const",
+    "line": 692,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "groupMembersRelations",
+    "type": "const",
+    "line": 700,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "communityProjectsRelations",
+    "type": "const",
+    "line": 705,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "projectParticipantsRelations",
+    "type": "const",
+    "line": 714,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "discussionsRelations",
+    "type": "const",
+    "line": 719,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "peerReviewsRelations",
+    "type": "const",
+    "line": 727,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "adminMessagesRelations",
+    "type": "const",
+    "line": 733,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "privateMessagesRelations",
+    "type": "const",
+    "line": 737,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "classesRelations",
+    "type": "const",
+    "line": 742,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "testResultsRelations",
+    "type": "const",
+    "line": 749,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertCommunityGroupSchema",
+    "type": "const",
+    "line": 756,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertCommunityProjectSchema",
+    "type": "const",
+    "line": 762,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertDiscussionSchema",
+    "type": "const",
+    "line": 768,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertDiscussionReactionSchema",
+    "type": "const",
+    "line": 774,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "DiscussionReaction",
+    "type": "interface",
+    "line": 778,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertDiscussionReaction",
+    "type": "interface",
+    "line": 779,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ALLOWED_EMOJIS",
+    "type": "const",
+    "line": 781,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "AllowedEmoji",
+    "type": "interface",
+    "line": 782,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "DISCUSSION_TAGS",
+    "type": "const",
+    "line": 784,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "DiscussionTag",
+    "type": "interface",
+    "line": 785,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertPeerReviewSchema",
+    "type": "const",
+    "line": 787,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertAdminMessageSchema",
+    "type": "const",
+    "line": 792,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertPrivateMessageSchema",
+    "type": "const",
+    "line": 800,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertClassSchema",
+    "type": "const",
+    "line": 806,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "UpsertUser",
+    "type": "interface",
+    "line": 813,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "User",
+    "type": "interface",
+    "line": 814,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Profession",
+    "type": "interface",
+    "line": 816,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertProfession",
+    "type": "interface",
+    "line": 817,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Class",
+    "type": "interface",
+    "line": 818,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertClass",
+    "type": "interface",
+    "line": 819,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertSubject",
+    "type": "interface",
+    "line": 820,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Subject",
+    "type": "interface",
+    "line": 821,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertModule",
+    "type": "interface",
+    "line": 822,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Module",
+    "type": "interface",
+    "line": 823,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertChatMessage",
+    "type": "interface",
+    "line": 824,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ChatMessage",
+    "type": "interface",
+    "line": 825,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "YoutubeVideo",
+    "type": "interface",
+    "line": 826,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "WikipediaLink",
+    "type": "interface",
+    "line": 827,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "KeyConcept",
+    "type": "interface",
+    "line": 828,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "KeyConceptsData",
+    "type": "interface",
+    "line": 829,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "PracticalGrade",
+    "type": "interface",
+    "line": 830,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertPracticalGrade",
+    "type": "interface",
+    "line": 831,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertPracticalGradeSchema",
+    "type": "const",
+    "line": 832,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertFlashcardSchema",
+    "type": "const",
+    "line": 838,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Flashcard",
+    "type": "interface",
+    "line": 842,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertFlashcard",
+    "type": "interface",
+    "line": 843,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "CommunityGroup",
+    "type": "interface",
+    "line": 846,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertCommunityGroup",
+    "type": "interface",
+    "line": 847,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "GroupMember",
+    "type": "interface",
+    "line": 848,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "CommunityProject",
+    "type": "interface",
+    "line": 849,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertCommunityProject",
+    "type": "interface",
+    "line": 850,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ProjectParticipant",
+    "type": "interface",
+    "line": 851,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Discussion",
+    "type": "interface",
+    "line": 852,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertDiscussion",
+    "type": "interface",
+    "line": 853,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "PeerReview",
+    "type": "interface",
+    "line": 854,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertPeerReview",
+    "type": "interface",
+    "line": 855,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "AdminMessage",
+    "type": "interface",
+    "line": 856,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertAdminMessage",
+    "type": "interface",
+    "line": 857,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "PrivateMessage",
+    "type": "interface",
+    "line": 858,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertPrivateMessage",
+    "type": "interface",
+    "line": 859,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "notifications",
+    "type": "const",
+    "line": 862,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertNotificationSchema",
+    "type": "const",
+    "line": 875,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Notification",
+    "type": "interface",
+    "line": 879,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertNotification",
+    "type": "interface",
+    "line": 880,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "SystemSetting",
+    "type": "interface",
+    "line": 882,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertSystemSetting",
+    "type": "interface",
+    "line": 883,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "AISetting",
+    "type": "interface",
+    "line": 885,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertAISetting",
+    "type": "interface",
+    "line": 886,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertAISettingsSchema",
+    "type": "const",
+    "line": 889,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "userConsents",
+    "type": "const",
+    "line": 899,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "privacyRequests",
+    "type": "const",
+    "line": 912,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "dataProcessingActivities",
+    "type": "const",
+    "line": 926,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "UserConsent",
+    "type": "interface",
+    "line": 941,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertUserConsent",
+    "type": "interface",
+    "line": 942,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "PrivacyRequest",
+    "type": "interface",
+    "line": 943,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertPrivacyRequest",
+    "type": "interface",
+    "line": 944,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "DataProcessingActivity",
+    "type": "interface",
+    "line": 945,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertDataProcessingActivity",
+    "type": "interface",
+    "line": 946,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertUserConsentSchema",
+    "type": "const",
+    "line": 949,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertPrivacyRequestSchema",
+    "type": "const",
+    "line": 950,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertDataProcessingActivitySchema",
+    "type": "const",
+    "line": 951,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "StudentAvatar",
+    "type": "interface",
+    "line": 954,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertStudentAvatar",
+    "type": "interface",
+    "line": 955,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertStudentAvatarSchema",
+    "type": "const",
+    "line": 956,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "TestResult",
+    "type": "interface",
+    "line": 963,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertTestResult",
+    "type": "interface",
+    "line": 964,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertTestResultSchema",
+    "type": "const",
+    "line": 965,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "lessonSchedulesRelations",
+    "type": "const",
+    "line": 971,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "attendanceRelations",
+    "type": "const",
+    "line": 976,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "studentDailyNotesRelations",
+    "type": "const",
+    "line": 982,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "classAnnouncementsRelations",
+    "type": "const",
+    "line": 988,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "announcementAcknowledgementsRelations",
+    "type": "const",
+    "line": 994,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ClassAnnouncement",
+    "type": "interface",
+    "line": 1000,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertClassAnnouncement",
+    "type": "interface",
+    "line": 1001,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertClassAnnouncementSchema",
+    "type": "const",
+    "line": 1002,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "AnnouncementAcknowledgement",
+    "type": "interface",
+    "line": 1007,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertAnnouncementAcknowledgement",
+    "type": "interface",
+    "line": 1008,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertAnnouncementAcknowledgementSchema",
+    "type": "const",
+    "line": 1009,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "LessonSchedule",
+    "type": "interface",
+    "line": 1015,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertLessonSchedule",
+    "type": "interface",
+    "line": 1016,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertLessonScheduleSchema",
+    "type": "const",
+    "line": 1017,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "Attendance",
+    "type": "interface",
+    "line": 1023,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertAttendance",
+    "type": "interface",
+    "line": 1024,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertAttendanceSchema",
+    "type": "const",
+    "line": 1025,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "StudentDailyNote",
+    "type": "interface",
+    "line": 1032,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "InsertStudentDailyNote",
+    "type": "interface",
+    "line": 1033,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "insertStudentDailyNoteSchema",
+    "type": "const",
+    "line": 1034,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "ATTENDANCE_STATUS",
+    "type": "const",
+    "line": 1041,
+    "file": "shared\\schema.ts"
+  },
+  {
+    "name": "AttendanceStatus",
+    "type": "interface",
+    "line": 1047,
+    "file": "shared\\schema.ts"
+  }
+]

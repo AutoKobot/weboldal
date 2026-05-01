@@ -116,32 +116,48 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSubjects.map((subject: Subject) => (
           <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(subject.id)}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-bold">
-                {subject.code && <span className="text-primary mr-2">{subject.code}</span>}
-                {subject.name}
-              </CardTitle>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  {subject.code && (
+                    <Badge variant="secondary" className="font-mono text-[10px] bg-slate-100 text-slate-600 border-slate-200 h-4">
+                      {subject.code}
+                    </Badge>
+                  )}
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {subject.moduleCount || 0} modul
+                  </span>
+                </div>
+                <CardTitle className="text-sm font-bold leading-tight line-clamp-2">
+                  {subject.name}
+                </CardTitle>
+              </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(subject); }}>
-                  <Edit className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleEdit(subject); }}>
+                  <Edit className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli?')) deleteMutation.mutate(subject.id); }}>
-                  <Trash2 className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a tantárgyat?')) deleteMutation.mutate(subject.id); }}>
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="flex-1 pb-4">
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{subject.description}</p>
+              <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3 h-8">{subject.description}</p>
               
-              <div className="flex gap-1.5 mt-auto">
-                {(subject.type === 'theory' || subject.type === 'both' || !subject.type) && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 border-blue-200 text-blue-700 flex items-center gap-1">
+              <div className="flex flex-wrap gap-1.5 mt-auto">
+                {(!subject.type || subject.type === 'theory' || subject.type === 'both') && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 border-blue-200 text-blue-700 flex items-center gap-1 font-bold">
                     <GraduationCap className="h-2.5 w-2.5" /> ELMÉLET
                   </Badge>
                 )}
                 {(subject.type === 'practical' || subject.type === 'both') && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50 border-orange-200 text-orange-700 flex items-center gap-1">
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50 border-orange-200 text-orange-700 flex items-center gap-1 font-bold">
                     <Wrench className="h-2.5 w-2.5" /> GYAKORLAT
+                  </Badge>
+                )}
+                {subject.hours && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-50 border-slate-200 text-slate-600 flex items-center gap-1">
+                    <Clock className="h-2.5 w-2.5" /> {subject.hours} óra
                   </Badge>
                 )}
               </div>

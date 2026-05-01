@@ -201,18 +201,32 @@ export function ModuleManager({
       </div>
 
       <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
-        {filteredModules.sort((a: any, b: any) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
+        {filteredModules.sort((a: any, b: any) => {
+          if (a.sectionCode && b.sectionCode) {
+            const partsA = a.sectionCode.split('.').map(Number);
+            const partsB = b.sectionCode.split('.').map(Number);
+            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+              const valA = partsA[i] || 0;
+              const valB = partsB[i] || 0;
+              if (valA !== valB) return valA - valB;
+            }
+          }
+          return (a.moduleNumber || 0) - (b.moduleNumber || 0);
+        }).map((module: Module) => (
           <Card key={module.id} className={`group hover:border-primary transition-all duration-300 ${viewMode === 'grid' ? 'h-full flex flex-col shadow-sm hover:shadow-md' : ''}`}>
             <CardHeader className={`flex flex-row items-center justify-between ${viewMode === 'grid' ? 'pb-2' : 'py-3'}`}>
               <div className="flex items-center gap-3 overflow-hidden">
-                <Badge variant="outline" className={`${module.sectionCode ? "w-auto px-2 text-[10px]" : "w-8"} h-8 flex items-center justify-center rounded-full font-bold bg-muted shrink-0`}>
-                  {module.sectionCode || module.moduleNumber}
+                <Badge variant="secondary" className="h-10 px-3 flex items-center justify-center rounded-lg font-mono text-xs bg-slate-100 text-slate-600 border-slate-200 shrink-0">
+                  {module.sectionCode || `#${module.moduleNumber}`}
                 </Badge>
                 <div className="min-w-0">
-                  <CardTitle className={`font-bold truncate ${viewMode === 'grid' ? 'text-lg' : 'text-base'}`}>{module.title}</CardTitle>
+                  <CardTitle className={`font-bold truncate ${viewMode === 'grid' ? 'text-base' : 'text-sm'}`}>
+                    {module.sectionCode && <span className="text-muted-foreground mr-2 font-mono text-xs">{module.sectionCode}</span>}
+                    {module.title}
+                  </CardTitle>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={module.isPublished ? "default" : "secondary"} className="text-[10px] h-4">
-                      {module.isPublished ? "Publikálva" : "Piszkozat"}
+                    <Badge variant={module.isPublished ? "default" : "secondary"} className="text-[10px] h-4 py-0">
+                      {module.isPublished ? "PUBLIKÁLVA" : "PISZKOZAT"}
                     </Badge>
                     {module.type === 'practical' ? (
                       <Badge variant="outline" className="text-[10px] h-4 bg-orange-50 text-orange-700 border-orange-200 flex items-center gap-1">

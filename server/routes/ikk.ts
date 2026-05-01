@@ -263,7 +263,8 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const dbProfession = await storage.createProfession({
           name: profession.name,
           description: `Importálva az IKK-ról. (${finalSubjects.length} tantárgy, ${totalModulesCount} modul).`,
-          iconName: "book"
+          iconName: "book",
+          code: profession.okjId
         });
         createdProfessionId = dbProfession.id;
 

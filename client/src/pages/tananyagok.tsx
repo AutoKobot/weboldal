@@ -398,7 +398,18 @@ export default function TananyagokPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {[...subjects]
                         .filter(s => (s.type || "theory") === selectedType)
-                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                        .sort((a, b) => {
+                          if (a.code && b.code) {
+                            const partsA = a.code.split('.').map(Number);
+                            const partsB = b.code.split('.').map(Number);
+                            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                              const valA = partsA[i] || 0;
+                              const valB = partsB[i] || 0;
+                              if (valA !== valB) return valA - valB;
+                            }
+                          }
+                          return (a.orderIndex || 0) - (b.orderIndex || 0) || a.name.localeCompare(b.name);
+                        })
                         .map((subject: Subject) => (
                         <Card
                           key={subject.id}

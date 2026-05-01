@@ -64,7 +64,18 @@ export default function ModulesPage() {
 
     Object.values(modulesBySubject).forEach(subjectModules => {
       // Sort modules by moduleNumber (represents learning sequence)
-      const sortedModules = [...subjectModules].sort((a, b) => a.moduleNumber - b.moduleNumber);
+      const sortedModules = [...subjectModules].sort((a, b) => {
+        if (a.sectionCode && b.sectionCode) {
+          const partsA = a.sectionCode.split('.').map(Number);
+          const partsB = b.sectionCode.split('.').map(Number);
+          for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            const valA = partsA[i] || 0;
+            const valB = partsB[i] || 0;
+            if (valA !== valB) return valA - valB;
+          }
+        }
+        return (a.moduleNumber || 0) - (b.moduleNumber || 0);
+      });
 
       // First module of any subject is always unlocked
       if (sortedModules.length > 0) {
@@ -150,7 +161,18 @@ export default function ModulesPage() {
             </div>
           ) : modules.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...modules].sort((a, b) => a.moduleNumber - b.moduleNumber).map((module: Module) => (
+              {[...modules].sort((a, b) => {
+                if (a.sectionCode && b.sectionCode) {
+                  const partsA = a.sectionCode.split('.').map(Number);
+                  const partsB = b.sectionCode.split('.').map(Number);
+                  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                    const valA = partsA[i] || 0;
+                    const valB = partsB[i] || 0;
+                    if (valA !== valB) return valA - valB;
+                  }
+                }
+                return (a.moduleNumber || 0) - (b.moduleNumber || 0);
+              }).map((module: Module) => (
                 <ModuleCard
                   key={module.id}
                   module={module}

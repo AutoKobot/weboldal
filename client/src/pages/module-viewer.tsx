@@ -873,142 +873,132 @@ export default function ModuleViewer() {
                   </div>
                 ) : (
                   <div ref={mermaidRef} className="prose prose-neutral max-w-none dark:prose-invert">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        // Custom styling for markdown elements
-                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
-                        p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>,
-                        blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
-                        pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
-                        strong: ({ children }) => {
-                          // Convert strong text to Wikipedia links for key concepts
-                          const text = String(children);
-
-                          // Common cooking ingredients and technical terms that should get Wikipedia links
-                          const importantTerms = [
-                            'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
-                            'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
-                            'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt'
-                          ];
-
-                          // Check if this text is an important term
-                          const isImportantTerm = importantTerms.some(term =>
-                            text.toLowerCase().includes(term.toLowerCase())
-                          );
-
-                          // Also check against key concepts data
-                          let keyConceptsData = [];
-                          try {
-                            keyConceptsData = module.keyConceptsData ?
-                              (typeof module.keyConceptsData === 'string' ?
-                                JSON.parse(module.keyConceptsData) :
-                                module.keyConceptsData) : [];
-                          } catch (e) {
-                            // If parsing fails, just use empty array
-                          }
-
-                          const matchingConcept = keyConceptsData.find((concept: any) =>
-                            concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
-                          );
-
-                          if (isImportantTerm || matchingConcept) {
-                            const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
+                    {(module.type !== 'practical' || (module.content && module.content.length > 50)) && (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          // Custom styling for markdown elements
+                          h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
+                          p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
+                          pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+                          strong: ({ children }) => {
+                            // Convert strong text to Wikipedia links for key concepts
+                            const text = String(children);
+  
+                            // Common technical terms that should get Wikipedia links
+                            const importantTerms = [
+                              'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
+                              'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
+                              'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt',
+                              'hegesztés', 'ívhegesztés', 'elektróda', 'fém', 'ötvözet', 'acél'
+                            ];
+  
+                            // Check if this text is an important term
+                            const isImportantTerm = importantTerms.some(term =>
+                              text.toLowerCase().includes(term.toLowerCase())
+                            );
+  
+                            // Also check against key concepts data
+                            let keyConceptsData = [];
+                            try {
+                              keyConceptsData = module.keyConceptsData ?
+                                (typeof module.keyConceptsData === 'string' ?
+                                  JSON.parse(module.keyConceptsData) :
+                                  module.keyConceptsData) : [];
+                            } catch (e) {}
+  
+                            const matchingConcept = keyConceptsData.find((concept: any) =>
+                              concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
+                            );
+  
+                            if (isImportantTerm || matchingConcept) {
+                              const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
+                              return (
+                                <a
+                                  href={wikipediaUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
+                                  title={`Wikipedia: ${text}`}
+                                >
+                                  {children}
+                                  <span className="text-xs">🔗</span>
+                                </a>
+                              );
+                            }
+  
+                            return <strong className="font-semibold text-primary">{children}</strong>;
+                          },
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                          table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
+                          th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
+                          td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
+                          a: ({ href, children }) => {
+                            if (href && href.includes('hu.wikipedia.org/wiki/')) {
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    fetchWikipediaContent(href);
+                                  }}
+                                  className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
+                                >
+                                  {children}
+                                  <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
+                                </button>
+                              );
+                            }
+                            return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
+                          },
+                          code: ({ className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            const language = match ? match[1] : '';
+                            if (language === 'mermaid') {
+                              return (
+                                <div className="mermaid bg-student-warm p-4 border rounded-lg my-4">
+                                  {String(children).replace(/\n$/, '')}
+                                </div>
+                              );
+                            }
                             return (
-                              <a
-                                href={wikipediaUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
-                                title={`Wikipedia: ${text}`}
-                              >
+                              <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
                                 {children}
-                                <span className="text-xs">🔗</span>
-                              </a>
+                              </code>
                             );
                           }
-
-                          return <strong className="font-semibold text-primary">{children}</strong>;
-                        },
-                        em: ({ children }) => <em className="italic">{children}</em>,
-                        table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
-                        th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
-                        td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
-                        a: ({ href, children }) => {
-                          // Check if this is a Wikipedia link
-                          if (href && href.includes('hu.wikipedia.org/wiki/')) {
-                            return (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  fetchWikipediaContent(href);
-                                }}
-                                className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
-                              >
-                                {children}
-                                <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
-                              </button>
-                            );
+                        }}
+                      >
+                        {(() => {
+                          if (module.conciseContent || module.detailedContent) {
+                            if (contentVersion === 'concise' && module.conciseContent) return module.conciseContent;
+                            if (contentVersion === 'detailed' && module.detailedContent) return module.detailedContent;
+                            return module.detailedContent || module.conciseContent;
                           }
-                          // Regular external links
-                          return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
-                        },
-                        code: ({ className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || '');
-                          const language = match ? match[1] : '';
-
-                          if (language === 'mermaid') {
-                            return (
-                              <div className="mermaid bg-student-warm p-4 border rounded-lg my-4">
-                                {String(children).replace(/\n$/, '')}
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                      }}
-                    >
-                      {(() => {
-                        // AI enhanced modules: use selected version
-                        if (module.conciseContent || module.detailedContent) {
-                          if (contentVersion === 'concise' && module.conciseContent) {
-                            return module.conciseContent;
-                          }
-                          if (contentVersion === 'detailed' && module.detailedContent) {
-                            return module.detailedContent;
-                          }
-                          // Fallback to available content
-                          return module.detailedContent || module.conciseContent;
-                        }
-                        // Regular modules: use original content
-                        return module.content;
-                      })()}
-                    </ReactMarkdown>
+                          return module.content;
+                        })()}
+                      </ReactMarkdown>
+                    )}
 
                     {/* Practical Tasks Section */}
-                    {!!module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
-                      <div className="mt-8 pt-6 border-t border-neutral-100">
+                    {module.type === 'practical' && !!module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
+                      <div className={`${module.content && module.content.length > 50 ? "mt-8 pt-6 border-t border-neutral-100" : ""}`}>
                         <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                          <CheckCircle className="text-green-600" size={20} />
+                          <Wrench className="text-orange-600" size={20} />
                           Gyakorlati Feladatok
                         </h3>
                         <div className="grid gap-3">
                           {module.practicalTasks.map((task: string, idx: number) => (
-                            <div key={idx} className="flex items-start gap-3 bg-green-50/50 p-4 rounded-xl border border-green-100/50 hover:bg-green-50 transition-colors">
-                              <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                            <div key={idx} className="flex items-start gap-4 bg-orange-50/50 p-5 rounded-2xl border border-orange-100/50 hover:bg-orange-50 transition-all shadow-sm">
+                              <span className="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
                                 {idx + 1}
                               </span>
-                              <p className="text-neutral-700 leading-relaxed font-medium">{task}</p>
+                              <p className="text-neutral-700 leading-relaxed font-semibold text-lg">{task}</p>
                             </div>
                           ))}
                         </div>

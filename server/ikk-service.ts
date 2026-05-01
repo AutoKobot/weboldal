@@ -137,36 +137,31 @@ Szabály:
 - Ha nincs ilyen pont, de a névben benne van a "gyakorlat" szó → PRACTICAL.
 
 ── EXTRAKCIÓS SZABÁLYOK ──
-1. MIKRO-MODULOK: SOHA ne vonj össze több felsoroláspontot egy modulba! Ha egy fejezet (pl. 3.4.1.6.1) 10 pontot sorol fel, hozz létre 10 külön modult. Minden egyes gondolatjel, felsorolás vagy különálló szakmai feladat legyen egy önálló modul.
-2. SZAKOSÍTÁS: Ha a szakasz (.4 pont) > 0% gyakorlatot ír elő, az összes alatta lévő modult jelöld "practical"-nak.
-3. KÓDOLÁS: Minden modul örökölje a fejezetszámát (pl. 3.4.1.6.1). Egy kódon több modul is osztozhat, ha azok egy felsorolás részei.
-4. TISZTÍTÁS: Hagyd ki az adminisztratív részeket (.1, .2, .3, .5 pontok). Csak a .6 alatti tartalommal foglalkozz.
+Elemezd ezt a PTT (Szakmai Képzési Program) részletet és bontsd fel tanórákra (modulokra).
 
-FORMA A (Folyamatos szöveg): Minden önálló mondat legyen egy MODUL.
-FORMA B (Felsorolás): Minden gondolatjellel (‒, -, •, *, vagy egyéb) kezdődő sor legyen egy MODUL.
+FONTOS SZABÁLYOK:
+1. Ha egy témakörhöz (pl. "Hegesztés alapjai") tartozik elméleti ÉS gyakorlati leírás is, akkor azt KÉT KÜLÖN MODULRA bontsd szét!
+   - Az egyik legyen "theory" típusú, a címe maradhat az eredeti.
+   - A másik legyen "practical" típusú, a címe elé írd oda: "[GYAKORLAT]".
+2. A modulok címeit fordítsd át TANULÓI szemléletre (ne "A tantárgy célja", hanem pl. "Hegesztési folyamat céljai").
+3. "sectionCode" mezőbe írd a PTT-beli fejezetszámot (pl. 3.4.1.6.2).
+4. Csak szakmai tartalmat vegyél fel, az adminisztratív részeket hagyd ki.
 
-── VÁLASZ FORMÁTUMA (JSON) ──
+VÁLASZ FORMÁTUMA (JSON):
 {
   "subjects": [
     {
       "name": "Tantárgy neve",
       "code": "3.X.X",
       "hours": 72,
-      "practicalPercent": 90,
+      "practicalPercent": 50,
       "modules": [
-        { 
-          "title": "SZÖVEG (pl. Munkavédelem fogalma)", 
-          "type": "practical", 
-          "sectionCode": "3.X.X.6.X" 
-        }
+        { "title": "Téma címe", "type": "theory", "sectionCode": "3.X.X.1" },
+        { "title": "[GYAKORLAT] Téma címe", "type": "practical", "sectionCode": "3.X.X.1" }
       ]
     }
   ]
 }
-
-"code" = a tantárgy fejléce előtti szám (pl. 3.4.1).
-"hours" = a törtszám ELŐTTI szám (pl. "72/72 óra" esetén 72).
-"sectionCode" = a legközelebbi alfejezet-kód (pl. 3.4.1.6.1).
 
 PTT SZÖVEG:
 ${chunk}
@@ -176,23 +171,35 @@ ${chunk}
   buildContentPrompt(professionName: string, subjectName: string, modules: RawModule[]): string {
     const moduleList = modules.map((m, i) => `${i + 1}. [${(m.type || 'theory').toUpperCase()}] ${m.title}`).join('\n');
     return `
-Te egy tananyagfejlesztő vagy. Generálj szakmai tartalmat az alábbi modulokhoz.
+Te egy profi szakoktató és tananyagfejlesztő vagy. Generálj szakmai tananyagot TANULÓK számára.
 
 Szakma: ${professionName}
 Tantárgy: ${subjectName}
 
+FELADAT:
+Minden modulhoz írj egy tömör, professzionális kifejtést az alábbiak szerint:
+
+1. HA A MODUL [THEORY] (Elmélet):
+   - A "content" mezőbe írj 4-5 mondatos, lényegre törő szakmai magyarázatot.
+   - Használj tanuló-központú nyelvezetet (ne tanári útmutatót!).
+   - A "practicalTasks" maradjon üres lista [].
+
+2. HA A MODUL [PRACTICAL] (Gyakorlat):
+   - A "content" mezőbe írj egy rövid (max 2 mondat) bevezetőt a gyakorlati feladathoz.
+   - A "practicalTasks" mezőbe generálj 3-5 konkrét, lépésről-lépésre végrehajtható szakmai feladatot.
+
+TILOS:
+- "A tantárgy célja...", "A tanulónak meg kell ismernie..." kezdetű mondatok.
+- Halandzsa, töltelékszöveg, pedagógiai módszertani leírások.
+- Ismétlődés a modulok között.
+
 MODULOK:
 ${moduleList}
-
-KÖVETELMÉNYEK:
-- "content": 5-8 mondatos szakmai kifejtés.
-- "practicalTasks": HA a modul PRACTICAL, akkor 3-5 konkrét gyakorlati feladat listája. Ha THEORY, maradjon üres [].
-- A "title" mezőt pontosan másold vissza!
 
 VÁLASZ (JSON):
 {
   "modules": [
-    { "title": "...", "content": "...", "practicalTasks": [] }
+    { "title": "Pontos modul cím", "content": "Szakmai tartalom...", "practicalTasks": ["feladat 1", "feladat 2"] }
   ]
 }
 `.trim();
