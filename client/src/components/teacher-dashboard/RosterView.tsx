@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,10 +125,10 @@ export function RosterView({
                    <TableHead className="no-print">Művelet</TableHead>
                 </TableRow>
              </TableHeader>
-             <TableBody>
+              <TableBody>
                 {rosterData.students.map((s: any) => (
-                   <>
-                      <TableRow key={s.id}>
+                   <React.Fragment key={s.id}>
+                      <TableRow>
                          <TableCell className="font-medium">{s.lastName} {s.firstName}</TableCell>
                          <TableCell>{s.stats?.attendanceCount || 0} óra</TableCell>
                          <TableCell>{s.stats?.completedCount || 0} db</TableCell>
@@ -156,9 +157,9 @@ export function RosterView({
                             </TableCell>
                          </TableRow>
                       )}
-                   </>
+                   </React.Fragment>
                 ))}
-             </TableBody>
+              </TableBody>
           </Table>
         </div>
       ) : (
