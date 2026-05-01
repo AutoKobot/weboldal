@@ -300,7 +300,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           if (data.subjects) {
             for (const sub of data.subjects) {
               const key = sub.name?.toLowerCase().trim();
-              if (!key) continue;
+              if (!key || key === 'példa_tantárgy_neve' || key === 'tantárgy pontos neve') continue;
               
               if (!mergedSubjectsMap.has(key)) mergedSubjectsMap.set(key, { ...sub, modules: [] });
               const existing = mergedSubjectsMap.get(key);

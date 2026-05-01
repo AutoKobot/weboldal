@@ -170,21 +170,30 @@ export class IKKService {
       .replace(/\n\s*\n\s*\n/g, '\n\n');
   }
 
-  /**
-   * Splits PTT text into intelligent chunks based on section headers.
-   * Catches both Subject definitions (e.g. 3.3.1) and Topic definitions (e.g. 3.3.1.6.1).
-   */
   splitPttIntoSections(text: string): string[] {
     if (!text) return [];
 
-    // Look for patterns like "3.4.2.6.1" or "3.4.2 " at the start of a line
-    // The pattern \n\s*\d+\.\d+\.\d+ catches subjects and topics
-    const sections = text.split(/(?=\n\s*\d+\.\d+\.\d+)/);
+    // Hasítjuk a dokumentumot a "Tantárgy" kezdetű fejezetek mentén (pl. "3.3.1 Hegesztési alapok tantárgy")
+    // Így egy tantárgy neve és az ahhoz tartozó összes témakör (modul) egyetlen chunk-ba kerül!
+    const sections = text.split(/(?=\n\s*\d+\.\d+(\.\d+)?\s+[^\n]+tantárgy)/i);
     
-    // Filter out very small fragments and trim
+    // Ha a regex nem találna eleget (pl. mert nincs "tantárgy" szó a fejlécben, vagy túl nagy a dokumentum)
+    if (sections.length <= 2) {
+      console.warn("[IKK-SERVICE] Fallback chunking: nem talált egyértelmű tantárgy fejléceket.");
+      // Fallback: chunk by length with overlap to ensure AI gets enough context
+      const CHUNK_SIZE = 8000;
+      const OVERLAP = 1500;
+      const chunks = [];
+      for (let i = 0; i < text.length; i += CHUNK_SIZE - OVERLAP) {
+        chunks.push(text.substring(i, i + CHUNK_SIZE));
+      }
+      return chunks;
+    }
+    
+    // Szűrjük ki a túl kicsi töredékeket (pl. a dokumentum eleje a tantárgyak előtt)
     return sections
       .map(s => s.trim())
-      .filter(s => s.length > 50);
+      .filter(s => s.length > 500); // 500 karakternél kisebb szövegben biztos nincs teljes tantárgy
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -288,16 +297,18 @@ Divatszabó példák (Forma B):
 ${chunk}
 
 ═══ VÁLASZ – CSAK VALID JSON, SEMMI MÁS ═══
+FONTOS: A fenti példát NE másold be! Ha a szövegben NEM találsz tantárgyakat, válaszolj üres tömbbel: {"subjects": []}
+
+Példa szerkezet:
 {
   "subjects": [
     {
-      "name": "Tantárgy Pontos Neve",
+      "name": "PÉLDA_TANTÁRGY_NEVE",
       "code": "X.X.X",
-      "description": "A tantárgy tartalmának rövid összefoglalása a dokumentum alapján.",
+      "description": "Rövid leírás...",
       "practicalPercent": 0,
       "modules": [
-        { "title": "X.X.X.X.X Fejezetcím - Modul konkrét szövege", "type": "theory", "sectionCode": "X.X.X.X.X" },
-        { "title": "X.X.X.X.X Fejezetcím - Másik modul szövege", "type": "theory", "sectionCode": "X.X.X.X.X" }
+        { "title": "PÉLDA_FEJEZETCÍM - Példa modul", "type": "theory", "sectionCode": "X.X.X.X.X" }
       ]
     }
   ]
