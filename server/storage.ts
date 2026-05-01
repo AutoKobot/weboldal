@@ -889,19 +889,25 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(isNull(professions.schoolAdminId), eq(professions.schoolAdminId, schoolAdminId)));
     }
 
+    // Use LEFT JOINs and GROUP BY for a more robust query
     const baseQuery = db.select({
       id: professions.id,
       name: professions.name,
       description: professions.description,
+      iconName: professions.iconName,
+      iconUrl: professions.iconUrl,
       schoolAdminId: professions.schoolAdminId,
       createdAt: professions.createdAt,
       updatedAt: professions.updatedAt,
-      subjectCount: sql<number>`(SELECT count(*) FROM subjects WHERE profession_id = ${professions.id})`,
-      moduleCount: sql<number>`(SELECT count(*) FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id})`,
-      theoryCount: sql<number>`(SELECT count(*) FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'theory')`,
-      practicalCount: sql<number>`(SELECT count(*) FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'practical')`,
+      subjectCount: sql<number>`count(distinct ${subjects.id})`,
+      moduleCount: sql<number>`count(distinct ${modules.id})`,
+      theoryCount: sql<number>`count(distinct CASE WHEN ${modules.type} = 'theory' THEN ${modules.id} END)`,
+      practicalCount: sql<number>`count(distinct CASE WHEN ${modules.type} = 'practical' THEN ${modules.id} END)`,
     })
-    .from(professions);
+    .from(professions)
+    .leftJoin(subjects, eq(professions.id, subjects.professionId))
+    .leftJoin(modules, eq(subjects.id, modules.subjectId))
+    .groupBy(professions.id);
 
     if (conditions.length > 0) {
       return await baseQuery.where(and(...conditions)).orderBy(professions.name);
