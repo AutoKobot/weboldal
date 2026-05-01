@@ -136,14 +136,11 @@ Szabály:
 - Ha a ".4"-es pontnál a százalék 0% → A tantárgy és minden modulja THEORY.
 - Ha nincs ilyen pont, de a névben benne van a "gyakorlat" szó → PRACTICAL.
 
-── MODULOK KINYERÉSE ──
-Modulok KIZÁRÓLAG az "A tantárgy témakörei" (3.X.X.6) fejezet UTÁN találhatók.
-Kihagyandó (NEM modul):
-- "A tantárgy tanításának fő célja" (.1 pont)
-- "A tantárgyat oktató végzettségére..." (.2 pont)
-- "Kapcsolódó közismereti, szakmai tartalmak" (.3 pont)
-- "A képzés órakeretének legalább..." (.4 pont)
-- "A tantárgy oktatása során fejlesztendő kompetenciák" (.5 pont) és a hozzá tartozó táblázat.
+── EXTRAKCIÓS SZABÁLYOK ──
+1. MIKRO-MODULOK: SOHA ne vonj össze több felsoroláspontot egy modulba! Ha egy fejezet (pl. 3.4.1.6.1) 10 pontot sorol fel, hozz létre 10 külön modult. Minden egyes gondolatjel, felsorolás vagy különálló szakmai feladat legyen egy önálló modul.
+2. SZAKOSÍTÁS: Ha a szakasz (.4 pont) > 0% gyakorlatot ír elő, az összes alatta lévő modult jelöld "practical"-nak.
+3. KÓDOLÁS: Minden modul örökölje a fejezetszámát (pl. 3.4.1.6.1). Egy kódon több modul is osztozhat, ha azok egy felsorolás részei.
+4. TISZTÍTÁS: Hagyd ki az adminisztratív részeket (.1, .2, .3, .5 pontok). Csak a .6 alatti tartalommal foglalkozz.
 
 FORMA A (Folyamatos szöveg): Minden önálló mondat legyen egy MODUL.
 FORMA B (Felsorolás): Minden gondolatjellel (‒, -, •, *, vagy egyéb) kezdődő sor legyen egy MODUL.
@@ -153,18 +150,23 @@ FORMA B (Felsorolás): Minden gondolatjellel (‒, -, •, *, vagy egyéb) kezd�
   "subjects": [
     {
       "name": "Tantárgy neve",
+      "code": "3.X.X",
       "hours": 72,
       "practicalPercent": 90,
       "modules": [
         { 
-          "title": "KÓD + SZÖVEG (pl. 3.4.4.6.1 Szerszámok használata)", 
+          "title": "SZÖVEG (pl. Munkavédelem fogalma)", 
           "type": "practical", 
-          "sectionCode": "3.4.4.6.1" 
+          "sectionCode": "3.X.X.6.X" 
         }
       ]
     }
   ]
 }
+
+"code" = a tantárgy fejléce előtti szám (pl. 3.4.1).
+"hours" = a törtszám ELŐTTI szám (pl. "72/72 óra" esetén 72).
+"sectionCode" = a legközelebbi alfejezet-kód (pl. 3.4.1.6.1).
 
 PTT SZÖVEG:
 ${chunk}

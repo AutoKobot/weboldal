@@ -97,6 +97,7 @@ export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
   professionId: integer("profession_id").references(() => professions.id).notNull(),
   name: varchar("name").notNull(),
+  code: varchar("code", { length: 50 }), // Tantárgy kódja (pl. 3.4.1)
   description: text("description"),
   type: varchar("type").notNull().default("theory"), // "theory" vagy "practical"
   orderIndex: integer("order_index").notNull().default(0),

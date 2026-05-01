@@ -225,7 +225,7 @@ export default function ModuleCard({
     >
       <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-start space-x-3">
-          <div className="w-16 h-16 bg-gradient-to-br from-accent to-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+          <div className={`w-16 h-16 bg-gradient-to-br ${module.type === 'practical' ? 'from-orange-400 to-orange-600' : 'from-blue-400 to-blue-600'} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}>
             {module.imageUrl ? (
               <img
                 src={module.imageUrl}
@@ -233,24 +233,31 @@ export default function ModuleCard({
                 className="w-12 h-12 object-cover rounded-lg"
               />
             ) : (
-              <span className="text-white text-xl font-bold">#{module.moduleNumber}</span>
+              <span className="text-white text-xl font-bold">
+                {module.sectionCode ? module.sectionCode.split('.').pop() : `#${module.moduleNumber}`}
+              </span>
             )}
           </div>
           <div className="flex-1 min-w-0 pr-2">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="text-[10px] h-4">
-                {module.sectionCode ? `${module.sectionCode}` : `${module.moduleNumber}. modul`}
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <Badge variant="outline" className="text-[10px] h-4 font-mono bg-white/50">
+                {module.sectionCode || `${module.moduleNumber}. modul`}
               </Badge>
-              {/* Practical Tasks Badge */}
-              {Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
-                <Badge className="bg-orange-600 text-white text-[10px] h-4">
-                  <Wrench size={10} className="mr-1" /> GYAKORLATI FELADATOK
+              
+              {module.type === 'practical' ? (
+                <Badge className="bg-orange-600 text-white text-[10px] h-4 border-none hover:bg-orange-700">
+                  <Wrench size={10} className="mr-1" /> GYAKORLAT
+                </Badge>
+              ) : (
+                <Badge className="bg-blue-600 text-white text-[10px] h-4 border-none hover:bg-blue-700">
+                  <Brain size={10} className="mr-1" /> ELMÉLET
                 </Badge>
               )}
-              {/* AI Enhanced Badge */}
-              {(module.conciseContent || module.detailedContent) && (
-                <Badge variant="secondary" className="text-[10px] h-4 bg-blue-100 text-blue-700">
-                  AI Enhanced
+
+              {/* Practical Tasks Indicator */}
+              {Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && module.type !== 'practical' && (
+                <Badge variant="outline" className="text-[10px] h-4 border-orange-200 text-orange-700 bg-orange-50">
+                  + Feladatok
                 </Badge>
               )}
               {getStatusIcon()}

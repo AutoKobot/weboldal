@@ -344,6 +344,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           const dbSubject = await storage.createSubject({
             professionId: dbProfession.id,
             name: sub.name,
+            code: sub.code || "",
             description: sub.description || "",
             type: sub.practicalPercent > 0 ? 'practical' : 'theory',
             orderIndex: 0,

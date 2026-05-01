@@ -117,7 +117,10 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
         {filteredSubjects.map((subject: Subject) => (
           <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(subject.id)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-bold">{subject.name}</CardTitle>
+              <CardTitle className="text-base font-bold">
+                {subject.code && <span className="text-primary mr-2">{subject.code}</span>}
+                {subject.name}
+              </CardTitle>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(subject); }}>
                   <Edit className="h-4 w-4" />
@@ -154,16 +157,28 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => editingSubject ? updateMutation.mutate({ id: editingSubject.id, data }) : createMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Megnevezés</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kód (pl. 3.4.1)</FormLabel>
+                      <FormControl><Input {...field} placeholder="3.x.x" /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Megnevezés</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="type"

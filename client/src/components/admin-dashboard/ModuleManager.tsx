@@ -205,8 +205,8 @@ export function ModuleManager({
           <Card key={module.id} className={`group hover:border-primary transition-all duration-300 ${viewMode === 'grid' ? 'h-full flex flex-col shadow-sm hover:shadow-md' : ''}`}>
             <CardHeader className={`flex flex-row items-center justify-between ${viewMode === 'grid' ? 'pb-2' : 'py-3'}`}>
               <div className="flex items-center gap-3 overflow-hidden">
-                <Badge variant="outline" className="w-8 h-8 flex items-center justify-center p-0 rounded-full font-bold bg-muted shrink-0">
-                  {module.moduleNumber}
+                <Badge variant="outline" className={`${module.sectionCode ? "w-auto px-2 text-[10px]" : "w-8"} h-8 flex items-center justify-center rounded-full font-bold bg-muted shrink-0`}>
+                  {module.sectionCode || module.moduleNumber}
                 </Badge>
                 <div className="min-w-0">
                   <CardTitle className={`font-bold truncate ${viewMode === 'grid' ? 'text-lg' : 'text-base'}`}>{module.title}</CardTitle>
@@ -214,6 +214,15 @@ export function ModuleManager({
                     <Badge variant={module.isPublished ? "default" : "secondary"} className="text-[10px] h-4">
                       {module.isPublished ? "Publikálva" : "Piszkozat"}
                     </Badge>
+                    {module.type === 'practical' ? (
+                      <Badge variant="outline" className="text-[10px] h-4 bg-orange-50 text-orange-700 border-orange-200 flex items-center gap-1">
+                        <Wrench className="h-2 w-2" /> GYAKORLAT
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] h-4 bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+                        <Brain className="h-2 w-2" /> ELMÉLET
+                      </Badge>
+                    )}
                     {(regeneratingModules.has(module.id) || presentingModules.has(module.id)) && (
                       <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-blue-50 text-blue-600 animate-pulse">
                         <Loader2 className="h-2 w-2 animate-spin" /> 
