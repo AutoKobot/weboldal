@@ -338,12 +338,11 @@ export default function HomePage() {
                     </Badge>
                   </div>
 
-                  <div className="relative h-4 w-full bg-white/10 rounded-full overflow-hidden mb-4 p-[2px]">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
-                      style={{ width: `${allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0}%` }}
-                    ></div>
-                  </div>
+                  <Progress 
+                    value={allModules.length > 0 ? Math.round((completedCount / allModules.length) * 100) : 0}
+                    className="h-4 w-full bg-white/10 rounded-full overflow-hidden mb-4 p-[2px] border-none"
+                    indicatorClassName="bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.5)] transition-all duration-1000"
+                  />
 
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-slate-400 font-medium">

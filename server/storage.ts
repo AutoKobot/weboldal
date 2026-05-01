@@ -891,7 +891,21 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(isNull(professions.schoolAdminId), eq(professions.schoolAdminId, schoolAdminId)));
     }
 
-    const baseQuery = db.select().from(professions);
+    const baseQuery = db.select({
+      id: professions.id,
+      name: professions.name,
+      description: professions.description,
+      iconName: professions.iconName,
+      iconUrl: professions.iconUrl,
+      schoolAdminId: professions.schoolAdminId,
+      createdAt: professions.createdAt,
+      updatedAt: professions.updatedAt,
+      subjectCount: sql<number>`(SELECT count(*) FROM subjects WHERE profession_id = ${professions.id})`,
+      moduleCount: sql<number>`(SELECT count(*) FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id})`,
+      theoryCount: sql<number>`(SELECT count(*) FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'theory')`,
+      practicalCount: sql<number>`(SELECT count(*) FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'practical')`,
+    })
+    .from(professions);
 
     if (conditions.length > 0) {
       return await baseQuery.where(and(...conditions)).orderBy(professions.name);

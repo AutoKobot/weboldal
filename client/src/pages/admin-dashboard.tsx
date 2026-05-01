@@ -23,6 +23,8 @@ import { SettingsManager } from "@/components/admin-dashboard/SettingsManager";
 import { PromptSettings } from "@/components/admin-dashboard/PromptSettings";
 import { IKKManager } from "@/components/admin-dashboard/IKKManager";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -63,7 +65,11 @@ export default function AdminDashboard() {
   const { data: queueStatus } = useQuery<any>({
     queryKey: ["/api/admin/queue-status"],
     enabled: isAdmin,
-    refetchInterval: (data) => (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000,
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000;
+    },
+
   });
 
   const handleLogout = async () => {
@@ -76,13 +82,15 @@ export default function AdminDashboard() {
   };
 
   const stats = {
-    totalProfessions: professions.length,
-    totalSubjects: subjects.length,
-    totalModules: modules.length,
-    publishedModules: modules.filter(m => m.isPublished).length,
-    totalUsers: users.length,
-    studentUsers: users.filter(u => u.role === 'student').length,
-    teacherUsers: users.filter(u => u.role === 'teacher').length,
+    totalProfessions: (professions || []).length,
+    totalSubjects: (subjects || []).length,
+    totalModules: (modules || []).length,
+    publishedModules: (modules || []).filter(m => m.isPublished).length,
+    totalUsers: (users || []).length,
+    adminUsers: (users || []).filter(u => u.role === 'admin').length,
+    schoolAdminUsers: (users || []).filter(u => u.role === 'school_admin').length,
+    teacherUsers: (users || []).filter(u => u.role === 'teacher').length,
+    studentUsers: (users || []).filter(u => u.role === 'student').length,
   };
 
   return (
@@ -121,6 +129,8 @@ export default function AdminDashboard() {
           </TabsList>
 
           <div className="mt-6">
+            <ErrorBoundary>
+
             <TabsContent value="overview">
               <DashboardOverview stats={stats} queueStatus={queueStatus} />
             </TabsContent>
@@ -194,6 +204,7 @@ export default function AdminDashboard() {
                 </TabsContent>
               </>
             )}
+            </ErrorBoundary>
           </div>
         </Tabs>
       </main>
