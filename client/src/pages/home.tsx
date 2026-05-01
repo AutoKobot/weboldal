@@ -116,16 +116,16 @@ export default function HomePage() {
   }
 
   // DIÁK MŰSZERFAL (Student Dashboard)
-  const completedCount = user.completedModules?.length || 0;
+  const completedSet = new Set(user.completedModules || []);
+  // Csak azokat számoljuk be, amik az aktuális szakmához tartoznak
+  const validCompletedModules = allModules.filter(m => completedSet.has(m.id));
+  const completedCount = validCompletedModules.length;
+  
   const isBeginner = completedCount === 0;
   const weeklyGoal = 3;
 
   // Valódi adatok számítása
   // allModules: az összes modul amit a diák láthat (selectedProfessionId alapján szűrve a szerveren)
-  // Ha nincs selectedProfessionId, próbáljuk az assignedProfessionIds-t
-
-  // Következő modul – az első ami még nincs kész, és publish-olt
-  const completedSet = new Set(user.completedModules || []);
   const allDone = allModules.length > 0 && allModules.every(m => completedSet.has(m.id));
   // nextModule: ha van be nem fejezett → az, ha minden kész → null (áttérünk ismétlés módba)
   const nextModule = allDone

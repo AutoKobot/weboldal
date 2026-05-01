@@ -889,21 +889,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(isNull(professions.schoolAdminId), eq(professions.schoolAdminId, schoolAdminId)));
     }
 
-    // IMPORTANT: Drizzle ORM is immutable – must use the returned query from .where()
-    const baseQuery = db.select({
-      id: professions.id,
-      name: professions.name,
-      code: professions.code,
-      description: professions.description,
-      schoolAdminId: professions.schoolAdminId,
-      createdAt: professions.createdAt,
-      updatedAt: professions.updatedAt,
-      subjectCount: sql<number>`(SELECT count(*)::int FROM subjects WHERE profession_id = ${professions.id})`,
-      moduleCount: sql<number>`(SELECT count(*)::int FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id})`,
-      theoryCount: sql<number>`(SELECT count(*)::int FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'theory')`,
-      practicalCount: sql<number>`(SELECT count(*)::int FROM modules m JOIN subjects s ON m.subject_id = s.id WHERE s.profession_id = ${professions.id} AND m.type = 'practical')`,
-    })
-    .from(professions);
+    const baseQuery = db.select().from(professions);
 
     if (conditions.length > 0) {
       return await baseQuery.where(and(...conditions)).orderBy(professions.name);
@@ -1128,7 +1114,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Module operations
-  async getModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
+  async getModules(subjectId?: number, schoolAdminId?: string | null, professionId?: number): Promise<Module[]> {
     const conditions = [];
 
     if (subjectId) {
@@ -1144,6 +1130,18 @@ export class DatabaseStorage implements IStorage {
         )
       );
       if (subjectFilter) conditions.push(subjectFilter);
+    } else if (professionId) {
+      // If no subjectId but professionId is provided, filter modules by subjects belonging to that profession
+      conditions.push(
+        exists(
+          db.select()
+            .from(subjects)
+            .where(and(
+              eq(subjects.id, modules.subjectId),
+              eq(subjects.professionId, professionId)
+            ))
+        )
+      );
     }
 
     if (schoolAdminId === null) {

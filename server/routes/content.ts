@@ -95,7 +95,9 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
     const userSchoolAdminId = user?.schoolAdminId || (req.user as any).schoolAdminId;
 
     const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
+    console.log(`[API] Fetching professions for schoolAdminId: ${schoolAdminId}, userRole: ${userRole}`);
     let professions = await storage.getProfessions(schoolAdminId);
+    console.log(`[API] Found ${professions.length} professions`);
 
     // Demo restriction - ONLY for dedicated DemoUser
     const username = user?.username || req.user.username;
@@ -199,10 +201,12 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
     const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
 
     let modules;
+    const professionId = userRole === 'student' ? user?.selectedProfessionId : undefined;
+    
     if (userRole === 'admin' || userRole === 'teacher') {
       modules = await storage.getModules(subjectId, schoolAdminId);
     } else {
-      modules = await storage.getPublishedModules(subjectId, schoolAdminId);
+      modules = await storage.getPublishedModules(subjectId, schoolAdminId, professionId || undefined);
     }
     
     let cleaned = modules.map(m => ({

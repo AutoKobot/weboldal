@@ -118,6 +118,8 @@ export default function ModulesPage() {
           <button
             onClick={() => setIsMobileNavOpen(true)}
             className="p-2 rounded-lg hover:bg-neutral-100"
+            aria-label="Menü megnyitása"
+            title="Menü megnyitása"
           >
             <Menu size={24} />
           </button>
