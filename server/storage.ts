@@ -358,6 +358,7 @@ export class DatabaseStorage implements IStorage {
         { name: "modules.key_concepts_data", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS key_concepts_data JSONB` },
         { name: "modules.generated_quizzes", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS generated_quizzes JSONB` },
         { name: "modules.practical_tasks", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS practical_tasks JSONB` },
+        { name: "modules.section_code", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS section_code VARCHAR(50)` },
         { name: "subjects.hours", sql: sql`ALTER TABLE subjects ADD COLUMN IF NOT EXISTS hours INTEGER` },
       ];
 
