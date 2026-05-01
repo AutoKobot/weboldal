@@ -70,6 +70,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Ensure database schema is up to date before starting the server
+  try {
+    const { storage } = await import("./storage");
+    await storage.ensureSchemaUpToDate();
+    log("🚀 Adatbázis séma ellenőrizve és készen áll.");
+  } catch (err) {
+    log(`❌ Kritikus hiba az adatbázis inicializálásakor: ${err}`);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

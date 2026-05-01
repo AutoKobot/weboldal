@@ -343,7 +343,7 @@ export class DatabaseStorage implements IStorage {
     this.ensureSchemaUpToDate().catch(err => console.error("Schema update error:", err));
   }
 
-  private async ensureSchemaUpToDate() {
+  public async ensureSchemaUpToDate() {
     console.time("schema-update");
     try {
       console.log("🔍 Adatbázis séma ellenőrzése...");
