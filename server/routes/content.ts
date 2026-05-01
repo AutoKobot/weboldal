@@ -90,11 +90,16 @@ router.post('/modules/:id/flashcards/import', combinedAuth, checkContentEditor, 
 router.get('/professions', combinedAuth, async (req: any, res) => {
   try {
     const user = await storage.getUser(req.user.id);
-    const schoolAdminId = user?.role === 'admin' ? undefined : (user?.role === 'school_admin' ? user.id : user?.schoolAdminId);
+    const userRole = user?.role || req.user.role;
+    const userId = user?.id || req.user.id;
+    const userSchoolAdminId = user?.schoolAdminId || (req.user as any).schoolAdminId;
+
+    const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
     let professions = await storage.getProfessions(schoolAdminId);
 
     // Demo restriction - ONLY for dedicated DemoUser
-    if (user?.username === 'DemoUser') {
+    const username = user?.username || req.user.username;
+    if (username === 'DemoUser') {
       const demoProfessions = professions.filter(p => p.name.toLowerCase().includes('hegesztő'));
       if (demoProfessions.length > 0) {
         professions = demoProfessions.slice(0, 1);
@@ -104,9 +109,9 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
       }
     }
 
-
     res.json(professions);
   } catch (error) {
+    console.error("Fetch professions error:", error);
     res.status(500).json({ message: "Failed to fetch professions" });
   }
 });
@@ -124,16 +129,25 @@ router.post('/professions', combinedAuth, checkContentEditor, async (req: any, r
 // --- Subjects ---
 router.get('/subjects', combinedAuth, async (req: any, res) => {
   try {
+    const user = await storage.getUser(req.user.id);
+    const userRole = user?.role || req.user.role;
+    const userId = user?.id || req.user.id;
+    const userSchoolAdminId = user?.schoolAdminId || (req.user as any).schoolAdminId;
+
+    const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
     const professionId = req.query.professionId ? parseInt(req.query.professionId as string) : undefined;
-    let subjects = await storage.getSubjects(professionId);
+    
+    let subjects = await storage.getSubjects(professionId, schoolAdminId);
 
     // Demo restriction - ONLY for dedicated DemoUser
-    if (req.user?.username === 'DemoUser') {
+    const username = user?.username || req.user.username;
+    if (username === 'DemoUser') {
       subjects = subjects.slice(0, 3);
     }
 
     res.json(subjects);
   } catch (error) {
+    console.error("Fetch subjects error:", error);
     res.status(500).json({ message: "Failed to fetch subjects" });
   }
 });
@@ -174,13 +188,18 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
   try {
     const subjectId = req.query.subjectId ? parseInt(req.query.subjectId as string) : undefined;
     const user = await storage.getUser(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const userRole = user?.role || req.user.role;
+    const username = user?.username || req.user.username;
+    const userSchoolAdminId = user?.schoolAdminId || (req.user as any).schoolAdminId;
+    const userId = user?.id || req.user.id;
+    
+    const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
 
     let modules;
-    if (user.role === 'admin' || user.role === 'teacher') {
-      modules = await storage.getModules(subjectId);
+    if (userRole === 'admin' || userRole === 'teacher') {
+      modules = await storage.getModules(subjectId, schoolAdminId);
     } else {
-      modules = await storage.getPublishedModules(subjectId);
+      modules = await storage.getPublishedModules(subjectId, schoolAdminId);
     }
     
     let cleaned = modules.map(m => ({
@@ -191,12 +210,13 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
     }));
 
     // Demo restriction - ONLY for dedicated DemoUser
-    if (user.username === 'DemoUser') {
+    if (username === 'DemoUser') {
       cleaned = cleaned.slice(0, 3);
     }
 
     res.json(cleaned);
   } catch (error) {
+    console.error("Fetch modules error:", error);
     res.status(500).json({ message: "Failed to fetch modules" });
   }
 });
@@ -279,7 +299,9 @@ router.get('/modules/:id/flashcards', combinedAuth, async (req: any, res) => {
 router.get('/debug-db', combinedAuth, async (req: any, res) => {
   try {
     const user = await storage.getUser(req.user.id);
-    if (user?.role !== 'admin') {
+    const userRole = user?.role || req.user.role;
+    
+    if (userRole !== 'admin') {
       return res.status(403).json({ message: "Admin access required for debug" });
     }
 
@@ -301,11 +323,16 @@ router.get('/debug-db', combinedAuth, async (req: any, res) => {
       subjects: subjectsCount.length,
       modules: modulesCount.length,
       jobs: jobs,
-      user: {
+      user: user ? {
         id: user.id,
         role: user.role,
         schoolAdminId: user.schoolAdminId,
         schoolId: user.schoolId
+      } : {
+        id: req.user.id,
+        role: req.user.role,
+        schoolAdminId: (req.user as any).schoolAdminId || null,
+        schoolId: (req.user as any).schoolId || null
       }
     });
   } catch (error: any) {
