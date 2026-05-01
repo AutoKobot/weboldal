@@ -357,16 +357,9 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             batches.push(sub.modules.slice(i, i + BATCH_SIZE));
           }
 
-          // Process batches in parallel (limit 3)
-          await runParallel(batches, 3, async (batch) => {
+          // Process batches in parallel (limit 5 for faster generation)
+          await runParallel(batches, 5, async (batch) => {
             if (activeImport.status === 'error') return;
-
-            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
-            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
-            await (storage as any).updateBackgroundJob(jobId, {
-              message: activeImport.message,
-              progress: activeImport.progress
-            });
 
             const res = await withRetry(async () => {
               const openai = await getOpenAIClient();
@@ -401,6 +394,15 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             if (modulesToCreate.length > 0) {
               await storage.bulkCreateModules(modulesToCreate);
             }
+            
+            // Update progress AFTER each batch
+            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
+            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
+            await (storage as any).updateBackgroundJob(jobId, {
+              message: activeImport.message,
+              progress: activeImport.progress
+            });
+            console.log(`[IKK-IMPORT] Job #${jobId}: ${processedModules}/${totalModules} kész.`);
           });
         }
 

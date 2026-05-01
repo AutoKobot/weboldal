@@ -214,24 +214,18 @@ Tantárgy = minden sor, amelynek VÉGÉN szerepel az "óra" szó egy törtszám 
 A tantárgy neve = az órakeret és a "tantárgy" szó ELHAGYÁSÁVAL maradó szöveg.
 
 ── ELMÉLET/GYAKORLAT ARÁNY ──
-Keresd a "A képzés órakeretének legalább X%-át gyakorlati helyszínen" sort!
-  X = 0   → practicalPercent = 0,   modulok type = "theory"
-  X = 50  → practicalPercent = 50,  modulok type = "practical"
-  X = 100 → practicalPercent = 100, modulok type = "practical"
-Ha nincs ilyen sor → practicalPercent = 0, type = "theory"
-Ha a tantárgy neve tartalmazza a "gyakorlat" szót → practicalPercent = 100, type = "practical"
+1. Keresd a "A képzés órakeretének legalább X%-át gyakorlati helyszínen" sort!
+   X > 0   → practicalPercent = X, modulok alapértelmezett type = "practical"
+2. Keresd a tantárgy nevében az alábbi kulcsszavakat: 
+   "gyakorlat", "szerelés", "karbantartás", "mérés", "vizsgálat", "készítés", "kezelés", "megmunkálás".
+   Ha bármelyik szerepel → practicalPercent = 100, modulok type = "practical"
+3. Ha nincs egyértelmű jel → practicalPercent = 0, type = "theory"
 
-── MODULOK HELYE ──
-Modulok KIZÁRÓLAG az "A tantárgy témakörei" c. fejezet UTÁN találhatók!
-Ez a fejezet mindig "3.X.X.6 A tantárgy témakörei" formátumú.
-
-AMIT KI KELL HAGYNI (NEM modulok!):
-  ✗ "A tantárgy tanításának fő célja" + az utána lévő bekezdések
-  ✗ "A tantárgyat oktató végzettségére vonatkozó..." + tartalma
-  ✗ "Kapcsolódó közismereti, szakmai tartalmak" + tartalma
-  ✗ "A képzés órakeretének legalább..." sor
-  ✗ Kompetencia-táblázat sorai ("Készségek, képességek", "Ismeretek", "Önállóság és felelősség",
-    "Teljesen önállóan", "Instrukció alapján", "részben önállóan" stb.)
+── MODULOK TÍPUSA (EGYEDILEG) ──
+Minden modulnál döntsd el a szövege alapján:
+- Ha fizikai tevékenységet, eszközhasználatot vagy konkrét munkafolyamatot ír le → type: "practical"
+- Ha fogalmakat, szabályokat, elveket vagy ismereteket sorol fel → type: "theory"
+Egy tantárgyon belül lehetnek vegyesen is!
   ✗ "X/80. oldal" vagy "X/47. oldal" oldalszámok
   ✗ Üres sorok
 
