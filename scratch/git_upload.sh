@@ -1,3 +1,3 @@
 git add .
-git commit -m "Fix IKK import stability, progress reporting, and PDF parsing robustness"
+git commit -m "Fix: IKK import PDF chunking, prevent placeholder subjects, fix 401 session loss, and fix frontend profession deletion endpoint"
 git push
