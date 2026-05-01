@@ -336,6 +336,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  public db = db;
   // User operations
   constructor() {
     // Automatikus séma-frissítés: Ellenőrizzük és hozzáadjuk a hiányzó oszlopokat

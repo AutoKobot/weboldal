@@ -38,6 +38,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Debug Schema (Temporary direct registration)
+  app.get('/api/debug-schema', async (req: any, res) => {
+    try {
+      const { storage } = await import("../storage");
+      const { sql } = await import("drizzle-orm");
+      
+      const tables = ['users', 'professions', 'subjects', 'modules'];
+      const results: any = { schema: {}, counts: {} };
+
+      for (const table of tables) {
+        try {
+          const columns = await (storage as any).db.execute(sql`
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_name = ${table}
+          `);
+          results.schema[table] = columns.rows;
+          
+          const count = await (storage as any).db.execute(sql.raw(`SELECT COUNT(*) as count FROM ${table}`));
+          results.counts[table] = count.rows[0].count;
+        } catch (e: any) {
+          results.schema[table] = { error: e.message };
+        }
+      }
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Module Routes
   app.use('/api/admin', adminRouter);
   app.use('/api/school-admin', schoolAdminRouter);
