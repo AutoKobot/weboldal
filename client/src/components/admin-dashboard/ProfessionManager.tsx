@@ -66,7 +66,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/professions", data);
+      const res = await apiRequest("POST", "/api/admin/professions", data);
       return res.json();
     },
     onSuccess: () => {
@@ -81,7 +81,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: any) => {
-      const res = await apiRequest("PUT", `/api/professions/${id}`, data);
+      const res = await apiRequest("PUT", `/api/admin/professions/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -97,7 +97,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/professions/${id}`);
+      await apiRequest("DELETE", `/api/admin/professions/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
