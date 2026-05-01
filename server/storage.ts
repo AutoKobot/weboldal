@@ -365,9 +365,9 @@ export class DatabaseStorage implements IStorage {
       for (const statement of statements) {
         try {
           await db.execute(statement.sql);
-          // console.log(`  ✅ Oszlop ellenőrizve: ${statement.name}`);
+          console.log(`  ✅ Oszlop ellenőrizve: ${statement.name}`);
         } catch (e: any) {
-          console.warn(`  ⚠️ Figyelmeztetés (${statement.name}): ${e.message}`);
+          console.error(`  ❌ Hiba az oszlop ellenőrzésekor (${statement.name}): ${e.message}`);
         }
       }
 
