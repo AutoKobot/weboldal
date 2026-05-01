@@ -900,10 +900,11 @@ export class DatabaseStorage implements IStorage {
       schoolAdminId: professions.schoolAdminId,
       createdAt: professions.createdAt,
       updatedAt: professions.updatedAt,
-      subjectCount: sql<number>`(SELECT count(*)::int FROM subjects s_sub WHERE s_sub.profession_id = professions.id)`,
-      moduleCount: sql<number>`(SELECT count(*)::int FROM modules m_sub JOIN subjects s_sub2 ON m_sub.subject_id = s_sub2.id WHERE s_sub2.profession_id = professions.id)`,
-      theoryCount: sql<number>`(SELECT count(*)::int FROM modules m_sub3 JOIN subjects s_sub3 ON m_sub3.subject_id = s_sub3.id WHERE s_sub3.profession_id = professions.id AND m_sub3.type = 'theory')`,
-      practicalCount: sql<number>`(SELECT count(*)::int FROM modules m_sub4 JOIN subjects s_sub4 ON m_sub4.subject_id = s_sub4.id WHERE s_sub4.profession_id = professions.id AND m_sub4.type = 'practical')`,
+      // Temporarily disabled for debugging ambiguous id
+      subjectCount: sql<number>`0`,
+      moduleCount: sql<number>`0`,
+      theoryCount: sql<number>`0`,
+      practicalCount: sql<number>`0`,
     })
     .from(professions);
 
