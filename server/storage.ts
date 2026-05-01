@@ -347,8 +347,12 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("🔍 Adatbázis séma ellenőrzése...");
       
-      // Ellenőrizzük a modules tábla oszlopait
+      // Ellenőrizzük a táblák oszlopait
       await db.execute(sql`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255);
+        ALTER TABLE professions ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255);
+        ALTER TABLE subjects ADD COLUMN IF NOT EXISTS school_admin_id VARCHAR(255);
+        
         ALTER TABLE modules 
         ADD COLUMN IF NOT EXISTS concise_content TEXT,
         ADD COLUMN IF NOT EXISTS detailed_content TEXT,
