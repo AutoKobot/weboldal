@@ -6,7 +6,7 @@ import * as schema from "../shared/schema";
 // Configure Neon for serverless environments
 neonConfig.webSocketConstructor = ws;
 neonConfig.useSecureWebSocket = true;
-neonConfig.pipelineConnect = true;
+neonConfig.pipelineConnect = "password";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(

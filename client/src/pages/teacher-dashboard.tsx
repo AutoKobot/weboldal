@@ -53,7 +53,7 @@ export default function TeacherDashboard() {
   const [timeFilter, setTimeFilter] = useState("week");
 
   // Roster specific state
-  const [rosterClassId, setRosterClassId] = useState<string>("all");
+  const [rosterClassId, setRosterClassId] = useState<string>("");
   const [rosterPeriod, setRosterPeriod] = useState<"week" | "month" | "4weeks" | "custom">("week");
   const [rosterCustomStart, setRosterCustomStart] = useState("");
   const [rosterCustomEnd, setRosterCustomEnd] = useState("");
@@ -100,20 +100,27 @@ export default function TeacherDashboard() {
 
   // Roster Query logic
   const rosterQueryKey = useMemo(() => {
-    if (rosterClassId === 'all') return null;
+    if (!rosterClassId || rosterClassId === 'all') return null;
+    const toDate = (d: Date) => d.toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
     const params = new URLSearchParams();
     if (rosterPeriod === 'week') {
-      const d = new Date(); d.setDate(d.getDate() - 7); d.setHours(0,0,0,0);
-      params.set('startDate', d.toISOString());
+      const start = new Date(); start.setDate(start.getDate() - 7); start.setHours(0,0,0,0);
+      params.set('startDate', toDate(start));
+      params.set('endDate', toDate(today));
     } else if (rosterPeriod === 'month') {
-      const d = new Date(); d.setMonth(d.getMonth() - 1); d.setHours(0,0,0,0);
-      params.set('startDate', d.toISOString());
+      const start = new Date(); start.setMonth(start.getMonth() - 1); start.setHours(0,0,0,0);
+      params.set('startDate', toDate(start));
+      params.set('endDate', toDate(today));
     } else if (rosterPeriod === '4weeks') {
-      const d = new Date(); d.setDate(d.getDate() - 28); d.setHours(0,0,0,0);
-      params.set('startDate', d.toISOString());
+      const start = new Date(); start.setDate(start.getDate() - 28); start.setHours(0,0,0,0);
+      params.set('startDate', toDate(start));
+      params.set('endDate', toDate(today));
     } else if (rosterPeriod === 'custom' && rosterCustomStart) {
-      params.set('startDate', new Date(rosterCustomStart).toISOString());
-      if (rosterCustomEnd) params.set('endDate', new Date(rosterCustomEnd + 'T23:59:59').toISOString());
+      params.set('startDate', rosterCustomStart);
+      if (rosterCustomEnd) params.set('endDate', rosterCustomEnd);
     }
     return `/api/teacher/classes/${rosterClassId}/roster${params.toString() ? '?' + params.toString() : ''}`;
   }, [rosterClassId, rosterPeriod, rosterCustomStart, rosterCustomEnd]);

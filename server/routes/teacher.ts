@@ -145,6 +145,9 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
       return res.status(403).json({ message: "You are not assigned to this class" });
     }
 
+    // Get ALL students in the class (not just those with test results)
+    const allStudents = await storage.getStudentsByClass(classId);
+
     const allResults = await storage.getTestResultsByClass(
       classId,
       typeof startDate === 'string' ? startDate : undefined,
@@ -167,19 +170,28 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
       byStudent[key].push(r);
     }
 
-    const rosterRows = Object.entries(byStudent).map(([, results]) => {
-      const first = results[0] as any;
-      const grades = results.map(r => ({ ...r, grade: toGrade(r.score) }));
+    // Map all students, merge with results
+    const rosterRows = allStudents.map((s: any) => {
+      const results = byStudent[s.id] || [];
+      const grades = results.map((r: any) => ({ ...r, grade: toGrade(r.score) }));
       const avgGrade = grades.length > 0
-        ? parseFloat((grades.reduce((s, g) => s + g.grade, 0) / grades.length).toFixed(2))
+        ? parseFloat((grades.reduce((sum: number, g: any) => sum + g.grade, 0) / grades.length).toFixed(2))
         : null;
       return {
-        studentName: first.studentName || 'Ismeretlen',
-        username: first.username || '',
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        username: s.username,
+        studentName: `${s.lastName} ${s.firstName}`,
         avgGrade,
         testCount: grades.length,
-        grades: grades.map(g => ({
-          moduleTitle: g.moduleTitle || g.moduleId,
+        stats: {
+          attendanceCount: 0,
+          completedCount: grades.filter((g: any) => g.passed).length,
+        },
+        testResults: grades.map((g: any) => ({
+          moduleTitle: g.moduleTitle || `Modul #${g.moduleId}`,
+          moduleId: g.moduleId,
           score: g.score,
           grade: g.grade,
           createdAt: g.createdAt,
@@ -187,17 +199,28 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
       };
     });
 
-    rosterRows.sort((a, b) => a.studentName.localeCompare(b.studentName, 'hu'));
-    let periodLabel = 'Mindenkori';
-    if (startDate && endDate) periodLabel = `${new Date(startDate as string).toLocaleDateString('hu-HU')} – ${new Date(endDate as string).toLocaleDateString('hu-HU')}`;
-    else if (startDate) periodLabel = `${new Date(startDate as string).toLocaleDateString('hu-HU')} –tól`;
+    rosterRows.sort((a: any, b: any) => a.studentName.localeCompare(b.studentName, 'hu'));
 
-    res.json({ className: classData.name, period: periodLabel, generatedAt: new Date().toISOString(), students: rosterRows });
+    const parsedStart = startDate ? new Date(startDate as string) : null;
+    const parsedEnd = endDate ? new Date(endDate as string) : null;
+    let periodLabel = 'Mindenkori';
+    if (parsedStart && parsedEnd) periodLabel = `${parsedStart.toLocaleDateString('hu-HU')} – ${parsedEnd.toLocaleDateString('hu-HU')}`;
+    else if (parsedStart) periodLabel = `${parsedStart.toLocaleDateString('hu-HU')} –tól`;
+
+    res.json({
+      className: classData.name,
+      period: periodLabel,
+      startDate: parsedStart?.toISOString() || null,
+      endDate: parsedEnd?.toISOString() || null,
+      generatedAt: new Date().toISOString(),
+      students: rosterRows
+    });
   } catch (error) {
     console.error("Error fetching class roster:", error);
     res.status(500).json({ message: "Failed to fetch roster" });
   }
 });
+
 
 router.get('/classes/:id/attendance', combinedAuth, checkTeacher, async (req: any, res) => {
   try {
