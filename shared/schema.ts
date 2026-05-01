@@ -119,6 +119,7 @@ export const modules = pgTable("modules", {
   keyConceptsData: jsonb("key_concepts_data"), // JSON struktura a kulcsfogalmakhoz és videókhoz
   moduleNumber: integer("module_number").notNull(),
   sectionCode: varchar("section_code", { length: 50 }), // Fejezetszám (pl. 3.3.2.6.1)
+  type: varchar("type").notNull().default("theory"), // "theory" vagy "practical"
   videoUrl: varchar("video_url"), // Feltöltött videó vagy YouTube URL
   audioUrl: varchar("audio_url"), // Feltöltött podcast/hang fájl
   imageUrl: varchar("image_url"), // Modul borítókép
