@@ -13,6 +13,8 @@ import {
 import { Users, Clock, AlertCircle, Calendar } from "lucide-react";
 import { DayAttendanceEditor } from "./DayAttendanceEditor";
 import { Student } from "./types";
+import { queryClient } from "@/lib/queryClient";
+
 
 interface Props {
   classId: string;

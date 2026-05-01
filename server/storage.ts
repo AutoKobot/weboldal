@@ -910,8 +910,17 @@ export class DatabaseStorage implements IStorage {
     await db.execute(sql`UPDATE users SET selected_profession_id = NULL WHERE selected_profession_id = ${id}`);
 
     // Remove from assigned professions (complex due to JSONB array)
-    // For now, we leave the ID in the array as it won't break anything immediately, 
-    // but ideally we should remove it.
+    // We use a SQL query to filter out the deleted ID from the JSONB array
+    await db.execute(sql`
+      UPDATE users 
+      SET assigned_profession_ids = (
+        SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+        FROM jsonb_array_elements(assigned_profession_ids) elem 
+        WHERE elem::int != ${id}
+      )
+      WHERE assigned_profession_ids @> ${id}::jsonb
+    `);
+
 
     // 4. Remove profession reference from classes
     await db.execute(sql`UPDATE classes SET profession_id = NULL WHERE profession_id = ${id}`);

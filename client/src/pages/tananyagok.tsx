@@ -98,13 +98,17 @@ export default function TananyagokPage() {
   });
 
   const handleProfessionSelect = (professionId: number) => {
-    const hasAssignedProfessions = user?.assignedProfessionIds && user.assignedProfessionIds.length > 0;
+    const availableProfessionIds = professions.map((p: any) => p.id);
+    const validAssignedIds = user?.assignedProfessionIds?.filter(id => availableProfessionIds.includes(id)) || [];
+    const hasAssignedProfessions = validAssignedIds.length > 0;
     const isInClass = user?.classId;
+
 
     // Ellenőrizzük, hogy a diák hozzáférhet-e ehhez a szakmához
     const isAccessible = user?.role === 'admin' || user?.role === 'teacher' ||
       (!hasAssignedProfessions && user?.role === 'student') ||
-      (hasAssignedProfessions && user?.assignedProfessionIds?.includes(professionId));
+      (hasAssignedProfessions && validAssignedIds.includes(professionId));
+
 
     if (!isAccessible) {
       toast({
@@ -221,10 +225,14 @@ export default function TananyagokPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {professions.map((profession: Profession) => {
                     const IconComponent = getIconForProfession(profession);
-                    const hasAssignedProfessions = user?.assignedProfessionIds && user.assignedProfessionIds.length > 0;
+                    const availableProfessionIds = professions.map((p: any) => p.id);
+                    const validAssignedIds = user?.assignedProfessionIds?.filter(id => availableProfessionIds.includes(id)) || [];
+                    const hasAssignedProfessions = validAssignedIds.length > 0;
+                    
                     const isAccessible = user?.role === 'admin' || user?.role === 'teacher' ||
                       (!hasAssignedProfessions && user?.role === 'student') ||
-                      (hasAssignedProfessions && user?.assignedProfessionIds?.includes(profession.id));
+                      (hasAssignedProfessions && validAssignedIds.includes(profession.id));
+
 
                     return (
                       <Card

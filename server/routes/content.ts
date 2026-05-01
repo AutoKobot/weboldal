@@ -95,8 +95,15 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
 
     // Demo restriction - ONLY for dedicated DemoUser
     if (user?.username === 'DemoUser') {
-      professions = professions.filter(p => p.name.toLowerCase().includes('hegesztő')).slice(0, 1);
+      const demoProfessions = professions.filter(p => p.name.toLowerCase().includes('hegesztő'));
+      if (demoProfessions.length > 0) {
+        professions = demoProfessions.slice(0, 1);
+      } else if (professions.length > 0) {
+        // Fallback to the first available profession if hegesztő is missing
+        professions = professions.slice(0, 1);
+      }
     }
+
 
     res.json(professions);
   } catch (error) {
@@ -268,4 +275,43 @@ router.get('/modules/:id/flashcards', combinedAuth, async (req: any, res) => {
   }
 });
 
+// --- Debug Endpoint ---
+router.get('/debug-db', combinedAuth, async (req: any, res) => {
+  try {
+    const user = await storage.getUser(req.user.id);
+    if (user?.role !== 'admin') {
+      return res.status(403).json({ message: "Admin access required for debug" });
+    }
+
+    const professionsCount = await storage.getProfessions();
+    const subjectsCount = await storage.getSubjects();
+    const modulesCount = await storage.getModules();
+    
+    // Check background jobs if the method exists
+    let jobs = [];
+    try {
+      if ((storage as any).getLatestBackgroundJob) {
+        const job = await (storage as any).getLatestBackgroundJob('ikk_import');
+        if (job) jobs.push(job);
+      }
+    } catch (e) {}
+
+    res.json({
+      professions: professionsCount.length,
+      subjects: subjectsCount.length,
+      modules: modulesCount.length,
+      jobs: jobs,
+      user: {
+        id: user.id,
+        role: user.role,
+        schoolAdminId: user.schoolAdminId,
+        schoolId: user.schoolId
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
+
