@@ -95,9 +95,7 @@ router.get('/professions', combinedAuth, async (req: any, res) => {
     const userSchoolAdminId = user?.schoolAdminId || (req.user as any).schoolAdminId;
 
     const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
-    console.log(`[API] Fetching professions for schoolAdminId: ${schoolAdminId}, userRole: ${userRole}`);
     let professions = await storage.getProfessions(schoolAdminId);
-    console.log(`[API] Found ${professions.length} professions`);
 
     // Demo restriction - ONLY for dedicated DemoUser
     const username = user?.username || req.user.username;
