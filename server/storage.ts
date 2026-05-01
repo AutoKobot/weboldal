@@ -855,33 +855,35 @@ export class DatabaseStorage implements IStorage {
 
   // Profession operations
   async getProfessions(schoolAdminId?: string | null): Promise<any[]> {
-    let query;
+    const conditions = [];
     if (schoolAdminId === null) {
-      query = db.select().from(professions).where(isNull(professions.schoolAdminId)).orderBy(professions.name);
+      conditions.push(isNull(professions.schoolAdminId));
     } else if (schoolAdminId) {
-      query = db.select().from(professions)
-        .where(
-          or(
-            isNull(professions.schoolAdminId),
-            eq(professions.schoolAdminId, schoolAdminId)
-          )
-        )
-        .orderBy(professions.name);
-    } else {
-      query = db.select().from(professions).orderBy(professions.name);
+      conditions.push(or(isNull(professions.schoolAdminId), eq(professions.schoolAdminId, schoolAdminId)));
     }
 
-    const profs = await query;
+    // Use a single query with LEFT JOIN and COUNT to avoid N+1 problem
+    const query = db.select({
+      profession: professions,
+      subjectCount: sql<number>`count(${subjects.id})::int`,
+      theoryCount: sql<number>`count(CASE WHEN ${subjects.type} IN ('theory', 'both') OR ${subjects.type} IS NULL THEN 1 END)::int`,
+      practicalCount: sql<number>`count(CASE WHEN ${subjects.type} IN ('practical', 'both') THEN 1 END)::int`,
+    })
+    .from(professions)
+    .leftJoin(subjects, eq(professions.id, subjects.professionId))
+    .groupBy(professions.id);
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
     
-    // Augment with subject counts
-    return await Promise.all(profs.map(async (p) => {
-      const subjs = await db.select().from(subjects).where(eq(subjects.professionId, p.id));
-      return {
-        ...p,
-        theoryCount: subjs.filter(s => s.type === 'theory' || s.type === 'both' || !s.type).length,
-        practicalCount: subjs.filter(s => s.type === 'practical' || s.type === 'both').length,
-        subjectCount: subjs.length
-      };
+    const results = await query.orderBy(professions.name);
+    
+    return results.map(r => ({
+      ...r.profession,
+      subjectCount: r.subjectCount,
+      theoryCount: r.theoryCount,
+      practicalCount: r.practicalCount,
     }));
   }
 
@@ -949,23 +951,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Subject operations
-  async getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<Subject[]> {
+  // Subject operations
+  async getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<any[]> {
     const conditions = [];
     if (professionId) conditions.push(eq(subjects.professionId, professionId));
 
     if (schoolAdminId === null) {
       conditions.push(isNull(subjects.schoolAdminId));
     } else if (schoolAdminId) {
-      conditions.push(or(
-        isNull(subjects.schoolAdminId),
-        eq(subjects.schoolAdminId, schoolAdminId)
-      ));
+      conditions.push(or(isNull(subjects.schoolAdminId), eq(subjects.schoolAdminId, schoolAdminId)));
     }
 
+    // Use a single query with LEFT JOIN and COUNT to avoid N+1 problem
+    const query = db.select({
+      subject: subjects,
+      moduleCount: sql<number>`count(${modules.id})::int`,
+      publishedCount: sql<number>`count(CASE WHEN ${modules.isPublished} = true THEN 1 END)::int`,
+    })
+    .from(subjects)
+    .leftJoin(modules, eq(subjects.id, modules.subjectId))
+    .groupBy(subjects.id);
+
     if (conditions.length > 0) {
-      return await db.select().from(subjects).where(and(...conditions)).orderBy(subjects.name);
+      query.where(and(...conditions));
     }
-    return await db.select().from(subjects).orderBy(subjects.name);
+
+    const results = await query.orderBy(subjects.name);
+
+    return results.map(r => ({
+      ...r.subject,
+      moduleCount: r.moduleCount,
+      publishedCount: r.publishedCount,
+    }));
   }
 
   async getSubject(id: number): Promise<Subject | undefined> {
