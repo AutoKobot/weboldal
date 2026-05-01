@@ -1023,22 +1023,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSubject(id: number): Promise<void> {
-    console.log(`🗑️ Deleting subject ${id} and all related modules`);
+    console.log(`🗑️ Deleting subject ${id} and all related modules (BULK OPTIMIZED)`);
 
     // 1. Get all modules for this subject
-    const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, id));
+    const subjectModules = await db.select({ id: modules.id }).from(modules).where(eq(modules.subjectId, id));
+    
+    if (subjectModules.length > 0) {
+      const moduleIds = subjectModules.map(m => m.id);
+      
+      // Delete in chunks if there are too many to avoid SQL parsing limits
+      // But for 1000 modules, a single IN clause is perfectly fine in Postgres
+      const { sql } = await import('drizzle-orm');
+      
+      // We can use a direct SQL query for bulk deletion using ANY(ARRAY[...])
+      const idsArray = sql`ARRAY[${sql.join(moduleIds, sql`, `)}]::int[]`;
 
-    // 2. Delete each module (cascading)
-    for (const module of subjectModules) {
-      await this.deleteModule(module.id);
+      // 1. Delete chat messages
+      await db.execute(sql`DELETE FROM chat_messages WHERE related_module_id = ANY(${idsArray})`);
+      
+      // 2. Set module_id to NULL in api_calls
+      await db.execute(sql`UPDATE api_calls SET module_id = NULL WHERE module_id = ANY(${idsArray})`);
+      
+      // 3. Set module_id to NULL in community_projects
+      await db.execute(sql`UPDATE community_projects SET module_id = NULL WHERE module_id = ANY(${idsArray})`);
+      
+      // 4. Delete flashcards
+      await db.execute(sql`DELETE FROM flashcards WHERE module_id = ANY(${idsArray})`);
+      
+      // 5. Delete test results
+      await db.execute(sql`DELETE FROM test_results WHERE module_id = ANY(${idsArray})`);
+      
+      // 6. Delete practical grades
+      await db.execute(sql`DELETE FROM practical_grades WHERE module_id = ANY(${idsArray})`);
+      
+      // 7. Delete many-to-many assignments
+      await db.execute(sql`DELETE FROM module_subject_assignments WHERE module_id = ANY(${idsArray})`);
+      
+      // 8. Delete the modules themselves
+      await db.execute(sql`DELETE FROM modules WHERE id = ANY(${idsArray})`);
     }
 
-    // 3. Delete many-to-many assignments
+    // 3. Delete many-to-many assignments for the subject
     await db.delete(moduleSubjectAssignments).where(eq(moduleSubjectAssignments.subjectId, id));
 
     // 4. Delete the subject
     await db.delete(subjects).where(eq(subjects.id, id));
-    console.log(`✅ Subject ${id} deleted`);
+    console.log(`✅ Subject ${id} deleted successfully`);
   }
 
   // Module operations
