@@ -104,7 +104,7 @@ import {
   type InsertStudentDailyNote,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, notExists, asc } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, gte, lte, or, isNull, exists, notExists, asc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -862,9 +862,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(or(isNull(professions.schoolAdminId), eq(professions.schoolAdminId, schoolAdminId)));
     }
 
-    // Use a single query with LEFT JOIN and COUNT to avoid N+1 problem
-    const query = db.select({
-      profession: professions,
+    // IMPORTANT: Drizzle ORM is immutable – must use the returned query from .where()
+    const baseQuery = db.select({
+      id: professions.id,
+      name: professions.name,
+      description: professions.description,
+      schoolAdminId: professions.schoolAdminId,
+      createdAt: professions.createdAt,
+      updatedAt: professions.updatedAt,
       subjectCount: sql<number>`count(${subjects.id})::int`,
       theoryCount: sql<number>`count(CASE WHEN ${subjects.type} IN ('theory', 'both') OR ${subjects.type} IS NULL THEN 1 END)::int`,
       practicalCount: sql<number>`count(CASE WHEN ${subjects.type} IN ('practical', 'both') THEN 1 END)::int`,
@@ -874,17 +879,9 @@ export class DatabaseStorage implements IStorage {
     .groupBy(professions.id);
 
     if (conditions.length > 0) {
-      query.where(and(...conditions));
+      return await baseQuery.where(and(...conditions)).orderBy(professions.name);
     }
-    
-    const results = await query.orderBy(professions.name);
-    
-    return results.map(r => ({
-      ...r.profession,
-      subjectCount: r.subjectCount,
-      theoryCount: r.theoryCount,
-      practicalCount: r.practicalCount,
-    }));
+    return await baseQuery.orderBy(professions.name);
   }
 
   async getProfession(id: number): Promise<Profession | undefined> {
@@ -951,7 +948,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Subject operations
-  // Subject operations
   async getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<any[]> {
     const conditions = [];
     if (professionId) conditions.push(eq(subjects.professionId, professionId));
@@ -963,8 +959,15 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Use a single query with LEFT JOIN and COUNT to avoid N+1 problem
-    const query = db.select({
-      subject: subjects,
+    // IMPORTANT: Drizzle ORM is immutable – must use the returned query from .where()
+    const baseQuery = db.select({
+      id: subjects.id,
+      name: subjects.name,
+      description: subjects.description,
+      professionId: subjects.professionId,
+      schoolAdminId: subjects.schoolAdminId,
+      createdAt: subjects.createdAt,
+      updatedAt: subjects.updatedAt,
       moduleCount: sql<number>`count(${modules.id})::int`,
       publishedCount: sql<number>`count(CASE WHEN ${modules.isPublished} = true THEN 1 END)::int`,
     })
@@ -973,16 +976,9 @@ export class DatabaseStorage implements IStorage {
     .groupBy(subjects.id);
 
     if (conditions.length > 0) {
-      query.where(and(...conditions));
+      return await baseQuery.where(and(...conditions)).orderBy(subjects.name);
     }
-
-    const results = await query.orderBy(subjects.name);
-
-    return results.map(r => ({
-      ...r.subject,
-      moduleCount: r.moduleCount,
-      publishedCount: r.publishedCount,
-    }));
+    return await baseQuery.orderBy(subjects.name);
   }
 
   async getSubject(id: number): Promise<Subject | undefined> {
@@ -1607,12 +1603,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Class operations
-  async getClassesBySchoolAdmin(schoolAdminId: string): Promise<Class[]> {
-    return await db
-      .select()
-      .from(classes)
-      .where(eq(classes.schoolAdminId, schoolAdminId))
-      .orderBy(classes.name);
+  async getClassesBySchoolAdmin(schoolAdminId: string): Promise<any[]> {
+    const teacherAlias = aliasedTable(users, 'teacher_alias');
+    const studentAlias = aliasedTable(users, 'student_alias');
+
+    return await db.select({
+      id: classes.id,
+      name: classes.name,
+      description: classes.description,
+      schoolId: classes.schoolId,
+      schoolAdminId: classes.schoolAdminId,
+      assignedTeacherId: classes.assignedTeacherId,
+      professionId: classes.professionId,
+      scheduleGroup: classes.scheduleGroup,
+      createdAt: classes.createdAt,
+      updatedAt: classes.updatedAt,
+      studentCount: sql<number>`count(${studentAlias.id})::int`,
+      teacherName: sql<string>`COALESCE(${teacherAlias.lastName} || ' ' || ${teacherAlias.firstName}, 'Nincs hozzárendelve')`,
+    })
+    .from(classes)
+    .leftJoin(studentAlias, and(eq(classes.id, studentAlias.classId), eq(studentAlias.role, 'student')))
+    .leftJoin(teacherAlias, eq(classes.assignedTeacherId, teacherAlias.id))
+    .where(eq(classes.schoolAdminId, schoolAdminId))
+    .groupBy(classes.id, teacherAlias.id)
+    .orderBy(classes.name);
   }
 
   async getClassById(classId: number): Promise<Class | undefined> {
@@ -1623,28 +1637,91 @@ export class DatabaseStorage implements IStorage {
     return classData;
   }
 
-  async getStudentsByClass(classId: number): Promise<User[]> {
-    return await db
-      .select()
-      .from(users)
-      .where(and(eq(users.classId, classId), eq(users.role, 'student')))
-      .orderBy(users.firstName, users.lastName, users.username);
+  async getStudentsByClass(classId: number): Promise<any[]> {
+    const teacherAlias = aliasedTable(users, 'teacher_alias');
+
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+      classId: users.classId,
+      assignedTeacherId: users.assignedTeacherId,
+      schoolAdminId: users.schoolAdminId,
+      xp: users.xp,
+      currentStreak: users.currentStreak,
+      lastActiveDate: users.lastActiveDate,
+      completedModules: users.completedModules,
+      selectedProfessionId: users.selectedProfessionId,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      teacherName: sql<string>`COALESCE(${teacherAlias.lastName} || ' ' || ${teacherAlias.firstName}, 'Nincs hozzárendelve')`,
+    })
+    .from(users)
+    .leftJoin(teacherAlias, eq(users.assignedTeacherId, teacherAlias.id))
+    .where(and(eq(users.classId, classId), eq(users.role, 'student')))
+    .orderBy(users.firstName, users.lastName, users.username);
   }
 
-  async getStudentsBySchoolAdmin(schoolAdminId: string): Promise<User[]> {
-    return await db
-      .select()
-      .from(users)
-      .where(and(eq(users.schoolAdminId, schoolAdminId), eq(users.role, 'student')))
-      .orderBy(users.firstName, users.lastName, users.username);
+  async getStudentsBySchoolAdmin(schoolAdminId: string): Promise<any[]> {
+    const teacherAlias = aliasedTable(users, 'teacher_alias');
+
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+      phone: users.phone,
+      schoolName: users.schoolName,
+      classId: users.classId,
+      assignedTeacherId: users.assignedTeacherId,
+      schoolAdminId: users.schoolAdminId,
+      xp: users.xp,
+      currentStreak: users.currentStreak,
+      lastActiveDate: users.lastActiveDate,
+      completedModules: users.completedModules,
+      selectedProfessionId: users.selectedProfessionId,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      teacherName: sql<string>`COALESCE(${teacherAlias.lastName} || ' ' || ${teacherAlias.firstName}, 'Nincs hozzárendelve')`,
+      className: sql<string>`COALESCE(${classes.name}, 'Nincs osztályban')`,
+    })
+    .from(users)
+    .leftJoin(teacherAlias, eq(users.assignedTeacherId, teacherAlias.id))
+    .leftJoin(classes, eq(users.classId, classes.id))
+    .where(and(eq(users.schoolAdminId, schoolAdminId), eq(users.role, 'student')))
+    .orderBy(users.firstName, users.lastName, users.username);
   }
 
-  async getTeachersBySchoolAdmin(schoolAdminId: string): Promise<User[]> {
-    return await db
-      .select()
-      .from(users)
-      .where(and(eq(users.schoolAdminId, schoolAdminId), eq(users.role, 'teacher')))
-      .orderBy(users.firstName, users.lastName, users.username);
+  async getTeachersBySchoolAdmin(schoolAdminId: string): Promise<any[]> {
+    const studentsAlias = aliasedTable(users, 'students_alias');
+    
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+      schoolAdminId: users.schoolAdminId,
+      xp: users.xp,
+      currentStreak: users.currentStreak,
+      lastActiveDate: users.lastActiveDate,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      studentCount: sql<number>`count(DISTINCT ${studentsAlias.id})::int`,
+      classCount: sql<number>`count(DISTINCT ${classes.id})::int`,
+    })
+    .from(users)
+    .leftJoin(studentsAlias, and(eq(users.id, studentsAlias.assignedTeacherId), eq(studentsAlias.role, 'student')))
+    .leftJoin(classes, eq(users.id, classes.assignedTeacherId))
+    .where(and(eq(users.schoolAdminId, schoolAdminId), eq(users.role, 'teacher')))
+    .groupBy(users.id)
+    .orderBy(users.firstName, users.lastName, users.username);
   }
 
   async createClass(classData: InsertClass): Promise<Class> {
@@ -2280,12 +2357,28 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(testResults.createdAt));
   }
 
-  async getClassesByTeacher(teacherId: string): Promise<Class[]> {
-    return await db
-      .select()
-      .from(classes)
-      .where(eq(classes.assignedTeacherId, teacherId))
-      .orderBy(classes.name);
+  async getClassesByTeacher(teacherId: string): Promise<any[]> {
+    const studentAlias = aliasedTable(users, 'student_alias');
+    return await db.select({
+      id: classes.id,
+      name: classes.name,
+      description: classes.description,
+      schoolId: classes.schoolId,
+      schoolAdminId: classes.schoolAdminId,
+      assignedTeacherId: classes.assignedTeacherId,
+      professionId: classes.professionId,
+      scheduleGroup: classes.scheduleGroup,
+      createdAt: classes.createdAt,
+      updatedAt: classes.updatedAt,
+      studentCount: sql<number>`count(DISTINCT ${studentAlias.id})::int`,
+      professionName: sql<string>`${professions.name}`,
+    })
+    .from(classes)
+    .leftJoin(studentAlias, and(eq(classes.id, studentAlias.classId), eq(studentAlias.role, 'student')))
+    .leftJoin(professions, eq(classes.professionId, professions.id))
+    .where(eq(classes.assignedTeacherId, teacherId))
+    .groupBy(classes.id, professions.id)
+    .orderBy(classes.name);
   }
 
   // ── Notifications ──────────────────────────────────────────────
@@ -3019,14 +3112,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConversationPartners(userId: string): Promise<User[]> {
-    const sentTo = await db.select({ id: privateMessages.receiverId }).from(privateMessages).where(eq(privateMessages.senderId, userId));
-    const receivedFrom = await db.select({ id: privateMessages.senderId }).from(privateMessages).where(eq(privateMessages.receiverId, userId));
-    
-    const partnerIds = Array.from(new Set([...sentTo.map(u => u.id), ...receivedFrom.map(u => u.id)]));
-    
-    if (partnerIds.length === 0) return [];
-    
-    return await db.select().from(users).where(inArray(users.id, partnerIds));
+    const rows = await db.execute(sql`
+      SELECT DISTINCT u.*
+      FROM users u
+      WHERE u.id IN (
+        SELECT receiver_id FROM private_messages WHERE sender_id = ${userId}
+        UNION
+        SELECT sender_id FROM private_messages WHERE receiver_id = ${userId}
+      )
+    `);
+    return rows.rows as User[];
   }
 
   // --- Practical Grades Implementations ---
