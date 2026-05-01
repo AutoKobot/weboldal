@@ -117,13 +117,10 @@ export function IKKManager() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                {importStatus.status === 'processing' ? (
-                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-                ) : importStatus.status === 'completed' ? (
-                  <Badge className="bg-green-600">KÉSZ</Badge>
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                )}
+                <Loader2 className={`h-5 w-5 text-blue-600 animate-spin ${importStatus.status === 'processing' ? '' : 'hidden'}`} />
+                <Badge className={`bg-green-600 ${importStatus.status === 'completed' ? '' : 'hidden'}`}>KÉSZ</Badge>
+                <AlertCircle className={`h-5 w-5 text-red-600 ${importStatus.status === 'error' ? '' : 'hidden'}`} />
+                
                 <div>
                   <p className={`font-semibold ${
                     importStatus.status === 'processing' ? 'text-blue-900' : 
@@ -144,27 +141,27 @@ export function IKKManager() {
                   'bg-red-600'
                 }>{importStatus.progress}%</Badge>
                 
-                {importStatus.status === 'processing' ? (
+                <div className="flex gap-2">
                   <Button 
                     variant="destructive" 
                     size="sm" 
-                    className="h-7 px-2 text-[10px] uppercase font-bold"
+                    className={`h-7 px-2 text-[10px] uppercase font-bold ${importStatus.status === 'processing' ? '' : 'hidden'}`}
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending}
                   >
                     <Loader2 className={`h-3 w-3 mr-1 ${cancelMutation.isPending ? 'animate-spin' : 'hidden'}`} />
                     {cancelMutation.isPending ? "Várj..." : "Stop"}
                   </Button>
-                ) : (
+                  
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-7 px-2 text-[10px] uppercase font-bold"
+                    className={`h-7 px-2 text-[10px] uppercase font-bold ${importStatus.status !== 'processing' ? '' : 'hidden'}`}
                     onClick={() => resetMutation.mutate()}
                   >
-                    Törlés
+                    Bezárás
                   </Button>
-                )}
+                </div>
               </div>
             </div>
             <div className="w-full bg-black/5 rounded-full h-2.5 mb-2">

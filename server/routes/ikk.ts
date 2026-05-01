@@ -396,13 +396,17 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             }
             
             // Update progress AFTER each batch
-            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
-            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
+            const currentProgress = 40 + Math.floor((processedModules / totalModules) * 55);
+            const currentMessage = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
+            
+            activeImport.message = currentMessage;
+            activeImport.progress = currentProgress;
+            
             await (storage as any).updateBackgroundJob(jobId, {
-              message: activeImport.message,
-              progress: activeImport.progress
+              message: currentMessage,
+              progress: currentProgress
             });
-            console.log(`[IKK-IMPORT] Job #${jobId}: ${processedModules}/${totalModules} kész.`);
+            console.log(`[IKK-IMPORT] Job #${jobId}: ${processedModules}/${totalModules} kész (${currentProgress}%).`);
           });
         }
 
