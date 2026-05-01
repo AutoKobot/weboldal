@@ -152,7 +152,8 @@ export function IKKManager() {
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending}
                   >
-                    {cancelMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Stop"}
+                    {cancelMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                    {cancelMutation.isPending ? "Várj..." : "Stop"}
                   </Button>
                 ) : (
                   <Button 
@@ -253,16 +254,11 @@ export function IKKManager() {
                     disabled={isImporting !== null}
                   >
                     {isImporting === prof.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Feldolgozás...
-                      </>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <>
-                        <Download className="h-4 w-4 mr-2" />
-                        {isImported ? 'Újra-importálás' : 'Szakma Importálása'}
-                      </>
+                      <Download className="h-4 w-4 mr-2" />
                     )}
+                    {isImporting === prof.id ? 'Feldolgozás...' : (isImported ? 'Újra-importálás' : 'Szakma Importálása')}
                   </Button>
                 </CardContent>
               </Card>
