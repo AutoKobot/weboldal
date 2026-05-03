@@ -371,6 +371,7 @@ export class DatabaseStorage implements IStorage {
         { name: "professions.code", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS code VARCHAR(50)` },
         { name: "professions.icon_name", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS icon_name VARCHAR(255)` },
         { name: "professions.icon_url", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS icon_url VARCHAR(255)` },
+        { name: "modules.suggested_hours", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS suggested_hours NUMERIC(5, 2)` },
         { name: "classes.profession_id", sql: sql`ALTER TABLE classes ADD COLUMN IF NOT EXISTS profession_id INTEGER REFERENCES professions(id)` },
       ];
 
