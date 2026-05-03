@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2, Clock,
-  Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap 
+  Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap, Wand2
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Profession, insertProfessionSchema } from "./types";
