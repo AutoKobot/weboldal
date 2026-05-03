@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Import, Download, Loader2, GraduationCap, Wrench, BookOpen, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-export function IKKManager() {
+export function IKKManager({ defaultImportType = 'both' }: { defaultImportType?: 'theory' | 'practical' | 'both' }) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isImporting, setIsImporting] = useState<string | null>(null);
@@ -164,16 +165,15 @@ export function IKKManager() {
                 </div>
               </div>
             </div>
-            <div className="w-full bg-black/5 rounded-full h-2.5 mb-2">
-              <div 
-                className={`h-2.5 rounded-full transition-all duration-500 ${
-                  importStatus.status === 'processing' ? 'bg-blue-600' : 
-                  importStatus.status === 'completed' ? 'bg-green-600' : 
-                  'bg-red-600'
-                }`} 
-                style={{ width: `${importStatus.progress}%` }}
-              ></div>
-            </div>
+            <Progress 
+              value={importStatus.progress} 
+              className="h-2.5 mb-2 bg-black/5" 
+              indicatorClassName={
+                importStatus.status === 'processing' ? 'bg-blue-600' : 
+                importStatus.status === 'completed' ? 'bg-green-600' : 
+                'bg-red-600'
+              }
+            />
             <p className={`text-xs font-medium ${
               importStatus.status === 'processing' ? 'text-blue-600 animate-pulse' : 
               importStatus.status === 'completed' ? 'text-green-600' : 
@@ -242,8 +242,8 @@ export function IKKManager() {
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
                         size="sm"
-                        variant="outline"
-                        className={`text-[10px] h-9 ${isImported ? 'border-blue-200 bg-blue-50/30' : ''}`} 
+                        variant={defaultImportType === 'theory' ? 'default' : 'outline'}
+                        className={`text-[10px] h-9 ${defaultImportType === 'theory' ? 'ring-2 ring-blue-400 ring-offset-1' : (isImported ? 'border-blue-200 bg-blue-50/30' : '')}`} 
                         onClick={() => importMutation.mutate({ profession: prof, importType: 'theory' })}
                         disabled={isImporting !== null}
                       >
@@ -252,8 +252,8 @@ export function IKKManager() {
                       </Button>
                       <Button 
                         size="sm"
-                        variant="outline"
-                        className={`text-[10px] h-9 ${isImported ? 'border-orange-200 bg-orange-50/30' : ''}`} 
+                        variant={defaultImportType === 'practical' ? 'default' : 'outline'}
+                        className={`text-[10px] h-9 ${defaultImportType === 'practical' ? 'ring-2 ring-orange-400 ring-offset-1' : (isImported ? 'border-orange-200 bg-orange-50/30' : '')}`} 
                         onClick={() => importMutation.mutate({ profession: prof, importType: 'practical' })}
                         disabled={isImporting !== null}
                       >
@@ -262,7 +262,8 @@ export function IKKManager() {
                       </Button>
                       <Button 
                         size="sm"
-                        className={`col-span-2 h-9 ${isImported ? 'bg-green-600 hover:bg-green-700' : ''}`} 
+                        variant={defaultImportType === 'both' ? 'default' : 'outline'}
+                        className={`col-span-2 h-9 ${defaultImportType === 'both' ? 'ring-2 ring-primary ring-offset-1' : (isImported ? 'bg-green-600 hover:bg-green-700 text-white' : '')}`} 
                         onClick={() => importMutation.mutate({ profession: prof, importType: 'both' })}
                         disabled={isImporting !== null}
                       >

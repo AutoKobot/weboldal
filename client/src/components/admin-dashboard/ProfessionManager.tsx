@@ -27,7 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, Edit, Trash2, BookOpen, Globe, Calendar,
+  Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2,
   Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap 
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -48,11 +48,12 @@ const iconOptions = [
   { value: "graduation-cap", label: "Sisak (Oktatás)", icon: GraduationCap },
 ];
 
-export function ProfessionManager({ professions, onSelect }: { professions: (Profession & { theoryCount?: number, practicalCount?: number, subjectCount?: number })[], onSelect: (id: number) => void }) {
+export function ProfessionManager({ professions, onSelect }: { professions: (Profession & { theoryCount?: number, practicalCount?: number, subjectCount?: number, moduleCount?: number, code?: string })[], onSelect: (id: number) => void }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isIKKDialogOpen, setIsIKKDialogOpen] = useState(false);
   const [editingProfession, setEditingProfession] = useState<Profession | null>(null);
+  const [activeImportType, setActiveImportType] = useState<'theory' | 'practical' | 'both'>('both');
 
   const form = useForm({
     resolver: zodResolver(insertProfessionSchema),
@@ -125,9 +126,15 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
           <h2 className="text-xl font-semibold">Szakmák kezelése</h2>
           <p className="text-sm text-muted-foreground">Válassz szakmát a tantárgyak és modulok megtekintéséhez</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsIKKDialogOpen(true)}>
-            <Globe className="h-4 w-4 mr-2" /> IKK Import
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="border-blue-200 hover:bg-blue-50 text-blue-700" onClick={() => { setActiveImportType('theory'); setIsIKKDialogOpen(true); }}>
+            <GraduationCap className="h-4 w-4 mr-2" /> IKK Elmélet
+          </Button>
+          <Button variant="outline" className="border-orange-200 hover:bg-orange-50 text-orange-700" onClick={() => { setActiveImportType('practical'); setIsIKKDialogOpen(true); }}>
+            <Wrench className="h-4 w-4 mr-2" /> IKK Gyakorlat
+          </Button>
+          <Button variant="outline" onClick={() => { setActiveImportType('both'); setIsIKKDialogOpen(true); }}>
+            <Download className="h-4 w-4 mr-2" /> Teljes Import
           </Button>
           <Button onClick={() => { setEditingProfession(null); form.reset(); setIsDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Új Szakma
@@ -181,7 +188,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
                     </div>
                     <div className="flex items-center gap-1 text-slate-400">
                       <Calendar className="h-3 w-3" />
-                      <span>{new Date(prof.updatedAt || prof.createdAt).toLocaleDateString('hu-HU')}</span>
+                      <span>{(prof.updatedAt || prof.createdAt) ? new Date((prof.updatedAt || prof.createdAt)!).toLocaleDateString('hu-HU') : 'Ismeretlen'}</span>
                     </div>
                   </div>
                   
@@ -269,7 +276,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
               Válassz szakmát az IKK hivatalos adatbázisából a teljes tananyag automatikus generálásához.
             </DialogDescription>
           </DialogHeader>
-          <IKKManager />
+          <IKKManager defaultImportType={activeImportType} />
         </DialogContent>
       </Dialog>
     </div>

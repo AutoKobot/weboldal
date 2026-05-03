@@ -12,7 +12,7 @@ import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search, Wrench } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
@@ -651,6 +651,8 @@ export default function ModuleViewer() {
             <button
               onClick={() => setIsMobileNavOpen(true)}
               className="text-neutral-700"
+              aria-label="Menü megnyitása"
+              title="Menü megnyitása"
             >
               <Menu size={24} />
             </button>
@@ -884,7 +886,6 @@ export default function ModuleViewer() {
                           p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
                           ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
                           blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
                           pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
                           strong: ({ children }) => {
@@ -1213,8 +1214,7 @@ export default function ModuleViewer() {
               // Google Drive képek: iframe preview a legmegbízhatóbb módszer
               <iframe
                 src={toGoogleDrivePreviewUrl(module.imageUrl)}
-                className="w-full rounded-lg border-0"
-                style={{ height: '70vh' }}
+                className="w-full h-[70vh] rounded-lg border-0"
                 allow="autoplay"
                 title="Modul illusztráció"
               />
@@ -1249,6 +1249,7 @@ export default function ModuleViewer() {
                 className="w-full h-full rounded-lg"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                title="YouTube videó"
               />
             )}
           </div>
@@ -1360,7 +1361,7 @@ export default function ModuleViewer() {
           </div>
 
           {/* Az iframe a teljes remaining space-t foglalja el */}
-          <div className="flex-1 w-full relative bg-neutral-100 overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="flex-1 w-full relative bg-neutral-100 overflow-hidden min-h-0">
             {module?.presentationUrl ? (() => {
               const embedUrl = toPresentationEmbedUrl(module.presentationUrl);
               const isGoogleSlides = module.presentationUrl.includes('/presentation/d/');
