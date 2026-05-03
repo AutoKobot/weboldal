@@ -646,6 +646,9 @@ export const insertSubjectSchema = createInsertSchema(subjects).omit({
   createdAt: true,
   updatedAt: true,
   schoolAdminId: true,
+}).extend({
+  code: z.string().optional().nullable(),
+  hours: z.number().optional().nullable(),
 });
 
 // Type definitions for key concepts data structure
@@ -822,7 +825,10 @@ export type InsertProfession = z.infer<typeof insertProfessionSchema>;
 export type Class = typeof classes.$inferSelect;
 export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertSubject = z.infer<typeof insertSubjectSchema>;
-export type Subject = typeof subjects.$inferSelect;
+export type Subject = typeof subjects.$inferSelect & {
+  moduleCount?: number;
+  publishedCount?: number;
+};
 export type InsertModule = z.infer<typeof insertModuleSchema>;
 export type Module = typeof modules.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;

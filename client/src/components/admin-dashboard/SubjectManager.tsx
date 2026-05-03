@@ -56,6 +56,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
       description: "",
       type: "theory",
       professionId: selectedProfessionId,
+      code: "",
       hours: null as number | null,
     }
   });
@@ -118,6 +119,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
       description: subject.description || "",
       type: subject.type || "theory",
       professionId: subject.professionId,
+      code: subject.code || "",
       hours: subject.hours || null,
     });
     setIsDialogOpen(true);
@@ -294,7 +296,6 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
                     </FormItem>
                   )}
                 />
-              </div>
               <FormField
                 control={form.control}
                 name="type"
