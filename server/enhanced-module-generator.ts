@@ -133,10 +133,40 @@ export class EnhancedModuleGenerator {
     // Load specialized prompts from database
     const prompts = await this.loadPrompts();
 
-    // Adjust prompts if module is practical
+    // Adjust prompts based on module type
     if (moduleType === 'practical') {
-      prompts.internetContentPrompt = 'Készíts részletes szakmai gyakorlati útmutatót az internet segítségével! Írd le LÉPÉSRŐL LÉPÉSRE, hogy hogyan kell biztonságosan, a megfelelő szerszámokkal elvégezni az adott feladatot! KÖTELEZŐ Munkavédelmi és biztonsági előírások, szükséges eszközök listája. Modulcím: {title}, Eredeti tartalom: {content}';
-      prompts.conciseContentPrompt = 'Készíts tömör gyakorlati lépéssort az alábbi feladathoz maximum 250-300 szóban:\n\nCím: {title}\nEredeti tartalom: {content}\nSzakma: {profession}\n\nKÖVETELMÉNYEK:\n- Konkrét gyakorlati lépések\n- Szükséges eszközök\n- Munkavédelem\n- NE ismételd meg a részletes verziót\n\nVálasz:';
+      prompts.internetContentPrompt = `Készíts egy minden részletre kiterjedő, szakmai GYAKORLATI ÚTMUTATÓT! 
+      A tartalomnak tartalmaznia KELL:
+      1. A feladat pontos lépéseit (szekvenciálisan).
+      2. Megvalósítási lehetőségeket és alternatívákat.
+      3. Szükséges eszközök és anyagok listáját.
+      4. Segédleteket, mérési adatokat vagy beállítási értékeket.
+      5. A BIZTONSÁGOS munkavégzés ismérveit és a munkavédelmi előírásokat (gyakorlatiasan).
+      
+      A cél, hogy a szövegből a tanuló TÖKÉLETESEN el tudja sajátítani a gyakorlati fogásokat.
+      Modulcím: {title}, Alapinformáció: {content}`;
+
+      prompts.conciseContentPrompt = `Készíts tömör gyakorlati összefoglalót (max 300 szó):
+      - Főbb lépések
+      - Kritikus biztonsági pontok
+      - Szükséges főbb eszközök
+      
+      Cím: {title}
+      Szakma: {profession}`;
+    } else {
+      // Theory module defaults
+      prompts.internetContentPrompt = `Készíts egy minden részletre kiterjedő, szakmai ELMÉLETI tananyagot!
+      A tartalom legyen RÉSZLETES, professzionális és lefedjen minden szakmai aspektust.
+      A cél, hogy a szövegből a tanuló TÖKÉLETESEN megértse és elsajátítsa az elméleti hátteret.
+      Használj Markdown formázást, táblázatokat és listákat a jobb érthetőségért.
+      Modulcím: {title}, Alapinformáció: {content}`;
+      
+      prompts.conciseContentPrompt = `Készíts TÖMÖR, de lényegre törő elméleti összefoglalót (max 300 szó):
+      - Kulcsfogalmak magyarázata
+      - Alapvető szabályok vagy összefüggések
+      
+      Cím: {title}
+      Szakma: {profession}`;
     }
 
     // SEQUENTIAL PROCESSING - Each step builds on the previous result

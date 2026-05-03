@@ -145,9 +145,9 @@ Te egy PTT (Programtanterv) dokumentum-elemző szakértő vagy. A feladatod a sz
 
 ── EXTRAKCIÓS SZABÁLYOK ──
 - CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot a címbe! (Helyes: "A hegesztőív fizikája", Helytelen: "3.4.1.2 A hegesztőív fizikája").
-- TÍPUS: 
-  - Ha a leírás cselekvést (mérés, vágás, készítés, beállítás) sugall -> "practical".
-  - Ha fogalmakat, elméletet, szabályokat ír le -> "theory".
+- TÍPUS (KRITIKUS): 
+  - "practical": Ha a leírás cselekvést, műveletet, mérést, szerelést, beállítást vagy konkrét fizikai munkát ír le. (Kulcsszavak: készítése, mérése, vágása, hegesztése, összeállítása).
+  - "theory": Ha a leírás fogalmakat, elméleti összefüggéseket, jogszabályokat, szabványokat vagy absztrakt ismereteket tartalmaz. (Kulcsszavak: alapjai, fogalma, ismerete, törvényszerűségei).
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
@@ -178,22 +178,24 @@ Te egy profi szakoktató és tananyagfejlesztő vagy. Generálj szakmai tananyag
 Szakma: ${professionName}
 Tantárgy: ${subjectName}
 
-FELADAT:
-Minden modulhoz írj egy tömör, professzionális kifejtést az alábbiak szerint:
+── FELADAT ──
+Minden modulhoz írj egy tömör, professzionális kifejtést az alábbi SZIGORÚ szabályok szerint:
 
 1. HA A MODUL [THEORY] (Elmélet):
    - A "content" mezőbe írj 4-5 mondatos, lényegre törő szakmai magyarázatot.
-   - Használj tanuló-központú nyelvezetet (ne tanári útmutatót!).
-   - A "practicalTasks" maradjon üres lista [].
+   - Összpontosíts a fogalmakra, összefüggésekre és szabályokra.
+   - A "practicalTasks" mező KÖTELEZŐEN ÜRES lista maradjon: [].
 
 2. HA A MODUL [PRACTICAL] (Gyakorlat):
-   - A "content" mezőbe írj egy rövid (max 2 mondat) bevezetőt a gyakorlati feladathoz.
-   - A "practicalTasks" mezőbe generálj 3-5 konkrét, lépésről-lépésre végrehajtható szakmai feladatot.
+   - A "content" mezőbe írj egy rövid (max 2 mondat) bevezetőt, ami megmondja, mit fogunk csinálni.
+   - A "practicalTasks" mezőbe generálj 3-5 konkrét, lépésről-lépésre végrehajtható szakmai feladatot (instrukciót).
+   - A feladatok legyenek cselekvés-orientáltak (pl. "Mérje meg...", "Vágja el...", "Ellenőrizze...").
 
-TILOS:
-- "A tantárgy célja...", "A tanulónak meg kell ismernie..." kezdetű mondatok.
-- Halandzsa, töltelékszöveg, pedagógiai módszertani leírások.
-- Ismétlődés a modulok között.
+── SZIGORÚ TILALOM ──
+- NE keverd az elméleti magyarázatot a gyakorlati feladatokkal!
+- Ha a modul PRACTICAL, ne írj bele hosszú elméleti levezetést.
+- Ha a modul THEORY, ne adj meg benne gyakorlati feladatsort.
+- Kerüld a "A tantárgy célja...", "A tanulónak meg kell ismernie..." jellegű pedagógiai sallangokat.
 
 MODULOK:
 ${moduleList}
@@ -201,7 +203,7 @@ ${moduleList}
 VÁLASZ (JSON):
 {
   "modules": [
-    { "title": "Pontos modul cím", "content": "Szakmai tartalom...", "practicalTasks": ["feladat 1", "feladat 2"] }
+    { "title": "Pontos modul cím", "content": "Szakmai tartalom...", "practicalTasks": ["1. feladat", "2. feladat"] }
   ]
 }
 `.trim();
