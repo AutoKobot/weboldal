@@ -70,10 +70,42 @@ This log tracks the major changes, fixes, and architectural decisions made by th
   - **Component Migration**: Replaced custom progress bars with the standardized UI `Progress` component to resolve inline-style warnings.
 - **Result**: Zero-error dashboard and a fully accessible, stable student experience.
 
+### 8. Navigation Stability & State Persistence
+
+- **Problem**: Switching tabs in Admin Dashboard caused data loss (e.g., selected profession reset). "Back" button in curriculum pages skipped levels or lost filters.
+- **Solution**:
+  - **State Lifting**: Lifted `selectedProfessionId` and `selectedSubjectId` to the parent `AdminDashboard` to persist state across tab switches.
+  - **URL Synchronization**: Implemented URL parameter tracking (`?profession=X&type=theory`) in `TananyagokPage` and `ModulesPage`.
+  - **Navigation Logic**: Refactored back-navigation to respect the filter context, ensuring a logical flow from Module -> Subject -> Category.
+- **Result**: Seamless navigation experience with full state persistence.
+
+### 9. Cumulative Hour Logic (Editable Aggregation)
+
+- **Problem**: Total hours for subjects and professions were manually entered or missing, failing to reflect the actual workload of the generated modules.
+- **Solution**:
+  - **Schema**: Added `totalHours` to `professions` table.
+  - **Aggregation**: Implemented helper functions to sum up `suggestedHours` from Modules to Subjects, and Subject `hours` to Professions.
+  - **Fallback Display**: Subject cards now display a "~X óra (jav.)" badge if the official hours field is empty, using real-time module aggregation.
+  - **Sync Tools**: Added "Sync" buttons (Wand2) in edit dialogs to allow admins to automatically apply calculated sums while maintaining manual override capability.
+  - **UI**: Updated Profession and Subject cards to display category breakdowns (Theory vs. Practical hours).
+- **Result**: Transparent workload tracking from granular modules up to the professional qualification level.
+
+### 10. Global AI Status & Presentation Pacing
+
+- **Problem**: Admins didn't know if background bulk development was active. Presentations auto-advanced through quiz questions without waiting for student input.
+- **Solution**:
+  - **Indicator**: Added a real-time pulsing global AI process indicator (Badge + Loader2) to all relevant admin and curriculum headers.
+  - **Prompt Engineering**: Updated AI instructions to strictly use `interactiveType: "quiz"` for any questions.
+  - **Player Logic**: Enhanced `presentation-player.tsx` to strictly pause narration and auto-advance whenever an interactive or summary slide is reached.
+- **Result**: Improved visibility for administrative tasks and a paced, interactive learning experience for students.
+
 ## Pending Tasks / Roadmap
 
 - [x] Fix "Wrench is not defined" error in student view.
 - [x] Redesign IKK import UI for granular control.
+- [x] Implement cumulative hour summation and sync buttons.
+- [x] Add global AI background process indicators.
+- [x] Fix interactive presentation auto-advance issues.
 - [ ] Clean up "Ghost Data" using the integrity script results.
 - [ ] Implement AI-driven Question generation for Practical modules.
 - [ ] Optimize IKK import performance (Parallel chunk processing).

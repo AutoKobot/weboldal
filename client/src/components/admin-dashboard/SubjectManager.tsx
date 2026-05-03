@@ -217,11 +217,15 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
                     <span className="text-[10px] text-muted-foreground font-medium">
                       {subject.moduleCount || 0} modul
                     </span>
-                    {subject.hours && (
+                    {subject.hours ? (
                       <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200 h-4 flex items-center gap-1">
                         <Clock className="h-2.5 w-2.5" /> {subject.hours} óra
                       </Badge>
-                    )}
+                    ) : calculateSubjectModuleHours(subject.id) > 0 ? (
+                      <Badge variant="outline" className="text-[10px] bg-blue-50/50 text-blue-600 border-blue-100 h-4 flex items-center gap-1 italic">
+                        <Clock className="h-2.5 w-2.5" /> ~{Math.round(calculateSubjectModuleHours(subject.id))} óra (jav.)
+                      </Badge>
+                    ) : null}
                   </div>
                   <CardTitle className="text-sm font-bold leading-tight line-clamp-2">
                     {subject.name}

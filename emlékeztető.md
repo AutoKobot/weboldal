@@ -20,16 +20,18 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 
 ## 🚀 Legutóbbi Fontos Fejlesztések
 
-- **Elmélet és Gyakorlat Szigorú Szétválasztása**:
-  - Az IKK importálás során külön választható az Elméleti vagy Gyakorlati tananyag kinyerése.
-  - A generált tartalom stílusa alkalmazkodik a típushoz: az elmélet akadémiai mélységű, a gyakorlat feladat-orientált (eszközökkel, biztonsági előírásokkal).
-- **Admin Dashboard Frissítés**:
-  - Az IKK Import gomb helyett három célirányos gomb került a fejlécre: **IKK Elmélet**, **IKK Gyakorlat** és **Teljes Import**.
-  - A szinkronizáció során a kiválasztott típusnak megfelelő gomb kiemelt marad az átláthatóság érdekében.
-- **Hibajavítások és Stabilitás**:
-  - **Ikonok**: Pótólva a hiányzó `Wrench` és egyéb `lucide-react` importok a diák felületen.
-  - **Akadálymentesítés**: Minden interaktív elem (gombok, iframe-ek) kapott `aria-label` vagy `title` attribútumot.
-  - **Típusbiztonság**: Javítva a `ProfessionManager` TypeScript hibái és a dátumkezelési problémák.
+- **Navigáció és Állapotmegőrzés**:
+  - Az Admin Dashboard állapotai (kiválasztott szakma/tantárgy) megmaradnak lapváltáskor.
+  - A tananyag és modul listák URL-paraméterekkel szinkronizálnak, így a "vissza" gomb és a szűrések (elmélet/gyakorlat) stabilak.
+- **Óraszám Összesítés és Szinkronizálás**:
+  - A rendszer automatikusan összesíti a modulok óraszámait a tantárgyakhoz, és a tantárgyakét a szakmákhoz.
+  - A szerkesztő felületeken bűvös pálca gomb (`Wand2`) segíti az automatikus óraszám-szinkronizálást, de az értékek manuálisan is felülírhatóak.
+- **AI Folyamatjelző és Interaktív HTML**:
+  - Globális AI állapotjelző került a fejlécekbe, amely mutatja, ha háttérfolyamat (bulk fejlesztés) fut.
+  - Az interaktív prezentációk mostantól megállnak a kérdéseknél, a narráció nem szalad tovább a válaszadás előtt.
+- **Hibajavítások**:
+  - Megszűnt a modulcímek sorszám-duplikációja (pl. 3.1.1.) a robusztusabb regex-szel.
+  - Pótólva a hiányzó `Wand2` és egyéb ikon importok.
 
 ## 📌 Szabályok és Irányelvek az AI számára
 
