@@ -137,26 +137,27 @@ export class IKKService {
     const typeFocus = importType === 'theory' ? 'CSAK AZ ELMÉLETI' : importType === 'practical' ? 'CSAK A GYAKORLATI' : 'AZ ÖSSZES';
     
     return `
-Te egy PTT (Programtanterv) dokumentum-elemző szakértő vagy. A feladatod a szakmai tartalom kinyerése a LEGRÉSZLETESEBB szinten.
+Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE.
 Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
 
 ── TANTÁRGY ÉS MODUL STRUKTÚRA ──
 1. TANTÁRGY: Minden "X.X.X [Név] tantárgy [óra] óra" formátumú egységet rögzíts.
-   - NE hagyj ki tantárgyat; ha van benne ${importType === 'theory' ? 'elméleti kifejtés' : 'gyakorlati feladat/képesség'}, vedd fel!
-2. MODULOK (KRITIKUS): Keress meg minden szakmai egységet.
-   - Ebből a listából CSAK azokat vedd fel, amelyek ${importType === 'theory' ? 'ELMÉLETI (leíró)' : importType === 'practical' ? 'GYAKORLATI (cselekvő)' : 'szakmai'} jellegűek.
-   - **BONTÁS (FONTOS)**: Ha egy sor több feladatot tartalmaz (pl. "Kiválasztja a szerszámot és elvégzi a vágást"), BONTD KETTÉ külön modulokra!
-   - Minden felsorolt sort/pontot külön modulnak tekints. Minél több a modul, annál jobb!
+2. MODULOK ÉS SZAKMAI BŐVÍTÉS (KRITIKUS): 
+   - Keress meg minden szakmai egységet.
+   - **SZAKMAI BŐVÍTÉS (GYAKORLATNÁL)**: Ha egy gyakorlati feladat túl általános (pl. "Gázhegesztés végzése" vagy "Mérések"), akkor a szakmai követelményeknek megfelelően BONTD SZÉT logikus almodulokra!
+     * Példa: Hegesztésnél bontsd szét pozíciók (PA, PB, PC, PF, stb.) és varrattípusok (tompa, sarok) szerint.
+     * Példa: Mérésnél bontsd szét eszközök (tolómérő, mikrométer) és mérési módok szerint.
+   - Minden ilyen almodult (a, b, c...) vegyél fel külön elemként. A cél a tanuló alapos felkészítése!
    - Ha egy fejezetet (pl. 3.5.1.6.1) több modulra bontasz, a "sectionCode" végére fűzz egy kisbetűt: 3.5.1.6.1.a, 3.5.1.6.1.b, stb.
 
 ── EXTRAKCIÓS SZABÁLYOK ──
 - SZŰRÉS: ${typeFocus} modulokat keresünk.
-- ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, összefüggések ("Ismeri...", "Leírja...", "Érti...").
-- GYAKORLAT DEFINÍCIÓ: Cselekvések, készségek, műveletek ("Képes a...", "Alkalmazza...", "Elvégzi...", "Beállítja...", "Ellenőrzi..."). Ide tartozik az előkészítés és a munkavédelem is!
-- CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot!
+- ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, elméleti összefüggések.
+- GYAKORLAT DEFINÍCIÓ: Cselekvések, készségek, konkrét szakmai műveletek végrehajtása.
+- CÍM (FONTOS): A modul címe legyen beszédes és szakmai (pl. "Gázhegesztés tompavarrattal PF pozícióban").
 - TÍPUS (KRITIKUS): 
-  - "practical": Minden, ami "Képes rá" vagy "Csinálja".
-  - "theory": Minden, ami "Tudja" vagy "Ismeri".
+  - "practical": Cselekvés, végrehajtás, gyakorlás.
+  - "theory": Tudás, megértés, leírás.
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
