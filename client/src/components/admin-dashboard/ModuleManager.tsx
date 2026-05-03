@@ -30,6 +30,7 @@ import {
   LayoutGrid, List, MonitorPlay, FileText, X, Wrench, Clock
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { compareSectionCodes } from "@/lib/utils";
 import { Module, insertModuleSchema, Subject } from "./types";
 import { ModuleEditor } from "./ModuleEditor";
 
@@ -46,9 +47,21 @@ export function ModuleManager({
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [regeneratingModules, setRegeneratingModules] = useState<Set<number>>(new Set());
   const [presentingModules, setPresentingModules] = useState<Set<number>>(new Set());
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  // Fetch modules for this specific subject to ensure data consistency
+  const { data: subjectModules = [], isLoading: modulesLoading } = useQuery<Module[]>({
+    queryKey: ["/api/public/modules", { subjectId: selectedSubjectId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/modules?subjectId=${selectedSubjectId}`);
+      if (!res.ok) throw new Error("Failed to fetch modules");
+      return res.json();
+    },
+    enabled: !!selectedSubjectId
+  });
 
   const selectedSubject = subjects.find((s: Subject) => s.id === selectedSubjectId);
-  const filteredModules = modules.filter((m: Module) => m.subjectId === selectedSubjectId);
+  const filteredModules = subjectModules;
 
   const form = useForm({
     resolver: zodResolver(insertModuleSchema),
@@ -68,6 +81,8 @@ export function ModuleManager({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules", { subjectId: selectedSubjectId }] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
       setIsDialogOpen(false);
       form.reset();
       toast({ title: "Siker", description: "Modul létrehozva" });
@@ -81,6 +96,8 @@ export function ModuleManager({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules", { subjectId: selectedSubjectId }] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
       setIsDialogOpen(false);
       setEditingModule(null);
       form.reset();
@@ -94,6 +111,8 @@ export function ModuleManager({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules", { subjectId: selectedSubjectId }] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
       toast({ title: "Siker", description: "Modul törölve" });
     }
   });
@@ -201,18 +220,7 @@ export function ModuleManager({
       </div>
 
       <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
-        {filteredModules.sort((a: any, b: any) => {
-          if (a.sectionCode && b.sectionCode) {
-            const partsA = a.sectionCode.split('.').map(Number);
-            const partsB = b.sectionCode.split('.').map(Number);
-            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-              const valA = partsA[i] || 0;
-              const valB = partsB[i] || 0;
-              if (valA !== valB) return valA - valB;
-            }
-          }
-          return (a.moduleNumber || 0) - (b.moduleNumber || 0);
-        }).map((module: Module) => (
+        {filteredModules.sort((a: any, b: any) => compareSectionCodes(a.sectionCode, b.sectionCode) || (a.moduleNumber || 0) - (b.moduleNumber || 0)).map((module: Module) => (
           <Card key={module.id} className={`group hover:border-primary transition-all duration-300 ${viewMode === 'grid' ? 'h-full flex flex-col shadow-sm hover:shadow-md' : ''}`}>
             <CardHeader className={`flex flex-row items-center justify-between ${viewMode === 'grid' ? 'pb-2' : 'py-3'}`}>
               <div className="flex items-center gap-3 overflow-hidden">

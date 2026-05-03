@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { extractTextFromMarkdown } from "@/lib/utils";
+import { extractTextFromMarkdown, compareSectionCodes } from "@/lib/utils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
 import ChatInterface from "@/components/chat-interface";
@@ -1100,7 +1100,7 @@ export default function ModuleViewer() {
 
               const subjectModules = allModules
                 .filter(m => m.subjectId === currentModule.subjectId)
-                .sort((a, b) => a.moduleNumber - b.moduleNumber);
+                .sort((a, b) => compareSectionCodes(a.sectionCode, b.sectionCode) || (a.moduleNumber - b.moduleNumber));
 
               const currentIndex = subjectModules.findIndex(m => m.id === moduleId);
               const previousModule = subjectModules[currentIndex - 1];
