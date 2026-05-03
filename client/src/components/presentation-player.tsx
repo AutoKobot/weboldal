@@ -182,7 +182,8 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
       }
 
       audio.onended = () => {
-        if (autoAdvance && currentSlideIndex < slides.length - 1) {
+        const isInteractive = currentSlide.interactiveType && currentSlide.interactiveType !== 'none';
+        if (autoAdvance && !isInteractive && currentSlideIndex < slides.length - 1) {
           setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500);
         } else if (currentSlideIndex === slides.length - 1) {
           setIsPlaying(false);
@@ -198,9 +199,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
         }
       };
     } else {
-      // No audio for this slide – auto-advance after delay
+      // No audio for this slide – auto-advance after delay (only if not interactive)
       audio.pause();
-      if (isPlaying && autoAdvance && currentSlideIndex < slides.length - 1) {
+      const isInteractive = currentSlide.interactiveType && currentSlide.interactiveType !== 'none';
+      if (isPlaying && autoAdvance && !isInteractive && currentSlideIndex < slides.length - 1) {
         const timer = setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 5000);
         return () => { clearTimeout(timer); cleanupCanPlay(); };
       }
@@ -285,7 +287,7 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           </div>
         )}
 
-        <audio ref={audioRef} style={{ display: 'none' }} />
+        <audio ref={audioRef} className="hidden" />
         
         <div className="h-20 bg-slate-900/60 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-8 z-50 shrink-0">
           <div className="flex items-center gap-6">

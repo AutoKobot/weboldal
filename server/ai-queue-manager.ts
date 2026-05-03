@@ -214,22 +214,30 @@ export class AIQueueManager {
   }
 
   /**
-   * Get queue status
+   * Get queue status including currently processing items
    */
   getQueueStatus() {
+    // We need to find the full items for those in the processing set
+    // Since we don't store them in a separate map, this is a bit tricky
+    // but we can track them when they start processing.
+    
     return {
       queueSize: this.queue.length,
-      processing: this.processing.size,
+      processingCount: this.processing.size,
       maxConcurrent: this.maxConcurrent,
-      items: this.queue.map(item => ({
+      queuedItems: this.queue.map(item => ({
         id: item.id,
         moduleId: item.moduleId,
         title: item.title,
         type: item.type || 'full',
         timestamp: item.timestamp
-      }))
+      })),
+      // We'll add a separate way to track processing items' metadata
+      processingItems: Array.from(this.processingMetadata.values())
     };
   }
+
+  private processingMetadata: Map<string, {moduleId: number, type: string, title: string}> = new Map();
 
   /**
    * Start processing queue
@@ -256,6 +264,11 @@ export class AIQueueManager {
     if (!item) return;
 
     this.processing.add(item.id);
+    this.processingMetadata.set(item.id, { 
+      moduleId: item.moduleId, 
+      type: item.type || 'full', 
+      title: item.title 
+    });
     const remainingCount = this.queue.length;
     console.log(`🔄 Processing AI task (${item.type || 'full'}): "${item.title}"... (${remainingCount} remaining in queue)`);
 
@@ -265,6 +278,7 @@ export class AIQueueManager {
         console.log(`✅ Completed AI task: "${item.title}" (${this.queue.length} remaining in queue)`);
         item.resolve(result);
         this.processing.delete(item.id);
+        this.processingMetadata.delete(item.id);
         // Immediately pick up the next item from the queue without waiting for the interval
         if (this.queue.length > 0) {
           console.log(`🔄 Auto-starting next queued task (${this.queue.length} remaining)...`);
@@ -275,6 +289,7 @@ export class AIQueueManager {
         console.error(`❌ AI generation failed for "${item.title}":`, error);
         item.reject(error);
         this.processing.delete(item.id);
+        this.processingMetadata.delete(item.id);
         // Even on error, continue with the next item
         if (this.queue.length > 0) {
           console.log(`🔄 Continuing queue after error (${this.queue.length} remaining)...`);

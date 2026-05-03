@@ -56,6 +56,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
       description: "",
       type: "theory",
       professionId: selectedProfessionId,
+      hours: null as number | null,
     }
   });
 
@@ -117,6 +118,7 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
       description: subject.description || "",
       type: subject.type || "theory",
       professionId: subject.professionId,
+      hours: subject.hours || null,
     });
     setIsDialogOpen(true);
   };
@@ -198,6 +200,11 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
                     <span className="text-[10px] text-muted-foreground font-medium">
                       {subject.moduleCount || 0} modul
                     </span>
+                    {subject.hours && (
+                      <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200 h-4 flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" /> {subject.hours} óra
+                      </Badge>
+                    )}
                   </div>
                   <CardTitle className="text-sm font-bold leading-tight line-clamp-2">
                     {subject.name}
@@ -266,6 +273,24 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
                     <FormItem>
                       <FormLabel>Megnevezés</FormLabel>
                       <FormControl><Input {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+                <FormField
+                  control={form.control}
+                  name="hours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Összes óraszám</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)} 
+                          value={field.value || ""}
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
