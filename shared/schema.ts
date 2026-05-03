@@ -86,6 +86,7 @@ export const professions = pgTable("professions", {
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name (pl. "wrench", "hammer", "cpu")
   iconUrl: varchar("icon_url"), // Feltöltött kép URL
+  code: varchar("code", { length: 50 }), // OKJ/IKK azonosító (pl. 4 0715 10 05)
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik (null = admin által globális)
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
@@ -635,6 +636,8 @@ export const insertProfessionSchema = createInsertSchema(professions).omit({
   createdAt: true,
   updatedAt: true,
   schoolAdminId: true,
+}).extend({
+  code: z.string().optional().nullable(),
 });
 
 export const insertSubjectSchema = createInsertSchema(subjects).omit({

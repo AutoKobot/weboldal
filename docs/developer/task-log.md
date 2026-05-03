@@ -5,9 +5,9 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 ## Current Session: 2026-05-01
 
 ### 4. SQL Ambiguity & IKK Import Stabilization
- 
+
 - **Problem**: PostgreSQL crashed with `column reference "id" is ambiguous` during IKK imports. Curriculum extraction was missing granular sub-topics.
-- **Solution**: 
+- **Solution**:
   - Refactored `storage.ts` to use explicit table qualifications and hardcoded prefixes.
   - Implemented "Middle Ground" IKK processing (concurrency 2, 2000-char overlap).
   - Added alphanumeric sub-numbering (`3.x.a`, `3.x.b`) and automated title cleaning on frontend.
@@ -51,18 +51,29 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 
 ## Current Session: 2026-05-03
 
-### 6. Subject-Module Split & Automated Reorganization
+### 6. IKK Import UI Redesign & Granular Control
 
-- **Problem**: IKK import often grouped mixed theory and practical modules under a single subject, causing confusing UI categorization where practical modules would appear under "Theory" cards or vice-versa.
+- **Problem**: The IKK import was a single "black box" process that didn't allow admins to focus specifically on Theory or Practice gaps.
 - **Solution**:
-  - **Backend**: Implemented `reorganizeSubjects(professionId)` in `storage.ts`. This algorithm splits subjects containing both theory and practical modules into two distinct subject records, maintaining a clean 1:1 mapping between subject type and module content.
-  - **Automation**: Hooked the reorganization algorithm into the end of the IKK import pipeline.
-  - **Admin UI**: Updated `SubjectManager.tsx` to match the student view's "Theory" vs "Practice" card selection. Added a manual "Reorganize" (Wand) button to fix existing curricula.
-  - **API**: Added `/api/ikk/reorganize/:id` endpoint for manual triggering.
-- **Result**: Perfectly organized curricula where theory and practice are distinct at both the subject and module levels, preventing miscategorization and improving UX.
+  - **Admin UI**: Replaced the single "IKK Import" button with three dedicated entry points: **IKK Elmélet**, **IKK Gyakorlat**, and **Teljes Import**.
+  - **Propagated Logic**: The selected import type is now passed from the dashboard directly to the background worker.
+  - **Visual Feedback**: The `IKKManager` search results now highlight the selected import mode.
+- **Result**: Admins have surgical control over curriculum development, preventing content mixing.
+
+### 7. UI/UX Stabilization & Accessibility Audit
+
+- **Problem**: Missing icons (`Wrench`) caused student-side crashes. IDE reported multiple accessibility and type safety issues.
+- **Solution**:
+  - **Icons**: Comprehensive audit of `ModuleViewer.tsx` and `IKKManager.tsx` to ensure all `lucide-react` imports are present.
+  - **Accessibility**: Added `aria-label` and `title` attributes to all mobile navigation buttons and iframes.
+  - **Type Safety**: Fixed missing field definitions (`code`, `moduleCount`) in `ProfessionManager` prop types and added null-checks for date parsing.
+  - **Component Migration**: Replaced custom progress bars with the standardized UI `Progress` component to resolve inline-style warnings.
+- **Result**: Zero-error dashboard and a fully accessible, stable student experience.
 
 ## Pending Tasks / Roadmap
 
+- [x] Fix "Wrench is not defined" error in student view.
+- [x] Redesign IKK import UI for granular control.
 - [ ] Clean up "Ghost Data" using the integrity script results.
 - [ ] Implement AI-driven Question generation for Practical modules.
 - [ ] Optimize IKK import performance (Parallel chunk processing).

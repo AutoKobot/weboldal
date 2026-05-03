@@ -268,34 +268,50 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const finalSubjects = Array.from(mergedSubjectsMap.values());
         if (finalSubjects.length === 0) throw new Error("Az AI nem talált feldolgozható tantárgyakat.");
 
-        // Clean up existing
+        // Find or create profession
         const allProfs = await storage.getProfessions();
-        const existingProf = allProfs.find(p => p.name === profession.name);
-        if (existingProf) await storage.deleteProfession(existingProf.id);
-
-        // Create new
-        let totalModulesCount = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
-        const dbProfession = await storage.createProfession({
-          name: profession.name,
-          description: `Importálva az IKK-ról. (${finalSubjects.length} tantárgy, ${totalModulesCount} modul).`,
-          iconName: "book",
-          code: profession.okjId
-        });
+        let dbProfession = allProfs.find(p => p.name === profession.name);
+        
+        if (!dbProfession) {
+          // Create new if not exists
+          let totalModulesCount = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
+          dbProfession = await storage.createProfession({
+            name: profession.name,
+            description: `Importálva az IKK-ról. (${finalSubjects.length} tantárgy, ${totalModulesCount} modul).`,
+            iconName: "book",
+            code: profession.okjId || profession.code
+          });
+        } else {
+          // Update existing description to reflect update
+          await storage.updateProfession(dbProfession.id, {
+            description: dbProfession.description + ` (Frissítve: ${new Date().toLocaleDateString('hu-HU')} - ${type})`
+          });
+        }
+        
         createdProfessionId = dbProfession.id;
+        const existingSubjects = await storage.getSubjects(dbProfession.id);
 
         let processedModules = 0;
+        let totalModulesCount = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
+        
         for (const sub of finalSubjects) {
           if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
 
-          const dbSubject = await storage.createSubject({
-            professionId: dbProfession.id,
-            name: sub.name,
-            code: sub.code || "",
-            description: sub.description || "",
-            type: sub.practicalPercent > 0 ? 'practical' : 'theory',
-            orderIndex: 0,
-            hours: sub.hours || null
-          });
+          let dbSubject = existingSubjects.find(s => s.name === sub.name);
+          
+          if (!dbSubject) {
+            dbSubject = await storage.createSubject({
+              professionId: dbProfession.id,
+              name: sub.name,
+              code: sub.code || "",
+              description: sub.description || "",
+              type: sub.practicalPercent > 0 ? 'practical' : 'theory',
+              orderIndex: 0,
+              hours: sub.hours || null
+            });
+          }
+
+          const existingModules = await storage.getModules(dbSubject.id);
 
           const BATCH_SIZE = 10; // Slightly smaller batches for stability
           const batches = [];
@@ -326,21 +342,24 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             });
 
             const contentData = JSON.parse(res.choices[0].message.content || '{"modules":[]}');
-            const modulesToCreate = (contentData.modules || []).map((modData: any) => {
-              const original = batch.find((m: any) => m.title === modData.title);
-              return {
-                subjectId: dbSubject.id,
-                title: modData.title,
-                content: modData.content || "",
-                practicalTasks: modData.practicalTasks || [],
-                type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
-                moduleNumber: ++processedModules,
-                sectionCode: original?.sectionCode || null,
-                isPublished: true
-              };
-            });
+            const modulesToCreate = (contentData.modules || [])
+              .filter((modData: any) => !existingModules.some(em => em.title === modData.title))
+              .map((modData: any) => {
+                const original = batch.find((m: any) => m.title === modData.title);
+                return {
+                  subjectId: dbSubject.id,
+                  title: modData.title,
+                  content: modData.content || "",
+                  practicalTasks: modData.practicalTasks || [],
+                  type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
+                  moduleNumber: ++processedModules,
+                  sectionCode: original?.sectionCode || null,
+                  isPublished: true
+                };
+              });
 
             if (modulesToCreate.length > 0) await storage.bulkCreateModules(modulesToCreate);
+            else processedModules += batch.length; // Count existing as processed for progress
             
             // Update progress AFTER each batch
             const currentProgress = 40 + Math.round((processedModules / totalModulesCount) * 55);
