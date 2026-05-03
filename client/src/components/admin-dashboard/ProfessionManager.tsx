@@ -27,7 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2,
+  Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2, Clock,
   Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap 
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -165,8 +165,19 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     {prof.code && (
-                      <Badge variant="secondary" className="font-mono text-[10px] bg-slate-100 text-slate-600 border-slate-200">
+                      <Badge variant="secondary" className="text-[10px] h-5">
                         {prof.code}
+                      </Badge>
+                    )}
+                    {prof.totalHours && prof.totalHours > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5 border-blue-100 bg-blue-50/30 text-blue-700 flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" />
+                        {prof.totalHours} óra
+                      </Badge>
+                    )}
+                    {prof.totalHours && prof.moduleCount > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5 border-slate-200 text-slate-500 bg-slate-50/50">
+                        ~{Math.round((prof.totalHours / prof.moduleCount) * 10) / 10} óra / modul
                       </Badge>
                     )}
                     <span className="text-[10px] text-muted-foreground">

@@ -274,17 +274,17 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         
         if (!dbProfession) {
           // Create new if not exists
-          let totalModulesCount = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
           dbProfession = await storage.createProfession({
             name: profession.name,
-            description: `Importálva az IKK-ról. (${finalSubjects.length} tantárgy, ${totalModulesCount} modul).`,
+            description: `Importálva az IKK-ról.`,
             iconName: "book",
             code: profession.okjId || profession.code
           });
         } else {
-          // Update existing description to reflect update
+          // Clean description from old update notes and add new one
+          const cleanDescription = (dbProfession.description || "").split(" (Frissítve:")[0];
           await storage.updateProfession(dbProfession.id, {
-            description: dbProfession.description + ` (Frissítve: ${new Date().toLocaleDateString('hu-HU')} - ${type})`
+            description: cleanDescription + ` (Frissítve: ${new Date().toLocaleDateString('hu-HU')} - ${type === 'both' ? 'Teljes' : type === 'theory' ? 'Elmélet' : 'Gyakorlat'})`
           });
         }
         
@@ -338,6 +338,8 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                   { role: "user", content: ikkService.buildContentPrompt(profession.name, sub.name, batch) }
                 ],
                 temperature: 0.4
+              }, {
+                timeout: 60000 // 1 minute timeout for large practical expansions
               });
             });
 
@@ -370,6 +372,22 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             
             await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
           });
+          
+          // After all modules for this subject are created and populated, distribute the hours
+          if (sub.hours && sub.hours > 0) {
+            try {
+              const allModules = await storage.getModules(dbSubject.id);
+              const hourDistributions = await ikkService.distributeSubjectHours(profession.name, sub.name, sub.hours, allModules);
+              
+              for (const dist of hourDistributions) {
+                if (dist.hours > 0) {
+                  await storage.updateModule(dist.id, { suggestedHours: dist.hours.toString() });
+                }
+              }
+            } catch (err) {
+              console.error(`Error distributing hours for subject ${sub.name}:`, err);
+            }
+          }
         }
 
         if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') {

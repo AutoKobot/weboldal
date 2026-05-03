@@ -89,6 +89,16 @@ export function ModuleEditor({ module, subjects, onSave, onCancel }: ModuleEdito
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="suggestedHours"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Óraszám</FormLabel>
+                <FormControl><Input type="number" step="0.5" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value)} /></FormControl>
+              </FormItem>
+            )}
+          />
         </div>
 
         <FormField

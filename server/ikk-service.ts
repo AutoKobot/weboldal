@@ -97,6 +97,49 @@ export class IKKService {
     };
   }
 
+  async distributeSubjectHours(professionName: string, subjectName: string, totalHours: number, modules: { title: string, id: number }[]): Promise<{ id: number, hours: number }[]> {
+    if (!totalHours || modules.length === 0) return modules.map(m => ({ id: m.id, hours: 0 }));
+
+    try {
+      const { getOpenAIClient } = await import('./openai');
+      const openai = await getOpenAIClient();
+      
+      const prompt = `
+Te egy SZAKOKTATÓ és tanmenet-tervező vagy.
+Szakma: ${professionName}
+Tantárgy: ${subjectName}
+Rendelkezésre álló keretidő: ${totalHours} óra
+Modulok száma: ${modules.length}
+
+FELADAT: Oszd el a ${totalHours} órát az alábbi modulok között szakmai súlyuk és pedagógiai komplexitásuk alapján.
+A cél, hogy a nehezebb, gyakorlatigényesebb modulok több órát kapjanak, míg az alapozó/elméleti bevezetők kevesebbet.
+
+SZABÁLYOK:
+1. Az óraszámok összege pontosan ${totalHours} legyen!
+2. Használj kerekített számokat (0.5-ös pontossággal, pl. 1.5, 2, 4.5).
+3. Válaszolj szigorú JSON formátumban: {"distributions": [{"id": [modul_id], "hours": [óra]}]}
+
+MODULOK LISTÁJA:
+${modules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
+`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        response_format: { type: "json_object" },
+        messages: [{ role: "system", content: "Tanmenet-tervező szakértő vagy." }, { role: "user", content: prompt }],
+        temperature: 0.3,
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || '{}');
+      return result.distributions || [];
+    } catch (error) {
+      console.error('Hiba az óraszámok elosztásakor:', error);
+      // Fallback: simple average if AI fails
+      const avg = totalHours / modules.length;
+      return modules.map(m => ({ id: m.id, hours: Math.round(avg * 2) / 2 }));
+    }
+  }
+
   private preprocessText(text: string): string {
     if (!text) return '';
     return text

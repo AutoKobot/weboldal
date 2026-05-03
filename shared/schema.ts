@@ -131,6 +131,7 @@ export const modules = pgTable("modules", {
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
   practicalTasks: jsonb("practical_tasks"), // Gyakorlati feladatok
+  suggestedHours: numeric("suggested_hours", { precision: 5, scale: 2 }), // Javasolt óraszám (AI által osztva)
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),

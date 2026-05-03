@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Edit, Trash2, ArrowLeft, 
   Sparkles, Brain, CheckCircle, XCircle, Loader2, Wand2,
-  LayoutGrid, List, MonitorPlay, FileText, X, Wrench
+  LayoutGrid, List, MonitorPlay, FileText, X, Wrench, Clock
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Module, insertModuleSchema, Subject } from "./types";
@@ -235,6 +235,11 @@ export function ModuleManager({
                     ) : (
                       <Badge variant="outline" className="text-[10px] h-4 bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
                         <Brain className="h-2 w-2" /> ELMÉLET
+                      </Badge>
+                    )}
+                    {module.suggestedHours && (
+                      <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-slate-50 text-slate-600 border-slate-200">
+                        <Clock className="h-2.5 w-2.5" /> {module.suggestedHours} óra
                       </Badge>
                     )}
                     {(regeneratingModules.has(module.id) || presentingModules.has(module.id)) && (
