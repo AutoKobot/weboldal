@@ -7,7 +7,8 @@ import MobileNav from "@/components/mobile-nav";
 import ModuleCard from "@/components/module-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Menu, ArrowLeft } from "lucide-react";
+import { BookOpen, Menu, ArrowLeft, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { Module, Subject } from "@shared/schema";
 import { compareSectionCodes } from "@/lib/utils";
 
@@ -43,9 +44,19 @@ export default function ModulesPage() {
     retry: false,
   });
 
+  const { data: queueStatus } = useQuery<any>({
+    queryKey: ["/api/admin/queue-status"],
+    enabled: user?.role === 'admin',
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000;
+    },
+  });
+
   const navigateBackToSubjects = () => {
     if (subject?.professionId) {
-      navigate(`/tananyagok?profession=${subject.professionId}`);
+      const typeParam = subject.type ? `&type=${subject.type}` : '';
+      navigate(`/tananyagok?profession=${subject.professionId}${typeParam}`);
     } else {
       navigate("/tananyagok");
     }
@@ -117,17 +128,26 @@ export default function ModulesPage() {
 
         <div className="p-6">
           <div className="mb-8">
-            <div className="flex items-center space-x-4 mb-4">
-              {subjectId && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={navigateBackToSubjects}
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft size={16} />
-                  <span>Vissza a tantárgyakhoz</span>
-                </Button>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                {subjectId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={navigateBackToSubjects}
+                    className="flex items-center space-x-2"
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Vissza a tantárgyakhoz</span>
+                  </Button>
+                )}
+              </div>
+              {user.role === 'admin' && queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse flex items-center gap-2 py-1.5 px-3">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="font-bold">AI:</span> 
+                  <span>{queueStatus.processingItems?.length + queueStatus.queuedItems?.length} folyamatban</span>
+                </Badge>
               )}
             </div>
             <h1 className="text-3xl font-bold text-neutral-800 mb-2">

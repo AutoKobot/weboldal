@@ -308,9 +308,7 @@ export function ModuleManager({
                 </Badge>
                 <div className="min-w-0">
                   <CardTitle className={`font-bold truncate ${viewMode === 'grid' ? 'text-base' : 'text-sm'}`}>
-                    {module.title.startsWith(module.sectionCode || '---') 
-                      ? module.title.replace(module.sectionCode!, '').trim().replace(/^[\s.-]+/, '')
-                      : module.title}
+                    {module.title.replace(/^\s*[\d.]+[a-z]?\s*[-.]*\s*/i, '').trim()}
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant={module.isPublished ? "default" : "secondary"} className="text-[10px] h-4 py-0">

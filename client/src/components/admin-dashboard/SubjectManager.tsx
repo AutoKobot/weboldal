@@ -29,11 +29,10 @@ import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench, Wand2, Clock } fr
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Subject, insertSubjectSchema, Profession } from "./types";
 
-export function SubjectManager({ subjects, professions, selectedProfessionId, onBack, onSelect }: any) {
+export function SubjectManager({ subjects, professions, selectedProfessionId, onBack, onSelect, selectedType, setSelectedType }: any) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
-  const [selectedType, setSelectedType] = useState<"theory" | "practical" | null>(null);
 
   const selectedProfession = professions.find((p: Profession) => p.id === selectedProfessionId);
   const filteredSubjects = subjects.filter((s: Subject) => 

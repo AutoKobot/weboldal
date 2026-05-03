@@ -263,13 +263,20 @@ export default function ModuleCard({
               {getStatusIcon()}
             </div>
             <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
-              {module.title.replace(/^\d+(\.\d+)*[a-z]?\s*/, '').trim()}
+              {module.title.replace(/^\s*[\d.]+[a-z]?\s*[-.]*\s*/i, '').trim()}
             </CardTitle>
-            {module.updatedAt && (
-              <p className="text-[9px] text-neutral-400 mt-1">
-                Utolsó frissítés: {new Date(module.updatedAt).toLocaleDateString('hu-HU')}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {module.suggestedHours && (
+                <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-slate-50/50 text-slate-600 border-neutral-200">
+                  <Clock className="h-2.5 w-2.5" /> {module.suggestedHours} óra
+                </Badge>
+              )}
+              {module.updatedAt && (
+                <p className="text-[9px] text-neutral-400">
+                  Utolsó frissítés: {new Date(module.updatedAt).toLocaleDateString('hu-HU')}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>

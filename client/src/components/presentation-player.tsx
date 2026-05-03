@@ -183,9 +183,13 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
 
       audio.onended = () => {
         const isInteractive = currentSlide.interactiveType && currentSlide.interactiveType !== 'none';
-        if (autoAdvance && !isInteractive && currentSlideIndex < slides.length - 1) {
-          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500);
-        } else if (currentSlideIndex === slides.length - 1) {
+        const isSummary = currentSlide.type === 'summary';
+        
+        if (autoAdvance && !isInteractive && !isSummary && currentSlideIndex < slides.length - 1) {
+          // Increase delay to 3 seconds for better experience
+          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 3000);
+        } else {
+          // Explicitly stop playing when we reach an interactive slide or the end
           setIsPlaying(false);
         }
       };

@@ -11,7 +11,7 @@ import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock } from "lucide-react";
+import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2 } from "lucide-react";
 import type { Profession, Subject } from "@shared/schema";
 
 export default function TananyagokPage() {
@@ -21,19 +21,24 @@ export default function TananyagokPage() {
   const [selectedProfession, setSelectedProfession] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<"theory" | "practical" | null>(null);
 
-  // Check URL for profession parameter and auto-select class profession
+  // Check URL for profession and type parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const professionParam = urlParams.get('profession');
+    const typeParam = urlParams.get('type') as "theory" | "practical" | null;
 
-    // Always start with profession selection view first
     if (professionParam) {
       setSelectedProfession(parseInt(professionParam));
     } else {
-      // Always start with null to show profession selection
       setSelectedProfession(null);
     }
-  }, [location, user]);
+
+    if (typeParam === "theory" || typeParam === "practical") {
+      setSelectedType(typeParam);
+    } else {
+      setSelectedType(null);
+    }
+  }, [location]);
 
   const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
     queryKey: ['/api/public/professions'],
@@ -67,6 +72,15 @@ export default function TananyagokPage() {
     },
     enabled: !!selectedProfession,
     retry: false,
+  });
+
+  const { data: queueStatus } = useQuery<any>({
+    queryKey: ["/api/admin/queue-status"],
+    enabled: user?.role === 'admin',
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000;
+    },
   });
 
   if (!user) return null;
@@ -201,6 +215,13 @@ export default function TananyagokPage() {
                 </p>
               </div>
             </div>
+            {user.role === 'admin' && queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse flex items-center gap-2 py-1.5 px-3">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="font-bold">AI:</span> 
+                <span>{queueStatus.processingItems?.length + queueStatus.queuedItems?.length} folyamatban</span>
+              </Badge>
+            )}
           </div>
         </header>
 
@@ -334,7 +355,10 @@ export default function TananyagokPage() {
                     {/* Elméleti Képzés Kártya */}
                     <Card 
                       className="group cursor-pointer relative overflow-hidden bg-slate-900 border-none shadow-2xl transition-all duration-500 hover:shadow-blue-500/20"
-                      onClick={() => setSelectedType("theory")}
+                      onClick={() => {
+                        setSelectedType("theory");
+                        navigate(`/tananyagok?profession=${selectedProfession}&type=theory`);
+                      }}
                     >
                       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-600/20 transition-all"></div>
                       
@@ -355,7 +379,10 @@ export default function TananyagokPage() {
                     {/* Gyakorlati Képzés Kártya */}
                     <Card 
                       className="group cursor-pointer relative overflow-hidden bg-slate-950 border-none shadow-2xl transition-all duration-500 hover:shadow-orange-500/20"
-                      onClick={() => setSelectedType("practical")}
+                      onClick={() => {
+                        setSelectedType("practical");
+                        navigate(`/tananyagok?profession=${selectedProfession}&type=practical`);
+                      }}
                     >
                       <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-orange-600/20 transition-all"></div>
 
