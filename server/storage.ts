@@ -333,6 +333,9 @@ export interface IStorage {
   acknowledgeAnnouncement(acknowledgement: InsertAnnouncementAcknowledgement): Promise<AnnouncementAcknowledgement>;
   getAnnouncementStats(announcementId: number): Promise<any[]>;
   deleteAnnouncement(id: number): Promise<void>;
+
+  // Post-import processing
+  reorganizeSubjects(professionId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3375,6 +3378,69 @@ export class DatabaseStorage implements IStorage {
 
   async deletePracticalGrade(id: number): Promise<void> {
     await db.delete(practicalGrades).where(eq(practicalGrades.id, id));
+  }
+
+  async reorganizeSubjects(professionId: number): Promise<void> {
+    console.log(`[REORGANIZE] Starting subject reorganization for profession: ${professionId}`);
+    try {
+      const subjectsList = await db.select().from(subjects).where(eq(subjects.professionId, professionId));
+      
+      for (const subject of subjectsList) {
+        const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, subject.id));
+        
+        const theoryModules = subjectModules.filter(m => m.type === 'theory');
+        const practicalModules = subjectModules.filter(m => m.type === 'practical');
+        
+        if (theoryModules.length > 0 && practicalModules.length > 0) {
+          // MIXED - SPLIT NEEDED
+          console.log(`  - Splitting mixed subject: "${subject.name}" (ID: ${subject.id})`);
+          
+          // 1. Original becomes Theory
+          await db.update(subjects)
+            .set({ type: 'theory', updatedAt: new Date() })
+            .where(eq(subjects.id, subject.id));
+          
+          // 2. Create New Practical Subject
+          const [newPracticalSubject] = await db.insert(subjects).values({
+            professionId: subject.professionId,
+            name: subject.name,
+            code: subject.code,
+            description: subject.description,
+            type: 'practical',
+            orderIndex: subject.orderIndex,
+            hours: subject.hours,
+            schoolId: subject.schoolId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }).returning();
+          
+          // 3. Move practical modules to the new subject
+          for (const mod of practicalModules) {
+            await db.update(modules)
+              .set({ subjectId: newPracticalSubject.id, updatedAt: new Date() })
+              .where(eq(modules.id, mod.id));
+          }
+          
+          console.log(`    ✅ Split into Theory (ID: ${subject.id}) and Practical (ID: ${newPracticalSubject.id})`);
+        } else if (theoryModules.length > 0 && subject.type !== 'theory') {
+          // ONLY Theory, but subject marked as something else
+          console.log(`  - Fixing type for theory subject: "${subject.name}"`);
+          await db.update(subjects)
+            .set({ type: 'theory', updatedAt: new Date() })
+            .where(eq(subjects.id, subject.id));
+        } else if (practicalModules.length > 0 && subject.type !== 'practical') {
+          // ONLY Practical, but subject marked as something else
+          console.log(`  - Fixing type for practical subject: "${subject.name}"`);
+          await db.update(subjects)
+            .set({ type: 'practical', updatedAt: new Date() })
+            .where(eq(subjects.id, subject.id));
+        }
+      }
+      console.log(`[REORGANIZE] Finished subject reorganization.`);
+    } catch (error) {
+      console.error(`[REORGANIZE] Error during subject reorganization:`, error);
+      throw error;
+    }
   }
 }
 

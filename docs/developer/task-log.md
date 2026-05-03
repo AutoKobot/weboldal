@@ -4,6 +4,15 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 
 ## Current Session: 2026-05-01
 
+### 4. SQL Ambiguity & IKK Import Stabilization
+ 
+- **Problem**: PostgreSQL crashed with `column reference "id" is ambiguous` during IKK imports. Curriculum extraction was missing granular sub-topics.
+- **Solution**: 
+  - Refactored `storage.ts` to use explicit table qualifications and hardcoded prefixes.
+  - Implemented "Middle Ground" IKK processing (concurrency 2, 2000-char overlap).
+  - Added alphanumeric sub-numbering (`3.x.a`, `3.x.b`) and automated title cleaning on frontend.
+- **Result**: Stable imports and detailed curricula.
+
 ### 1. Curriculum Sorting Fix
 
 - **Problem**: Modules and subjects were appearing in arbitrary order.
@@ -39,6 +48,18 @@ This log tracks the major changes, fixes, and architectural decisions made by th
   - **Data**: Refactored `getProfessions` with robust subqueries for statistics.
   - **Conflict**: Identified Google Translate as a major cause of DOM-related React crashes; added explicit warnings.
 - **Result**: Stable dashboard with accurate statistics and graceful error handling.
+
+## Current Session: 2026-05-03
+
+### 6. Subject-Module Split & Automated Reorganization
+
+- **Problem**: IKK import often grouped mixed theory and practical modules under a single subject, causing confusing UI categorization where practical modules would appear under "Theory" cards or vice-versa.
+- **Solution**:
+  - **Backend**: Implemented `reorganizeSubjects(professionId)` in `storage.ts`. This algorithm splits subjects containing both theory and practical modules into two distinct subject records, maintaining a clean 1:1 mapping between subject type and module content.
+  - **Automation**: Hooked the reorganization algorithm into the end of the IKK import pipeline.
+  - **Admin UI**: Updated `SubjectManager.tsx` to match the student view's "Theory" vs "Practice" card selection. Added a manual "Reorganize" (Wand) button to fix existing curricula.
+  - **API**: Added `/api/ikk/reorganize/:id` endpoint for manual triggering.
+- **Result**: Perfectly organized curricula where theory and practice are distinct at both the subject and module levels, preventing miscategorization and improving UX.
 
 ## Pending Tasks / Roadmap
 

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench, Wand2, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Subject, insertSubjectSchema, Profession } from "./types";
 
@@ -33,9 +33,21 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [selectedType, setSelectedType] = useState<"theory" | "practical" | null>(null);
 
   const selectedProfession = professions.find((p: Profession) => p.id === selectedProfessionId);
-  const filteredSubjects = subjects.filter((s: Subject) => s.professionId === selectedProfessionId);
+  const filteredSubjects = subjects.filter((s: Subject) => 
+    s.professionId === selectedProfessionId && 
+    (!selectedType || s.type === selectedType)
+  );
+
+  const handleBack = () => {
+    if (selectedType) {
+      setSelectedType(null);
+    } else {
+      onBack();
+    }
+  };
 
   const form = useForm({
     resolver: zodResolver(insertSubjectSchema),
@@ -86,6 +98,17 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
       toast({ title: "Siker", description: "Tantárgy törölve" });
     }
   });
+  
+  const reorganizeMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/ikk/reorganize/${selectedProfessionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+      toast({ title: "Siker", description: "Szakma átrendezve" });
+    }
+  });
 
   const handleEdit = (subject: Subject) => {
     setEditingSubject(subject);
@@ -102,69 +125,121 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-5 w-5" /></Button>
+          <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft className="h-5 w-5" /></Button>
           <div>
-            <h2 className="text-xl font-semibold">{selectedProfession?.name} - Tantárgyak</h2>
-            <p className="text-sm text-muted-foreground">{filteredSubjects.length} tantárgy</p>
+            <h2 className="text-xl font-bold">{selectedProfession?.name} {selectedType === 'theory' ? '- Elmélet' : selectedType === 'practical' ? '- Gyakorlat' : '- Tantárgyak'}</h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedType ? `${filteredSubjects.length} tantárgy ebben a kategóriában` : `${subjects.filter((s: any) => s.professionId === selectedProfessionId).length} tantárgy összesen`}
+            </p>
           </div>
         </div>
-        <Button onClick={() => { setEditingSubject(null); form.reset({ professionId: selectedProfessionId, type: 'theory' }); setIsDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> Új Tantárgy
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => { if(confirm('Ez szétválogatja az elméleti és gyakorlati modulokat külön tantárgyakba. Folytatja?')) reorganizeMutation.mutate(); }} disabled={reorganizeMutation.isPending}>
+            <Wand2 className={`h-4 w-4 mr-2 ${reorganizeMutation.isPending ? 'animate-spin' : ''}`} /> Átrendezés
+          </Button>
+          <Button size="sm" onClick={() => { setEditingSubject(null); form.reset({ professionId: selectedProfessionId, type: selectedType || 'theory' }); setIsDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Új Tantárgy
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredSubjects.map((subject: Subject) => (
-          <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(subject.id)}>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  {subject.code && (
-                    <Badge variant="secondary" className="font-mono text-[10px] bg-slate-100 text-slate-600 border-slate-200 h-4">
-                      {subject.code}
+      {!selectedType ? (
+        <div className="grid md:grid-cols-2 gap-6 pt-4">
+          <Card 
+            className="group cursor-pointer hover:border-primary transition-all duration-300 overflow-hidden relative"
+            onClick={() => setSelectedType("theory")}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all"></div>
+            <CardHeader className="flex flex-col items-center text-center py-10">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <GraduationCap className="h-8 w-8" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Elméleti Képzés</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2 max-w-[250px]">
+                Elméleti tananyagok, fogalmak és szakmai ismeretek kezelése.
+              </p>
+              <Badge variant="secondary" className="mt-4 bg-blue-50 text-blue-700 border-blue-100 font-bold">
+                {subjects.filter((s: any) => s.professionId === selectedProfessionId && (s.type === 'theory' || !s.type)).length} tantárgy
+              </Badge>
+            </CardHeader>
+          </Card>
+
+          <Card 
+            className="group cursor-pointer hover:border-orange-500 transition-all duration-300 overflow-hidden relative"
+            onClick={() => setSelectedType("practical")}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-orange-500/10 transition-all"></div>
+            <CardHeader className="flex flex-col items-center text-center py-10">
+              <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Wrench className="h-8 w-8" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Gyakorlati Képzés</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2 max-w-[250px]">
+                Műhelymunka, gyakorlati feladatok és értékelések kezelése.
+              </p>
+              <Badge variant="secondary" className="mt-4 bg-orange-50 text-orange-700 border-orange-100 font-bold">
+                {subjects.filter((s: any) => s.professionId === selectedProfessionId && s.type === 'practical').length} tantárgy
+              </Badge>
+            </CardHeader>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSubjects.map((subject: Subject) => (
+            <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(subject.id)}>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    {subject.code && (
+                      <Badge variant="secondary" className="font-mono text-[10px] bg-slate-100 text-slate-600 border-slate-200 h-4">
+                        {subject.code}
+                      </Badge>
+                    )}
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {subject.moduleCount || 0} modul
+                    </span>
+                  </div>
+                  <CardTitle className="text-sm font-bold leading-tight line-clamp-2">
+                    {subject.name}
+                  </CardTitle>
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleEdit(subject); }}>
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a tantárgyat?')) deleteMutation.mutate(subject.id); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 pb-4">
+                <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3 h-8">{subject.description}</p>
+                
+                <div className="flex flex-wrap gap-1.5 mt-auto">
+                  {(!subject.type || subject.type === 'theory' || subject.type === 'both') && (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 border-blue-200 text-blue-700 flex items-center gap-1 font-bold">
+                      <GraduationCap className="h-2.5 w-2.5" /> ELMÉLET
                     </Badge>
                   )}
-                  <span className="text-[10px] text-muted-foreground font-medium">
-                    {subject.moduleCount || 0} modul
-                  </span>
+                  {(subject.type === 'practical' || subject.type === 'both') && (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50 border-orange-200 text-orange-700 flex items-center gap-1 font-bold">
+                      <Wrench className="h-2.5 w-2.5" /> GYAKORLAT
+                    </Badge>
+                  )}
                 </div>
-                <CardTitle className="text-sm font-bold leading-tight line-clamp-2">
-                  {subject.name}
-                </CardTitle>
-              </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleEdit(subject); }}>
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a tantárgyat?')) deleteMutation.mutate(subject.id); }}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 pb-4">
-              <p className="text-[11px] text-muted-foreground line-clamp-2 mb-3 h-8">{subject.description}</p>
-              
-              <div className="flex flex-wrap gap-1.5 mt-auto">
-                {(!subject.type || subject.type === 'theory' || subject.type === 'both') && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 border-blue-200 text-blue-700 flex items-center gap-1 font-bold">
-                    <GraduationCap className="h-2.5 w-2.5" /> ELMÉLET
-                  </Badge>
-                )}
-                {(subject.type === 'practical' || subject.type === 'both') && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50 border-orange-200 text-orange-700 flex items-center gap-1 font-bold">
-                    <Wrench className="h-2.5 w-2.5" /> GYAKORLAT
-                  </Badge>
-                )}
-                {subject.hours && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-50 border-slate-200 text-slate-600 flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" /> {subject.hours} óra
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+          {filteredSubjects.length === 0 && (
+            <div className="col-span-full py-12 text-center border-2 border-dashed rounded-xl">
+              <p className="text-muted-foreground">Ebben a kategóriában még nincsenek tantárgyak.</p>
+              <Button variant="link" onClick={() => { setEditingSubject(null); form.reset({ professionId: selectedProfessionId, type: selectedType }); setIsDialogOpen(true); }}>
+                Hozzon létre egyet most!
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

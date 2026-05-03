@@ -150,6 +150,17 @@ router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
   }
 });
 
+router.post('/reorganize/:id', combinedAuth, adminOnly, async (req, res) => {
+  try {
+    const professionId = parseInt(req.params.id);
+    await storage.reorganizeSubjects(professionId);
+    res.json({ success: true, message: "Sikeres átrendezés!" });
+  } catch (error) {
+    console.error("Reorganize error:", error);
+    res.status(500).json({ message: "Hiba az átrendezés során" });
+  }
+});
+
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const { profession } = req.body;
@@ -346,6 +357,16 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         activeImport.status = 'completed';
         activeImport.progress = 100;
         activeImport.message = `Sikeres import: ${dbProfession.name}`;
+        
+        // Post-import reorganization: split subjects into theory and practical
+        if (createdProfessionId) {
+          try {
+            await storage.reorganizeSubjects(createdProfessionId);
+          } catch (reorgErr) {
+            console.error("[IKK-IMPORT] Reorganization error:", reorgErr);
+          }
+        }
+        
         await (storage as any).updateBackgroundJob(jobId, { status: 'completed', progress: 100, message: activeImport.message });
 
       } catch (err: any) {
