@@ -1011,6 +1011,34 @@ export class DatabaseStorage implements IStorage {
     console.log(`✅ Profession ${id} and all related data deleted successfully`);
   }
 
+  async redistributeProfessionHours(professionId: number, newTotalHours: number): Promise<void> {
+    const professionSubjects = await db.select().from(subjects).where(eq(subjects.professionId, professionId));
+    if (professionSubjects.length === 0) return;
+
+    const currentTotal = professionSubjects.reduce((sum, s) => sum + (s.hours || 0), 0);
+    
+    // If current total is 0, distribute evenly across subjects
+    if (currentTotal === 0) {
+      const perSubject = Math.floor(newTotalHours / professionSubjects.length);
+      for (const s of professionSubjects) {
+        await this.updateSubject(s.id, { hours: perSubject });
+        // updateSubject route will handle module redistribution if called via API, 
+        // but here we are in storage, so we must call redistributeSubjectHours manually
+        await this.redistributeSubjectHours(s.id, perSubject);
+      }
+      return;
+    }
+
+    // Scale proportionally
+    const scale = newTotalHours / currentTotal;
+    for (const s of professionSubjects) {
+      const currentHours = s.hours || 0;
+      const newHours = Math.round(currentHours * scale);
+      await this.updateSubject(s.id, { hours: newHours });
+      await this.redistributeSubjectHours(s.id, newHours);
+    }
+  }
+
   // Subject operations
   async getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<any[]> {
     const conditions = [];

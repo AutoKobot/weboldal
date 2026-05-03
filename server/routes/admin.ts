@@ -244,6 +244,12 @@ router.put('/professions/:id', combinedAuth, adminOnly, async (req: any, res) =>
     const id = parseInt(req.params.id);
     const professionData = insertProfessionSchema.partial().parse(req.body);
     const updatedProfession = await storage.updateProfession(id, professionData);
+    
+    // If totalHours were modified, redistribute to subjects
+    if (professionData.totalHours !== undefined && professionData.totalHours !== null) {
+      await storage.redistributeProfessionHours(id, professionData.totalHours);
+    }
+    
     res.json(updatedProfession);
   } catch (error) {
     console.error("Error updating profession:", error);

@@ -181,7 +181,12 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         {prof.code}
                       </Badge>
                     )}
-                    <Badge variant="outline" className={`text-[10px] h-5 flex items-center gap-1 ${prof.totalHours ? 'border-blue-100 bg-blue-50/30 text-blue-700' : 'border-blue-100 bg-blue-50/10 text-blue-600 italic'}`}>
+                    <Badge 
+                      variant="outline" 
+                      className={`text-[10px] h-5 flex items-center gap-1 cursor-pointer hover:ring-1 hover:ring-blue-400 transition-all ${prof.totalHours ? 'border-blue-100 bg-blue-50/30 text-blue-700' : 'border-blue-100 bg-blue-50/10 text-blue-600 italic'}`}
+                      onClick={(e) => { e.stopPropagation(); handleEdit(prof); }}
+                      title="Szerkesztés"
+                    >
                       <Clock className="h-2.5 w-2.5" />
                       {prof.totalHours || calculateProfessionHours(prof.id).toFixed(0)} óra {prof.totalHours ? '' : '(jav.)'}
                     </Badge>
@@ -201,11 +206,17 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                     <CardTitle className="text-base font-bold">{prof.name}</CardTitle>
                   </div>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(prof); }}>
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-100" 
+                    onClick={(e) => { e.stopPropagation(); handleEdit(prof); }}
+                    title="Szerkesztés"
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a szakmát minden adatával?')) deleteMutation.mutate(prof.id); }}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-50" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a szakmát minden adatával?')) deleteMutation.mutate(prof.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
