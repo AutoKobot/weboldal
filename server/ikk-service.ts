@@ -133,18 +133,25 @@ export class IKKService {
     return finalChunks;
   }
 
-  buildExtractionPrompt(chunk: string): string {
+  buildExtractionPrompt(chunk: string, importType: 'theory' | 'practical' | 'both' = 'both'): string {
+    const typeFocus = importType === 'theory' ? 'CSAK AZ ELMÉLETI' : importType === 'practical' ? 'CSAK A GYAKORLATI' : 'AZ ÖSSZES';
+    
     return `
 Te egy PTT (Programtanterv) dokumentum-elemző szakértő vagy. A feladatod a szakmai tartalom kinyerése a LEGRÉSZLETESEBB szinten.
+Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
 
 ── TANTÁRGY ÉS MODUL STRUKTÚRA ──
 1. TANTÁRGY: Minden "X.X.X [Név] tantárgy [óra] óra" formátumú egységet rögzíts.
-2. MODULOK (KRITIKUS): A "Témakörök" (3.X.X.6) fejezetek alatt található ÖSSZES elemet vedd fel külön-külön modulként!
-   - Minden felsorolt sort (akkor is, ha nincs előtte szám, csak kötőjel vagy pötty) külön modulnak tekints.
+${importType === 'theory' ? '   - CSAK azokat a tantárgyakat vedd fel, amelyek elméleti jellegűek vagy elméleti óraszámuk domináns.' : ''}
+${importType === 'practical' ? '   - CSAK azokat a tantárgyakat vedd fel, amelyek gyakorlati jellegűek vagy gyakorlati óraszámuk domináns.' : ''}
+2. MODULOK (KRITIKUS): Keress meg minden lehetséges szakmai modult a PTT-ben (különösen a "Témakörök" 3.X.X.6 fejezetek alatt).
+   - Ebből a listából CSAK azokat vedd fel, amelyek ${importType === 'theory' ? 'ELMÉLETI' : importType === 'practical' ? 'GYAKORLATI' : 'szakmai'} jellegűek.
+   - Minden felsorolt sort külön modulnak tekints.
    - Ha egy fejezetet (pl. 3.5.1.6.1) több modulra bontasz, a "sectionCode" végére fűzz egy kisbetűt: 3.5.1.6.1.a, 3.5.1.6.1.b, stb.
 
 ── EXTRAKCIÓS SZABÁLYOK ──
-- CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot a címbe! (Helyes: "A hegesztőív fizikája", Helytelen: "3.4.1.2 A hegesztőív fizikája").
+- SZŰRÉS: ${typeFocus} modulokat keresünk. Ha a kért típustól eltérő modult találsz, azt hagyd ki!
+- CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot a címbe!
 - TÍPUS (KRITIKUS): 
   - "practical": Ha a leírás cselekvést, műveletet, mérést, szerelést, beállítást vagy konkrét fizikai munkát ír le. (Kulcsszavak: készítése, mérése, vágása, hegesztése, összeállítása).
   - "theory": Ha a leírás fogalmakat, elméleti összefüggéseket, jogszabályokat, szabványokat vagy absztrakt ismereteket tartalmaz. (Kulcsszavak: alapjai, fogalma, ismerete, törvényszerűségei).
@@ -156,7 +163,7 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
       "name": "Tantárgy neve",
       "code": "3.X.X",
       "hours": 72,
-      "practicalPercent": 50,
+      "practicalPercent": ${importType === 'practical' ? 100 : (importType === 'theory' ? 0 : 50)},
       "modules": [
         { "title": "Szakmai cím 1", "type": "theory", "sectionCode": "3.X.X.6.1.a" },
         { "title": "Szakmai cím 2", "type": "practical", "sectionCode": "3.X.X.6.1.b" }
@@ -209,8 +216,8 @@ VÁLASZ (JSON):
 `.trim();
   }
 
-  async structureCurriculum(_professionName: string, _kkkText: string, chunk: string): Promise<string> {
-    return this.buildExtractionPrompt(chunk);
+  async structureCurriculum(_professionName: string, _kkkText: string, chunk: string, importType?: 'theory' | 'practical' | 'both'): Promise<string> {
+    return this.buildExtractionPrompt(chunk, importType);
   }
 }
 

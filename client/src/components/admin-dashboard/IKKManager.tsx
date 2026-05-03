@@ -13,7 +13,7 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Import, Download, Loader2, GraduationCap, BookOpen, AlertCircle } from "lucide-react";
+import { Search, Import, Download, Loader2, GraduationCap, Wrench, BookOpen, AlertCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export function IKKManager() {
@@ -35,9 +35,9 @@ export function IKKManager() {
   });
 
   const importMutation = useMutation({
-    mutationFn: async (profession: any) => {
+    mutationFn: async ({ profession, importType }: { profession: any, importType: string }) => {
       setIsImporting(profession.id);
-      const res = await apiRequest("POST", "/api/admin/ikk/import", { profession });
+      const res = await apiRequest("POST", "/api/admin/ikk/import", { profession, importType });
       return res.json();
     },
     onSuccess: (data) => {
@@ -239,20 +239,38 @@ export function IKKManager() {
                       )}
                     </div>
                     
-                    <div className="flex gap-2">
-                       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-50/50">ELMÉLET</Badge>
-                       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-orange-50/50">GYAKORLAT</Badge>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className={`text-[10px] h-9 ${isImported ? 'border-blue-200 bg-blue-50/30' : ''}`} 
+                        onClick={() => importMutation.mutate({ profession: prof, importType: 'theory' })}
+                        disabled={isImporting !== null}
+                      >
+                        <GraduationCap className={`h-3 w-3 mr-1 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
+                        Elmélet
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className={`text-[10px] h-9 ${isImported ? 'border-orange-200 bg-orange-50/30' : ''}`} 
+                        onClick={() => importMutation.mutate({ profession: prof, importType: 'practical' })}
+                        disabled={isImporting !== null}
+                      >
+                        <Wrench className={`h-3 w-3 mr-1 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
+                        Gyakorlat
+                      </Button>
+                      <Button 
+                        size="sm"
+                        className={`col-span-2 h-9 ${isImported ? 'bg-green-600 hover:bg-green-700' : ''}`} 
+                        onClick={() => importMutation.mutate({ profession: prof, importType: 'both' })}
+                        disabled={isImporting !== null}
+                      >
+                        <Download className={`h-3.5 w-3.5 mr-2 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
+                        {isImporting === prof.id ? 'Feldolgozás...' : 'Teljes Import'}
+                      </Button>
                     </div>
                   </div>
-                  
-                  <Button 
-                    className={`w-full ${isImported ? 'bg-green-600 hover:bg-green-700' : ''}`} 
-                    onClick={() => importMutation.mutate(prof)}
-                    disabled={isImporting !== null}
-                  >
-                    <Download className={`h-4 w-4 mr-2 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
-                    {isImporting === prof.id ? 'Feldolgozás...' : (isImported ? 'Újra-importálás' : 'Szakma Importálása')}
-                  </Button>
                 </CardContent>
               </Card>
             );

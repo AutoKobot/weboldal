@@ -163,7 +163,7 @@ router.post('/reorganize/:id', combinedAuth, adminOnly, async (req, res) => {
 
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
   try {
-    const { profession } = req.body;
+    const { profession, importType = 'both' } = req.body;
     if (!profession) return res.status(400).json({ message: 'Profession data is required' });
 
     const activeJob = await (storage as any).getLatestBackgroundJob('ikk_import');
@@ -182,7 +182,10 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       }
     }
 
-    const job = await (storage as any).createBackgroundJob('ikk_import', 'Előkészítés...', { professionName: profession.name });
+    const job = await (storage as any).createBackgroundJob('ikk_import', 'Előkészítés...', { 
+      professionName: profession.name,
+      importType 
+    });
 
     // Update memory state for polling
     activeImport.status = 'processing';
@@ -196,6 +199,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
     setTimeout(async () => {
       const jobId = job.id;
+      const type = importType as 'theory' | 'practical' | 'both';
       let createdProfessionId: number | null = null;
       
       try {
@@ -239,7 +243,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               response_format: { type: "json_object" },
               messages: [
                 { role: "system", content: "Te egy precíz PTT elemző vagy. Csak valid JSON-t adsz vissza subjects listával." },
-                { role: "user", content: ikkService.buildExtractionPrompt(chunk) }
+                { role: "user", content: ikkService.buildExtractionPrompt(chunk, type) }
               ],
               temperature: 0,
             });
