@@ -53,7 +53,6 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isIKKDialogOpen, setIsIKKDialogOpen] = useState(false);
   const [editingProfession, setEditingProfession] = useState<Profession | null>(null);
-  const [activeImportType, setActiveImportType] = useState<'theory' | 'practical' | 'both'>('both');
 
   const form = useForm({
     resolver: zodResolver(insertProfessionSchema),
@@ -108,6 +107,27 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
     }
   });
 
+  const [isImporting, setIsImporting] = useState<number | null>(null);
+  const importMutation = useMutation({
+    mutationFn: async ({ profession, importType }: { profession: any, importType: string }) => {
+      setIsImporting(profession.id);
+      const ikkProf = {
+        id: profession.externalId || profession.id,
+        name: profession.name,
+        code: profession.code
+      };
+      const res = await apiRequest("POST", "/api/admin/ikk/import", { profession: ikkProf, importType });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Elindítva", description: data.message });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+      setIsImporting(null);
+    }
+  });
+
   const handleEdit = (prof: Profession) => {
     setEditingProfession(prof);
     form.reset({
@@ -126,15 +146,9 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
           <h2 className="text-xl font-semibold">Szakmák kezelése</h2>
           <p className="text-sm text-muted-foreground">Válassz szakmát a tantárgyak és modulok megtekintéséhez</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="border-blue-200 hover:bg-blue-50 text-blue-700" onClick={() => { setActiveImportType('theory'); setIsIKKDialogOpen(true); }}>
-            <GraduationCap className="h-4 w-4 mr-2" /> IKK Elmélet
-          </Button>
-          <Button variant="outline" className="border-orange-200 hover:bg-orange-50 text-orange-700" onClick={() => { setActiveImportType('practical'); setIsIKKDialogOpen(true); }}>
-            <Wrench className="h-4 w-4 mr-2" /> IKK Gyakorlat
-          </Button>
-          <Button variant="outline" onClick={() => { setActiveImportType('both'); setIsIKKDialogOpen(true); }}>
-            <Download className="h-4 w-4 mr-2" /> Teljes Import
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsIKKDialogOpen(true)}>
+            <Globe className="h-4 w-4 mr-2" /> IKK Import
           </Button>
           <Button onClick={() => { setEditingProfession(null); form.reset(); setIsDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Új Szakma
@@ -192,13 +206,48 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
                     </div>
                   </div>
                   
-                  <div className="flex gap-1.5">
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
-                      <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} ELMÉLET
-                    </Badge>
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
-                      <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} GYAKORLAT
-                    </Badge>
+                  <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex gap-1.5">
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
+                        <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} ELMÉLET
+                      </Badge>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
+                        <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} GYAKORLAT
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 mt-1">
+                      <Button 
+                        size="sm"
+                        variant="ghost"
+                        className="text-[9px] h-7 bg-blue-50/30 hover:bg-blue-50 text-blue-700 border border-blue-100" 
+                        onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'theory' }); }}
+                        disabled={isImporting !== null}
+                      >
+                        {isImporting === prof.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <GraduationCap className="h-3 w-3 mr-1" />}
+                        Elmélet Frissítés
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant="ghost"
+                        className="text-[9px] h-7 bg-orange-50/30 hover:bg-orange-50 text-orange-700 border border-orange-100" 
+                        onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'practical' }); }}
+                        disabled={isImporting !== null}
+                      >
+                        {isImporting === prof.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wrench className="h-3 w-3 mr-1" />}
+                        Gyakorlat Frissítés
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant="secondary"
+                        className="col-span-2 text-[9px] h-7 font-bold" 
+                        onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'both' }); }}
+                        disabled={isImporting !== null}
+                      >
+                        <Download className="h-3 w-3 mr-1" />
+                        Teljes IKK Szinkronizálás
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -276,7 +325,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
               Válassz szakmát az IKK hivatalos adatbázisából a teljes tananyag automatikus generálásához.
             </DialogDescription>
           </DialogHeader>
-          <IKKManager defaultImportType={activeImportType} />
+          <IKKManager />
         </DialogContent>
       </Dialog>
     </div>

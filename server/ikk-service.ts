@@ -142,19 +142,21 @@ Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
 
 ── TANTÁRGY ÉS MODUL STRUKTÚRA ──
 1. TANTÁRGY: Minden "X.X.X [Név] tantárgy [óra] óra" formátumú egységet rögzíts.
-${importType === 'theory' ? '   - CSAK azokat a tantárgyakat vedd fel, amelyek elméleti jellegűek vagy elméleti óraszámuk domináns.' : ''}
-${importType === 'practical' ? '   - CSAK azokat a tantárgyakat vedd fel, amelyek gyakorlati jellegűek vagy gyakorlati óraszámuk domináns.' : ''}
-2. MODULOK (KRITIKUS): Keress meg minden lehetséges szakmai modult a PTT-ben (különösen a "Témakörök" 3.X.X.6 fejezetek alatt).
-   - Ebből a listából CSAK azokat vedd fel, amelyek ${importType === 'theory' ? 'ELMÉLETI' : importType === 'practical' ? 'GYAKORLATI' : 'szakmai'} jellegűek.
-   - Minden felsorolt sort külön modulnak tekints.
+   - NE hagyj ki tantárgyat; ha van benne ${importType === 'theory' ? 'elméleti kifejtés' : 'gyakorlati feladat/képesség'}, vedd fel!
+2. MODULOK (KRITIKUS): Keress meg minden szakmai egységet.
+   - Ebből a listából CSAK azokat vedd fel, amelyek ${importType === 'theory' ? 'ELMÉLETI (leíró)' : importType === 'practical' ? 'GYAKORLATI (cselekvő)' : 'szakmai'} jellegűek.
+   - **BONTÁS (FONTOS)**: Ha egy sor több feladatot tartalmaz (pl. "Kiválasztja a szerszámot és elvégzi a vágást"), BONTD KETTÉ külön modulokra!
+   - Minden felsorolt sort/pontot külön modulnak tekints. Minél több a modul, annál jobb!
    - Ha egy fejezetet (pl. 3.5.1.6.1) több modulra bontasz, a "sectionCode" végére fűzz egy kisbetűt: 3.5.1.6.1.a, 3.5.1.6.1.b, stb.
 
 ── EXTRAKCIÓS SZABÁLYOK ──
-- SZŰRÉS: ${typeFocus} modulokat keresünk. Ha a kért típustól eltérő modult találsz, azt hagyd ki!
-- CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot a címbe!
+- SZŰRÉS: ${typeFocus} modulokat keresünk.
+- ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, összefüggések ("Ismeri...", "Leírja...", "Érti...").
+- GYAKORLAT DEFINÍCIÓ: Cselekvések, készségek, műveletek ("Képes a...", "Alkalmazza...", "Elvégzi...", "Beállítja...", "Ellenőrzi..."). Ide tartozik az előkészítés és a munkavédelem is!
+- CÍM (FONTOS): A modul címe CSAK a szakmai megnevezés legyen. NE írd bele a fejezetszámot!
 - TÍPUS (KRITIKUS): 
-  - "practical": Ha a leírás cselekvést, műveletet, mérést, szerelést, beállítást vagy konkrét fizikai munkát ír le. (Kulcsszavak: készítése, mérése, vágása, hegesztése, összeállítása).
-  - "theory": Ha a leírás fogalmakat, elméleti összefüggéseket, jogszabályokat, szabványokat vagy absztrakt ismereteket tartalmaz. (Kulcsszavak: alapjai, fogalma, ismerete, törvényszerűségei).
+  - "practical": Minden, ami "Képes rá" vagy "Csinálja".
+  - "theory": Minden, ami "Tudja" vagy "Ismeri".
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
