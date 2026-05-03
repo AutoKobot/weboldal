@@ -147,14 +147,17 @@ export default function AdminDashboard() {
             <TabsContent value="professions">
               <ProfessionManager 
                 professions={professions} 
+                subjects={subjects}
+                modules={modules}
                 onSelect={(id: number) => { setSelectedProfessionId(id); setActiveTab("subjects"); }} 
               />
             </TabsContent>
-
+ 
             <TabsContent value="subjects">
               <SubjectManager 
                 subjects={subjects} 
                 professions={professions}
+                modules={modules}
                 selectedProfessionId={selectedProfessionId}
                 selectedType={selectedSubjectType}
                 setSelectedType={setSelectedSubjectType}

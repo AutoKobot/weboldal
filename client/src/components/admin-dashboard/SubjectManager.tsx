@@ -29,7 +29,7 @@ import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench, Wand2, Clock } fr
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Subject, insertSubjectSchema, Profession } from "./types";
 
-export function SubjectManager({ subjects, professions, selectedProfessionId, onBack, onSelect, selectedType, setSelectedType }: any) {
+export function SubjectManager({ subjects, professions, modules = [], selectedProfessionId, onBack, onSelect, selectedType, setSelectedType }: any) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -39,6 +39,18 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
     s.professionId === selectedProfessionId && 
     (!selectedType || s.type === selectedType)
   );
+
+  const calculateSubjectModuleHours = (subjectId: number) => {
+    return modules
+      .filter((m: any) => m.subjectId === subjectId)
+      .reduce((sum: number, m: any) => sum + (parseFloat(m.suggestedHours) || 0), 0);
+  };
+
+  const calculateTypeTotalHours = (type: string) => {
+    return subjects
+      .filter((s: any) => s.professionId === selectedProfessionId && (type === 'theory' ? (s.type === 'theory' || !s.type) : s.type === type))
+      .reduce((sum: number, s: any) => sum + (s.hours || 0), 0);
+  };
 
   const handleBack = () => {
     if (selectedType) {
@@ -161,12 +173,14 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
               <p className="text-sm text-muted-foreground mt-2 max-w-[250px]">
                 Elméleti tananyagok, fogalmak és szakmai ismeretek kezelése.
               </p>
-              <Badge variant="secondary" className="mt-4 bg-blue-50 text-blue-700 border-blue-100 font-bold">
-                {subjects.filter((s: any) => s.professionId === selectedProfessionId && (s.type === 'theory' || !s.type)).length} tantárgy
+              <Badge variant="secondary" className="mt-4 bg-blue-50 text-blue-700 border-blue-100 font-bold flex gap-2">
+                <span>{subjects.filter((s: any) => s.professionId === selectedProfessionId && (s.type === 'theory' || !s.type)).length} tantárgy</span>
+                <span className="opacity-40">|</span>
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {calculateTypeTotalHours('theory')} óra</span>
               </Badge>
             </CardHeader>
           </Card>
-
+ 
           <Card 
             className="group cursor-pointer hover:border-orange-500 transition-all duration-300 overflow-hidden relative"
             onClick={() => setSelectedType("practical")}
@@ -180,8 +194,10 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
               <p className="text-sm text-muted-foreground mt-2 max-w-[250px]">
                 Műhelymunka, gyakorlati feladatok és értékelések kezelése.
               </p>
-              <Badge variant="secondary" className="mt-4 bg-orange-50 text-orange-700 border-orange-100 font-bold">
-                {subjects.filter((s: any) => s.professionId === selectedProfessionId && s.type === 'practical').length} tantárgy
+              <Badge variant="secondary" className="mt-4 bg-orange-50 text-orange-700 border-orange-100 font-bold flex gap-2">
+                <span>{subjects.filter((s: any) => s.professionId === selectedProfessionId && s.type === 'practical').length} tantárgy</span>
+                <span className="opacity-40">|</span>
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {calculateTypeTotalHours('practical')} óra</span>
               </Badge>
             </CardHeader>
           </Card>
@@ -283,7 +299,24 @@ export function SubjectManager({ subjects, professions, selectedProfessionId, on
                   name="hours"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Összes óraszám</FormLabel>
+                      <FormLabel className="flex justify-between items-center">
+                        <span>Összes óraszám</span>
+                        {editingSubject && (
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[10px] gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => {
+                              const moduleTotal = calculateSubjectModuleHours(editingSubject.id);
+                              field.onChange(Math.round(moduleTotal));
+                              toast({ title: "Óraszám frissítve", description: `Modulok alapján: ${moduleTotal} óra` });
+                            }}
+                          >
+                            <Wand2 className="h-3 w-3" /> Modulok alapján ({calculateSubjectModuleHours(editingSubject.id)})
+                          </Button>
+                        )}
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 

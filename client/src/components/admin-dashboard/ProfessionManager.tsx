@@ -48,11 +48,17 @@ const iconOptions = [
   { value: "graduation-cap", label: "Sisak (Oktatás)", icon: GraduationCap },
 ];
 
-export function ProfessionManager({ professions, onSelect }: { professions: (Profession & { theoryCount?: number, practicalCount?: number, subjectCount?: number, moduleCount?: number, code?: string })[], onSelect: (id: number) => void }) {
+export function ProfessionManager({ professions, subjects = [], modules = [], onSelect }: { professions: any[], subjects?: any[], modules?: any[], onSelect: (id: number) => void }) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isIKKDialogOpen, setIsIKKDialogOpen] = useState(false);
   const [editingProfession, setEditingProfession] = useState<Profession | null>(null);
+
+  const calculateProfessionHours = (professionId: number) => {
+    return subjects
+      .filter((s: any) => s.professionId === professionId)
+      .reduce((sum: number, s: any) => sum + (s.hours || 0), 0);
+  };
 
   const form = useForm({
     resolver: zodResolver(insertProfessionSchema),
@@ -61,6 +67,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
       description: "",
       iconName: "wrench",
       iconUrl: "",
+      totalHours: null as number | null,
     }
   });
 
@@ -128,13 +135,14 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
     }
   });
 
-  const handleEdit = (prof: Profession) => {
+  const handleEdit = (prof: any) => {
     setEditingProfession(prof);
     form.reset({
       name: prof.name,
       description: prof.description || "",
       iconName: prof.iconName || "wrench",
       iconUrl: prof.iconUrl || "",
+      totalHours: prof.totalHours || null,
     });
     setIsDialogOpen(true);
   };
@@ -150,7 +158,7 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
           <Button variant="outline" onClick={() => setIsIKKDialogOpen(true)}>
             <Globe className="h-4 w-4 mr-2" /> IKK Import
           </Button>
-          <Button onClick={() => { setEditingProfession(null); form.reset(); setIsDialogOpen(true); }}>
+          <Button onClick={() => { setEditingProfession(null); form.reset({ name: "", description: "", iconName: "wrench", iconUrl: "", totalHours: null }); setIsDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Új Szakma
           </Button>
         </div>
@@ -221,9 +229,13 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
                     <div className="flex gap-1.5">
                       <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
                         <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} ELMÉLET
+                        <span className="opacity-40 ml-1">|</span>
+                        <span className="ml-1 font-bold">{subjects.filter((s: any) => s.professionId === prof.id && (s.type === 'theory' || !s.type)).reduce((sum, s) => sum + (s.hours || 0), 0)} óra</span>
                       </Badge>
                       <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
                         <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} GYAKORLAT
+                        <span className="opacity-40 ml-1">|</span>
+                        <span className="ml-1 font-bold">{subjects.filter((s: any) => s.professionId === prof.id && s.type === 'practical').reduce((sum, s) => sum + (s.hours || 0), 0)} óra</span>
                       </Badge>
                     </div>
 
@@ -291,6 +303,33 @@ export function ProfessionManager({ professions, onSelect }: { professions: (Pro
                   <FormItem>
                     <FormLabel>Leírás</FormLabel>
                     <FormControl><Textarea {...field} /></FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="totalHours"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex justify-between items-center">
+                      <span>Összesített óraszám</span>
+                      {editingProfession && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 text-[10px] gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => {
+                            const subjectTotal = calculateProfessionHours(editingProfession.id);
+                            field.onChange(subjectTotal);
+                            toast({ title: "Óraszám frissítve", description: `Tantárgyak alapján: ${subjectTotal} óra` });
+                          }}
+                        >
+                          <Wand2 className="h-3 w-3" /> Tantárgyak alapján ({calculateProfessionHours(editingProfession.id)})
+                        </Button>
+                      )}
+                    </FormLabel>
+                    <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)} value={field.value || ""} /></FormControl>
                   </FormItem>
                 )}
               />
