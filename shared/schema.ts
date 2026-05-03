@@ -178,7 +178,10 @@ export const chatMessages = pgTable("chat_messages", {
 export const testResults = pgTable("test_results", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id), // Made optional for durability
+  moduleTitle: varchar("module_title"), // Fallback if module is deleted
+  subjectName: varchar("subject_name"), // Fallback
+  moduleNumber: integer("module_number"), // Fallback
   score: integer("score").notNull(),
   maxScore: integer("max_score").default(100).notNull(),
   passed: boolean("passed").default(false).notNull(),
@@ -194,7 +197,10 @@ export const practicalGrades = pgTable("practical_grades", {
   id: serial("id").primaryKey(),
   studentId: varchar("student_id").references(() => users.id).notNull(),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
-  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id), // Made optional for durability
+  moduleTitle: varchar("module_title"), // Fallback if module is deleted
+  subjectName: varchar("subject_name"), // Fallback
+  moduleNumber: integer("module_number"), // Fallback
   grade: integer("grade").notNull(), // 1-5 magyar osztályzat
   comment: text("comment"), // Szöveges értékelés
   createdAt: timestamp("created_at").defaultNow(),
@@ -473,6 +479,8 @@ export const dailyAttendance = pgTable("daily_attendance", {
   classId: integer("class_id").references(() => classes.id).notNull(),
   date: varchar("date").notNull(), // "YYYY-MM-DD"
   status: varchar("status").notNull().default("present"),
+  studentName: varchar("student_name"), // Durability metadata
+  className: varchar("class_name"), // Durability metadata
   actualStart: varchar("actual_start"), // pl. "08:00"
   actualEnd: varchar("actual_end"),     // pl. "15:00"
   notes: text("notes"),
@@ -493,6 +501,8 @@ export const attendance = pgTable("attendance", {
   studentId: varchar("student_id").references((): AnyPgColumn => users.id, { onDelete: "cascade" }).notNull(),
   classId: integer("class_id").references((): AnyPgColumn => classes.id).notNull(),
   teacherId: varchar("teacher_id").references((): AnyPgColumn => users.id),
+  studentName: varchar("student_name"), // Durability metadata
+  className: varchar("class_name"), // Durability metadata
   date: varchar("date").notNull(), // "YYYY-MM-DD" formátum
   periodNumber: integer("period_number").notNull(), // hányadik óra
   status: varchar("status").notNull().default("present"), // "present" | "absent" | "late" | "excused"

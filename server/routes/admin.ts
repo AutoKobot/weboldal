@@ -402,5 +402,29 @@ router.post('/migrate-grades', combinedAuth, adminOnly, async (req: any, res) =>
   }
 });
 
+// Database statistics for diagnostics
+router.get('/db-stats', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const gradesCount = await db.execute(sql`SELECT count(*) as count FROM practical_grades`);
+    const testResultsCount = await db.execute(sql`SELECT count(*) as count FROM test_results`);
+    const modulesCount = await db.execute(sql`SELECT count(*) as count FROM modules`);
+    const subjectsCount = await db.execute(sql`SELECT count(*) as count FROM subjects`);
+    const professionsCount = await db.execute(sql`SELECT count(*) as count FROM professions`);
+    const usersCount = await db.execute(sql`SELECT count(*) as count FROM users`);
+
+    res.json({
+      practicalGrades: parseInt(gradesCount.rows[0].count as string),
+      testResults: parseInt(testResultsCount.rows[0].count as string),
+      modules: parseInt(modulesCount.rows[0].count as string),
+      subjects: parseInt(subjectsCount.rows[0].count as string),
+      professions: parseInt(professionsCount.rows[0].count as string),
+      users: parseInt(usersCount.rows[0].count as string)
+    });
+  } catch (error) {
+    console.error("Stats error:", error);
+    res.status(500).json({ message: "Failed to fetch stats" });
+  }
+});
+
 // End of routes
 export default router;

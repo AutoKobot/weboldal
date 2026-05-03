@@ -201,6 +201,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       const jobId = job.id;
       const type = importType as 'theory' | 'practical' | 'both';
       let createdProfessionId: number | null = null;
+      let isNewProfession = false;
       
       try {
         if (activeImport.activeJobId !== jobId) return;
@@ -280,6 +281,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             iconName: "book",
             code: profession.okjId || profession.code
           });
+          isNewProfession = true;
         } else {
           // Clean description from old update notes and add new one
           const cleanDescription = (dbProfession.description || "").split(" (Frissítve:")[0];
@@ -414,7 +416,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         console.error("[IKK-IMPORT] Hiba:", err);
         activeImport.status = 'error';
         activeImport.error = err.message;
-        if (createdProfessionId) {
+        if (createdProfessionId && isNewProfession) {
           console.log(`[IKK-IMPORT] Takarítás: #${createdProfessionId}`);
           await storage.deleteProfession(createdProfessionId);
         }

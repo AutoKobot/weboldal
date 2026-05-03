@@ -101,6 +101,24 @@ This log tracks the major changes, fixes, and architectural decisions made by th
   - **Player Logic**: Enhanced `presentation-player.tsx` to strictly pause narration and auto-advance whenever an interactive or summary slide is reached.
 - **Result**: Improved visibility for administrative tasks and a paced, interactive learning experience for students.
 
+### 11. Teacher Dashboard Data Visibility Fix
+
+- **Problem**: Practical modules and students failed to load in the Teacher Dashboard for specific classes (e.g., Hegesztő_10).
+- **Solution**:
+  - **Diagnostic**: Identified that the root cause was a manual data error where the profession was unlinked from the class in the School Admin interface (due to ID changes during re-generation).
+  - **Robustness**: Updated `PracticalGradesView.tsx` to handle missing profession IDs more gracefully and improved the `/api/teacher/students` endpoint to include all students in the teacher's classes, even if not directly assigned.
+  - **Refactor**: Reverted most temporary debugging UI changes after the data issue was confirmed and resolved by the user.
+- **Result**: Reliable data loading for teachers across all assigned classes.
+
+### 12. Post-Generation Grade Recovery (Migration System)
+
+- **Problem**: Manual practical grades and test results were lost after curriculum re-generation because module names changed, leading to new module IDs.
+- **Solution**:
+  - **API**: Implemented a specialized administrative endpoint `/api/admin/migrate-grades`.
+  - **Logic**: Added idempotent migration logic that maps grades from "orphaned/old" modules to "new" modules within the same subject based on the `moduleNumber` (which remains stable across re-generations).
+  - **Execution**: Provided a CLI-friendly fetch command for admins to trigger the recovery process directly from the browser console.
+- **Result**: Data continuity maintained even after major curriculum updates.
+
 ## Pending Tasks / Roadmap
 
 - [x] Fix "Wrench is not defined" error in student view.
@@ -108,7 +126,9 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 - [x] Implement cumulative hour summation and sync buttons.
 - [x] Add global AI background process indicators.
 - [x] Fix interactive presentation auto-advance issues.
-- [ ] Clean up "Ghost Data" using the integrity script results.
+- [x] Resolve Teacher Dashboard data loading visibility issues.
+- [x] Implement Grade Recovery (Migration) for re-generated modules.
+- [ ] Clean up "Ghost Data" (old orphaned modules) after migration is confirmed.
 - [ ] Implement AI-driven Question generation for Practical modules.
 - [ ] Optimize IKK import performance (Parallel chunk processing).
 - [ ] Fix CSS inline styles in `home.tsx` (as reported by IDE).

@@ -2536,9 +2536,32 @@ export class DatabaseStorage implements IStorage {
     if (result.userId && result.userId.startsWith('demo-user-')) {
       return { id: 999999, ...result, createdAt: new Date() } as TestResult;
     }
+
+    // Enrich with metadata for durability
+    let enrichedData = { ...result };
+    if (result.moduleId) {
+      try {
+        const [moduleData] = await db.select({
+          title: modules.title,
+          number: modules.moduleNumber,
+          subjectName: subjects.name
+        }).from(modules)
+          .innerJoin(subjects, eq(modules.subjectId, subjects.id))
+          .where(eq(modules.id, result.moduleId));
+        
+        if (moduleData) {
+          enrichedData.moduleTitle = moduleData.title;
+          enrichedData.moduleNumber = moduleData.number;
+          enrichedData.subjectName = moduleData.subjectName;
+        }
+      } catch (e) {
+        console.error("Failed to enrich test result metadata:", e);
+      }
+    }
+
     const [testResult] = await db
       .insert(testResults)
-      .values(result)
+      .values(enrichedData)
       .returning();
     return testResult;
   }
@@ -2792,6 +2815,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertDailyAttendance(data: any): Promise<any> {
+    // Enrich with metadata for durability
+    let studentName = data.studentName;
+    let className = data.className;
+
+    if (!studentName || !className) {
+      try {
+        const [meta] = await db.select({
+          studentName: sql<string>`concat(${users.lastName}, ' ', ${users.firstName})`,
+          className: classes.name
+        }).from(users)
+          .innerJoin(classes, eq(users.classId, classes.id))
+          .where(eq(users.id, data.studentId));
+        
+        if (meta) {
+          studentName = meta.studentName;
+          className = meta.className;
+        }
+      } catch (e) {
+        console.error("Failed to enrich daily attendance metadata:", e);
+      }
+    }
+
     const [row] = await db
       .insert(dailyAttendance)
       .values({
@@ -2799,6 +2844,8 @@ export class DatabaseStorage implements IStorage {
         classId: data.classId,
         date: data.date,
         status: data.status,
+        studentName,
+        className,
         actualStart: data.actualStart,
         actualEnd: data.actualEnd,
         notes: data.notes,
@@ -2809,6 +2856,8 @@ export class DatabaseStorage implements IStorage {
         target: [dailyAttendance.studentId, dailyAttendance.date],
         set: {
           status: data.status,
+          studentName,
+          className,
           actualStart: data.actualStart,
           actualEnd: data.actualEnd,
           notes: data.notes,
@@ -2929,6 +2978,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
+    // Enrich with metadata for durability
+    let studentName = (data as any).studentName;
+    let className = (data as any).className;
+
+    if (!studentName || !className) {
+      try {
+        const [meta] = await db.select({
+          studentName: sql<string>`concat(${users.lastName}, ' ', ${users.firstName})`,
+          className: classes.name
+        }).from(users)
+          .innerJoin(classes, eq(users.classId, classes.id))
+          .where(eq(users.id, data.studentId));
+        
+        if (meta) {
+          studentName = meta.studentName;
+          className = meta.className;
+        }
+      } catch (e) {
+        console.error("Failed to enrich attendance metadata:", e);
+      }
+    }
+
     // Először megnézzük, van-e már bejegyzés
     const [existing] = await db
       .select()
@@ -2952,6 +3023,8 @@ export class DatabaseStorage implements IStorage {
         .set({
           status: data.status,
           recordedBy: data.recordedBy,
+          studentName,
+          className,
           updatedAt: new Date(),
           loginAt: data.loginAt || existing.loginAt,
         })
@@ -2961,7 +3034,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Ha nincs, beszúrjuk
-    const [inserted] = await db.insert(attendance).values(data).returning();
+    const [inserted] = await db.insert(attendance).values({
+      ...data,
+      studentName,
+      className
+    }).returning();
     return inserted;
   }
 
@@ -3424,7 +3501,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPracticalGrade(grade: InsertPracticalGrade): Promise<PracticalGrade> {
-    const [newGrade] = await db.insert(practicalGrades).values(grade).returning();
+    // Enrich with metadata for durability
+    let enrichedData = { ...grade };
+    if (grade.moduleId) {
+      try {
+        const [moduleData] = await db.select({
+          title: modules.title,
+          number: modules.moduleNumber,
+          subjectName: subjects.name
+        }).from(modules)
+          .innerJoin(subjects, eq(modules.subjectId, subjects.id))
+          .where(eq(modules.id, grade.moduleId));
+        
+        if (moduleData) {
+          enrichedData.moduleTitle = moduleData.title;
+          enrichedData.moduleNumber = moduleData.number;
+          enrichedData.subjectName = moduleData.subjectName;
+        }
+      } catch (e) {
+        console.error("Failed to enrich practical grade metadata:", e);
+      }
+    }
+
+    const [newGrade] = await db.insert(practicalGrades).values(enrichedData).returning();
     return newGrade;
   }
 
