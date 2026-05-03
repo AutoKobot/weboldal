@@ -41,17 +41,17 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
   );
 
   const calculateSubjectModuleHours = (subjectId: number) => {
-    return modules
-      .filter((m: any) => m.subjectId === subjectId)
-      .reduce((sum: number, m: any) => sum + (parseFloat(m.suggestedHours) || 0), 0);
+    const subject = subjects.find((s: any) => s.id === subjectId);
+    return parseFloat(String(subject?.totalSuggestedHours || 0)) || 0;
   };
 
   const calculateTypeTotalHours = (type: string) => {
     return subjects
       .filter((s: any) => s.professionId === selectedProfessionId && (type === 'theory' ? (s.type === 'theory' || !s.type) : s.type === type))
       .reduce((sum: number, s: any) => {
-        const hours = s.hours !== null ? s.hours : calculateSubjectModuleHours(s.id);
-        return sum + (hours || 0);
+        const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
+        const hours = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
+        return sum + (Number(hours) || 0);
       }, 0);
   };
 

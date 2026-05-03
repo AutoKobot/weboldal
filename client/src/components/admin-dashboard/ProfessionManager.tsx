@@ -58,12 +58,9 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
     return subjects
       .filter((s: any) => s.professionId === professionId)
       .reduce((sum: number, s: any) => {
-        const subjectHours = s.hours !== null ? s.hours : (
-          modules
-            .filter((m: any) => m.subjectId === s.id)
-            .reduce((mSum: number, m: any) => mSum + (parseFloat(m.suggestedHours) || 0), 0)
-        );
-        return sum + (subjectHours || 0);
+        const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
+        const h = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
+        return sum + (Number(h) || 0);
       }, 0);
   };
 
@@ -239,8 +236,9 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                           {subjects
                             .filter((s: any) => s.professionId === prof.id && (s.type === 'theory' || !s.type))
                             .reduce((sum, s) => {
-                              const h = s.hours !== null ? s.hours : modules.filter((m: any) => m.subjectId === s.id).reduce((ms, m) => ms + (parseFloat(m.suggestedHours) || 0), 0);
-                              return sum + h;
+                              const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
+                              const h = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
+                              return sum + (Number(h) || 0);
                             }, 0).toFixed(0)} óra
                         </span>
                       </Badge>
@@ -251,8 +249,9 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                           {subjects
                             .filter((s: any) => s.professionId === prof.id && s.type === 'practical')
                             .reduce((sum, s) => {
-                              const h = s.hours !== null ? s.hours : modules.filter((m: any) => m.subjectId === s.id).reduce((ms, m) => ms + (parseFloat(m.suggestedHours) || 0), 0);
-                              return sum + h;
+                              const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
+                              const h = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
+                              return sum + (Number(h) || 0);
                             }, 0).toFixed(0)} óra
                         </span>
                       </Badge>

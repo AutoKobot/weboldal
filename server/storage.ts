@@ -1031,11 +1031,13 @@ export class DatabaseStorage implements IStorage {
       type: subjects.type,
       description: subjects.description,
       professionId: subjects.professionId,
+      hours: subjects.hours,
       schoolAdminId: subjects.schoolAdminId,
       createdAt: subjects.createdAt,
       updatedAt: subjects.updatedAt,
       moduleCount: sql<number>`count(${modules.id})::int`,
       publishedCount: sql<number>`count(CASE WHEN ${modules.isPublished} = true THEN 1 END)::int`,
+      totalSuggestedHours: sql<number>`COALESCE(SUM(${modules.suggestedHours}), 0)::numeric`,
     })
     .from(subjects)
     .leftJoin(modules, eq(subjects.id, modules.subjectId))
