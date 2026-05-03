@@ -49,7 +49,10 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
   const calculateTypeTotalHours = (type: string) => {
     return subjects
       .filter((s: any) => s.professionId === selectedProfessionId && (type === 'theory' ? (s.type === 'theory' || !s.type) : s.type === type))
-      .reduce((sum: number, s: any) => sum + (s.hours || 0), 0);
+      .reduce((sum: number, s: any) => {
+        const hours = s.hours !== null ? s.hours : calculateSubjectModuleHours(s.id);
+        return sum + (hours || 0);
+      }, 0);
   };
 
   const handleBack = () => {

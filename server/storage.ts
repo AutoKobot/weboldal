@@ -1134,6 +1134,34 @@ export class DatabaseStorage implements IStorage {
     console.log(`✅ Subject ${id} deleted successfully`);
   }
 
+  async redistributeSubjectHours(subjectId: number, newTotalHours: number): Promise<void> {
+    const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, subjectId));
+    if (subjectModules.length === 0) return;
+
+    const currentTotal = subjectModules.reduce((sum, m) => sum + (parseFloat(m.suggestedHours || "0") || 0), 0);
+    
+    // If current total is 0, distribute evenly
+    if (currentTotal === 0) {
+      const perModule = (newTotalHours / subjectModules.length).toFixed(1);
+      for (const m of subjectModules) {
+        await db.update(modules)
+          .set({ suggestedHours: perModule, updatedAt: new Date() })
+          .where(eq(modules.id, m.id));
+      }
+      return;
+    }
+
+    // Scale proportionally
+    const scale = newTotalHours / currentTotal;
+    for (const m of subjectModules) {
+      const currentHours = parseFloat(m.suggestedHours || "0") || 0;
+      const newHours = (currentHours * scale).toFixed(1);
+      await db.update(modules)
+        .set({ suggestedHours: newHours, updatedAt: new Date() })
+        .where(eq(modules.id, m.id));
+    }
+  }
+
   // Module operations
   async getModules(subjectId?: number, schoolAdminId?: string | null, professionId?: number): Promise<Module[]> {
     const conditions = [];

@@ -57,7 +57,14 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
   const calculateProfessionHours = (professionId: number) => {
     return subjects
       .filter((s: any) => s.professionId === professionId)
-      .reduce((sum: number, s: any) => sum + (s.hours || 0), 0);
+      .reduce((sum: number, s: any) => {
+        const subjectHours = s.hours !== null ? s.hours : (
+          modules
+            .filter((m: any) => m.subjectId === s.id)
+            .reduce((mSum: number, m: any) => mSum + (parseFloat(m.suggestedHours) || 0), 0)
+        );
+        return sum + (subjectHours || 0);
+      }, 0);
   };
 
   const form = useForm({
@@ -177,15 +184,13 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         {prof.code}
                       </Badge>
                     )}
-                    {prof.totalHours && prof.totalHours > 0 && (
-                      <Badge variant="outline" className="text-[10px] h-5 border-blue-100 bg-blue-50/30 text-blue-700 flex items-center gap-1">
-                        <Clock className="h-2.5 w-2.5" />
-                        {prof.totalHours} óra
-                      </Badge>
-                    )}
-                    {prof.totalHours && prof.moduleCount > 0 && (
+                    <Badge variant="outline" className={`text-[10px] h-5 flex items-center gap-1 ${prof.totalHours ? 'border-blue-100 bg-blue-50/30 text-blue-700' : 'border-blue-100 bg-blue-50/10 text-blue-600 italic'}`}>
+                      <Clock className="h-2.5 w-2.5" />
+                      {prof.totalHours || calculateProfessionHours(prof.id).toFixed(0)} óra {prof.totalHours ? '' : '(jav.)'}
+                    </Badge>
+                    {(prof.totalHours || calculateProfessionHours(prof.id)) > 0 && prof.moduleCount > 0 && (
                       <Badge variant="outline" className="text-[10px] h-5 border-slate-200 text-slate-500 bg-slate-50/50">
-                        ~{Math.round((prof.totalHours / prof.moduleCount) * 10) / 10} óra / modul
+                        ~{Math.round(((prof.totalHours || calculateProfessionHours(prof.id)) / prof.moduleCount) * 10) / 10} óra / modul
                       </Badge>
                     )}
                     <span className="text-[10px] text-muted-foreground">
@@ -230,12 +235,26 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                       <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
                         <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} ELMÉLET
                         <span className="opacity-40 ml-1">|</span>
-                        <span className="ml-1 font-bold">{subjects.filter((s: any) => s.professionId === prof.id && (s.type === 'theory' || !s.type)).reduce((sum, s) => sum + (s.hours || 0), 0)} óra</span>
+                        <span className="ml-1 font-bold">
+                          {subjects
+                            .filter((s: any) => s.professionId === prof.id && (s.type === 'theory' || !s.type))
+                            .reduce((sum, s) => {
+                              const h = s.hours !== null ? s.hours : modules.filter((m: any) => m.subjectId === s.id).reduce((ms, m) => ms + (parseFloat(m.suggestedHours) || 0), 0);
+                              return sum + h;
+                            }, 0).toFixed(0)} óra
+                        </span>
                       </Badge>
                       <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
                         <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} GYAKORLAT
                         <span className="opacity-40 ml-1">|</span>
-                        <span className="ml-1 font-bold">{subjects.filter((s: any) => s.professionId === prof.id && s.type === 'practical').reduce((sum, s) => sum + (s.hours || 0), 0)} óra</span>
+                        <span className="ml-1 font-bold">
+                          {subjects
+                            .filter((s: any) => s.professionId === prof.id && s.type === 'practical')
+                            .reduce((sum, s) => {
+                              const h = s.hours !== null ? s.hours : modules.filter((m: any) => m.subjectId === s.id).reduce((ms, m) => ms + (parseFloat(m.suggestedHours) || 0), 0);
+                              return sum + h;
+                            }, 0).toFixed(0)} óra
+                        </span>
                       </Badge>
                     </div>
 

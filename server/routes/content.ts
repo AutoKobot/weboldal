@@ -165,11 +165,17 @@ router.post('/subjects', combinedAuth, checkContentEditor, async (req: any, res)
   }
 });
 
-router.patch('/subjects/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
+router.patch('/subjects/:id', combinedAuth, checkContentEditor, async (req: any, res: any) => {
   try {
     const id = parseInt(req.params.id);
     const data = insertSubjectSchema.partial().parse(req.body);
     const subject = await storage.updateSubject(id, data);
+    
+    // If hours were modified, redistribute to modules
+    if (data.hours !== undefined && data.hours !== null) {
+      await storage.redistributeSubjectHours(id, data.hours);
+    }
+    
     res.json(subject);
   } catch (error) {
     res.status(500).json({ message: "Failed to update subject" });

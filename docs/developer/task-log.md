@@ -85,7 +85,8 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 - **Solution**:
   - **Schema**: Added `totalHours` to `professions` table.
   - **Aggregation**: Implemented helper functions to sum up `suggestedHours` from Modules to Subjects, and Subject `hours` to Professions.
-  - **Fallback Display**: Subject cards now display a "~X óra (jav.)" badge if the official hours field is empty, using real-time module aggregation.
+  - **Fallback Display**: Subject and Profession cards now display a "(jav.)" badge if official hours are missing, using recursive aggregation (Subject fallback to Modules, Profession fallback to Subjects/Modules).
+  - **Redistribution**: Implemented backend logic to proportionally redistribute module hours whenever a parent subject's total hours are manually modified.
   - **Sync Tools**: Added "Sync" buttons (Wand2) in edit dialogs to allow admins to automatically apply calculated sums while maintaining manual override capability.
   - **UI**: Updated Profession and Subject cards to display category breakdowns (Theory vs. Practical hours).
 - **Result**: Transparent workload tracking from granular modules up to the professional qualification level.
