@@ -315,7 +315,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
           const existingModules = await storage.getModules(dbSubject.id);
 
-          const BATCH_SIZE = 10; // Slightly smaller batches for stability
+          const BATCH_SIZE = 7; // Smaller batch size for better stability and avoiding token limits
           const batches = [];
           for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
             batches.push(sub.modules.slice(i, i + BATCH_SIZE));
@@ -378,8 +378,14 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           // After all modules for this subject are created and populated, distribute the hours
           if (sub.hours && sub.hours > 0) {
             try {
-              const allModules = await storage.getModules(dbSubject.id);
-              const hourDistributions = await ikkService.distributeSubjectHours(profession.name, sub.name, sub.hours, allModules);
+              const allModulesForDist = await storage.getModules(dbSubject.id);
+              const hourDistributions = await ikkService.distributeSubjectHours(
+                profession.name, 
+                sub.name, 
+                sub.hours, 
+                sub.practicalPercent || 50,
+                allModulesForDist.map(m => ({ id: m.id, title: m.title, type: m.type || 'theory' }))
+              );
               
               for (const dist of hourDistributions) {
                 if (dist.hours > 0) {

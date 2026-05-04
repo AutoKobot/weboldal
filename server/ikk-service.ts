@@ -97,22 +97,37 @@ export class IKKService {
     };
   }
 
-  async distributeSubjectHours(professionName: string, subjectName: string, totalHours: number, modules: { title: string, id: number }[]): Promise<{ id: number, hours: number }[]> {
+  async distributeSubjectHours(
+    professionName: string,
+    subjectName: string,
+    totalHours: number,
+    practicalPercent: number,
+    modules: { title: string, id: number, type: string }[]
+  ): Promise<{ id: number, hours: number }[]> {
     if (!totalHours || modules.length === 0) return modules.map(m => ({ id: m.id, hours: 0 }));
 
     try {
       const { getOpenAIClient } = await import('./openai');
       const openai = await getOpenAIClient();
-      
+
+      const theoryModules = modules.filter(m => m.type === 'theory');
+      const practicalModules = modules.filter(m => m.type === 'practical');
+
+      const targetPracticalHours = Math.round(totalHours * (practicalPercent / 100));
+      const targetTheoryHours = totalHours - targetPracticalHours;
+
       const prompt = `
 Te egy SZAKOKTATÓ és tanmenet-tervező vagy.
 Szakma: ${professionName}
 Tantárgy: ${subjectName}
-Rendelkezésre álló keretidő: ${totalHours} óra
-Modulok száma: ${modules.length}
+Összes keretidő: ${totalHours} óra
+Ebből GYAKORLAT cél: ${targetPracticalHours} óra (${practicalPercent}%)
+Ebből ELMÉLET cél: ${targetTheoryHours} óra (${100 - practicalPercent}%)
 
-FELADAT: Oszd el a ${totalHours} órát az alábbi modulok között szakmai súlyuk és pedagógiai komplexitásuk alapján.
-A cél, hogy a nehezebb, gyakorlatigényesebb modulok több órát kapjanak, míg az alapozó/elméleti bevezetők kevesebbet.
+FELADAT: Oszd el az órákat a modulok között úgy, hogy:
+1. A GYAKORLATI modulok (PRACTICAL) óraszámainak összege pontosan ${targetPracticalHours} legyen.
+2. Az ELMÉLETI modulok (THEORY) óraszámainak összege pontosan ${targetTheoryHours} legyen.
+3. A modulok súlya és komplexitása alapján differenciálj.
 
 SZABÁLYOK:
 1. Az óraszámok összege pontosan ${totalHours} legyen!
@@ -120,7 +135,11 @@ SZABÁLYOK:
 3. Válaszolj szigorú JSON formátumban: {"distributions": [{"id": [modul_id], "hours": [óra]}]}
 
 MODULOK LISTÁJA:
-${modules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
+GYAKORLATI MODULOK:
+${practicalModules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
+
+ELMÉLETI MODULOK:
+${theoryModules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
 `;
 
       const response = await openai.chat.completions.create({
@@ -134,9 +153,20 @@ ${modules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
       return result.distributions || [];
     } catch (error) {
       console.error('Hiba az óraszámok elosztásakor:', error);
-      // Fallback: simple average if AI fails
-      const avg = totalHours / modules.length;
-      return modules.map(m => ({ id: m.id, hours: Math.round(avg * 2) / 2 }));
+      // Fallback: simple average within types if AI fails
+      const practicalMods = modules.filter(m => m.type === 'practical');
+      const theoryMods = modules.filter(m => m.type === 'theory');
+
+      const targetPrac = totalHours * (practicalPercent / 100);
+      const targetTheo = totalHours - targetPrac;
+
+      const pracAvg = practicalMods.length > 0 ? targetPrac / practicalMods.length : 0;
+      const theoAvg = theoryMods.length > 0 ? targetTheo / theoryMods.length : 0;
+
+      return modules.map(m => ({
+        id: m.id,
+        hours: m.type === 'practical' ? Math.round(pracAvg * 2) / 2 : Math.round(theoAvg * 2) / 2
+      }));
     }
   }
 
@@ -209,7 +239,7 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
       "name": "Tantárgy neve",
       "code": "3.X.X",
       "hours": 72,
-      "practicalPercent": ${importType === 'practical' ? 100 : (importType === 'theory' ? 0 : 50)},
+      "practicalPercent": 50,
       "modules": [
         { "title": "Szakmai cím 1", "type": "theory", "sectionCode": "3.X.X.6.1.a" },
         { "title": "Szakmai cím 2", "type": "practical", "sectionCode": "3.X.X.6.1.b" }
@@ -217,6 +247,11 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
     }
   ]
 }
+
+── FONTOS INSTRUKCIÓK ──
+1. HOURS: Keresd meg a tantárgy neve melletti óraszámot (pl. "Villamos alapismeretek 288 óra" -> hours: 288).
+2. PRACTICALPERCENT: Keresd meg a szövegben a tantárgyra vonatkozó gyakorlati arányt (pl. "legalább 50%-át gyakorlati helyszínen" -> practicalPercent: 50). Ha nem találod, használj becslést a tartalom alapján (de próbáld meg kinyerni).
+3. MODULES: Minden szakmai egységet bonts modulokra a fent leírt módon.
 
 ELEMEZENDŐ SZÖVEG:
 ${chunk}
