@@ -4,15 +4,39 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import OnboardingWizard from "@/components/onboarding-wizard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
-  BookOpen, Menu, ArrowRight, Brain, Play, Flame, BarChart3, AlertCircle,
-  CheckCircle2, Users, GraduationCap, TrendingUp, Award, Clock, XCircle,
-  ChevronRight, FileText, Bot, MessageSquare, Wrench, Search, Sparkles
+  BookOpen, 
+  Menu, 
+  ArrowRight, 
+  Brain, 
+  Play, 
+  Flame, 
+  BarChart3, 
+  AlertCircle,
+  CheckCircle2, 
+  Users, 
+  GraduationCap, 
+  TrendingUp, 
+  Award, 
+  Clock, 
+  XCircle,
+  ChevronRight, 
+  FileText, 
+  Bot, 
+  MessageSquare, 
+  Wrench, 
+  Search, 
+  Sparkles,
+  Settings,
+  Zap,
+  Target,
+  Rocket
 } from "lucide-react";
 import type { Module, Subject } from "@shared/schema";
 import { StudentAvatar } from "@/components/StudentAvatar";
@@ -204,30 +228,38 @@ export default function HomePage() {
       />
 
       <div className="flex-1 overflow-auto">
-        <header className="bg-white shadow-sm border-b border-neutral-100">
-          <div className="flex items-center justify-between px-6 py-4">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-neutral-100">
+          <div className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
             <div className="flex items-center space-x-4 flex-1">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg lg:text-2xl font-black text-neutral-800 truncate tracking-tight">
+                  Szia, {user.firstName || 'Tanuló'}! 👋
+                </h1>
+                <p className="text-[10px] lg:text-sm text-neutral-500 uppercase font-bold tracking-widest truncate">
+                  {streakDays > 0 ? `🔥 ${streakDays} NAPOS SOROZAT` : "Kezdj el tanulni ma is!"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="hidden lg:flex items-center bg-student-warm px-3 py-1.5 rounded-full border border-neutral-100">
+                <Sparkles className="text-yellow-500 mr-2" size={16} />
+                <span className="text-sm font-bold text-neutral-700">{xp} XP</span>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMobileNavOpen(true)}
-                className="lg:hidden flex-shrink-0"
+                className="lg:hidden p-2 hover:bg-neutral-100 rounded-xl"
+                aria-label="Beállítások megnyitása"
+                title="Beállítások"
               >
-                <Menu size={20} />
+                <Settings size={22} className="text-neutral-500" />
               </Button>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-xl lg:text-2xl font-bold text-neutral-800 truncate">
-                  Szia, {user.firstName || 'Tanuló'}! 👋
-                </h1>
-                <p className="text-sm lg:text-base text-neutral-600 truncate">
-                  Itt láthatod, hogy hol tartasz és mi a következő lépés.
-                </p>
-              </div>
             </div>
           </div>
         </header>
 
-        <main className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6">
+        <main className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6 pb-24 lg:pb-6">
 
           {/* Main Top Section: Next Task or Start Here */}
           {isBeginner ? (
@@ -562,6 +594,7 @@ export default function HomePage() {
             </div>
           </Card>
         </main>
+        <BottomNav />
       </div>
 
       {/* Onboarding Wizard */}

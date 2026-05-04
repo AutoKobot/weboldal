@@ -117,7 +117,7 @@ export interface IStorage {
   getStudentsByTeacher(teacherId: string): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
   createLocalUser(user: Omit<UpsertUser, 'id'> & { id: string }): Promise<User>;
-  createUser(user: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string; phone?: string | null }): Promise<User>;
+  createUser(userData: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; schoolId?: number | null; email?: string | null; role: string; password: string; schoolAdminId?: string; phone?: string | null }): Promise<User>;
   setUserPassword(userId: string, password: string): Promise<void>;
   updateUserRole(id: string, role: string): Promise<void>;
   updateUserProfession(id: string, professionId: number): Promise<void>;
@@ -509,7 +509,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; email?: string | null; role: string; password: string; schoolAdminId?: string; phone?: string | null }): Promise<User> {
+  async createUser(userData: { id?: string; username: string; firstName: string; lastName: string; schoolName?: string; schoolId?: number | null; email?: string | null; role: string; password: string; schoolAdminId?: string; phone?: string | null }): Promise<User> {
     const { hashPassword } = await import('./localAuth');
     const hashedPassword = await hashPassword(userData.password);
 
@@ -527,6 +527,7 @@ export class DatabaseStorage implements IStorage {
         role: userData.role,
         authType: 'local',
         schoolName: userData.schoolName,
+        schoolId: userData.schoolId,
         schoolAdminId: userData.schoolAdminId,
         phone: userData.phone ?? null,
         createdAt: new Date(),
@@ -1872,7 +1873,11 @@ export class DatabaseStorage implements IStorage {
     const teacherAlias = aliasedTable(users, 'teacher_alias');
     const studentAlias = aliasedTable(users, 'student_alias');
 
-    return await db.select({
+    // Get admin to check for schoolId
+    const admin = await this.getUser(schoolAdminId);
+    const schoolId = admin?.schoolId;
+
+    const query = db.select({
       id: classes.id,
       name: classes.name,
       description: classes.description,
@@ -1888,10 +1893,17 @@ export class DatabaseStorage implements IStorage {
     })
     .from(classes)
     .leftJoin(studentAlias, and(eq(classes.id, studentAlias.classId), eq(studentAlias.role, 'student')))
-    .leftJoin(teacherAlias, eq(classes.assignedTeacherId, teacherAlias.id))
-    .where(eq(classes.schoolAdminId, schoolAdminId))
-    .groupBy(classes.id, teacherAlias.id)
-    .orderBy(classes.name);
+    .leftJoin(teacherAlias, eq(classes.assignedTeacherId, teacherAlias.id));
+
+    if (schoolId) {
+      query.where(or(eq(classes.schoolId, schoolId), eq(classes.schoolAdminId, schoolAdminId)));
+    } else {
+      query.where(eq(classes.schoolAdminId, schoolAdminId));
+    }
+
+    return await query
+      .groupBy(classes.id, teacherAlias.id)
+      .orderBy(classes.name);
   }
 
   async getClassById(classId: number): Promise<Class | undefined> {
@@ -1932,8 +1944,12 @@ export class DatabaseStorage implements IStorage {
 
   async getStudentsBySchoolAdmin(schoolAdminId: string): Promise<any[]> {
     const teacherAlias = aliasedTable(users, 'teacher_alias');
+    
+    // Get admin to check for schoolId
+    const admin = await this.getUser(schoolAdminId);
+    const schoolId = admin?.schoolId;
 
-    return await db.select({
+    const query = db.select({
       id: users.id,
       username: users.username,
       firstName: users.firstName,
@@ -1945,6 +1961,7 @@ export class DatabaseStorage implements IStorage {
       classId: users.classId,
       assignedTeacherId: users.assignedTeacherId,
       schoolAdminId: users.schoolAdminId,
+      schoolId: users.schoolId,
       xp: users.xp,
       currentStreak: users.currentStreak,
       lastActiveDate: users.lastActiveDate,
@@ -1957,15 +1974,26 @@ export class DatabaseStorage implements IStorage {
     })
     .from(users)
     .leftJoin(teacherAlias, eq(users.assignedTeacherId, teacherAlias.id))
-    .leftJoin(classes, eq(users.classId, classes.id))
-    .where(and(eq(users.schoolAdminId, schoolAdminId), eq(users.role, 'student')))
-    .orderBy(users.firstName, users.lastName, users.username);
+    .leftJoin(classes, eq(users.classId, classes.id));
+
+    const roleFilter = eq(users.role, 'student');
+    if (schoolId) {
+      query.where(and(roleFilter, or(eq(users.schoolId, schoolId), eq(users.schoolAdminId, schoolAdminId))));
+    } else {
+      query.where(and(roleFilter, eq(users.schoolAdminId, schoolAdminId)));
+    }
+
+    return await query.orderBy(users.firstName, users.lastName, users.username);
   }
 
   async getTeachersBySchoolAdmin(schoolAdminId: string): Promise<any[]> {
     const studentsAlias = aliasedTable(users, 'students_alias');
     
-    return await db.select({
+    // Get admin to check for schoolId
+    const admin = await this.getUser(schoolAdminId);
+    const schoolId = admin?.schoolId;
+
+    const query = db.select({
       id: users.id,
       username: users.username,
       firstName: users.firstName,
@@ -1973,6 +2001,7 @@ export class DatabaseStorage implements IStorage {
       email: users.email,
       role: users.role,
       schoolAdminId: users.schoolAdminId,
+      schoolId: users.schoolId,
       xp: users.xp,
       currentStreak: users.currentStreak,
       lastActiveDate: users.lastActiveDate,
@@ -1983,10 +2012,18 @@ export class DatabaseStorage implements IStorage {
     })
     .from(users)
     .leftJoin(studentsAlias, and(eq(users.id, studentsAlias.assignedTeacherId), eq(studentsAlias.role, 'student')))
-    .leftJoin(classes, eq(users.id, classes.assignedTeacherId))
-    .where(and(eq(users.schoolAdminId, schoolAdminId), eq(users.role, 'teacher')))
-    .groupBy(users.id)
-    .orderBy(users.firstName, users.lastName, users.username);
+    .leftJoin(classes, eq(users.id, classes.assignedTeacherId));
+
+    const roleFilter = eq(users.role, 'teacher');
+    if (schoolId) {
+      query.where(and(roleFilter, or(eq(users.schoolId, schoolId), eq(users.schoolAdminId, schoolAdminId))));
+    } else {
+      query.where(and(roleFilter, eq(users.schoolAdminId, schoolAdminId)));
+    }
+
+    return await query
+      .groupBy(users.id)
+      .orderBy(users.firstName, users.lastName, users.username);
   }
 
   async createClass(classData: InsertClass): Promise<Class> {

@@ -30,7 +30,9 @@ import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import { Badge } from "@/components/ui/badge";
+import { Settings } from "lucide-react";
 
 interface Message {
   id: number;
@@ -217,14 +219,16 @@ export default function MessagesPage() {
           {/* Conversation List Sidebar */}
           <div className={`w-full md:w-80 border-r flex flex-col bg-gray-50 ${selectedPartnerId ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-4 border-b bg-white flex items-center justify-between">
-              <h1 className="text-xl font-bold">Üzenetek</h1>
+              <h1 className="text-xl font-black tracking-tight">Üzenetek</h1>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="md:hidden" 
+                className="md:hidden p-2 hover:bg-neutral-100 rounded-xl" 
                 onClick={() => setIsMobileNavOpen(true)}
+                aria-label="Beállítások megnyitása"
+                title="Beállítások"
               >
-                <Menu className="h-5 w-5" />
+                <Settings className="h-5 w-5 text-neutral-500" />
               </Button>
             </div>
             <div className="p-4 bg-white">
@@ -449,6 +453,7 @@ export default function MessagesPage() {
             )}
           </div>
         </div>
+        <BottomNav />
       </main>
     </div>
   );

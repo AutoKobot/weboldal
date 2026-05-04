@@ -7,11 +7,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { compareSectionCodes } from "@/lib/utils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2 } from "lucide-react";
+import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2, Settings } from "lucide-react";
 import type { Profession, Subject } from "@shared/schema";
 
 export default function TananyagokPage() {
@@ -195,37 +196,40 @@ export default function TananyagokPage() {
       />
 
       <div className="flex-1 overflow-auto">
-        <header className="bg-student-warm shadow-sm border-b border-neutral-100">
-          <div className="flex items-center justify-between px-6 py-4">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-neutral-100 px-6 py-4">
+          <div className="flex items-center justify-between max-w-6xl mx-auto">
             <div className="flex items-center space-x-4">
+              <div>
+                <h1 className="text-xl lg:text-2xl font-black text-neutral-800 tracking-tight">
+                  {selectedProfession ? "Tananyagok" : "Szakmák"}
+                </h1>
+                <p className="text-[10px] lg:text-sm text-neutral-500 uppercase font-bold tracking-widest truncate">
+                  {selectedProfession ? "Válassz tantárgyat" : "Válassz szakmát"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {user.role === 'admin' && queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse hidden sm:flex items-center gap-2 py-1 px-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-[10px] font-bold">AI</span> 
+                </Badge>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMobileNavOpen(true)}
-                className="lg:hidden"
+                className="lg:hidden p-2 hover:bg-neutral-100 rounded-xl"
+                aria-label="Beállítások megnyitása"
+                title="Beállítások"
               >
-                <Menu size={20} />
+                <Settings size={22} className="text-neutral-500" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-neutral-800">
-                  {selectedProfession ? "Tananyagok" : "Szakmák"}
-                </h1>
-                <p className="text-neutral-600">
-                  {selectedProfession ? "Válassza ki a tantárgyat és kezdje a tanulást" : "Válassza ki a szakmát és kezdje a tanulást"}
-                </p>
-              </div>
             </div>
-            {user.role === 'admin' && queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse flex items-center gap-2 py-1.5 px-3">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="font-bold">AI:</span> 
-                <span>{queueStatus.processingItems?.length + queueStatus.queuedItems?.length} folyamatban</span>
-              </Badge>
-            )}
           </div>
         </header>
 
-        <main className="p-6">
+        <main className="p-4 lg:p-6 pb-24 lg:pb-6">
           {/* Profession Selection */}
           {!selectedProfession && (
             <div className="mb-8">
@@ -495,6 +499,7 @@ export default function TananyagokPage() {
             </div>
           )}
         </main>
+        <BottomNav />
       </div>
     </div>
   );

@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench, Wand2, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { compareSectionCodes } from "@/lib/utils";
 import { Subject, insertSubjectSchema, Profession } from "./types";
 
 export function SubjectManager({ subjects, professions, modules = [], selectedProfessionId, onBack, onSelect, selectedType, setSelectedType }: any) {
@@ -207,7 +208,9 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSubjects.map((subject: Subject) => (
+          {[...filteredSubjects]
+            .sort((a, b) => compareSectionCodes(a.code, b.code))
+            .map((subject: Subject) => (
             <Card key={subject.id} className="group hover:border-primary transition-colors cursor-pointer flex flex-col" onClick={() => onSelect(subject.id)}>
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div className="flex-1">

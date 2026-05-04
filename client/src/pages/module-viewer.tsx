@@ -8,11 +8,12 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { extractTextFromMarkdown, compareSectionCodes } from "@/lib/utils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search, Wrench } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search, Wrench, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
@@ -646,20 +647,103 @@ export default function ModuleViewer() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Mobile Header */}
-        <header className="bg-student-warm shadow-sm border-b border-neutral-100 lg:hidden">
-          <div className="flex items-center justify-between p-4">
-            <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="text-neutral-700"
-              aria-label="Menü megnyitása"
-              title="Menü megnyitása"
+        {/* Mobile Header - Sticky and Premium */}
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-neutral-100 lg:hidden px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackNavigation}
+              className="p-2 hover:bg-neutral-100 rounded-xl flex-shrink-0"
+              aria-label="Vissza a tananyagokhoz"
+              title="Vissza"
             >
-              <Menu size={24} />
-            </button>
-            <h1 className="text-lg font-semibold text-neutral-700">Modul</h1>
-            <div className="w-6"></div>
+              <ArrowLeft size={20} className="text-neutral-500" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-black text-neutral-800 truncate leading-tight tracking-tight uppercase">
+                {module.title}
+              </h1>
+              <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest truncate">
+                {module.sectionCode || `#${module.moduleNumber}. modul`}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileNavOpen(true)}
+              className="p-2 hover:bg-neutral-100 rounded-xl flex-shrink-0"
+              aria-label="Beállítások megnyitása"
+              title="Beállítások"
+            >
+              <Settings size={20} className="text-neutral-500" />
+            </Button>
           </div>
         </header>
+
+        {/* Mobile Multimedia Bar - Horizontal Scrollable */}
+        <div className="lg:hidden flex items-center gap-3 overflow-x-auto px-4 py-3 bg-white border-b border-neutral-50 scrollbar-hide">
+          {module.imageUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImageModal(true)}
+              className="flex-shrink-0 gap-2 bg-blue-50/50 border-blue-100 text-blue-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <ImageIcon size={14} /> Kép
+            </Button>
+          )}
+          {module.youtubeUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowYoutubeModal(true)}
+              className="flex-shrink-0 gap-2 bg-red-50/50 border-red-100 text-red-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Youtube size={14} /> Videó
+            </Button>
+          )}
+          {module.videoUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowVideoModal(true)}
+              className="flex-shrink-0 gap-2 bg-purple-50/50 border-purple-100 text-purple-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Play size={14} /> Demo
+            </Button>
+          )}
+          {module.audioUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAudioModal(true)}
+              className="flex-shrink-0 gap-2 bg-green-50/50 border-green-100 text-green-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Volume2 size={14} /> Hang
+            </Button>
+          )}
+          {module.podcastUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPodcastModal(true)}
+              className="flex-shrink-0 gap-2 bg-orange-50/50 border-orange-100 text-orange-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Headphones size={14} /> Podcast
+            </Button>
+          )}
+          {module.presentationUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPresentationModal(true)}
+              className="flex-shrink-0 gap-2 bg-indigo-50/50 border-indigo-100 text-indigo-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Presentation size={14} /> Prezi
+            </Button>
+          )}
+        </div>
 
         {/* Content Area */}
         <div className="flex flex-col">
@@ -675,9 +759,9 @@ export default function ModuleViewer() {
               Vissza
             </Button>
 
-            {/* Multimédia oldalsáv */}
+            {/* Multimédia oldalsáv - Csak Desktopon fixált */}
             {module && (
-              <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-40 flex flex-col gap-2">
+              <div className="hidden lg:flex fixed right-6 top-1/2 transform -translate-y-1/2 z-40 flex-col gap-3">
                 {module.imageUrl && (
                   <Button
                     variant="outline"
@@ -1476,6 +1560,7 @@ export default function ModuleViewer() {
         })() as any[]}
         moduleTitle={module.title}
       />
+      <BottomNav />
     </div>
   );
 }
