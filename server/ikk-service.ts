@@ -210,27 +210,25 @@ ${theoryModules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
     const typeFocus = importType === 'theory' ? 'CSAK AZ ELMÉLETI' : importType === 'practical' ? 'CSAK A GYAKORLATI' : 'AZ ÖSSZES';
     
     return `
-Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE.
+Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE/FELBONTÁSA.
 Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
 
 ── TANTÁRGY ÉS MODUL STRUKTÚRA ──
 1. TANTÁRGY: Minden "X.X.X [Név] tantárgy [óra] óra" formátumú egységet rögzíts.
-2. MODULOK ÉS SZAKMAI BŐVÍTÉS (KRITIKUS): 
-   - Keress meg minden szakmai egységet.
-   - **SZAKMAI BŐVÍTÉS (GYAKORLATNÁL)**: Ha egy gyakorlati feladat túl általános (pl. "Gázhegesztés végzése" vagy "Mérések"), akkor a szakmai követelményeknek megfelelően BONTD SZÉT logikus almodulokra!
-     * Példa: Hegesztésnél bontsd szét pozíciók (PA, PB, PC, PF, stb.) és varrattípusok (tompa, sarok) szerint.
-     * Példa: Mérésnél bontsd szét eszközök (tolómérő, mikrométer) és mérési módok szerint.
-   - Minden ilyen almodult (a, b, c...) vegyél fel külön elemként. A cél a tanuló alapos felkészítése!
-   - Ha egy fejezetet (pl. 3.5.1.6.1) több modulra bontasz, a "sectionCode" végére fűzz egy kisbetűt: 3.5.1.6.1.a, 3.5.1.6.1.b, stb.
+2. MODULOK ÉS GRANULÁRIS FELBONTÁS (KRITIKUS): 
+   - Keress meg minden szakmai egységet (fejezetet).
+   - **KÖTELEZŐ FELBONTÁS**: Ha egy fejezet (pl. 3.3.2.6.1) több, jól elkülöníthető témát, felsorolást vagy alpontot tartalmaz, akkor azt KÖTELEZŐ több kisebb, logikus modulra bontani!
+     * Példa: Ha egy felsorolásban szerepelnek fémes anyagok, nem-fémes anyagok és segédanyagok, akkor ezeket NE egy modulba tedd, hanem bontsd 3 külön modulra!
+     * Példa (Gyakorlatnál): Hegesztésnél bontsd szét pozíciók (PA, PB, PC, PF, stb.) és varrattípusok szerint.
+   - Minden ilyen almodult (a, b, c...) vegyél fel külön elemként. 
+   - A "sectionCode" végére MINDIG fűzz egy kisbetűt, ha felbontást végzel: 3.3.2.6.1.a, 3.3.2.6.1.b, stb.
+   - **CÉL**: Egy modul ne legyen hosszabb 200-300 szónál a kifejtés után. Ha a forrásanyag túl sűrű, bontsd tovább!
 
 ── EXTRAKCIÓS SZABÁLYOK ──
 - SZŰRÉS: ${typeFocus} modulokat keresünk.
-- ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, elméleti összefüggések.
+- ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, elméleti összefüggések, anyagismeret, fogalmak.
 - GYAKORLAT DEFINÍCIÓ: Cselekvések, készségek, konkrét szakmai műveletek végrehajtása.
-- CÍM (FONTOS): A modul címe legyen beszédes és szakmai (pl. "Gázhegesztés tompavarrattal PF pozícióban").
-- TÍPUS (KRITIKUS): 
-  - "practical": Cselekvés, végrehajtás, gyakorlás.
-  - "theory": Tudás, megértés, leírás.
+- CÍM (FONTOS): A modul címe legyen pontos és szakmai (pl. "Szerkezeti anyagok szilárdsági jellemzői" vagy "Ipari gázok kezelése és tárolása").
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
@@ -242,16 +240,17 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
       "practicalPercent": 50,
       "modules": [
         { "title": "Szakmai cím 1", "type": "theory", "sectionCode": "3.X.X.6.1.a" },
-        { "title": "Szakmai cím 2", "type": "practical", "sectionCode": "3.X.X.6.1.b" }
+        { "title": "Szakmai cím 2", "type": "theory", "sectionCode": "3.X.X.6.1.b" },
+        { "title": "Szakmai cím 3", "type": "practical", "sectionCode": "3.X.X.6.1.c" }
       ]
     }
   ]
 }
 
 ── FONTOS INSTRUKCIÓK ──
-1. HOURS: Keresd meg a tantárgy neve melletti óraszámot (pl. "Villamos alapismeretek 288 óra" -> hours: 288).
-2. PRACTICALPERCENT: Keresd meg a szövegben a tantárgyra vonatkozó gyakorlati arányt (pl. "legalább 50%-át gyakorlati helyszínen" -> practicalPercent: 50). Ha nem találod, használj becslést a tartalom alapján (de próbáld meg kinyerni).
-3. MODULES: Minden szakmai egységet bonts modulokra a fent leírt módon.
+1. HOURS: Keresd meg a tantárgy neve melletti óraszámot.
+2. PRACTICALPERCENT: Keresd meg a tantárgyra vonatkozó gyakorlati arányt.
+3. MODULES: Légy nagyon részletes! Inkább legyen több kis modul, mint egy óriási. A mobil kijelzőkön a kisebb egységek jobban olvashatóak.
 
 ELEMEZENDŐ SZÖVEG:
 ${chunk}
@@ -267,23 +266,23 @@ Szakma: ${professionName}
 Tantárgy: ${subjectName}
 
 ── FELADAT ──
-Minden modulhoz írj egy tömör, professzionális kifejtést az alábbi SZIGORÚ szabályok szerint:
+Minden modulhoz írj egy alapos, de lényegre törő szakmai kifejtést az alábbi SZIGORÚ szabályok szerint:
 
 1. HA A MODUL [THEORY] (Elmélet):
-   - A "content" mezőbe írj 4-5 mondatos, lényegre törő szakmai magyarázatot.
-   - Összpontosíts a fogalmakra, összefüggésekre és szabályokra.
+   - A "content" mezőbe írj 8-10 mondatos, részletes szakmai magyarázatot.
+   - Összpontosíts a fogalmakra, összefüggésekre, technikai adatokra és szabályokra.
+   - Használj szakmailag pontos terminológiát.
    - A "practicalTasks" mező KÖTELEZŐEN ÜRES lista maradjon: [].
 
 2. HA A MODUL [PRACTICAL] (Gyakorlat):
-   - A "content" mezőbe írj egy rövid (max 2 mondat) bevezetőt, ami megmondja, mit fogunk csinálni.
-   - A "practicalTasks" mezőbe generálj 3-5 konkrét, lépésről-lépésre végrehajtható szakmai feladatot (instrukciót).
-   - A feladatok legyenek cselekvés-orientáltak (pl. "Mérje meg...", "Vágja el...", "Ellenőrizze...").
+   - A "content" mezőbe írj egy rövid (max 3 mondat) bevezetőt a feladat céljáról.
+   - A "practicalTasks" mezőbe generálj 5-8 konkrét, lépésről-lépésre végrehajtható szakmai feladatot (instrukciót).
+   - A feladatok legyenek cselekvés-orientáltak és technikai jellegűek (pl. "Állítsa be a nyomást 4 barra...", "Ellenőrizze a tömítettséget...").
 
 ── SZIGORÚ TILALOM ──
 - NE keverd az elméleti magyarázatot a gyakorlati feladatokkal!
-- Ha a modul PRACTICAL, ne írj bele hosszú elméleti levezetést.
-- Ha a modul THEORY, ne adj meg benne gyakorlati feladatsort.
-- Kerüld a "A tantárgy célja...", "A tanulónak meg kell ismernie..." jellegű pedagógiai sallangokat.
+- Kerüld a pedagógiai sallangokat (pl. "A tanuló képes lesz...").
+- Ne legyen túl tömör, de ne is legyen feleslegesen bőbeszédű.
 
 MODULOK:
 ${moduleList}
