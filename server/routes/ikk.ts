@@ -315,7 +315,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
           const existingModules = await storage.getModules(dbSubject.id);
 
-          const BATCH_SIZE = 7; // Smaller batch size for better stability and avoiding token limits
+          const BATCH_SIZE = 4; // Further reduced for stability with more granular splitting
           const batches = [];
           for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
             batches.push(sub.modules.slice(i, i + BATCH_SIZE));
@@ -341,7 +341,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                 ],
                 temperature: 0.4
               }, {
-                timeout: 60000 // 1 minute timeout for large practical expansions
+                timeout: 120000 // Increased to 2 minutes for large granular expansions
               });
             });
 
@@ -422,10 +422,15 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         console.error("[IKK-IMPORT] Hiba:", err);
         activeImport.status = 'error';
         activeImport.error = err.message;
+        
+        // Disabled automatic deletion to allow for partial imports and debugging
+        /*
         if (createdProfessionId && isNewProfession) {
           console.log(`[IKK-IMPORT] Takarítás: #${createdProfessionId}`);
           await storage.deleteProfession(createdProfessionId);
         }
+        */
+        
         await (storage as any).updateBackgroundJob(jobId, { status: 'error', error: err.message, message: `Hiba: ${err.message}` });
       }
     }, 500);
