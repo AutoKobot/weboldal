@@ -54,9 +54,9 @@ Specific learning units within a subject.
 - `presentationData`: JSON for interactive presentations
 
 ### 6. Learning Progress
-- **`test_results`**: Automatic quiz scores.
-- **`practical_grades`**: Teacher-assigned grades (1-5) for tasks.
-- **`attendance`**: Daily attendance tracking (auto-login or manual).
+- **`test_results`**: Automatic quiz scores. Includes `moduleTitle`, `subjectName`, and `moduleNumber` metadata for durability.
+- **`practical_grades`**: Teacher-assigned grades (1-5) for tasks. Includes `moduleTitle`, `subjectName`, and `moduleNumber` metadata for durability.
+- **`attendance`**: Daily attendance tracking (auto-login or manual). Includes `studentName` and `className` metadata for durability.
 - **`student_avatars`**: Tamagotchi-style progression for students.
 
 ## AI & System Configurations

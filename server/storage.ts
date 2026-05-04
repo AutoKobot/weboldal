@@ -371,8 +371,20 @@ export class DatabaseStorage implements IStorage {
         { name: "professions.code", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS code VARCHAR(50)` },
         { name: "professions.icon_name", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS icon_name VARCHAR(255)` },
         { name: "professions.icon_url", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS icon_url VARCHAR(255)` },
+        { name: "professions.total_hours", sql: sql`ALTER TABLE professions ADD COLUMN IF NOT EXISTS total_hours INTEGER` },
         { name: "modules.suggested_hours", sql: sql`ALTER TABLE modules ADD COLUMN IF NOT EXISTS suggested_hours NUMERIC(5, 2)` },
         { name: "classes.profession_id", sql: sql`ALTER TABLE classes ADD COLUMN IF NOT EXISTS profession_id INTEGER REFERENCES professions(id)` },
+        // Durable Data Architecture columns
+        { name: "practical_grades.module_title", sql: sql`ALTER TABLE practical_grades ADD COLUMN IF NOT EXISTS module_title VARCHAR(255)` },
+        { name: "practical_grades.subject_name", sql: sql`ALTER TABLE practical_grades ADD COLUMN IF NOT EXISTS subject_name VARCHAR(255)` },
+        { name: "practical_grades.module_number", sql: sql`ALTER TABLE practical_grades ADD COLUMN IF NOT EXISTS module_number INTEGER` },
+        { name: "test_results.module_title", sql: sql`ALTER TABLE test_results ADD COLUMN IF NOT EXISTS module_title VARCHAR(255)` },
+        { name: "test_results.subject_name", sql: sql`ALTER TABLE test_results ADD COLUMN IF NOT EXISTS subject_name VARCHAR(255)` },
+        { name: "test_results.module_number", sql: sql`ALTER TABLE test_results ADD COLUMN IF NOT EXISTS module_number INTEGER` },
+        { name: "attendance.student_name", sql: sql`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS student_name VARCHAR(255)` },
+        { name: "attendance.class_name", sql: sql`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS class_name VARCHAR(255)` },
+        { name: "daily_attendance.student_name", sql: sql`ALTER TABLE daily_attendance ADD COLUMN IF NOT EXISTS student_name VARCHAR(255)` },
+        { name: "daily_attendance.class_name", sql: sql`ALTER TABLE daily_attendance ADD COLUMN IF NOT EXISTS class_name VARCHAR(255)` },
       ];
 
       for (const statement of statements) {

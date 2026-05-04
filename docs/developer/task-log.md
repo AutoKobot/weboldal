@@ -119,6 +119,21 @@ This log tracks the major changes, fixes, and architectural decisions made by th
   - **Execution**: Provided a CLI-friendly fetch command for admins to trigger the recovery process directly from the browser console.
 - **Result**: Data continuity maintained even after major curriculum updates.
 
+### 13. Durable Data Architecture (Data Recovery Protection)
+- **Problem**: Grades and attendance were strictly tied to volatile IDs (modules, classes). Curriculum re-generation or accidental deletions caused permanent data loss.
+- **Solution**:
+  - **Schema Evolution**: Added "Durability Metadata" fields (`moduleTitle`, `subjectName`, `moduleNumber`, `studentName`, `className`) to `practical_grades`, `test_results`, and `attendance` tables.
+  - **Auto-Enrichment**: Updated `storage.ts` to automatically capture and store these human-readable names at the moment of record creation.
+  - **Resilience**: Made `moduleId` optional, allowing records to persist and remain identifiable even if the original module is deleted.
+- **Result**: Vocational assessment data is now "golyóálló" (bulletproof) against curriculum re-generations and accidental deletions.
+
+### 14. Critical IKK Import Bug Fix
+- **Problem**: Failed curriculum imports triggered a "cleanup" that deleted existing professions, wiping all associated grades and modules.
+- **Solution**:
+  - **Refactor**: Updated `ikk.ts` to track an `isNewProfession` flag.
+  - **Safety**: The cleanup logic now strictly only deletes a profession if it was newly created during the failed job. Existing professions are preserved.
+- **Result**: Curriculum updates are now safe to perform without risk to existing data.
+
 ## Pending Tasks / Roadmap
 
 - [x] Fix "Wrench is not defined" error in student view.
@@ -128,6 +143,8 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 - [x] Fix interactive presentation auto-advance issues.
 - [x] Resolve Teacher Dashboard data loading visibility issues.
 - [x] Implement Grade Recovery (Migration) for re-generated modules.
+- [x] Implement Durable Data Architecture (Metadata fallbacks).
+- [x] Fix critical IKK import cleanup bug.
 - [ ] Clean up "Ghost Data" (old orphaned modules) after migration is confirmed.
 - [ ] Implement AI-driven Question generation for Practical modules.
 - [ ] Optimize IKK import performance (Parallel chunk processing).
