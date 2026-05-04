@@ -271,7 +271,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
         // Find or create profession
         const allProfs = await storage.getProfessions();
-        let dbProfession = allProfs.find(p => p.name === profession.name);
+        let dbProfession = allProfs.find(p => p.name.trim() === profession.name.trim());
         
         if (!dbProfession) {
           // Create new if not exists
@@ -305,7 +305,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             dbSubject = await storage.createSubject({
               professionId: dbProfession.id,
               name: sub.name,
-              code: sub.code || "",
+              code: (sub.code || "").replace(/\.$/, ""), // Clean trailing dot for better sorting
               description: sub.description || "",
               type: sub.practicalPercent > 0 ? 'practical' : 'theory',
               orderIndex: 0,
@@ -405,7 +405,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
 
         activeImport.status = 'completed';
         activeImport.progress = 100;
-        activeImport.message = `Sikeres import: ${dbProfession.name}`;
+        activeImport.message = `Sikeres import: ${dbProfession.name} (ID: ${dbProfession.id})`;
         
         // Post-import reorganization: split subjects into theory and practical
         if (createdProfessionId) {
