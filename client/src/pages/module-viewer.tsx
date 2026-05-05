@@ -55,17 +55,20 @@ const MathParagraph = (props: any) => {
   return <p className="mb-4 leading-relaxed">{children}</p>;
 };
 
-// Self-contained Mermaid renderer — renders SVG directly into its own div
+// Self-contained Mermaid renderer — uses mermaid.render() API (v10/v11 compatible)
 const MermaidDiagram = ({ chart }: { chart: string }) => {
-  const ref = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!chart || !ref.current) return;
+    if (!chart?.trim()) return;
     let cancelled = false;
+    setSvg('');
+    setError('');
+    setLoading(true);
 
-    const render = async () => {
+    (async () => {
       try {
         const m = await import('mermaid');
         const mermaid = m.default;
@@ -75,39 +78,43 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
           securityLevel: 'loose',
           fontFamily: 'Inter, sans-serif',
         });
-        const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
-        const { svg: renderedSvg } = await mermaid.render(id, chart.trim());
-        if (!cancelled) setSvg(renderedSvg);
+        // mermaid v10/v11: render(id, text) → { svg }
+        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const result = await mermaid.render(uniqueId, chart.trim());
+        if (!cancelled) {
+          setSvg(result.svg);
+          setLoading(false);
+        }
       } catch (err: any) {
-        if (!cancelled) setError(String(err?.message || 'Renderelési hiba'));
+        if (!cancelled) {
+          console.error('[MermaidDiagram] render failed:', err);
+          setError(err?.message || 'Ismeretlen renderelési hiba');
+          setLoading(false);
+        }
       }
-    };
+    })();
 
-    render();
     return () => { cancelled = true; };
   }, [chart]);
 
-  if (error) {
-    return (
-      <div className="my-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-        <strong>Diagram hiba:</strong> {error}
-        <pre className="mt-2 text-xs overflow-x-auto">{chart}</pre>
-      </div>
-    );
-  }
-
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center">
-      <div
-        ref={ref}
-        className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center"
-        dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
-      >
-        {!svg && (
-          <div className="flex items-center gap-2 text-neutral-400 py-8">
+      <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center min-h-[80px]">
+        {loading && (
+          <div className="flex items-center gap-2 text-neutral-400 py-6">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
             <span className="text-sm">Diagram betöltése...</span>
           </div>
+        )}
+        {error && (
+          <div className="text-red-500 text-sm py-4 text-center">
+            <p className="font-semibold mb-1">⚠ Diagram hiba</p>
+            <pre className="text-xs text-left bg-red-50 p-2 rounded overflow-x-auto">{chart}</pre>
+          </div>
+        )}
+        {/* SVG injection: must be a separate child element, NOT dangerouslySetInnerHTML on the parent */}
+        {svg && !loading && !error && (
+          <div dangerouslySetInnerHTML={{ __html: svg }} className="w-full flex justify-center" />
         )}
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>

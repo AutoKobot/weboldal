@@ -107,6 +107,19 @@ FONTOS: Használd a fenti weboldal térképet a navigációs kérések megválas
   }
 });
 
+// GET chat messages (history) — frontend calls /api/chat/messages?moduleId=xxx
+router.get('/chat/messages', combinedAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const moduleId = req.query.moduleId ? parseInt(req.query.moduleId as string) : undefined;
+    const messages = await storage.getChatMessages(userId, moduleId);
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching chat messages:', error);
+    res.status(500).json({ message: 'Hiba a chat előzmények betöltésekor' });
+  }
+});
+
 router.post('/message/stream', combinedAuth, async (req: any, res) => {
   try {
     const userId = req.user.id;
