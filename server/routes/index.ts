@@ -62,6 +62,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/public', contentRouter);
   app.use('/api', contentRouter);
 
+  // Chat előzmények lekérése — frontend: /api/chat/messages?moduleId=xxx
+  app.get('/api/chat/messages', async (req: any, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+      const userId = req.user.id;
+      const moduleId = req.query.moduleId ? parseInt(req.query.moduleId as string) : undefined;
+      const { storage } = await import('../storage');
+      const messages = await storage.getChatMessages(userId, moduleId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      res.status(500).json({ message: 'Hiba a chat előzmények betöltésekor' });
+    }
+  });
+
   // Global API 404 handler - MUST be after all API routers but BEFORE the SPA fallback
   app.use('/api/*', (req, res) => {
     console.log(`[API-404] Route not found: ${req.method} ${req.originalUrl}`);

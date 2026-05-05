@@ -52,23 +52,32 @@ const MathParagraph = (props: any) => {
       </div>
     );
   }
-  return <p className="mb-4 leading-relaxed">{children}</p>;
+  // Use div instead of p to prevent invalid nesting when children contain block elements (e.g. MermaidDiagram)
+  return <div className="mb-4 leading-relaxed">{children}</div>;
 };
 
-// Self-contained Mermaid renderer — uses mermaid.render() API (v10/v11 compatible)
+// Self-contained Mermaid renderer using mermaid.run() + off-screen DOM (v10/v11 compatible)
 const MermaidDiagram = ({ chart }: { chart: string }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!chart?.trim()) return;
+    const chartText = chart?.trim();
+    if (!chartText) { setLoading(false); return; }
     let cancelled = false;
     setSvg('');
     setError('');
     setLoading(true);
 
     (async () => {
+      // Create an off-screen container so mermaid.run() has a real DOM node
+      const tempContainer = document.createElement('div');
+      tempContainer.style.cssText = 'position:absolute;left:-9999px;top:-9999px;visibility:hidden;';
+      tempContainer.className = 'mermaid';
+      tempContainer.textContent = chartText;
+      document.body.appendChild(tempContainer);
+
       try {
         const m = await import('mermaid');
         const mermaid = m.default;
@@ -78,18 +87,24 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
           securityLevel: 'loose',
           fontFamily: 'Inter, sans-serif',
         });
-        // mermaid v10/v11: render(id, text) → { svg }
-        const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        const result = await mermaid.render(uniqueId, chart.trim());
+
+        // mermaid.run() transforms the .mermaid element in-place into SVG
+        await mermaid.run({ nodes: [tempContainer] });
+
+        const renderedHtml = tempContainer.innerHTML;
         if (!cancelled) {
-          setSvg(result.svg);
+          setSvg(renderedHtml);
           setLoading(false);
         }
       } catch (err: any) {
+        console.error('[MermaidDiagram] mermaid.run() failed:', err);
         if (!cancelled) {
-          console.error('[MermaidDiagram] render failed:', err);
-          setError(err?.message || 'Ismeretlen renderelési hiba');
+          setError(err?.message || 'Diagram renderelési hiba');
           setLoading(false);
+        }
+      } finally {
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
         }
       }
     })();
@@ -107,14 +122,13 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
           </div>
         )}
         {error && (
-          <div className="text-red-500 text-sm py-4 text-center">
+          <div className="text-red-500 text-sm py-4 w-full">
             <p className="font-semibold mb-1">⚠ Diagram hiba</p>
-            <pre className="text-xs text-left bg-red-50 p-2 rounded overflow-x-auto">{chart}</pre>
+            <pre className="text-xs bg-red-50 p-2 rounded overflow-x-auto whitespace-pre-wrap">{chart}</pre>
           </div>
         )}
-        {/* SVG injection: must be a separate child element, NOT dangerouslySetInnerHTML on the parent */}
         {svg && !loading && !error && (
-          <div dangerouslySetInnerHTML={{ __html: svg }} className="w-full flex justify-center" />
+          <div dangerouslySetInnerHTML={{ __html: svg }} className="w-full flex justify-center [&_svg]:max-w-full" />
         )}
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
