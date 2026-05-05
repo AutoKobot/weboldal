@@ -313,7 +313,7 @@ export default function MessagesPage() {
                           </div>
                         </div>
                       </button>
-                    })}
+                    )})}
 
                     {/* New Conversations Search Results */}
                     {searchableNewUsers.length > 0 && (
