@@ -28,30 +28,32 @@ export default function BottomNav() {
         {navItems.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
-            <Link key={item.href} href={item.href}>
-              <a className={cn(
-                "flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 relative",
-                isActive ? "text-primary scale-110" : "text-neutral-400"
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 relative",
+              isActive ? "text-primary scale-110" : "text-neutral-400"
+            )}
+          >
+              <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <span className={cn(
+                "text-[10px] font-bold mt-1 tracking-tight",
+                isActive ? "opacity-100" : "opacity-70"
               )}>
-                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                <span className={cn(
-                  "text-[10px] font-bold mt-1 tracking-tight",
-                  isActive ? "opacity-100" : "opacity-70"
-                )}>
-                  {item.label}
-                </span>
-                
-                {item.unreadCount && item.unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 bg-red-500 text-white border-none h-4 min-w-[16px] px-1 text-[9px] flex items-center justify-center animate-pulse">
-                    {item.unreadCount}
-                  </Badge>
-                )}
+                {item.label}
+              </span>
+              
+              {item.unreadCount && item.unreadCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 bg-red-500 text-white border-none h-4 min-w-[16px] px-1 text-[9px] flex items-center justify-center animate-pulse">
+                  {item.unreadCount}
+                </Badge>
+              )}
 
-                {isActive && (
-                  <span className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
-                )}
-              </a>
-            </Link>
+              {isActive && (
+                <span className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+              )}
+          </Link>
           );
         })}
       </nav>
