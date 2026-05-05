@@ -1905,9 +1905,54 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
   }
 
   async convertMermaidToSVGImages(content: string): Promise<string> {
-    // Mermaid conversion completely disabled - return content unchanged
-    console.log('Mermaid diagram conversion is disabled');
-    return content;
+    if (!content) return content;
+    
+    // Find all mermaid code blocks: ```mermaid ... ```
+    const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g;
+    let newContent = content;
+    let match;
+    
+    console.log(`[SVG-GEN] Checking for Mermaid diagrams to convert...`);
+    
+    // Create a list of matches first to avoid issues with string replacement during iteration
+    const matches = [];
+    while ((match = mermaidRegex.exec(content)) !== null) {
+      matches.push({
+        fullMatch: match[0],
+        code: match[1].trim()
+      });
+    }
+    
+    if (matches.length === 0) {
+      console.log(`[SVG-GEN] No Mermaid diagrams found in content.`);
+      return content;
+    }
+    
+    console.log(`[SVG-GEN] Found ${matches.length} diagrams. Converting...`);
+    
+    for (const item of matches) {
+      try {
+        // Base64 encode the mermaid code for mermaid.ink
+        // We use a JSON object format which is more robust for complex diagrams
+        const diagramConfig = {
+          code: item.code,
+          mermaid: { theme: "default" }
+        };
+        const jsonStr = JSON.stringify(diagramConfig);
+        const base64 = Buffer.from(jsonStr).toString('base64');
+        const imageUrl = `https://mermaid.ink/svg/${base64}`;
+        
+        // Replace the code block with a centered markdown image
+        const imageMarkdown = `\n\n<div align="center">\n  ![Szakmai folyamatábra](${imageUrl})\n  <p><em>Vizuális szemléltetés</em></p>\n</div>\n\n`;
+        
+        newContent = newContent.replace(item.fullMatch, imageMarkdown);
+        console.log(`[SVG-GEN] Successfully converted a diagram to SVG link.`);
+      } catch (error) {
+        console.error(`[SVG-GEN] Failed to convert Mermaid block:`, error);
+      }
+    }
+    
+    return newContent;
   }
 }
 
