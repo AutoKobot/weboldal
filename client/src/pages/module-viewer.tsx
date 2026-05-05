@@ -104,9 +104,16 @@ export default function ModuleViewer() {
   // Initialize mermaid
   useEffect(() => {
     mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
+      startOnLoad: false, // We handle triggering manually for better control
+      theme: 'neutral',
       securityLevel: 'loose',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: 14,
+      flowchart: {
+        htmlLabels: true,
+        curve: 'basis',
+        useMaxWidth: true,
+      },
     });
   }, []);
 
@@ -201,6 +208,24 @@ export default function ModuleViewer() {
       observer.disconnect();
     };
   }, []);
+
+  // Extra trigger for Mermaid diagrams when content changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const mermaidDivs = document.querySelectorAll('.mermaid');
+      if (mermaidDivs.length > 0) {
+        console.log(`[Mermaid] Content changed, triggering render for ${mermaidDivs.length} diagrams`);
+        mermaid.run({
+          querySelector: '.mermaid',
+          suppressErrors: true
+        }).catch(err => {
+          console.warn('[Mermaid] Run failed, trying init:', err);
+          mermaid.init(undefined, '.mermaid');
+        });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [module.id, contentVersion, showFlashcards, isRegenerating]);
 
   // Wikipedia content fetcher
   const fetchWikipediaContent = async (wikipediaUrl: string) => {
@@ -1016,26 +1041,10 @@ export default function ModuleViewer() {
                             const language = match ? match[1] : '';
                             
                             if (language === 'mermaid') { 
-                              const code = String(children).trim();
-                              // Base64 encoding for mermaid.ink
-                              const encoded = btoa(unescape(encodeURIComponent(code)));
-                              const url = `https://mermaid.ink/img/${encoded}`;
-                              
                               return (
                                 <div className="mermaid-visualizer my-8 flex flex-col items-center">
-                                  <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center group">
-                                    <img 
-                                      src={url} 
-                                      alt="Szakmai folyamatábra" 
-                                      className="max-w-full h-auto cursor-zoom-in group-hover:scale-[1.01] transition-transform duration-500"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        const pre = document.createElement('pre');
-                                        pre.className = "text-[10px] text-neutral-400 font-mono";
-                                        pre.innerText = code;
-                                        e.currentTarget.parentElement?.appendChild(pre);
-                                      }}
-                                    />
+                                  <div className="mermaid bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center">
+                                    {String(children).replace(/\n$/, '')}
                                   </div>
                                   <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
                                 </div>
@@ -1095,10 +1104,16 @@ export default function ModuleViewer() {
                           return rawContent
                             .replace(/<div align="center">/g, '')
                             .replace(/<\/div>/g, '')
+                            .replace(/<p>/g, '\n\n')
+                            .replace(/<\/p>/g, '\n\n')
+                            .replace(/<em>/g, '*')
+                            .replace(/<\/em>/g, '*')
+                            .replace(/<br\s*\/?>/g, '\n')
                             .replace(/\\\[/g, '$$') 
                             .replace(/\\\]/g, '$$')
                             .replace(/\[\s*\\text/g, '$$ \\text')
                             .replace(/\\text\{([^}]+)\}\s*\]/g, '\\text{$1} $$')
+                            .replace(/\n\s*\n/g, '\n\n') // Remove excessive empty lines
                             .trim();
                         })()}
                       </ReactMarkdown>
