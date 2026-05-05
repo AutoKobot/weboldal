@@ -59,55 +59,75 @@ const MathParagraph = (props: any) => {
 // Module-level flag — initialize mermaid only ONCE across all diagram instances
 let mermaidInitialized = false;
 
-// Self-contained Mermaid renderer — mermaid.run() writes SVG directly into a ref'd DOM element
+// Self-contained Mermaid renderer using mermaid.render() API
 const MermaidDiagram = ({ chart }: { chart: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string>('');
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    const el = containerRef.current;
     const chartText = (chart ?? '').trim();
-    if (!el || !chartText) { setStatus('done'); return; }
+    if (!chartText) { setStatus('done'); return; }
 
+    let cancelled = false;
     setStatus('loading');
     setErrorMsg('');
 
-    // Use textContent (NOT innerHTML!) — Mermaid arrows like --> would be parsed as HTML tags
-    el.textContent = chartText;
-    el.removeAttribute('data-processed');
-
-    import('mermaid').then(({ default: mermaid }) => {
-      if (!mermaidInitialized) {
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral' });
-        mermaidInitialized = true;
+    // Safety timeout: if mermaid hangs, force error state after 5 seconds
+    const timeout = setTimeout(() => {
+      if (!cancelled && status === 'loading') {
+        setStatus('error');
+        setErrorMsg('Diagram renderelési időtúllépés (timeout).');
       }
-      return mermaid.run({ nodes: [el], suppressErrors: false });
-    })
-    .then(() => {
-      // Small delay to let Mermaid's internal CSS animations settle before revealing
-      setTimeout(() => setStatus('done'), 50);
-    })
-    .catch((err: any) => {
-      console.error('[MermaidDiagram]', err);
-      setErrorMsg(String(err?.message ?? err));
-      setStatus('error');
-    });
+    }, 5000);
+
+    import('mermaid')
+      .then(async ({ default: mermaid }) => {
+        if (!mermaidInitialized) {
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'loose',
+            theme: 'neutral',
+          });
+          mermaidInitialized = true;
+        }
+
+        // Generate a unique ID for this diagram
+        const id = `mermaid-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        
+        // mermaid.render() returns { svg, bindFunctions }
+        // It does not depend on DOM attachment or font loading promises like run() does
+        const { svg: renderedSvg } = await mermaid.render(id, chartText);
+        
+        if (!cancelled) {
+          setSvg(renderedSvg);
+          setStatus('done');
+          clearTimeout(timeout);
+        }
+      })
+      .catch((err: any) => {
+        console.error('[MermaidDiagram]', err);
+        if (!cancelled) {
+          setErrorMsg(String(err?.message ?? err));
+          setStatus('error');
+          clearTimeout(timeout);
+        }
+      });
+
+    return () => { cancelled = true; clearTimeout(timeout); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chart]);
 
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center">
-      <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto min-h-[80px] relative">
-        {/* Loading overlay */}
+      <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto min-h-[80px] relative flex justify-center items-center">
         {status === 'loading' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl z-10">
-            <div className="flex items-center gap-2 text-neutral-400">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
-              <span className="text-sm">Diagram betöltése...</span>
-            </div>
+          <div className="flex items-center gap-2 text-neutral-400">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
+            <span className="text-sm">Diagram betöltése...</span>
           </div>
         )}
-        {/* Error state */}
+        
         {status === 'error' && (
           <div className="text-amber-600 text-sm w-full">
             <p className="font-semibold mb-2">⚠ Diagram szintaxis hiba</p>
@@ -115,12 +135,13 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
             <p className="text-xs mt-1 text-neutral-500">{errorMsg}</p>
           </div>
         )}
-        {/* ALWAYS in DOM — mermaid.run() needs an element with layout to measure SVG dimensions */}
-        <div
-          ref={containerRef}
-          style={{ opacity: status === 'done' ? 1 : 0, transition: 'opacity 0.5s ease' }}
-          className="w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto"
-        />
+
+        {status === 'done' && svg && (
+          <div 
+            dangerouslySetInnerHTML={{ __html: svg }} 
+            className="w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto" 
+          />
+        )}
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
     </div>
