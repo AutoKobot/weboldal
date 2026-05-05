@@ -1056,9 +1056,17 @@ export default function ModuleViewer() {
                             const language = match ? match[1] : '';
                             if (language === 'mermaid') {
                               return (
-                                <div className="mermaid bg-student-warm p-4 border rounded-lg my-4">
+                                <div className="mermaid bg-student-warm p-4 border rounded-lg my-4 shadow-sm">
                                   {String(children).replace(/\n$/, '')}
                                 </div>
+                              );
+                            }
+                            if (language === 'svg') {
+                              return (
+                                <div 
+                                  className="svg-visualizer my-6 flex justify-center bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden"
+                                  dangerouslySetInnerHTML={{ __html: String(children) }}
+                                />
                               );
                             }
                             return (

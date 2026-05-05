@@ -540,6 +540,57 @@
   @apply text-primary hover:text-blue-700 underline;
 }
 
+/* Premium Diagram Styling (Mermaid & SVG) */
+.prose .mermaid {
+  @apply flex justify-center items-center w-full my-8 bg-white/40 backdrop-blur-sm p-8 rounded-3xl border border-white/50 shadow-sm transition-all hover:shadow-md hover:bg-white/60;
+}
+
+.prose .mermaid svg {
+  @apply mx-auto max-w-full h-auto;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+}
+
+/* SVG Visualizer (Direct AI-generated SVG) */
+.svg-visualizer svg {
+  @apply max-w-full h-auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.svg-visualizer {
+  transition: transform 0.3s ease;
+}
+
+.svg-visualizer:hover {
+  transform: scale(1.01);
+}
+
+/* Mermaid Theme Overrides (Cleaner, more educational look) */
+.mermaid .node rect, 
+.mermaid .node circle, 
+.mermaid .node ellipse, 
+.mermaid .node polygon, 
+.mermaid .node path {
+  fill: #f8fafc !important;
+  stroke: #3b82f6 !important;
+  stroke-width: 2px !important;
+}
+
+.mermaid .edgePath .path {
+  stroke: #64748b !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid .label {
+  @apply font-sans font-medium text-slate-700;
+}
+
+.mermaid .cluster rect {
+  fill: rgba(59, 130, 246, 0.05) !important;
+  stroke: rgba(59, 130, 246, 0.2) !important;
+  rx: 16px !important;
+}
+
 /* Dark mode prose styles */
 .dark .prose {
   @apply text-neutral-200;
