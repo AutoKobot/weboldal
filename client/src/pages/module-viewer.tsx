@@ -99,13 +99,17 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
 
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center">
-      <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto min-h-[80px] flex justify-center items-center">
+      <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto min-h-[80px] relative">
+        {/* Loading overlay */}
         {status === 'loading' && (
-          <div className="flex items-center gap-2 text-neutral-400">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
-            <span className="text-sm">Diagram betöltése...</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl z-10">
+            <div className="flex items-center gap-2 text-neutral-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
+              <span className="text-sm">Diagram betöltése...</span>
+            </div>
           </div>
         )}
+        {/* Error state */}
         {status === 'error' && (
           <div className="text-amber-600 text-sm w-full">
             <p className="font-semibold mb-2">⚠ Diagram szintaxis hiba</p>
@@ -113,10 +117,11 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
             <p className="text-xs mt-1 text-neutral-500">{errorMsg}</p>
           </div>
         )}
-        {/* This div is ALWAYS in the DOM — mermaid.run() writes SVG into it directly */}
+        {/* ALWAYS in DOM with layout — mermaid.run() needs a visible element to compute SVG dimensions */}
+        {/* opacity-0 hides it visually but keeps it in layout (unlike hidden/display:none) */}
         <div
           ref={containerRef}
-          className={`w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto ${status !== 'done' ? 'hidden' : ''}`}
+          className={`w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto transition-opacity duration-500 ${status === 'done' ? 'opacity-100' : 'opacity-0'}`}
         />
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
