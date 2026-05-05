@@ -20,9 +20,67 @@ import QuizInterface from "@/components/quiz-interface";
 import { FlashcardQuiz } from "@/components/flashcard-quiz";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import mermaid from 'mermaid';
+// import mermaid from 'mermaid'; // Removed for dynamic import to fix init error
 import { PresentationPlayer } from "@/components/presentation-player";
 
+
+// Separate components to avoid TDZ and initialization errors in production
+const MathParagraph = (props: any) => {
+  const { children } = props;
+  const text = String(children || '');
+  const isMath = text.includes('\\frac') || text.includes('\\rho') || text.includes('\\text{') || 
+                text.includes('\\sigma') || text.includes('\\delta') || text.includes('\\alpha') || 
+                text.includes('\\beta') || text.includes('\\lambda') || text.includes('\\omega');
+  const isChemical = /^[A-Z][a-z]?(\s*[:=]\s*[A-Z][a-z]?)+$/.test(text);
+  const isBracketMath = text.trim().startsWith('[') && text.trim().endsWith(']') && text.includes('\\');
+
+  if (isMath || isChemical || isBracketMath) {
+    const formula = text
+      .replace(/^\[\s*/, '').replace(/\s*\]$/, '')
+      .replace(/^\$\$\s*/, '').replace(/\s*\$\$/, '')
+      .replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
+      .trim();
+      
+    const mathUrl = `https://latex.codecogs.com/svg.latex?\\huge&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
+    
+    return (
+      <div className="math-visualizer my-8 flex flex-col items-center">
+        <div className="bg-neutral-50/40 p-8 rounded-3xl border border-neutral-100 border-dashed hover:bg-white hover:border-solid hover:shadow-md transition-all duration-500">
+          <img src={mathUrl} alt={formula} className="max-h-24 h-auto" />
+        </div>
+        <span className="text-[9px] uppercase tracking-wider text-neutral-400 mt-3 font-bold opacity-60">Szakmai vázlat / Képlet</span>
+      </div>
+    );
+  }
+  return <p className="mb-4 leading-relaxed">{children}</p>;
+};
+
+const CodeComponent = ({ className, children, ...props }: any) => {
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+  
+  if (language === 'mermaid') { 
+    return (
+      <div className="mermaid-visualizer my-8 flex flex-col items-center">
+        <div className="mermaid bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center">
+          {String(children).replace(/\n$/, '')}
+        </div>
+        <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
+      </div>
+    ); 
+  }
+  
+  if (language === 'svg') { 
+    return (
+      <div className="svg-visualizer my-6 flex flex-col items-center">
+        <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden" dangerouslySetInnerHTML={{ __html: String(children) }} />
+        <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Technikai illusztráció</span>
+      </div>
+    ); 
+  }
+  
+  return (<code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>{children}</code>);
+}
 
 export default function ModuleViewer() {
   const params = useParams();
@@ -30,25 +88,19 @@ export default function ModuleViewer() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const moduleId = parseInt(params.id as string);
 
+  const { data: module, isLoading: moduleLoading } = useQuery<Module>({
+    queryKey: [`/api/modules/${moduleId}`],
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [chatInterfaceKey, setChatInterfaceKey] = useState(0);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  // Google Drive / Slides / Sheets URL átalakítók
-  const toDirectImageUrl = (url: string): string => {
-    if (!url) return url;
-    // Google Drive: /file/d/ID/ → lh3 CDN (megbízható, nem blokkolja a böngésző)
-    const driveMatch = url.match(/\/file\/d\/([^/]+)/);
-    if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
-    return url;
-  };
-
-  const isGoogleDriveUrl = (url: string): boolean => {
-    return url?.includes('drive.google.com') || url?.includes('docs.google.com');
-  };
 
   const toGoogleDrivePreviewUrl = (url: string): string => {
     const driveMatch = url.match(/\/file\/d\/([^/]+)/);
@@ -56,9 +108,19 @@ export default function ModuleViewer() {
     return url;
   };
 
+  const isGoogleDriveUrl = (url: string): boolean => {
+    return url?.includes('drive.google.com') || url?.includes('docs.google.com');
+  };
+
+  const toDirectImageUrl = (url: string): string => {
+    if (!url) return url;
+    const driveMatch = url.match(/\/file\/d\/([^/]+)/);
+    if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+    return url;
+  };
+
   const toDirectVideoUrl = (url: string): string => {
     if (!url) return url;
-    // Google Drive videó: ugyanaz mint kép
     const driveMatch = url.match(/\/file\/d\/([^/]+)/);
     if (driveMatch) return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
     return url;
@@ -66,26 +128,19 @@ export default function ModuleViewer() {
 
   const toPresentationEmbedUrl = (url: string): string => {
     if (!url) return '';
-    // Google Slides: /presentation/d/ID/ → embed URL
     const slidesMatch = url.match(/\/presentation\/d\/([^/]+)/);
     if (slidesMatch) {
       return `https://docs.google.com/presentation/d/${slidesMatch[1]}/embed?start=false&loop=false&delayms=3000`;
     }
-    // PDF → direkt megnyitás
     if (url.toLowerCase().endsWith('.pdf')) return url;
-    // Google Drive PPTX fájl → Office Online nézegető
     const driveMatch = url.match(/\/file\/d\/([^/]+)/);
-    if (driveMatch) {
-      return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
-    }
-    // Egyéb PPTX → Office Online embed
+    if (driveMatch) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
     if (url.toLowerCase().includes('.pptx') || url.toLowerCase().includes('.ppt')) {
       return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
     }
     return url;
   };
 
-  // Multimédia modal state-ek
   const [showImageModal, setShowImageModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
@@ -100,36 +155,16 @@ export default function ModuleViewer() {
   const [isReadingAloud, setIsReadingAloud] = useState(false);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
-
-  // Initialize mermaid
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: false, // We handle triggering manually for better control
-      theme: 'neutral',
-      securityLevel: 'loose',
-      fontFamily: 'Inter, sans-serif',
-      fontSize: 14,
-      flowchart: {
-        htmlLabels: true,
-        curve: 'basis',
-        useMaxWidth: true,
-      },
-    });
-  }, []);
-
-  // Wikipedia popup state
   const [showWikipediaModal, setShowWikipediaModal] = useState(false);
   const [wikipediaContent, setWikipediaContent] = useState<{ title: string, content: string, url: string } | null>(null);
   const [isLoadingWikipedia, setIsLoadingWikipedia] = useState(false);
 
-  // Universal DOM change observer for Mermaid re-rendering
   useEffect(() => {
     const renderMermaidDiagrams = async () => {
       const mermaidElements = document.querySelectorAll('code.language-mermaid, .mermaid');
       if (mermaidElements.length > 0) {
-        console.log(`DOM changed: Re-rendering ${mermaidElements.length} Mermaid diagrams`);
-
-        // Convert code blocks to mermaid divs if needed
+        const m = await import('mermaid');
+        const mermaid = m.default;
         mermaidElements.forEach((element, index) => {
           if (element.tagName === 'CODE' && element.textContent) {
             const mermaidDiv = document.createElement('div');
@@ -137,46 +172,31 @@ export default function ModuleViewer() {
             mermaidDiv.textContent = element.textContent;
             mermaidDiv.id = `mermaid-diagram-dom-${index}`;
             element.parentNode?.insertBefore(mermaidDiv, element);
-            if (element instanceof HTMLElement) {
-              element.style.display = 'none';
-            }
+            if (element instanceof HTMLElement) element.style.display = 'none';
           }
         });
 
-        // Re-run mermaid
         setTimeout(async () => {
           const mermaidDivs = document.querySelectorAll('.mermaid');
           if (mermaidDivs.length > 0) {
             try {
-              await mermaid.run({
-                querySelector: '.mermaid'
-              });
-              console.log('DOM changed: Mermaid diagrams re-rendered successfully');
+              await mermaid.run({ querySelector: '.mermaid' });
             } catch (error) {
-              console.warn('DOM changed: mermaid.run() failed, trying mermaid.init():', error);
               await mermaid.init(undefined, mermaidDivs as any);
-              console.log('DOM changed: Mermaid diagrams re-rendered with mermaid.init()');
             }
           }
         }, 100);
       }
     };
 
-    // Create MutationObserver to watch for DOM changes
-    let lastRenderTime = 0;
     const observer = new MutationObserver((mutations) => {
       let shouldRerender = false;
-
       mutations.forEach((mutation) => {
-        // Only trigger on significant content changes
         if (mutation.type === 'childList') {
-          // Check if added nodes contain mermaid content
           mutation.addedNodes.forEach(node => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
-              if (element.classList?.contains('prose') ||
-                element.querySelector?.('code.language-mermaid, .mermaid') ||
-                element.textContent?.includes('mermaid')) {
+              if (element.classList?.contains('prose') || element.querySelector?.('code.language-mermaid, .mermaid')) {
                 shouldRerender = true;
               }
             }
@@ -185,230 +205,65 @@ export default function ModuleViewer() {
       });
 
       if (shouldRerender) {
-        const now = Date.now();
-        // Prevent excessive rendering (max once per 1000ms)
-        if (now - lastRenderTime > 1000) {
-          lastRenderTime = now;
-          setTimeout(() => {
-            renderMermaidDiagrams();
-          }, 300);
-        }
+        setTimeout(renderMermaidDiagrams, 300);
       }
     });
 
-    // Start observing the document body for changes
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    return () => {
-      observer.disconnect();
-    };
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
   }, []);
 
-  // Extra trigger for Mermaid diagrams when content changes
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       const mermaidDivs = document.querySelectorAll('.mermaid');
       if (mermaidDivs.length > 0) {
-        console.log(`[Mermaid] Content changed, triggering render for ${mermaidDivs.length} diagrams`);
-        mermaid.run({
-          querySelector: '.mermaid',
-          suppressErrors: true
-        }).catch(err => {
-          console.warn('[Mermaid] Run failed, trying init:', err);
+        const m = await import('mermaid');
+        const mermaid = m.default;
+        mermaid.run({ querySelector: '.mermaid', suppressErrors: true }).catch(() => {
           mermaid.init(undefined, '.mermaid');
         });
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [module.id, contentVersion, showFlashcards, isRegenerating]);
+  }, [module?.id, contentVersion, showFlashcards, isRegenerating]);
 
-  // Wikipedia content fetcher
   const fetchWikipediaContent = async (wikipediaUrl: string) => {
     setIsLoadingWikipedia(true);
     try {
-      // Extract article title from URL
       const urlParts = wikipediaUrl.split('/');
       let articleTitle = decodeURIComponent(urlParts[urlParts.length - 1]);
-
-      console.log(`Fetching Wikipedia content for: "${articleTitle}"`);
-
-      // Use backend proxy with improved search capabilities
       const response = await fetch(`/api/wikipedia/${encodeURIComponent(articleTitle)}`);
-
       if (response.ok) {
         const data = await response.json();
-
         setWikipediaContent({
           title: data.title || articleTitle,
           content: data.content || 'Nincs elérhető tartalom',
           url: data.url || wikipediaUrl
         });
         setShowWikipediaModal(true);
-
-        console.log(`Successfully loaded Wikipedia content for: "${data.title}"`);
-      } else {
-        const errorData = await response.json();
-        console.log(`Wikipedia fetch failed: ${errorData.error} for "${articleTitle}"`);
-
-        // Show user-friendly error with suggestions
-        setWikipediaContent({
-          title: articleTitle,
-          content: `Sajnos nem található Wikipedia tartalom ehhez a kifejezéshez: "${articleTitle}"\n\n${errorData.suggestion || 'Próbálj meg egyszerűbb vagy általánosabb kifejezéseket használni.'}`,
-          url: wikipediaUrl
-        });
-        setShowWikipediaModal(true);
-
-        toast({
-          title: "Wikipedia tartalom nem található",
-          description: "A keresett kifejezéshez nincs elérhető Wikipedia cikk",
-          variant: "destructive",
-        });
       }
-
     } catch (error) {
-      console.error('Wikipedia fetch error:', error);
-
-      // Show error content in modal instead of just toast
-      setWikipediaContent({
-        title: "Hiba történt",
-        content: "Hálózati hiba történt a Wikipedia tartalom betöltése során. Kérjük, próbáld meg később újra.",
-        url: wikipediaUrl
-      });
-      setShowWikipediaModal(true);
-
-      toast({
-        title: "Hálózati hiba",
-        description: "Nem sikerült kapcsolódni a Wikipedia-hoz",
-        variant: "destructive",
-      });
+      toast({ title: "Hiba", description: "Hiba a Wikipedia betöltésekor", variant: "destructive" });
     } finally {
       setIsLoadingWikipedia(false);
     }
   };
 
-
-
-  const moduleId = parseInt(params.id as string);
-
-  console.log('ModuleViewer params:', params);
-  console.log('ModuleViewer moduleId:', moduleId);
-
-  // Redirect to home if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Nincs bejelentkezve",
-        description: "Kérjük jelentkezzen be a folytatáshoz.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        setLocation("/");
-      }, 500);
-      return;
+      toast({ title: "Nincs bejelentkezve", description: "Jelentkezz be a folytatáshoz.", variant: "destructive" });
+      setTimeout(() => setLocation("/"), 500);
     }
-  }, [isAuthenticated, isLoading, toast, setLocation]);
+  }, [isAuthenticated, isLoading, setLocation]);
 
-  const { data: module, isLoading: moduleLoading } = useQuery<Module>({
-    queryKey: [`/api/modules/${moduleId}`],
-    retry: false,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
-
-  // Mermaid rendering for SPA environment
-  useEffect(() => {
-    const renderMermaidDiagrams = async () => {
-      try {
-        // Initialize mermaid if not already done
-        mermaid.initialize({
-          startOnLoad: false, // We'll handle rendering manually
-          theme: 'default',
-          securityLevel: 'loose',
-        });
-
-        // Find all possible mermaid selectors
-        const possibleSelectors = [
-          '.language-mermaid',
-          'code[class*="language-mermaid"]',
-          'pre code.language-mermaid',
-          '.mermaid',
-          'code.mermaid'
-        ];
-
-        let mermaidElements: Element[] = [];
-
-        for (const selector of possibleSelectors) {
-          const elements = document.querySelectorAll(selector);
-          mermaidElements = mermaidElements.concat(Array.from(elements));
-        }
-
-        // Remove duplicates
-        mermaidElements = Array.from(new Set(mermaidElements));
-
-        console.log(`Found ${mermaidElements.length} potential Mermaid diagrams`);
-        console.log('Mermaid elements:', mermaidElements);
-
-        if (mermaidElements.length > 0) {
-          // Convert code blocks to mermaid divs if needed
-          mermaidElements.forEach((element, index) => {
-            if (element.tagName === 'CODE' && element.textContent) {
-              const mermaidDiv = document.createElement('div');
-              mermaidDiv.className = 'mermaid';
-              mermaidDiv.textContent = element.textContent;
-              mermaidDiv.id = `mermaid-diagram-${index}`;
-              element.parentNode?.insertBefore(mermaidDiv, element);
-              if (element instanceof HTMLElement) {
-                element.style.display = 'none'; // Hide original code block
-              }
-            }
-          });
-
-          // Now run mermaid on the converted elements
-          const mermaidDivs = document.querySelectorAll('.mermaid');
-          console.log(`Processing ${mermaidDivs.length} Mermaid divs`);
-
-          if (mermaidDivs.length > 0) {
-            try {
-              await mermaid.run({
-                querySelector: '.mermaid'
-              });
-              console.log('Mermaid diagrams rendered successfully with mermaid.run()');
-            } catch (runError) {
-              console.warn('mermaid.run() failed, trying mermaid.init():', runError);
-              await mermaid.init(undefined, mermaidDivs as any);
-              console.log('Mermaid diagrams rendered successfully with mermaid.init()');
-            }
-          }
-        } else {
-          console.log('No Mermaid diagrams found in DOM');
-        }
-      } catch (error) {
-        console.warn('Mermaid rendering failed:', error);
-      }
-    };
-
-    // Wait for DOM to be updated with content
-    const timer = setTimeout(renderMermaidDiagrams, 500);
-    return () => clearTimeout(timer);
-  }, [module?.content, contentVersion]);
-
-  // Get all modules to check for next module
   const { data: allModules = [] } = useQuery<Module[]>({
     queryKey: ['/api/public/modules', module?.subjectId],
     queryFn: async () => {
       if (!module?.subjectId) return [];
       const response = await fetch(`/api/public/modules?subjectId=${module.subjectId}`);
-      if (!response.ok) throw new Error('Failed to fetch modules');
       return response.json();
     },
     enabled: !!module?.subjectId && !moduleLoading,
-    retry: false,
   });
 
   const { data: flashcards = [] } = useQuery<Flashcard[]>({
@@ -421,40 +276,13 @@ export default function ModuleViewer() {
       await apiRequest('POST', `/api/modules/${moduleId}/complete`);
     },
     onSuccess: async () => {
-      // Clear all cache and force fresh data fetch
       queryClient.clear();
-
-      // Force immediate refresh of user data to get updated completed_modules
       await queryClient.refetchQueries({ queryKey: ['/api/auth/user'] });
-
-      // Show success message
-      toast({
-        title: "Gratulálunk!",
-        description: "Sikeresen befejezted ezt a modult! A következő modul most már elérhető.",
-      });
-
-      // Force page refresh after a short delay to ensure data sync
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      toast({ title: "Gratulálunk!", description: "Sikeresen befejezted ezt a modult!" });
+      setTimeout(() => window.location.reload(), 1500);
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Hiba",
-        description: "Nem sikerült befejezni a modult",
-        variant: "destructive",
-      });
+      toast({ title: "Hiba", description: "Nem sikerült befejezni a modult", variant: "destructive" });
     },
   });
 
@@ -468,150 +296,58 @@ export default function ModuleViewer() {
       return response.json();
     },
     onSuccess: async () => {
-      // Clear and invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: [`/api/modules/${moduleId}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/public/subjects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/public/professions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/modules'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
-
-      toast({
-        title: "AI Újragenerálás sikeres!",
-        description: "A modul tartalmát sikeresen frissítette az AI - Wikipedia linkekkel és videókkal bővítve.",
-      });
+      toast({ title: "Sikeres újragenerálás!", description: "A modul frissült." });
       setIsRegenerating(false);
-
-      // Force component re-render by updating key
       setChatInterfaceKey(prev => prev + 1);
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Nincs engedély",
-          description: "Jelentkezz be újra a folytatáshoz.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Újragenerálás sikertelen",
-        description: "Az AI nem tudta frissíteni a modul tartalmát.",
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: "Hiba", description: "Újragenerálás sikertelen", variant: "destructive" });
       setIsRegenerating(false);
     },
   });
 
   const handleBackNavigation = () => {
-    if (module?.subjectId) {
-      setLocation(`/subjects/${module.subjectId}/modules`);
-    } else {
-      setLocation('/subjects');
-    }
+    if (module?.subjectId) setLocation(`/subjects/${module.subjectId}/modules`);
+    else setLocation('/subjects');
   };
 
   const stopReadAloud = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     setIsReadingAloud(false);
   };
 
   const handleReadAloud = () => {
-    if (isReadingAloud) {
-      stopReadAloud();
-      return;
-    }
-
+    if (isReadingAloud) { stopReadAloud(); return; }
     if (!window.speechSynthesis) {
-      toast({
-        title: "A böngésző nem támogatja a felolvasást",
-        description: "Próbáld meg egy modernebb böngészőben (pl. Chrome, Edge, Safari).",
-        variant: "destructive",
-      });
+      toast({ title: "Hiba", description: "Nem támogatott böngésző", variant: "destructive" });
       return;
     }
 
-    // Determine content to read - prioritize enhanced content locally if available, but fallback to base content
-    // We use the currently displayed content or base content
     let contentToRead = module?.content || "";
-    if (contentVersion === 'concise' && module?.conciseContent) {
-      contentToRead = module.conciseContent;
-    } else if (contentVersion === 'detailed' && module?.detailedContent) {
-      contentToRead = module.detailedContent;
-    }
+    if (contentVersion === 'concise' && module?.conciseContent) contentToRead = module.conciseContent;
+    else if (contentVersion === 'detailed' && module?.detailedContent) contentToRead = module.detailedContent;
 
     const textToRead = extractTextFromMarkdown(contentToRead);
-    const titleToRead = module?.title || "";
-    const completeText = `${titleToRead}. \n\n ${textToRead}`;
-
-    // Cancel any current speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(completeText);
-    utterance.lang = 'hu-HU'; // Hungarian
+    const utterance = new SpeechSynthesisUtterance(`${module?.title}. ${textToRead}`);
+    utterance.lang = 'hu-HU';
     utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-
-    // Try to find a Hungarian voice
-    const voices = window.speechSynthesis.getVoices();
-    const hungarianVoice = voices.find(v => v.lang.includes('hu') || v.name.includes('Szabolcs') || v.name.includes('Eszter'));
-
-    if (hungarianVoice) {
-      utterance.voice = hungarianVoice;
-    }
-
-    utterance.onend = () => {
-      setIsReadingAloud(false);
-    };
-
-    utterance.onerror = (e) => {
-      console.error("Speech synthesis error:", e);
-      setIsReadingAloud(false);
-      // Don't show toast for 'canceled' or 'interrupted' error
-      if (e.error !== 'canceled' && e.error !== 'interrupted') {
-        toast({
-          title: "Felolvasási hiba",
-          description: "Hiba történt a felolvasás közben.",
-          variant: "destructive",
-        });
-      }
-    };
-
+    utterance.onend = () => setIsReadingAloud(false);
+    utterance.onerror = () => setIsReadingAloud(false);
+    
     speechRef.current = utterance;
     window.speechSynthesis.speak(utterance);
     setIsReadingAloud(true);
   };
 
-  // Stop reading when leaving the page
   useEffect(() => {
-    return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
-  // Initialize voices
-  useEffect(() => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        // Voices loaded
-      };
-    }
+    return () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); };
   }, []);
 
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
       </div>
     );
   }
@@ -619,9 +355,7 @@ export default function ModuleViewer() {
   if (moduleLoading) {
     return (
       <div className="flex min-h-screen bg-student-warm">
-        <div className="hidden lg:block">
-          <Sidebar user={user} />
-        </div>
+        <Sidebar user={user} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -1036,62 +770,8 @@ export default function ModuleViewer() {
                             }
                             return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
                           },
-                          code: ({ className, children, ...props }) => {
-                            const match = /language-(\w+)/.exec(className || '');
-                            const language = match ? match[1] : '';
-                            
-                            if (language === 'mermaid') { 
-                              return (
-                                <div className="mermaid-visualizer my-8 flex flex-col items-center">
-                                  <div className="mermaid bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center">
-                                    {String(children).replace(/\n$/, '')}
-                                  </div>
-                                  <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
-                                </div>
-                              ); 
-                            }
-                            
-                            if (language === 'svg') { 
-                              return (
-                                <div className="svg-visualizer my-6 flex flex-col items-center">
-                                  <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden" dangerouslySetInnerHTML={{ __html: String(children) }} />
-                                  <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Technikai illusztráció</span>
-                                </div>
-                              ); 
-                            }
-                            
-                            return (<code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>{children}</code>);
-                          },
-                          p: ({ children }) => {
-                            const text = String(children);
-                            // Detect LaTeX math, chemical structures (like H:O:H), or physics variables
-                            const isMath = text.includes('\\frac') || text.includes('\\rho') || text.includes('\\text{') || 
-                                          text.includes('\\sigma') || text.includes('\\delta') || text.includes('\\alpha') || 
-                                          text.includes('\\beta') || text.includes('\\lambda') || text.includes('\\omega');
-                            const isChemical = /^[A-Z][a-z]?(\s*[:=]\s*[A-Z][a-z]?)+$/.test(text);
-                            const isBracketMath = text.trim().startsWith('[') && text.trim().endsWith(']') && text.includes('\\');
-
-                            if (isMath || isChemical || isBracketMath) {
-                              // Clean up common math formats and ensure we have a clean formula
-                              const formula = text
-                                .replace(/^\[\s*/, '').replace(/\s*\]$/, '')
-                                .replace(/^\$\$\s*/, '').replace(/\s*\$\$/, '')
-                                .replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
-                                .trim();
-                                
-                              const mathUrl = `https://latex.codecogs.com/svg.latex?\\huge&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
-                              
-                              return (
-                                <div className="math-visualizer my-8 flex flex-col items-center">
-                                  <div className="bg-neutral-50/40 p-8 rounded-3xl border border-neutral-100 border-dashed hover:bg-white hover:border-solid hover:shadow-md transition-all duration-500">
-                                    <img src={mathUrl} alt={formula} className="max-h-24 h-auto" />
-                                  </div>
-                                  <span className="text-[9px] uppercase tracking-wider text-neutral-400 mt-3 font-bold opacity-60">Szakmai vázlat / Képlet</span>
-                                </div>
-                              );
-                            }
-                            return <p className="mb-4 leading-relaxed">{children}</p>;
-                          }
+                          code: CodeComponent,
+                          p: MathParagraph
                         }}
                       >
                         {(() => {
