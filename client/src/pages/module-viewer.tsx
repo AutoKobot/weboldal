@@ -56,57 +56,99 @@ const MathParagraph = (props: any) => {
   return <div className="mb-4 leading-relaxed">{children}</div>;
 };
 
-// Rock-solid Mermaid rendering using mermaid.ink API. No client-side JS execution needed!
+// Completely isolated Mermaid renderer using an iframe to bypass React/Vite/CSS conflicts
 const MermaidDiagram = ({ chart }: { chart: string }) => {
-  const [error, setError] = useState(false);
+  const [height, setHeight] = useState(150);
   const [loading, setLoading] = useState(true);
-  
-  const chartText = (chart || '').trim();
-  
-  // Safe base64 encoding for Unicode text, wrapped in mermaid.ink required JSON format
-  const encoded = useMemo(() => {
-    if (typeof window === 'undefined' || !chartText) return '';
-    try {
-      const state = { code: chartText, mermaid: { theme: 'neutral', securityLevel: 'loose' } };
-      return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
-    } catch (err) {
-      console.error('Failed to encode mermaid data', err);
-      return '';
-    }
-  }, [chartText]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const url = encoded ? `https://mermaid.ink/svg/${encoded}` : '';
+  const chartText = (chart || '').trim();
+
+  // Listen for resize messages from the iframe
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.source === iframeRef.current?.contentWindow && e.data?.type === 'mermaid-resize') {
+        if (e.data.height && e.data.height > 50) {
+          setHeight(e.data.height + 40);
+        }
+        setLoading(false);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // Fallback loading removal
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 5000);
+    return () => clearTimeout(t);
+  }, []);
 
   if (!chartText) return null;
 
+  // Safe escaping for inserting into HTML body
+  const safeChart = chartText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // HTML document with ES Module import for Mermaid v10+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { 
+          margin: 0; padding: 20px; 
+          display: flex; justify-content: center; align-items: center; 
+          font-family: 'Inter', sans-serif; background: transparent; overflow: hidden;
+        }
+        .mermaid { display: flex; justify-content: center; width: 100%; }
+        svg { max-width: 100%; height: auto !important; }
+        .error-box { color: #d97706; background: #fffbeb; padding: 12px; border: 1px solid #fcd34d; border-radius: 8px; font-size: 12px; font-family: monospace; white-space: pre-wrap; width: 100%; }
+      </style>
+    </head>
+    <body>
+      <div class="mermaid" id="container">${safeChart}</div>
+      <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        
+        try {
+          mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+          await mermaid.run({ nodes: [document.getElementById('container')] });
+          
+          setTimeout(() => {
+            const svg = document.querySelector('svg');
+            const height = svg ? svg.getBoundingClientRect().height : document.body.scrollHeight;
+            window.parent.postMessage({ type: 'mermaid-resize', height }, '*');
+          }, 300);
+        } catch (err) {
+          document.body.innerHTML = '<div class="error-box">⚠ Diagram renderelési hiba:<br><br>' + err.message + '</div>';
+          window.parent.postMessage({ type: 'mermaid-resize', height: document.body.scrollHeight }, '*');
+        }
+      </script>
+    </body>
+    </html>
+  `;
+
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center w-full">
-      <div className="bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm w-full relative flex justify-center min-h-[100px]">
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm w-full relative flex justify-center overflow-hidden min-h-[100px]">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center -z-10 bg-neutral-50/50">
+             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-300" />
+          </div>
+        )}
         
-        {loading && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-2xl">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
-          </div>
-        )}
-
-        {!error && url ? (
-          <img 
-            src={url} 
-            alt="Folyamatábra" 
-            className="max-w-full h-auto"
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              setError(true);
-              setLoading(false);
-            }}
-          />
-        ) : (
-          <div className="text-amber-600 text-sm w-full">
-            <p className="font-semibold mb-2">⚠ Diagram megjelenítési hiba</p>
-            <pre className="text-xs bg-amber-50 border border-amber-200 p-3 rounded overflow-x-auto whitespace-pre-wrap">{chartText}</pre>
-          </div>
-        )}
-
+        <iframe
+          ref={iframeRef}
+          srcDoc={htmlContent}
+          style={{ width: '100%', height: \`\${height}px\`, border: 'none', transition: 'height 0.3s ease-out' }}
+          title="Szakmai Folyamatábra"
+          scrolling="no"
+          sandbox="allow-scripts allow-same-origin"
+        />
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
     </div>
