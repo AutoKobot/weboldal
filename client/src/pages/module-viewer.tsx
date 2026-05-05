@@ -973,7 +973,6 @@ export default function ModuleViewer() {
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          // Custom styling for markdown elements
                           h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
                           h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
                           h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
@@ -983,107 +982,53 @@ export default function ModuleViewer() {
                           blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
                           pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
                           strong: ({ children }) => {
-                            // Convert strong text to Wikipedia links for key concepts
                             const text = String(children);
-  
-                            // Common technical terms that should get Wikipedia links
-                            const importantTerms = [
-                              'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
-                              'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
-                              'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt',
-                              'hegesztés', 'ívhegesztés', 'elektróda', 'fém', 'ötvözet', 'acél'
-                            ];
-  
-                            // Check if this text is an important term
-                            const isImportantTerm = importantTerms.some(term =>
-                              text.toLowerCase().includes(term.toLowerCase())
-                            );
-  
-                            // Also check against key concepts data
+                            const importantTerms = ['paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj', 'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika', 'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt', 'hegesztés', 'ívhegesztés', 'elektróda', 'fém', 'ötvözet', 'acél'];
+                            const isImportantTerm = importantTerms.some(term => text.toLowerCase().includes(term.toLowerCase()));
                             let keyConceptsData = [];
-                            try {
-                              keyConceptsData = module.keyConceptsData ?
-                                (typeof module.keyConceptsData === 'string' ?
-                                  JSON.parse(module.keyConceptsData) :
-                                  module.keyConceptsData) : [];
-                            } catch (e) {}
-  
-                            const matchingConcept = keyConceptsData.find((concept: any) =>
-                              concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
-                            );
-  
+                            try { keyConceptsData = module.keyConceptsData ? (typeof module.keyConceptsData === 'string' ? JSON.parse(module.keyConceptsData) : module.keyConceptsData) : []; } catch (e) {}
+                            const matchingConcept = keyConceptsData.find((concept: any) => concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase()));
                             if (isImportantTerm || matchingConcept) {
                               const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
-                              return (
-                                <a
-                                  href={wikipediaUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
-                                  title={`Wikipedia: ${text}`}
-                                >
-                                  {children}
-                                  <span className="text-xs">🔗</span>
-                                </a>
-                              );
+                              return (<a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1" title={`Wikipedia: ${text}`}>{children}<span className="text-xs">🔗</span></a>);
                             }
-  
                             return <strong className="font-semibold text-primary">{children}</strong>;
                           },
                           em: ({ children }) => <em className="italic">{children}</em>,
                           table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
                           th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
                           td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
+                          img: ({ src, alt }) => (
+                            <div className="flex flex-col items-center my-8">
+                              <div className="bg-white p-2 rounded-2xl shadow-md border border-neutral-100 overflow-hidden max-w-full">
+                                <img src={src} alt={alt} className="max-w-full h-auto rounded-xl hover:scale-[1.02] transition-transform duration-500" loading="lazy" />
+                              </div>
+                              {alt && <p className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mt-3 italic">{alt}</p>}
+                            </div>
+                          ),
                           a: ({ href, children }) => {
                             if (href && href.includes('hu.wikipedia.org/wiki/')) {
-                              return (
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    fetchWikipediaContent(href);
-                                  }}
-                                  className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
-                                >
-                                  {children}
-                                  <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
-                                </button>
-                              );
+                              return (<button onClick={(e) => { e.preventDefault(); fetchWikipediaContent(href); }} className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium">{children}<span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span></button>);
                             }
                             return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
                           },
                           code: ({ className, children, ...props }) => {
                             const match = /language-(\w+)/.exec(className || '');
                             const language = match ? match[1] : '';
-                            if (language === 'mermaid') {
-                              return (
-                                <div className="mermaid bg-student-warm p-4 border rounded-lg my-4 shadow-sm">
-                                  {String(children).replace(/\n$/, '')}
-                                </div>
-                              );
-                            }
-                            if (language === 'svg') {
-                              return (
-                                <div 
-                                  className="svg-visualizer my-6 flex justify-center bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden"
-                                  dangerouslySetInnerHTML={{ __html: String(children) }}
-                                />
-                              );
-                            }
-                            return (
-                              <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
-                                {children}
-                              </code>
-                            );
+                            if (language === 'mermaid') { return (<div className="mermaid bg-student-warm p-4 border rounded-lg my-4 shadow-sm">{String(children).replace(/\n$/, '')}</div>); }
+                            if (language === 'svg') { return (<div className="svg-visualizer my-6 flex justify-center bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden" dangerouslySetInnerHTML={{ __html: String(children) }} />); }
+                            return (<code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>{children}</code>);
                           }
                         }}
                       >
                         {(() => {
+                          let rawContent = "";
                           if (module.conciseContent || module.detailedContent) {
-                            if (contentVersion === 'concise' && module.conciseContent) return module.conciseContent;
-                            if (contentVersion === 'detailed' && module.detailedContent) return module.detailedContent;
-                            return module.detailedContent || module.conciseContent;
-                          }
-                          return module.content;
+                            if (contentVersion === 'concise' && module.conciseContent) rawContent = module.conciseContent;
+                            else if (contentVersion === 'detailed' && module.detailedContent) rawContent = module.detailedContent;
+                            else rawContent = module.detailedContent || module.conciseContent || "";
+                          } else { rawContent = module.content || ""; }
+                          return rawContent.replace(/<div align="center">/g, '').replace(/<\/div>/g, '').replace(/<p><em>/g, '\n*').replace(/<\/em><\/p>/g, '*\n');
                         })()}
                       </ReactMarkdown>
                     )}
