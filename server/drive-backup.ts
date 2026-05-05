@@ -27,8 +27,15 @@ export async function runSmartBackup() {
     console.log('[Backup] Okos mentés indítása...');
 
     try {
-        if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !BACKUP_FOLDER_ID) {
-            console.warn('[Backup] Google Drive nincs konfigurálva. Mentés kihagyva.');
+        // Dinamikus mappa ID lekérése (.env vagy adatbázis)
+        let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!folderId) {
+            const setting = await storage.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID");
+            folderId = setting?.value;
+        }
+
+        if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !folderId) {
+            console.warn('[Backup] Google Drive nincs konfigurálva (hiányzó Credentials vagy Folder ID). Mentés kihagyva.');
             return;
         }
 
@@ -67,7 +74,7 @@ export async function runSmartBackup() {
         // 3. Feltöltés a Drive-ra
         const fileMetadata = {
             name: fileName,
-            parents: [BACKUP_FOLDER_ID],
+            parents: [folderId],
         };
         const media = {
             mimeType: 'application/json',

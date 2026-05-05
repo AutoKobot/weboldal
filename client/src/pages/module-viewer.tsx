@@ -976,7 +976,6 @@ export default function ModuleViewer() {
                           h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
                           h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
                           h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
-                          p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
                           ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
                           blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
@@ -1015,9 +1014,74 @@ export default function ModuleViewer() {
                           code: ({ className, children, ...props }) => {
                             const match = /language-(\w+)/.exec(className || '');
                             const language = match ? match[1] : '';
-                            if (language === 'mermaid') { return (<div className="mermaid bg-student-warm p-4 border rounded-lg my-4 shadow-sm">{String(children).replace(/\n$/, '')}</div>); }
-                            if (language === 'svg') { return (<div className="svg-visualizer my-6 flex justify-center bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden" dangerouslySetInnerHTML={{ __html: String(children) }} />); }
+                            
+                            if (language === 'mermaid') { 
+                              const code = String(children).trim();
+                              // Base64 encoding for mermaid.ink
+                              const encoded = btoa(unescape(encodeURIComponent(code)));
+                              const url = `https://mermaid.ink/img/${encoded}`;
+                              
+                              return (
+                                <div className="mermaid-visualizer my-8 flex flex-col items-center">
+                                  <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center group">
+                                    <img 
+                                      src={url} 
+                                      alt="Szakmai folyamatábra" 
+                                      className="max-w-full h-auto cursor-zoom-in group-hover:scale-[1.01] transition-transform duration-500"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const pre = document.createElement('pre');
+                                        pre.className = "text-[10px] text-neutral-400 font-mono";
+                                        pre.innerText = code;
+                                        e.currentTarget.parentElement?.appendChild(pre);
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
+                                </div>
+                              ); 
+                            }
+                            
+                            if (language === 'svg') { 
+                              return (
+                                <div className="svg-visualizer my-6 flex flex-col items-center">
+                                  <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden" dangerouslySetInnerHTML={{ __html: String(children) }} />
+                                  <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Technikai illusztráció</span>
+                                </div>
+                              ); 
+                            }
+                            
                             return (<code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>{children}</code>);
+                          },
+                          p: ({ children }) => {
+                            const text = String(children);
+                            // Detect LaTeX math, chemical structures (like H:O:H), or physics variables
+                            const isMath = text.includes('\\frac') || text.includes('\\rho') || text.includes('\\text{') || 
+                                          text.includes('\\sigma') || text.includes('\\delta') || text.includes('\\alpha') || 
+                                          text.includes('\\beta') || text.includes('\\lambda') || text.includes('\\omega');
+                            const isChemical = /^[A-Z][a-z]?(\s*[:=]\s*[A-Z][a-z]?)+$/.test(text);
+                            const isBracketMath = text.trim().startsWith('[') && text.trim().endsWith(']') && text.includes('\\');
+
+                            if (isMath || isChemical || isBracketMath) {
+                              // Clean up common math formats and ensure we have a clean formula
+                              const formula = text
+                                .replace(/^\[\s*/, '').replace(/\s*\]$/, '')
+                                .replace(/^\$\$\s*/, '').replace(/\s*\$\$/, '')
+                                .replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
+                                .trim();
+                                
+                              const mathUrl = `https://latex.codecogs.com/svg.latex?\\huge&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
+                              
+                              return (
+                                <div className="math-visualizer my-8 flex flex-col items-center">
+                                  <div className="bg-neutral-50/40 p-8 rounded-3xl border border-neutral-100 border-dashed hover:bg-white hover:border-solid hover:shadow-md transition-all duration-500">
+                                    <img src={mathUrl} alt={formula} className="max-h-24 h-auto" />
+                                  </div>
+                                  <span className="text-[9px] uppercase tracking-wider text-neutral-400 mt-3 font-bold opacity-60">Szakmai vázlat / Képlet</span>
+                                </div>
+                              );
+                            }
+                            return <p className="mb-4 leading-relaxed">{children}</p>;
                           }
                         }}
                       >
@@ -1028,7 +1092,14 @@ export default function ModuleViewer() {
                             else if (contentVersion === 'detailed' && module.detailedContent) rawContent = module.detailedContent;
                             else rawContent = module.detailedContent || module.conciseContent || "";
                           } else { rawContent = module.content || ""; }
-                          return rawContent.replace(/<div align="center">/g, '').replace(/<\/div>/g, '').replace(/<p><em>/g, '\n*').replace(/<\/em><\/p>/g, '*\n');
+                          return rawContent
+                            .replace(/<div align="center">/g, '')
+                            .replace(/<\/div>/g, '')
+                            .replace(/\\\[/g, '$$') 
+                            .replace(/\\\]/g, '$$')
+                            .replace(/\[\s*\\text/g, '$$ \\text')
+                            .replace(/\\text\{([^}]+)\}\s*\]/g, '\\text{$1} $$')
+                            .trim();
                         })()}
                       </ReactMarkdown>
                     )}

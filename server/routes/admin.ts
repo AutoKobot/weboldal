@@ -1,3 +1,4 @@
+import { runSmartBackup } from "../drive-backup";
 import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
@@ -6,6 +7,19 @@ import { db } from "../db";
 import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
+
+// Manual backup trigger for admins
+router.post('/backup', combinedAuth, async (req: any, res) => {
+  if (req.user?.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+  try {
+    console.log(`[BACKUP] Manual backup triggered by admin: ${req.user.username}`);
+    const result = await runSmartBackup();
+    res.json({ message: "Backup process completed", details: result });
+  } catch (error: any) {
+    console.error("[BACKUP] Manual backup failed:", error);
+    res.status(500).json({ message: "Backup failed", error: error.message });
+  }
+});
 
 // Custom auth check for admin-only routes if needed beyond combinedAuth
 const adminOnly = async (req: any, res: any, next: any) => {

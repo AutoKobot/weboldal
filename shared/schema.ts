@@ -904,7 +904,9 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 
-export type AISetting = typeof aiSettings.$inferSelect;
+export type AISetting = typeof aiSettings.$inferSelect & {
+  googleDriveFolderId?: string;
+};
 export type InsertAISetting = typeof aiSettings.$inferInsert;
 
 // AI settings schema for validation

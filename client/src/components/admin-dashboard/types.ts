@@ -30,6 +30,7 @@ export interface AISettings {
   imageModel: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  googleDriveFolderId?: string;
 }
 
 export const schoolAdminFormSchema = z.object({

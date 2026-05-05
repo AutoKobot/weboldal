@@ -414,6 +414,67 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
             </div>
           </CardContent>
         </Card>
+
+        {/* Google Drive Backup */}
+        <Card className="md:col-span-2 border-amber-200 bg-amber-50/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-amber-600" />
+              Google Drive Biztonsági Mentés
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>Drive Mappa ID</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={aiSettings?.googleDriveFolderId || ""} 
+                    onChange={(e) => updateAISettingsMutation.mutate({ googleDriveFolderId: e.target.value })}
+                    placeholder="1-4YLrha..."
+                    className="font-mono text-xs"
+                  />
+                  <Button size="sm" onClick={() => toast({ title: "Automatikus mentés", description: "Változtatás mentve." })}>OK</Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Ide kerülnek a napi JSON mentések. Győződj meg róla, hogy a szervizfiók írási jogot kapott erre a mappára!
+                </p>
+              </div>
+
+              <div className="space-y-3 border-l pl-6 border-amber-100">
+                <Label>Manuális Mentés Indítása</Label>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    variant="default" 
+                    className="bg-amber-600 hover:bg-amber-700"
+                    onClick={async () => {
+                      try {
+                        const res = await apiRequest("POST", "/api/admin/backup");
+                        const data = await res.json();
+                        toast({ 
+                          title: "Mentés sikeres", 
+                          description: `A fájl feltöltve a Drive-ra. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}` 
+                        });
+                      } catch (err: any) {
+                        toast({ 
+                          title: "Mentési hiba", 
+                          description: err.message, 
+                          variant: "destructive" 
+                        });
+                      }
+                    }}
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    Azonnali Mentés (Okos Mentés)
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground">
+                    A rendszer csak akkor készít új fájlt, ha változott az adatbázis tartalma az előző mentés óta.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

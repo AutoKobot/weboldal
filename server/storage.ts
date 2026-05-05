@@ -3424,6 +3424,7 @@ export class DatabaseStorage implements IStorage {
         model: fallbackGptModel || dbSettings?.model || "gpt-4o-mini",
         imageProvider: fallbackProvider || dbSettings?.imageProvider || "openai",
         imageModel: fallbackModel || dbSettings?.imageModel || "dall-e-3",
+        googleDriveFolderId: (await this.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID"))?.value || dbSettings?.googleDriveFolderId,
         updatedAt: dbSettings?.updatedAt || new Date(),
         updatedBy: dbSettings?.updatedBy || "system"
       } as AISetting;
@@ -3457,6 +3458,7 @@ export class DatabaseStorage implements IStorage {
     // Szinkronizálás a system_settings táblába a redundancia és a Render-biztos perzisztencia miatt
     if (merged.supabaseUrl) await this.setSystemSetting("SUPABASE_URL", merged.supabaseUrl, updatedBy);
     if (merged.supabaseAnonKey) await this.setSystemSetting("SUPABASE_ANON_KEY", merged.supabaseAnonKey, updatedBy);
+    if (merged.googleDriveFolderId) await this.setSystemSetting("GOOGLE_DRIVE_FOLDER_ID", merged.googleDriveFolderId, updatedBy);
 
 
     try {

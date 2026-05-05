@@ -128,7 +128,7 @@ export function PromptSettings() {
           <CardDescription>A modulok AI-val történő fejlesztésének lépései.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-          <PromptField label="1. Internet tartalom kiegészítés" valueKey="internetContentPrompt" description="Kiegészíti az eredeti szöveget friss információkkal." />
+          <PromptField label="1. Internet tartalom & Vizuális elemek (SVG/Mermaid)" valueKey="internetContentPrompt" description="Kiegészíti az eredeti szöveget friss információkkal, SVG technikai rajzokkal és Mermaid ábrákkal." />
           <div className="border-t pt-6">
             <PromptField label="2. Tömör verzió készítése" valueKey="conciseContentPrompt" description="Létrehozza a lényegre törő változatot." />
           </div>
