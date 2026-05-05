@@ -56,92 +56,105 @@ const MathParagraph = (props: any) => {
   return <div className="mb-4 leading-relaxed">{children}</div>;
 };
 
-// Module-level flag — initialize mermaid only ONCE across all diagram instances
-let mermaidInitialized = false;
-
-// Self-contained Mermaid renderer using mermaid.render() API
+// Completely isolated Mermaid renderer using an iframe to bypass React/Vite/CSS conflicts
 const MermaidDiagram = ({ chart }: { chart: string }) => {
-  const [svg, setSvg] = useState<string>('');
-  const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [height, setHeight] = useState(150);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Listen for resize messages from the iframe
   useEffect(() => {
-    const chartText = (chart ?? '').trim();
-    if (!chartText) { setStatus('done'); return; }
-
-    let cancelled = false;
-    setStatus('loading');
-    setErrorMsg('');
-
-    // Safety timeout: if mermaid hangs, force error state after 5 seconds
-    const timeout = setTimeout(() => {
-      if (!cancelled && status === 'loading') {
-        setStatus('error');
-        setErrorMsg('Diagram renderelési időtúllépés (timeout).');
+    const handleMessage = (e: MessageEvent) => {
+      if (e.source === iframeRef.current?.contentWindow && e.data?.type === 'mermaid-resize') {
+        // Update height with a small padding
+        if (e.data.height && e.data.height > 50) {
+          setHeight(e.data.height + 40);
+        }
       }
-    }, 5000);
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
-    import('mermaid')
-      .then(async ({ default: mermaid }) => {
-        if (!mermaidInitialized) {
-          mermaid.initialize({
-            startOnLoad: false,
-            securityLevel: 'loose',
-            theme: 'neutral',
-          });
-          mermaidInitialized = true;
-        }
+  // Safe escaping for inserting into HTML body
+  const safeChart = (chart || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
-        // Generate a unique ID for this diagram
-        const id = `mermaid-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-        
-        // mermaid.render() returns { svg, bindFunctions }
-        // It does not depend on DOM attachment or font loading promises like run() does
-        const { svg: renderedSvg } = await mermaid.render(id, chartText);
-        
-        if (!cancelled) {
-          setSvg(renderedSvg);
-          setStatus('done');
-          clearTimeout(timeout);
+  // The complete HTML document to run inside the iframe
+  // It loads Mermaid from a CDN, renders the chart, and posts its height back to the parent
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+      <style>
+        body { 
+          margin: 0; 
+          padding: 20px; 
+          display: flex; 
+          justify-content: center; 
+          align-items: center; 
+          font-family: 'Inter', sans-serif; 
+          background: transparent; 
+          overflow: hidden;
         }
-      })
-      .catch((err: any) => {
-        console.error('[MermaidDiagram]', err);
-        if (!cancelled) {
-          setErrorMsg(String(err?.message ?? err));
-          setStatus('error');
-          clearTimeout(timeout);
-        }
-      });
+        .mermaid { display: flex; justify-content: center; width: 100%; }
+        svg { max-width: 100%; height: auto !important; }
+      </style>
+    </head>
+    <body>
+      <div class="mermaid">
+${safeChart}
+      </div>
+      <script>
+        // Initialize mermaid
+        mermaid.initialize({ 
+          startOnLoad: true, 
+          theme: 'neutral', 
+          securityLevel: 'loose',
+          fontFamily: 'Inter, sans-serif'
+        });
 
-    return () => { cancelled = true; clearTimeout(timeout); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chart]);
+        // Calculate and send height after render
+        setTimeout(() => {
+          const svg = document.querySelector('svg');
+          if (svg) {
+            const rect = svg.getBoundingClientRect();
+            window.parent.postMessage({ type: 'mermaid-resize', height: rect.height }, '*');
+          } else {
+            window.parent.postMessage({ type: 'mermaid-resize', height: document.body.scrollHeight }, '*');
+          }
+        }, 800); // Wait enough time for fonts and svg to settle
+      </script>
+    </body>
+    </html>
+  `;
 
   return (
-    <div className="mermaid-visualizer my-8 flex flex-col items-center">
-      <div className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto min-h-[80px] relative flex justify-center items-center">
-        {status === 'loading' && (
-          <div className="flex items-center gap-2 text-neutral-400">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
-            <span className="text-sm">Diagram betöltése...</span>
-          </div>
-        )}
+    <div className="mermaid-visualizer my-8 flex flex-col items-center w-full">
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm w-full relative flex justify-center overflow-hidden min-h-[100px]">
+        {/* Placeholder while loading */}
+        <div className="absolute inset-0 flex items-center justify-center -z-10 bg-neutral-50/50">
+           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-300" />
+        </div>
         
-        {status === 'error' && (
-          <div className="text-amber-600 text-sm w-full">
-            <p className="font-semibold mb-2">⚠ Diagram szintaxis hiba</p>
-            <pre className="text-xs bg-amber-50 border border-amber-200 p-3 rounded overflow-x-auto whitespace-pre-wrap">{chart}</pre>
-            <p className="text-xs mt-1 text-neutral-500">{errorMsg}</p>
-          </div>
-        )}
-
-        {status === 'done' && svg && (
-          <div 
-            dangerouslySetInnerHTML={{ __html: svg }} 
-            className="w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto" 
-          />
-        )}
+        <iframe
+          ref={iframeRef}
+          srcDoc={htmlContent}
+          style={{ 
+            width: '100%', 
+            height: `${height}px`, 
+            border: 'none', 
+            transition: 'height 0.3s ease-out' 
+          }}
+          title="Szakmai Folyamatábra"
+          scrolling="no"
+          sandbox="allow-scripts allow-same-origin"
+        />
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
     </div>
