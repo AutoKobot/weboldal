@@ -743,6 +743,16 @@ export default function ModuleViewer() {
               <Presentation size={14} /> Prezi
             </Button>
           )}
+          {Boolean(module.presentationData) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInteractivePresentationModal(true)}
+              className="flex-shrink-0 gap-2 bg-slate-900 border-blue-600 text-blue-400 h-9 rounded-xl px-3 font-bold text-xs animate-pulse"
+            >
+              <MonitorPlay size={14} /> Interaktív AI
+            </Button>
+          )}
         </div>
 
         {/* Content Area */}

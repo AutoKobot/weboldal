@@ -232,6 +232,11 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
                         <Clock className="h-2.5 w-2.5" /> ~{Math.round(calculateSubjectModuleHours(subject.id))} óra (jav.)
                       </Badge>
                     ) : null}
+                    {(subject as any).developedCount > 0 && (
+                      <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-100 h-4 flex items-center gap-1 font-bold">
+                        <Wand2 className="h-2.5 w-2.5" /> {(subject as any).developedCount}/{(subject as any).moduleCount} AI
+                      </Badge>
+                    )}
                   </div>
                   <CardTitle className="text-sm font-bold leading-tight line-clamp-2">
                     {subject.name}

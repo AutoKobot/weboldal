@@ -16,10 +16,16 @@ interface HotspotProps {
     points: Point[];
   };
   imageUrl?: string;
+  onComplete?: () => void;
 }
 
-export function SlideHotspots({ data, imageUrl }: HotspotProps) {
+export function SlideHotspots({ data, imageUrl, onComplete }: HotspotProps) {
   const [selectedPoint, setSelectedPoint] = useState<Point | null>(null);
+
+  const handlePointClick = (p: Point) => {
+    setSelectedPoint(p);
+    if (onComplete) onComplete();
+  };
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -45,9 +51,11 @@ export function SlideHotspots({ data, imageUrl }: HotspotProps) {
                initial={{ scale: 0 }}
                animate={{ scale: 1 }}
                whileHover={{ scale: 1.2 }}
-               onClick={() => setSelectedPoint(p)}
+               onClick={() => handlePointClick(p)}
                className={`absolute w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center transition-all duration-300 ${selectedPoint?.title === p.title ? 'bg-blue-500 scale-125 z-20' : 'bg-blue-600/60 hover:bg-blue-500 z-10'}`}
                style={{ left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)' }}
+               title={p.title}
+               aria-label={`Részletek megtekintése: ${p.title}`}
              >
                <motion.span 
                  initial={{ scale: 1, opacity: 0.8 }}
@@ -72,7 +80,9 @@ export function SlideHotspots({ data, imageUrl }: HotspotProps) {
                 <CardContent className="p-4 relative">
                   <button 
                     onClick={() => setSelectedPoint(null)}
-                    className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                    className="absolute top-2 right-2 text-slate-400 hover:text-white p-1"
+                    title="Bezárás"
+                    aria-label="Részletek bezárása"
                   >
                     <X className="w-4 h-4" />
                   </button>

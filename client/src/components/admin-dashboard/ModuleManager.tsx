@@ -334,6 +334,11 @@ export function ModuleManager({
                         {isModuleRegenerating(module.id) ? "AI..." : "HTML..."}
                       </Badge>
                     )}
+                    {(!!module.detailedContent || !!module.keyConceptsData || (Array.isArray(module.generatedQuizzes) && module.generatedQuizzes.length > 0)) && (
+                      <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-purple-50 text-purple-700 border-purple-200 font-bold">
+                        <Wand2 size={10} className="" /> AI FEJLESZTETT
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

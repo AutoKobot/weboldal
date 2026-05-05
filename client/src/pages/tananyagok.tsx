@@ -12,7 +12,7 @@ import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2, Settings } from "lucide-react";
+import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2, Settings, Wand2 } from "lucide-react";
 import type { Profession, Subject } from "@shared/schema";
 
 export default function TananyagokPage() {
@@ -443,15 +443,22 @@ export default function TananyagokPage() {
                                 {selectedType === 'theory' ? <BookOpen className="text-white" size={28} /> : <Wrench className="text-white" size={28} />}
                               </div>
                               <div className="flex-1 min-w-0 pr-2">
-                                <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
-                                  {subject.name}
-                                </CardTitle>
-                                {subject.hours && (
-                                  <Badge variant="outline" className="mt-1 bg-white/50 text-[10px] h-4 border-neutral-200">
-                                    <Clock size={10} className="mr-1" /> {subject.hours} óra
-                                  </Badge>
-                                )}
-                              </div>
+                                  <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
+                                    {subject.name}
+                                  </CardTitle>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    {subject.hours && (
+                                      <Badge variant="outline" className="bg-white/50 text-[10px] h-4 border-neutral-200">
+                                        <Clock size={10} className="mr-1" /> {subject.hours} óra
+                                      </Badge>
+                                    )}
+                                    {(subject as any).developedCount > 0 && (
+                                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] h-4 font-bold">
+                                        <Wand2 size={10} className="mr-1" /> {(subject as any).developedCount}/{(subject as any).moduleCount} AI
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
                               <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
                             </div>
                           </CardHeader>

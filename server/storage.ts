@@ -1078,6 +1078,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: subjects.updatedAt,
       moduleCount: sql<number>`count(${modules.id})::int`,
       publishedCount: sql<number>`count(CASE WHEN ${modules.isPublished} = true THEN 1 END)::int`,
+      developedCount: sql<number>`count(CASE WHEN ${modules.detailedContent} IS NOT NULL OR ${modules.keyConceptsData} IS NOT NULL THEN 1 END)::int`,
       totalSuggestedHours: sql<number>`COALESCE(SUM(${modules.suggestedHours}), 0)::numeric`,
     })
     .from(subjects)

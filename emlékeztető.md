@@ -18,6 +18,12 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **`scripts/code-map.json`**: A térkép szkript kimenete.
 - **`scripts/data-integrity-check.ts`**: Diagnosztikai eszköz az adatbázis konzisztencia ellenőrzéséhez.
 
+## 🗄️ Adatbázis & Tárhely
+
+- **Elsődleges Adatbázis**: **Supabase** (PostgreSQL). A Neon adatbázis elavult, ne használd!
+- **Média Tárhely**: **Supabase Storage** (vödör: `presentations`).
+- **Környezeti változók**: Mindig ellenőrizd a `.env` fájlban, hogy a `DATABASE_URL` a Supabase-re mutat-e.
+
 ## 🚀 Legutóbbi Fontos Fejlesztések
 
 - **Navigáció és Állapotmegőrzés**:
@@ -30,9 +36,17 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **AI Folyamatjelző és Interaktív HTML**:
   - Globális AI állapotjelző került a fejlécekbe, amely mutatja, ha háttérfolyamat (bulk fejlesztés) fut.
   - Az interaktív prezentációk mostantól megállnak a kérdéseknél, a narráció nem szalad tovább a válaszadás előtt.
+- **IKK Import Optimalizálás**:
+  - Granuláris modulbontás: A nagy fejezeteket az AI automatikusan szétbontja logikai almodulokra (a, b, c).
+  - Megnövelt tartalom: 8-10 mondatos szakmai leírások és 5-8 konkrét gyakorlati feladat minden modulhoz.
+  - Stabilitás: Kisebb batch méret (4) és 120s timeout a biztosabb generálásért.
+- **Sorrendezés és Láthatóság**:
+  - A tantárgyak (pl. 3.1, 3.1.1) és modulok természetes numerikus sorrendben jelennek meg minden felületen.
+  - Intézményi láthatóság (School-Aware): Az iskola adminok látják az összes hozzájuk tartozó tanárt és diákot, függetlenül attól, ki hozta létre őket.
 - **Hibajavítások**:
   - Megszűnt a modulcímek sorszám-duplikációja (pl. 3.1.1.) a robusztusabb regex-szel.
   - Pótólva a hiányzó `Wand2` és egyéb ikon importok.
+  - Az IKK import hiba esetén nem törli a már létrehozott szakmát, segítve a hibakeresést.
 
 ## 📌 Szabályok és Irányelvek az AI számára
 

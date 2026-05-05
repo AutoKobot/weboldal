@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle, Wrench } from "lucide-react";
+import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle, Wrench, MonitorPlay } from "lucide-react";
 import type { Module } from "@shared/schema";
 
 interface ModuleCardProps {
@@ -261,6 +261,16 @@ export default function ModuleCard({
                 </Badge>
               )}
               {getStatusIcon()}
+              {(!!module.detailedContent || !!module.keyConceptsData || (Array.isArray(module.generatedQuizzes) && module.generatedQuizzes.length > 0)) && (
+                <Badge className="bg-purple-600/10 text-purple-700 text-[10px] h-4 border-purple-200 animate-in fade-in zoom-in duration-500">
+                  <Wand2 size={10} className="mr-1" /> FEJLESZTETT
+                </Badge>
+              )}
+              {Boolean(module.presentationData) && (
+                <Badge className="bg-slate-900 text-blue-400 text-[10px] h-4 border-blue-600 animate-pulse">
+                  <MonitorPlay size={10} className="mr-1" /> INTERAKTÍV
+                </Badge>
+              )}
             </div>
             <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
               {module.title.replace(/^\s*[\d.]+[a-z]?\s*[-.]*\s*/i, '').trim()}

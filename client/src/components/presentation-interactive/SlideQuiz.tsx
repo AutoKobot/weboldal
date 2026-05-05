@@ -11,9 +11,10 @@ interface QuizProps {
     correctAnswer: string;
     explanation: string;
   };
+  onComplete?: () => void;
 }
 
-export function SlideQuiz({ data }: QuizProps) {
+export function SlideQuiz({ data, onComplete }: QuizProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
 
@@ -21,9 +22,29 @@ export function SlideQuiz({ data }: QuizProps) {
     if (showFeedback) return;
     setSelectedOption(option);
     setShowFeedback(true);
+    if (onComplete) onComplete();
   };
 
-  const isCorrect = selectedOption === data.correctAnswer;
+  const isCorrect = (() => {
+    if (!selectedOption) return false;
+    // Direct match with text
+    if (selectedOption === data.correctAnswer) return true;
+    
+    // Check if correctAnswer is a letter (A, B, C, D)
+    const letterMatch = data.correctAnswer.match(/^[A-D]$/i);
+    if (letterMatch) {
+      const index = data.correctAnswer.toUpperCase().charCodeAt(0) - 65;
+      return data.options[index] === selectedOption;
+    }
+    
+    // Check if it's a numeric index (0, 1, 2, 3) stored as string
+    if (!isNaN(parseInt(data.correctAnswer))) {
+      const index = parseInt(data.correctAnswer);
+      return data.options[index] === selectedOption;
+    }
+
+    return false;
+  })();
 
   return (
     <Card className="bg-slate-900/40 border-slate-800 shadow-xl backdrop-blur-md overflow-hidden border-l-4 border-l-blue-500">
