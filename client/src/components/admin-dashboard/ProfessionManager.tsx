@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2, Clock,
-  Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap, Wand2
+  Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap, Wand2, MonitorPlay
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Profession, insertProfessionSchema } from "./types";
@@ -267,6 +267,11 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         </span>
                       </Badge>
                     </div>
+                    {prof.interactiveCount > 0 && (
+                      <Badge variant="outline" className="text-[10px] w-full bg-slate-900 text-blue-400 border-blue-600 h-6 flex items-center justify-center gap-2 font-bold animate-pulse">
+                        <MonitorPlay className="h-3 w-3" /> {prof.interactiveCount} INTERAKTÍV MODUL KÉSZ
+                      </Badge>
+                    )}
 
                     <div className="grid grid-cols-2 gap-1.5 mt-1">
                       <Button 

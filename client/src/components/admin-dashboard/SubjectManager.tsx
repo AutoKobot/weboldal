@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench, Wand2, Clock } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft, GraduationCap, Wrench, Wand2, Clock, MonitorPlay } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { compareSectionCodes } from "@/lib/utils";
 import { Subject, insertSubjectSchema, Profession } from "./types";
@@ -235,6 +235,11 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
                     {(subject as any).developedCount > 0 && (
                       <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-100 h-4 flex items-center gap-1 font-bold">
                         <Wand2 className="h-2.5 w-2.5" /> {(subject as any).developedCount}/{(subject as any).moduleCount} AI
+                      </Badge>
+                    )}
+                    {(subject as any).interactiveCount > 0 && (
+                      <Badge variant="outline" className="text-[10px] bg-slate-900 text-blue-400 border-blue-600 h-4 flex items-center gap-1 font-bold">
+                        <MonitorPlay className="h-2.5 w-2.5" /> {(subject as any).interactiveCount} HTML
                       </Badge>
                     )}
                   </div>

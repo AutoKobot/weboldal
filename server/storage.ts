@@ -922,6 +922,7 @@ export class DatabaseStorage implements IStorage {
       moduleCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id)`,
       theoryCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.type = 'theory')`,
       practicalCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.type = 'practical')`,
+      interactiveCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.presentation_data IS NOT NULL)`,
     })
     .from(professions);
 
@@ -1079,6 +1080,7 @@ export class DatabaseStorage implements IStorage {
       moduleCount: sql<number>`count(${modules.id})::int`,
       publishedCount: sql<number>`count(CASE WHEN ${modules.isPublished} = true THEN 1 END)::int`,
       developedCount: sql<number>`count(CASE WHEN ${modules.detailedContent} IS NOT NULL OR ${modules.keyConceptsData} IS NOT NULL THEN 1 END)::int`,
+      interactiveCount: sql<number>`count(CASE WHEN ${modules.presentationData} IS NOT NULL THEN 1 END)::int`,
       totalSuggestedHours: sql<number>`COALESCE(SUM(${modules.suggestedHours}), 0)::numeric`,
     })
     .from(subjects)

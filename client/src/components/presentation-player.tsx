@@ -253,8 +253,20 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
     );
   }
 
-  const nextSlide = () => currentSlideIndex < slides.length - 1 && setCurrentSlideIndex(currentSlideIndex + 1);
-  const prevSlide = () => currentSlideIndex > 0 && setCurrentSlideIndex(currentSlideIndex - 1);
+  const nextSlide = () => {
+    if (currentSlideIndex < slides.length - 1) {
+      setCurrentSlideIndex(currentSlideIndex + 1);
+      setIsPlaying(true);
+    }
+  };
+
+  const prevSlide = () => {
+    if (currentSlideIndex > 0) {
+      setCurrentSlideIndex(currentSlideIndex - 1);
+      setIsPlaying(true);
+    }
+  };
+
   const togglePlay = async () => {
     await resumeAudioContext();
     setIsPlaying(prev => !prev);
@@ -315,6 +327,15 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           </div>
           
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={togglePlay}
+              className={`w-11 h-11 rounded-xl bg-slate-800/40 border-slate-700/50 transition-all ${isPlaying ? 'text-blue-400 border-blue-500/30' : 'text-slate-400 hover:text-white'}`}
+              title={isPlaying ? "Szünet" : "Lejátszás"}
+            >
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            </Button>
             <Button
               variant="outline"
               size="icon"

@@ -336,7 +336,12 @@ export function ModuleManager({
                     )}
                     {(!!module.detailedContent || !!module.keyConceptsData || (Array.isArray(module.generatedQuizzes) && module.generatedQuizzes.length > 0)) && (
                       <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-purple-50 text-purple-700 border-purple-200 font-bold">
-                        <Wand2 size={10} className="" /> AI FEJLESZTETT
+                        <Wand2 size={10} /> AI FEJLESZTETT
+                      </Badge>
+                    )}
+                    {Boolean(module.presentationData) && (
+                      <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-slate-900 text-blue-400 border-blue-600 font-bold animate-pulse">
+                        <MonitorPlay size={10} /> INTERAKTÍV
                       </Badge>
                     )}
                   </div>
