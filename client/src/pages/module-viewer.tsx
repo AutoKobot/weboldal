@@ -56,110 +56,56 @@ const MathParagraph = (props: any) => {
   return <div className="mb-4 leading-relaxed">{children}</div>;
 };
 
-// Completely isolated Mermaid renderer using an iframe to bypass React/Vite/CSS conflicts
+// Rock-solid Mermaid rendering using mermaid.ink API. No client-side JS execution needed!
 const MermaidDiagram = ({ chart }: { chart: string }) => {
-  const [height, setHeight] = useState(150);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const chartText = (chart || '').trim();
+  
+  // Safe base64 encoding for Unicode text
+  const encoded = typeof window !== 'undefined' 
+    ? btoa(unescape(encodeURIComponent(chartText))) 
+    : '';
 
-  // Listen for resize messages from the iframe
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      if (e.source === iframeRef.current?.contentWindow && e.data?.type === 'mermaid-resize') {
-        // Update height with a small padding
-        if (e.data.height && e.data.height > 50) {
-          setHeight(e.data.height + 40);
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  const url = `https://mermaid.ink/svg/${encoded}`;
 
-  // Safe escaping for inserting into HTML body
-  const safeChart = (chart || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-
-  // The complete HTML document to run inside the iframe
-  // It loads Mermaid from a CDN, renders the chart, and posts its height back to the parent
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-      <style>
-        body { 
-          margin: 0; 
-          padding: 20px; 
-          display: flex; 
-          justify-content: center; 
-          align-items: center; 
-          font-family: 'Inter', sans-serif; 
-          background: transparent; 
-          overflow: hidden;
-        }
-        .mermaid { display: flex; justify-content: center; width: 100%; }
-        svg { max-width: 100%; height: auto !important; }
-      </style>
-    </head>
-    <body>
-      <div class="mermaid">
-${safeChart}
-      </div>
-      <script>
-        // Initialize mermaid
-        mermaid.initialize({ 
-          startOnLoad: true, 
-          theme: 'neutral', 
-          securityLevel: 'loose',
-          fontFamily: 'Inter, sans-serif'
-        });
-
-        // Calculate and send height after render
-        setTimeout(() => {
-          const svg = document.querySelector('svg');
-          if (svg) {
-            const rect = svg.getBoundingClientRect();
-            window.parent.postMessage({ type: 'mermaid-resize', height: rect.height }, '*');
-          } else {
-            window.parent.postMessage({ type: 'mermaid-resize', height: document.body.scrollHeight }, '*');
-          }
-        }, 800); // Wait enough time for fonts and svg to settle
-      </script>
-    </body>
-    </html>
-  `;
+  if (!chartText) return null;
 
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center w-full">
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm w-full relative flex justify-center overflow-hidden min-h-[100px]">
-        {/* Placeholder while loading */}
-        <div className="absolute inset-0 flex items-center justify-center -z-10 bg-neutral-50/50">
-           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-300" />
-        </div>
+      <div className="bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm w-full relative flex justify-center min-h-[100px]">
         
-        <iframe
-          ref={iframeRef}
-          srcDoc={htmlContent}
-          style={{ 
-            width: '100%', 
-            height: `${height}px`, 
-            border: 'none', 
-            transition: 'height 0.3s ease-out' 
-          }}
-          title="Szakmai Folyamatábra"
-          scrolling="no"
-          sandbox="allow-scripts allow-same-origin"
-        />
+        {loading && !error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-2xl">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
+          </div>
+        )}
+
+        {!error ? (
+          <img 
+            src={url} 
+            alt="Folyamatábra" 
+            className="max-w-full h-auto"
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setError(true);
+              setLoading(false);
+            }}
+          />
+        ) : (
+          <div className="text-amber-600 text-sm w-full">
+            <p className="font-semibold mb-2">⚠ Diagram megjelenítési hiba</p>
+            <pre className="text-xs bg-amber-50 border border-amber-200 p-3 rounded overflow-x-auto whitespace-pre-wrap">{chartText}</pre>
+          </div>
+        )}
+
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
     </div>
   );
 };
+
 
 const CodeComponent = ({ className, children, ...props }: any) => {
   const match = /language-(\w+)/.exec(className || '');
