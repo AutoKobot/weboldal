@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -63,12 +63,19 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
   
   const chartText = (chart || '').trim();
   
-  // Safe base64 encoding for Unicode text
-  const encoded = typeof window !== 'undefined' 
-    ? btoa(unescape(encodeURIComponent(chartText))) 
-    : '';
+  // Safe base64 encoding for Unicode text, wrapped in mermaid.ink required JSON format
+  const encoded = useMemo(() => {
+    if (typeof window === 'undefined' || !chartText) return '';
+    try {
+      const state = { code: chartText, mermaid: { theme: 'neutral', securityLevel: 'loose' } };
+      return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+    } catch (err) {
+      console.error('Failed to encode mermaid data', err);
+      return '';
+    }
+  }, [chartText]);
 
-  const url = `https://mermaid.ink/svg/${encoded}`;
+  const url = encoded ? `https://mermaid.ink/svg/${encoded}` : '';
 
   if (!chartText) return null;
 
