@@ -161,19 +161,30 @@ export function StudentListView({ students, teacherClasses, modules, professions
                                   </h3>
                                   <p className="text-xs text-gray-400">@{student.username}</p>
                                 </div>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600">
-                                      <FileText className="h-4 w-4" />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                                    <DialogHeader>
-                                      <DialogTitle>{student.lastName} {student.firstName} - Részletes adatok</DialogTitle>
-                                    </DialogHeader>
-                                    <StudentDetailView student={student} />
-                                  </DialogContent>
-                                </Dialog>
+                                <div className="flex items-center gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-gray-400 hover:text-blue-600"
+                                    onClick={() => window.location.href = `/messages?partnerId=${student.id}`}
+                                    title="Üzenet küldése"
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600" title="Részletek">
+                                        <FileText className="h-4 w-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>{student.lastName} {student.firstName} - Részletes adatok</DialogTitle>
+                                      </DialogHeader>
+                                      <StudentDetailView student={student} />
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
                                 <div><p className="text-gray-400 uppercase">Szakma</p><p>{getProfessionName(student.selectedProfessionId)}</p></div>

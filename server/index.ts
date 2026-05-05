@@ -81,6 +81,16 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
+  // Automatikus "Okos Mentés" indítása (Google Drive API)
+  // Első futás 1 perc múlva, utána 24 óránként
+  const { runSmartBackup } = await import("./drive-backup");
+  setTimeout(() => {
+    runSmartBackup().catch(err => console.error("Hiba az automatikus mentés indításakor:", err));
+    setInterval(() => {
+      runSmartBackup().catch(err => console.error("Hiba az ütemezett mentés során:", err));
+    }, 24 * 60 * 60 * 1000);
+  }, 60000);
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

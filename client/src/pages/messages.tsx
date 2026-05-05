@@ -197,11 +197,20 @@ export default function MessagesPage() {
     groupedMessages[date].push(m);
   });
 
-  // Filter partners by search term
+  // Filter partners AND searchable users by search term
   const filteredPartners = partners.filter(p => {
     const name = `${p.firstName} ${p.lastName}`.toLowerCase();
     return name.includes(searchTerm.toLowerCase()) || p.username.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  const searchableNewUsers = searchTerm.length >= 2 
+    ? allAvailableUsers.filter(u => {
+        const isAlreadyPartner = partners.some(p => p.id === u.id);
+        const name = `${u.firstName} ${u.lastName}`.toLowerCase();
+        return !isAlreadyPartner && u.id !== user.id && 
+               (name.includes(searchTerm.toLowerCase()) || u.username.toLowerCase().includes(searchTerm.toLowerCase()));
+      })
+    : [];
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -249,13 +258,15 @@ export default function MessagesPage() {
                   <div className="flex justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                   </div>
-                ) : filteredPartners.length === 0 ? (
+                ) : (filteredPartners.length === 0 && searchableNewUsers.length === 0) ? (
                   <div className="text-center p-8 text-gray-500">
                     <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">Nincsenek üzenetek</p>
+                    <p className="text-sm">{searchTerm ? "Nincs találat" : "Nincsenek üzenetek"}</p>
                   </div>
                 ) : (
-                  filteredPartners.map(partner => {
+                  <>
+                    {/* Existing Conversations */}
+                    {filteredPartners.map(partner => {
                     const lastMessage = messages
                       .filter(m => m.senderId === partner.id || m.receiverId === partner.id)
                       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
@@ -302,15 +313,40 @@ export default function MessagesPage() {
                           </div>
                         </div>
                       </button>
-                    );
-                  })
+                    })}
+
+                    {/* New Conversations Search Results */}
+                    {searchableNewUsers.length > 0 && (
+                      <div className="mt-4">
+                        <p className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Új beszélgetés indítása</p>
+                        {searchableNewUsers.map(u => (
+                          <button
+                            key={u.id}
+                            onClick={() => setSelectedPartnerId(u.id)}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
+                              selectedPartnerId === u.id ? 'bg-blue-50' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Avatar className="h-10 w-10 border">
+                              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${u.firstName} ${u.lastName}`} />
+                              <AvatarFallback>{u.firstName?.[0]}{u.lastName?.[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">{u.lastName} {u.firstName}</p>
+                              <p className="text-[10px] text-blue-500 font-medium uppercase tracking-tight">Kattints a kezdéshez</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </ScrollArea>
           </div>
 
           {/* Chat Window */}
-          <div className={`flex-1 flex flex-col min-w-0 ${!selectedPartnerId ? 'hidden md:flex' : 'flex'}`}>
+          <div className={`flex-1 flex flex-col min-w-0 pb-20 md:pb-0 ${!selectedPartnerId ? 'hidden md:flex' : 'flex'}`}>
             {selectedPartnerId ? (
               <>
                 {/* Chat Header */}
@@ -414,7 +450,7 @@ export default function MessagesPage() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center bg-gray-50 p-8 text-center">
+              <div className="flex-1 flex items-center justify-center bg-gray-50 p-8 text-center pb-24 md:pb-8">
                 <div className="max-w-md">
                   <div className="h-20 w-20 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-blue-600">
                     <MessageSquare className="h-10 w-10" />
@@ -430,20 +466,22 @@ export default function MessagesPage() {
                       <p className="text-sm font-medium text-gray-400 uppercase tracking-widest">Gyors elérés</p>
                       <Button 
                         onClick={() => {
-                          // Find assigned teacher ID and select it
-                          // Note: assignedTeacherId should be in user object
-                          if (user?.assignedTeacherId) {
-                            setSelectedPartnerId(user.assignedTeacherId);
+                          // Check if teacher is in partners or allAvailableUsers
+                          const teacher = partners.find(p => p.role === 'teacher') || 
+                                         allAvailableUsers.find(p => p.role === 'teacher');
+                          
+                          if (teacher) {
+                            setSelectedPartnerId(teacher.id);
                           } else {
                             toast({
-                              title: "Hiba",
-                              description: "Nincs tanár rendelve hozzád.",
-                              variant: "destructive"
+                              title: "Figyelem",
+                              description: "Keresd meg a tanárod a keresővel, vagy várj, amíg üzen neked.",
                             });
                           }
                         }}
-                        className="bg-white text-gray-900 border hover:bg-gray-50 w-full shadow-sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white w-full py-6 rounded-2xl shadow-lg shadow-blue-100 font-bold flex items-center justify-center gap-2"
                       >
+                        <UserIcon className="h-5 w-5" />
                         Üzenet küldése a tanáromnak
                       </Button>
                     </div>

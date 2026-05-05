@@ -335,10 +335,48 @@ export default function TeacherDashboard() {
           </TabsContent>
 
           <TabsContent value="announcements">
-            <AnnouncementsView 
-              teacherClasses={teacherClasses as any} 
-              students={students as any} 
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <AnnouncementsView 
+                  teacherClasses={teacherClasses as any} 
+                  students={students as any} 
+                />
+              </div>
+              <div className="space-y-6">
+                <Card className="bg-blue-600 text-white border-none shadow-lg overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform">
+                    <MessageSquare size={120} />
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5" />
+                      Privát Üzenetek
+                    </CardTitle>
+                    <CardDescription className="text-blue-100">
+                      Csevegjen közvetlenül a tanulókkal egyénileg.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      className="w-full bg-white text-blue-600 hover:bg-blue-50 font-bold"
+                      onClick={() => setLocation('/messages')}
+                    >
+                      Csevegés megnyitása
+                    </Button>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-sm">Gyors segítség</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs text-gray-500 space-y-2">
+                    <p>• A <strong>Bejelentések</strong> minden diáknak megjelennek az osztályban.</p>
+                    <p>• A <strong>Privát Üzenetek</strong> csak az adott diáknak szólnak.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </main>
