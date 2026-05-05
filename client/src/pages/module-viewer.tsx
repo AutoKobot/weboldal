@@ -66,30 +66,28 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    const el = containerRef.current;
     const chartText = (chart ?? '').trim();
-    if (!chartText || !containerRef.current) { setStatus('done'); return; }
+    if (!el || !chartText) { setStatus('done'); return; }
 
     setStatus('loading');
     setErrorMsg('');
 
-    // Set the raw mermaid text into the div so mermaid.run() can process it
-    containerRef.current.innerHTML = chartText;
-    containerRef.current.removeAttribute('data-processed');
+    // Use textContent (NOT innerHTML!) — Mermaid arrows like --> would be parsed as HTML tags
+    el.textContent = chartText;
+    el.removeAttribute('data-processed');
 
     import('mermaid').then(({ default: mermaid }) => {
       if (!mermaidInitialized) {
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: 'loose',
-          theme: 'neutral',
-        });
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral' });
         mermaidInitialized = true;
       }
-
-      // mermaid.run() transforms the element's text content → SVG in-place
-      return mermaid.run({ nodes: [containerRef.current!], suppressErrors: false });
+      return mermaid.run({ nodes: [el], suppressErrors: false });
     })
-    .then(() => setStatus('done'))
+    .then(() => {
+      // Small delay to let Mermaid's internal CSS animations settle before revealing
+      setTimeout(() => setStatus('done'), 50);
+    })
     .catch((err: any) => {
       console.error('[MermaidDiagram]', err);
       setErrorMsg(String(err?.message ?? err));
@@ -117,11 +115,11 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
             <p className="text-xs mt-1 text-neutral-500">{errorMsg}</p>
           </div>
         )}
-        {/* ALWAYS in DOM with layout — mermaid.run() needs a visible element to compute SVG dimensions */}
-        {/* opacity-0 hides it visually but keeps it in layout (unlike hidden/display:none) */}
+        {/* ALWAYS in DOM — mermaid.run() needs an element with layout to measure SVG dimensions */}
         <div
           ref={containerRef}
-          className={`w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto transition-opacity duration-500 ${status === 'done' ? 'opacity-100' : 'opacity-0'}`}
+          style={{ opacity: status === 'done' ? 1 : 0, transition: 'opacity 0.5s ease' }}
+          className="w-full flex justify-center [&_svg]:max-w-full [&_svg]:h-auto"
         />
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
