@@ -89,7 +89,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
           </div>
         )}
 
-        {!error ? (
+        {!error && url ? (
           <img 
             src={url} 
             alt="Folyamatábra" 
