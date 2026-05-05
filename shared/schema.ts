@@ -86,6 +86,8 @@ export const professions = pgTable("professions", {
   description: text("description"),
   iconName: varchar("icon_name"), // Lucide icon name (pl. "wrench", "hammer", "cpu")
   iconUrl: varchar("icon_url"), // Feltöltött kép URL
+  code: varchar("code", { length: 50 }), // OKJ/IKK azonosító (pl. 4 0715 10 05)
+  totalHours: integer("total_hours"), // Összesített óraszám (szerkeszthető)
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik (null = admin által globális)
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
@@ -97,6 +99,7 @@ export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
   professionId: integer("profession_id").references(() => professions.id).notNull(),
   name: varchar("name").notNull(),
+  code: varchar("code", { length: 50 }), // Tantárgy kódja (pl. 3.4.1)
   description: text("description"),
   type: varchar("type").notNull().default("theory"), // "theory" vagy "practical"
   orderIndex: integer("order_index").notNull().default(0),
@@ -118,6 +121,7 @@ export const modules = pgTable("modules", {
   keyConceptsData: jsonb("key_concepts_data"), // JSON struktura a kulcsfogalmakhoz és videókhoz
   moduleNumber: integer("module_number").notNull(),
   sectionCode: varchar("section_code", { length: 50 }), // Fejezetszám (pl. 3.3.2.6.1)
+  type: varchar("type").notNull().default("theory"), // "theory" vagy "practical"
   videoUrl: varchar("video_url"), // Feltöltött videó vagy YouTube URL
   audioUrl: varchar("audio_url"), // Feltöltött podcast/hang fájl
   imageUrl: varchar("image_url"), // Modul borítókép
@@ -128,6 +132,7 @@ export const modules = pgTable("modules", {
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
   practicalTasks: jsonb("practical_tasks"), // Gyakorlati feladatok
+  suggestedHours: numeric("suggested_hours", { precision: 5, scale: 2 }), // Javasolt óraszám (AI által osztva)
   schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
   schoolAdminId: varchar("school_admin_id").references((): AnyPgColumn => users.id), // Legacy
   createdAt: timestamp("created_at").defaultNow(),
@@ -173,7 +178,10 @@ export const chatMessages = pgTable("chat_messages", {
 export const testResults = pgTable("test_results", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id), // Made optional for durability
+  moduleTitle: varchar("module_title"), // Fallback if module is deleted
+  subjectName: varchar("subject_name"), // Fallback
+  moduleNumber: integer("module_number"), // Fallback
   score: integer("score").notNull(),
   maxScore: integer("max_score").default(100).notNull(),
   passed: boolean("passed").default(false).notNull(),
@@ -189,7 +197,10 @@ export const practicalGrades = pgTable("practical_grades", {
   id: serial("id").primaryKey(),
   studentId: varchar("student_id").references(() => users.id).notNull(),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
-  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id), // Made optional for durability
+  moduleTitle: varchar("module_title"), // Fallback if module is deleted
+  subjectName: varchar("subject_name"), // Fallback
+  moduleNumber: integer("module_number"), // Fallback
   grade: integer("grade").notNull(), // 1-5 magyar osztályzat
   comment: text("comment"), // Szöveges értékelés
   createdAt: timestamp("created_at").defaultNow(),
@@ -468,6 +479,8 @@ export const dailyAttendance = pgTable("daily_attendance", {
   classId: integer("class_id").references(() => classes.id).notNull(),
   date: varchar("date").notNull(), // "YYYY-MM-DD"
   status: varchar("status").notNull().default("present"),
+  studentName: varchar("student_name"), // Durability metadata
+  className: varchar("class_name"), // Durability metadata
   actualStart: varchar("actual_start"), // pl. "08:00"
   actualEnd: varchar("actual_end"),     // pl. "15:00"
   notes: text("notes"),
@@ -488,6 +501,8 @@ export const attendance = pgTable("attendance", {
   studentId: varchar("student_id").references((): AnyPgColumn => users.id, { onDelete: "cascade" }).notNull(),
   classId: integer("class_id").references((): AnyPgColumn => classes.id).notNull(),
   teacherId: varchar("teacher_id").references((): AnyPgColumn => users.id),
+  studentName: varchar("student_name"), // Durability metadata
+  className: varchar("class_name"), // Durability metadata
   date: varchar("date").notNull(), // "YYYY-MM-DD" formátum
   periodNumber: integer("period_number").notNull(), // hányadik óra
   status: varchar("status").notNull().default("present"), // "present" | "absent" | "late" | "excused"
@@ -633,6 +648,9 @@ export const insertProfessionSchema = createInsertSchema(professions).omit({
   createdAt: true,
   updatedAt: true,
   schoolAdminId: true,
+}).extend({
+  code: z.string().optional().nullable(),
+  totalHours: z.number().optional().nullable(),
 });
 
 export const insertSubjectSchema = createInsertSchema(subjects).omit({
@@ -640,6 +658,9 @@ export const insertSubjectSchema = createInsertSchema(subjects).omit({
   createdAt: true,
   updatedAt: true,
   schoolAdminId: true,
+}).extend({
+  code: z.string().optional().nullable(),
+  hours: z.number().optional().nullable(),
 });
 
 // Type definitions for key concepts data structure
@@ -816,7 +837,10 @@ export type InsertProfession = z.infer<typeof insertProfessionSchema>;
 export type Class = typeof classes.$inferSelect;
 export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertSubject = z.infer<typeof insertSubjectSchema>;
-export type Subject = typeof subjects.$inferSelect;
+export type Subject = typeof subjects.$inferSelect & {
+  moduleCount?: number;
+  publishedCount?: number;
+};
 export type InsertModule = z.infer<typeof insertModuleSchema>;
 export type Module = typeof modules.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;

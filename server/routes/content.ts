@@ -165,11 +165,17 @@ router.post('/subjects', combinedAuth, checkContentEditor, async (req: any, res)
   }
 });
 
-router.patch('/subjects/:id', combinedAuth, checkContentEditor, async (req: any, res) => {
+router.patch('/subjects/:id', combinedAuth, checkContentEditor, async (req: any, res: any) => {
   try {
     const id = parseInt(req.params.id);
     const data = insertSubjectSchema.partial().parse(req.body);
     const subject = await storage.updateSubject(id, data);
+    
+    // If hours were modified, redistribute to modules
+    if (data.hours !== undefined && data.hours !== null) {
+      await storage.redistributeSubjectHours(id, data.hours);
+    }
+    
     res.json(subject);
   } catch (error) {
     res.status(500).json({ message: "Failed to update subject" });
@@ -199,10 +205,12 @@ router.get('/modules', combinedAuth, async (req: any, res) => {
     const schoolAdminId = userRole === 'admin' ? undefined : (userRole === 'school_admin' ? userId : userSchoolAdminId);
 
     let modules;
+    const professionId = userRole === 'student' ? user?.selectedProfessionId : undefined;
+    
     if (userRole === 'admin' || userRole === 'teacher') {
       modules = await storage.getModules(subjectId, schoolAdminId);
     } else {
-      modules = await storage.getPublishedModules(subjectId, schoolAdminId);
+      modules = await storage.getPublishedModules(subjectId, schoolAdminId, professionId || undefined);
     }
     
     let cleaned = modules.map(m => ({

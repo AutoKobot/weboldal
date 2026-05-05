@@ -68,16 +68,16 @@ function SlideImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-function InteractiveContent({ slide }: { slide: Slide }) {
+function InteractiveContent({ slide, onComplete }: { slide: Slide, onComplete?: () => void }) {
   if (!slide?.interactiveType || slide.interactiveType === 'none' || !slide.interactiveData) return null;
 
   switch (slide.interactiveType) {
     case 'quiz':
-      return <SlideQuiz data={slide.interactiveData} />;
+      return <SlideQuiz data={slide.interactiveData} onComplete={onComplete} />;
     case 'drag-drop':
-      return <SlideDragDrop data={slide.interactiveData} />;
+      return <SlideDragDrop data={slide.interactiveData} onComplete={onComplete} />;
     case 'hotspot':
-      return <SlideHotspots data={slide.interactiveData} imageUrl={slide.imageUrl} />;
+      return <SlideHotspots data={slide.interactiveData} imageUrl={slide.imageUrl} onComplete={onComplete} />;
     default:
       return null;
   }
@@ -89,6 +89,7 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
   const [hasStarted, setHasStarted] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [autoAdvance, setAutoAdvance] = useState(true);
+  const [isInteractiveCompleted, setIsInteractiveCompleted] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -116,9 +117,11 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
       setCurrentSlideIndex(0);
       setHasStarted(false);
       setIsPlaying(false);
+      setIsInteractiveCompleted(false);
     } else {
       setIsPlaying(false);
       setHasStarted(false);
+      setIsInteractiveCompleted(false);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -182,9 +185,14 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
       }
 
       audio.onended = () => {
-        if (autoAdvance && currentSlideIndex < slides.length - 1) {
-          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 1500);
-        } else if (currentSlideIndex === slides.length - 1) {
+        const isInteractive = currentSlide.interactiveType && currentSlide.interactiveType !== 'none';
+        const isSummary = currentSlide.type === 'summary';
+        
+        if (autoAdvance && !isInteractive && !isSummary && currentSlideIndex < slides.length - 1) {
+          // Increase delay to 3 seconds for better experience
+          setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 3000);
+        } else {
+          // Explicitly stop playing when we reach an interactive slide or the end
           setIsPlaying(false);
         }
       };
@@ -198,9 +206,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
         }
       };
     } else {
-      // No audio for this slide – auto-advance after delay
+      // No audio for this slide – auto-advance after delay (only if not interactive)
       audio.pause();
-      if (isPlaying && autoAdvance && currentSlideIndex < slides.length - 1) {
+      const isInteractive = currentSlide.interactiveType && currentSlide.interactiveType !== 'none';
+      if (isPlaying && autoAdvance && !isInteractive && currentSlideIndex < slides.length - 1) {
         const timer = setTimeout(() => setCurrentSlideIndex(prev => prev + 1), 5000);
         return () => { clearTimeout(timer); cleanupCanPlay(); };
       }
@@ -208,6 +217,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
 
     return () => cleanupCanPlay();
   }, [open, currentSlideIndex, isPlaying, isMuted, slides.length, currentSlide, autoAdvance, hasStarted]);
+
+  useEffect(() => {
+    setIsInteractiveCompleted(false);
+  }, [currentSlideIndex]);
 
   // Mandatory checks AFTER hooks
   if (!open) return null;
@@ -240,8 +253,20 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
     );
   }
 
-  const nextSlide = () => currentSlideIndex < slides.length - 1 && setCurrentSlideIndex(currentSlideIndex + 1);
-  const prevSlide = () => currentSlideIndex > 0 && setCurrentSlideIndex(currentSlideIndex - 1);
+  const nextSlide = () => {
+    if (currentSlideIndex < slides.length - 1) {
+      setCurrentSlideIndex(currentSlideIndex + 1);
+      setIsPlaying(true);
+    }
+  };
+
+  const prevSlide = () => {
+    if (currentSlideIndex > 0) {
+      setCurrentSlideIndex(currentSlideIndex - 1);
+      setIsPlaying(true);
+    }
+  };
+
   const togglePlay = async () => {
     await resumeAudioContext();
     setIsPlaying(prev => !prev);
@@ -285,7 +310,7 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           </div>
         )}
 
-        <audio ref={audioRef} style={{ display: 'none' }} />
+        <audio ref={audioRef} className="hidden" />
         
         <div className="h-20 bg-slate-900/60 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-8 z-50 shrink-0">
           <div className="flex items-center gap-6">
@@ -302,6 +327,15 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           </div>
           
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={togglePlay}
+              className={`w-11 h-11 rounded-xl bg-slate-800/40 border-slate-700/50 transition-all ${isPlaying ? 'text-blue-400 border-blue-500/30' : 'text-slate-400 hover:text-white'}`}
+              title={isPlaying ? "Szünet" : "Lejátszás"}
+            >
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -361,7 +395,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
                       </motion.div>
                       
                       <div className="mt-10">
-                        <InteractiveContent slide={currentSlide} />
+                        <InteractiveContent 
+                          slide={currentSlide} 
+                          onComplete={() => setIsInteractiveCompleted(true)}
+                        />
                       </div>
                     </div>
 
@@ -423,9 +460,14 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
           <Button 
             onClick={nextSlide} 
             disabled={currentSlideIndex === slides.length - 1}
-            className="bg-blue-600 hover:bg-blue-500 text-white min-w-[10rem] h-12 rounded-xl shadow-xl shadow-blue-900/20 text-md font-bold transition-all active:scale-95"
+            className={`min-w-[10rem] h-12 rounded-xl shadow-xl text-md font-bold transition-all active:scale-95 flex items-center justify-center gap-2
+              ${isInteractiveCompleted 
+                ? 'bg-green-600 hover:bg-green-500 shadow-green-900/20 animate-bounce' 
+                : 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20'}
+            `}
           >
-            {currentSlideIndex === slides.length - 1 ? 'Befejezés' : 'Következő'} <ChevronRight className="ml-2 w-5 h-5" />
+            {currentSlideIndex === slides.length - 1 ? 'Befejezés' : 'Következő'} 
+            <ChevronRight className={`w-5 h-5 ${isInteractiveCompleted ? 'animate-pulse' : ''}`} />
           </Button>
         </div>
       </DialogContent>

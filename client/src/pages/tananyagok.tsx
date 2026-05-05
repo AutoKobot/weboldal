@@ -4,13 +4,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { compareSectionCodes } from "@/lib/utils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import DynamicBackground from "@/components/dynamic-background";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock } from "lucide-react";
+import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2, Settings, Wand2 } from "lucide-react";
 import type { Profession, Subject } from "@shared/schema";
 
 export default function TananyagokPage() {
@@ -20,19 +22,24 @@ export default function TananyagokPage() {
   const [selectedProfession, setSelectedProfession] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<"theory" | "practical" | null>(null);
 
-  // Check URL for profession parameter and auto-select class profession
+  // Check URL for profession and type parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const professionParam = urlParams.get('profession');
+    const typeParam = urlParams.get('type') as "theory" | "practical" | null;
 
-    // Always start with profession selection view first
     if (professionParam) {
       setSelectedProfession(parseInt(professionParam));
     } else {
-      // Always start with null to show profession selection
       setSelectedProfession(null);
     }
-  }, [location, user]);
+
+    if (typeParam === "theory" || typeParam === "practical") {
+      setSelectedType(typeParam);
+    } else {
+      setSelectedType(null);
+    }
+  }, [location]);
 
   const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
     queryKey: ['/api/public/professions'],
@@ -66,6 +73,15 @@ export default function TananyagokPage() {
     },
     enabled: !!selectedProfession,
     retry: false,
+  });
+
+  const { data: queueStatus } = useQuery<any>({
+    queryKey: ["/api/admin/queue-status"],
+    enabled: user?.role === 'admin',
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000;
+    },
   });
 
   if (!user) return null;
@@ -180,30 +196,40 @@ export default function TananyagokPage() {
       />
 
       <div className="flex-1 overflow-auto">
-        <header className="bg-student-warm shadow-sm border-b border-neutral-100">
-          <div className="flex items-center justify-between px-6 py-4">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-neutral-100 px-6 py-4">
+          <div className="flex items-center justify-between max-w-6xl mx-auto">
             <div className="flex items-center space-x-4">
+              <div>
+                <h1 className="text-xl lg:text-2xl font-black text-neutral-800 tracking-tight">
+                  {selectedProfession ? "Tananyagok" : "Szakmák"}
+                </h1>
+                <p className="text-[10px] lg:text-sm text-neutral-500 uppercase font-bold tracking-widest truncate">
+                  {selectedProfession ? "Válassz tantárgyat" : "Válassz szakmát"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {user.role === 'admin' && queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse hidden sm:flex items-center gap-2 py-1 px-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-[10px] font-bold">AI</span> 
+                </Badge>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMobileNavOpen(true)}
-                className="lg:hidden"
+                className="lg:hidden p-2 hover:bg-neutral-100 rounded-xl"
+                aria-label="Beállítások megnyitása"
+                title="Beállítások"
               >
-                <Menu size={20} />
+                <Settings size={22} className="text-neutral-500" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-neutral-800">
-                  {selectedProfession ? "Tananyagok" : "Szakmák"}
-                </h1>
-                <p className="text-neutral-600">
-                  {selectedProfession ? "Válassza ki a tantárgyat és kezdje a tanulást" : "Válassza ki a szakmát és kezdje a tanulást"}
-                </p>
-              </div>
             </div>
           </div>
         </header>
 
-        <main className="p-6">
+        <main className="p-4 lg:p-6 pb-24 lg:pb-6">
           {/* Profession Selection */}
           {!selectedProfession && (
             <div className="mb-8">
@@ -333,7 +359,10 @@ export default function TananyagokPage() {
                     {/* Elméleti Képzés Kártya */}
                     <Card 
                       className="group cursor-pointer relative overflow-hidden bg-slate-900 border-none shadow-2xl transition-all duration-500 hover:shadow-blue-500/20"
-                      onClick={() => setSelectedType("theory")}
+                      onClick={() => {
+                        setSelectedType("theory");
+                        navigate(`/tananyagok?profession=${selectedProfession}&type=theory`);
+                      }}
                     >
                       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-600/20 transition-all"></div>
                       
@@ -354,7 +383,10 @@ export default function TananyagokPage() {
                     {/* Gyakorlati Képzés Kártya */}
                     <Card 
                       className="group cursor-pointer relative overflow-hidden bg-slate-950 border-none shadow-2xl transition-all duration-500 hover:shadow-orange-500/20"
-                      onClick={() => setSelectedType("practical")}
+                      onClick={() => {
+                        setSelectedType("practical");
+                        navigate(`/tananyagok?profession=${selectedProfession}&type=practical`);
+                      }}
                     >
                       <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-orange-600/20 transition-all"></div>
 
@@ -398,7 +430,7 @@ export default function TananyagokPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {[...subjects]
                         .filter(s => (s.type || "theory") === selectedType)
-                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                        .sort((a, b) => compareSectionCodes(a.code, b.code) || (a.orderIndex || 0) - (b.orderIndex || 0) || a.name.localeCompare(b.name))
                         .map((subject: Subject) => (
                         <Card
                           key={subject.id}
@@ -411,15 +443,22 @@ export default function TananyagokPage() {
                                 {selectedType === 'theory' ? <BookOpen className="text-white" size={28} /> : <Wrench className="text-white" size={28} />}
                               </div>
                               <div className="flex-1 min-w-0 pr-2">
-                                <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
-                                  {subject.name}
-                                </CardTitle>
-                                {subject.hours && (
-                                  <Badge variant="outline" className="mt-1 bg-white/50 text-[10px] h-4 border-neutral-200">
-                                    <Clock size={10} className="mr-1" /> {subject.hours} óra
-                                  </Badge>
-                                )}
-                              </div>
+                                  <CardTitle className="text-base font-bold text-neutral-800 leading-tight break-words">
+                                    {subject.name}
+                                  </CardTitle>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    {subject.hours && (
+                                      <Badge variant="outline" className="bg-white/50 text-[10px] h-4 border-neutral-200">
+                                        <Clock size={10} className="mr-1" /> {subject.hours} óra
+                                      </Badge>
+                                    )}
+                                    {(subject as any).developedCount > 0 && (
+                                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] h-4 font-bold">
+                                        <Wand2 size={10} className="mr-1" /> {(subject as any).developedCount}/{(subject as any).moduleCount} AI
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
                               <ArrowRight className="text-neutral-400 flex-shrink-0 mt-1" size={18} />
                             </div>
                           </CardHeader>
@@ -467,6 +506,7 @@ export default function TananyagokPage() {
             </div>
           )}
         </main>
+        <BottomNav />
       </div>
     </div>
   );

@@ -88,8 +88,8 @@ export class EnhancedModuleGenerator {
     return {
       youtubePrompt: youtubePromptSetting?.value || 'Javasolj 2-3 konkrét, létező vagy erősen valószínű YouTube videó CÍMET ehhez a tananyaghoz JSON tömbben. A címek legyenek pontosak és szakmailag relevánsak (pl. "Műszaki rajz alapjai - Vetületek"). Ne használj túl általános kifejezéseket!\n\nCím: {title}\nTartalom: {content}',
       wikipediaPrompt: wikipediaPromptSetting?.value || 'Azonosítsd a modul legfontosabb szakmai kifejezéseit és fogalmait, amelyekhez Wikipedia linkeket kell hozzáadni. Csak azokat a kifejezéseket válaszd ki, amelyek valóban fontosak a témához. Modulcím: {title}, Tartalom: {content}',
-      internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével using actual information. KÖTELEZŐ: A magyarázatot vizuálisan is támaszd alá legalább egy Mermaid diagrammal (pl. folyamatábra, graph TD vagy elmetérkép)! A diagram segítse a megértést. Modulcím: {title}, Eredeti tartalom: {content}',
-      conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör, lényegre törő tananyagot maximum 250-300 szóban:\n\nCím: {title}\nEredeti tartalom: {content}\nSzakma: {profession}\nTantárgy: {subject}\n\nKÖVETELMÉNYEK:\n- MAXIMUM 250-300 szó\n- Csak a legfontosabb információk\n- Egyszerű, érthető nyelvezet\n- Markdown formázás\n- Gyakorlati fókusz\n- NE ismételd meg a részletes verziót\n- HA a téma engedi (pl. folyamat, hierarchia), illessz be egy EGYSZERŰ Mermaid diagramot (graph TD) a vizuális szemléltetéshez!\n\nVálasz:'
+      internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével using actual information. KÖTELEZŐ: A magyarázatot vizuálisan is támaszd alá diagramokkal! Az összetettebb fogalmakat vagy folyamatokat mutasd be Mermaid (folyamatábra) vagy SVG (technikai rajz) kódblokkokkal a szövegbe ágyazva a megfelelő helyen. Modulcím: {title}, Eredeti tartalom: {content}',
+      conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör, lényegre törő tananyagot maximum 250-300 szóban:\n\nCím: {title}\nEredeti tartalom: {content}\nSzakma: {profession}\nTantárgy: {subject}\n\nKÖVETELMÉNYEK:\n- MAXIMUM 250-300 szó\n- Csak a legfontosabb információk\n- Egyszerű, érthető nyelvezet\n- Markdown formázás\n- Gyakorlati fókusz\n- Illessz be legalább egy vizuális ábrát (Mermaid vagy SVG), ami segít a lényeg megértésében!\n\nVálasz:'
     };
   }
 
@@ -133,10 +133,47 @@ export class EnhancedModuleGenerator {
     // Load specialized prompts from database
     const prompts = await this.loadPrompts();
 
-    // Adjust prompts if module is practical
+    // Adjust prompts based on module type
     if (moduleType === 'practical') {
-      prompts.internetContentPrompt = 'Készíts részletes szakmai gyakorlati útmutatót az internet segítségével! Írd le LÉPÉSRŐL LÉPÉSRE, hogy hogyan kell biztonságosan, a megfelelő szerszámokkal elvégezni az adott feladatot! KÖTELEZŐ Munkavédelmi és biztonsági előírások, szükséges eszközök listája. Modulcím: {title}, Eredeti tartalom: {content}';
-      prompts.conciseContentPrompt = 'Készíts tömör gyakorlati lépéssort az alábbi feladathoz maximum 250-300 szóban:\n\nCím: {title}\nEredeti tartalom: {content}\nSzakma: {profession}\n\nKÖVETELMÉNYEK:\n- Konkrét gyakorlati lépések\n- Szükséges eszközök\n- Munkavédelem\n- NE ismételd meg a részletes verziót\n\nVálasz:';
+      prompts.internetContentPrompt = `Készíts egy minden részletre kiterjedő, szakmai GYAKORLATI ÚTMUTATÓT! 
+      A tartalomnak tartalmaznia KELL:
+      1. A feladat pontos lépéseit (szekvenciálisan).
+      2. Megvalósítási lehetőségeket és alternatívákat.
+      3. Szükséges eszközök és anyagok listáját.
+      4. Segédleteket, mérési adatokat vagy beállítási értékeket.
+      5. A BIZTONSÁGOS munkavégzés ismérveit és a munkavédelmi előírásokat (gyakorlatiasan).
+      
+      KÖTELEZŐ: Ahol szakmailag indokolt (pl. egy eszköz felépítése, egy folyamat fázisai), illessz be vizuális ábrákat (Mermaid folyamatábra vagy SVG technikai rajz)!
+      
+      A cél, hogy a szövegből a tanuló TÖKÉLETESEN el tudja sajátítani a gyakorlati fogásokat.
+      Modulcím: {title}, Alapinformáció: {content}`;
+
+      prompts.conciseContentPrompt = `Készíts tömör gyakorlati összefoglalót (max 300 szó):
+      - Főbb lépések
+      - Kritikus biztonsági pontok
+      - Szükséges főbb eszközök
+      - Egy egyszerű Mermaid vagy SVG ábra a folyamat szemléltetésére.
+      
+      Cím: {title}
+      Szakma: {profession}`;
+    } else {
+      // Theory module defaults
+      prompts.internetContentPrompt = `Készíts egy minden részletre kiterjedő, szakmai ELMÉLETI tananyagot!
+      A tartalom legyen RÉSZLETES, professzionális és lefedjen minden szakmai aspektust.
+      A cél, hogy a szövegből a tanuló TÖKÉLETESEN megértse és elsajátítsa az elméleti hátteret.
+      Használj Markdown formázást, táblázatokat és listákat a jobb érthetőségért.
+      
+      KÖTELEZŐ: A fontosabb fogalmakat vagy összefüggéseket magyarázd el vizuálisan is (Mermaid diagram vagy SVG rajz)! Ne csak a végén legyen egy ábra, hanem a szövegbe ágyazva, ahol a leginkább segíti a megértést.
+      
+      Modulcím: {title}, Alapinformáció: {content}`;
+      
+      prompts.conciseContentPrompt = `Készíts TÖMÖR, de lényegre törő elméleti összefoglalót (max 300 szó):
+      - Kulcsfogalmak magyarázata
+      - Alapvető szabályok vagy összefüggések
+      - Egy szemléltető vizuális ábra (Mermaid/SVG).
+      
+      Cím: {title}
+      Szakma: {profession}`;
     }
 
     // SEQUENTIAL PROCESSING - Each step builds on the previous result
@@ -1510,7 +1547,7 @@ ${contextInfo}
         
 A fenti bemenetet CSAK kiindulópontnak használd, a kimenet legyen egy teljes értékű, kifejtett, ${type === 'concise' ? 'tömör, de lényegre törő' : 'részletes és alapos'} oktatási anyag! Ne másold le, hanem FEJLESZD TOVÁBB magyarázatokkal és példákkal!
 
-KÖTELEZŐ ELEM: A válaszba illessz be egy Mermaid diagramot (pl. mermaid graph TD blokk), ami összefoglalja a tananyag struktúráját vagy folyamatát! Enélkül a válasz elfogadhatatlan.`;
+KÖTELEZŐ ELEM: A válaszba illessz be vizuális ábrákat (pl. mermaid folyamatábra vagy SVG technikai rajz), amelyek összefoglalják a tananyag struktúráját, egy eszközt vagy egy folyamatot! A vizuális szemléltetés segítse a megértést. Enélkül a válasz elfogadhatatlan.`;
 
       const response = await generateChatResponse(enhancedPrompt, 'basic_ai_only');
       return response.message;

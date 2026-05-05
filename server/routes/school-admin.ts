@@ -74,7 +74,8 @@ router.patch('/classes/:id/shift', combinedAuth, checkSchoolAdmin, async (req: a
     const classData = await storage.getClassById(classId);
     if (!classData) return res.status(404).json({ message: "Class not found" });
     
-    if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id) {
+    const adminUser = await storage.getUser(req.user.id);
+    if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id && (!adminUser?.schoolId || classData.schoolId !== adminUser.schoolId)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -93,7 +94,8 @@ router.patch('/classes/:id', combinedAuth, checkSchoolAdmin, async (req: any, re
     const classData = await storage.getClassById(classId);
     if (!classData) return res.status(404).json({ message: "Class not found" });
     
-    if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id) {
+    const adminUser = await storage.getUser(req.user.id);
+    if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id && (!adminUser?.schoolId || classData.schoolId !== adminUser.schoolId)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -134,7 +136,8 @@ router.delete('/classes/:id', combinedAuth, checkSchoolAdmin, async (req: any, r
       return res.status(404).json({ message: "Osztály nem található" });
     }
 
-    if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id) {
+    const adminUser = await storage.getUser(req.user.id);
+    if (req.user.role !== 'admin' && classData.schoolAdminId !== req.user.id && (!adminUser?.schoolId || classData.schoolId !== adminUser.schoolId)) {
       return res.status(403).json({ message: "Nincs jogosultsága törölni ezt az osztályt" });
     }
 
@@ -155,13 +158,22 @@ router.post('/assign-student', combinedAuth, checkSchoolAdmin, async (req: any, 
       return res.status(400).json({ message: "Student ID and teacher ID are required" });
     }
 
+    const adminUser = await storage.getUser(req.user.id);
     const student = await storage.getUser(studentId);
-    if (!student || (student.schoolAdminId !== schoolAdminId && req.user.role !== 'admin')) {
+    const isAuthorizedForStudent = req.user.role === 'admin' || 
+      student?.schoolAdminId === schoolAdminId || 
+      (adminUser?.schoolId && student?.schoolId === adminUser.schoolId);
+
+    if (!student || !isAuthorizedForStudent) {
       return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanulóhoz" });
     }
 
     const teacher = await storage.getUser(teacherId);
-    if (!teacher || (teacher.schoolAdminId !== schoolAdminId && req.user.role !== 'admin')) {
+    const isAuthorizedForTeacher = req.user.role === 'admin' || 
+      teacher?.schoolAdminId === schoolAdminId || 
+      (adminUser?.schoolId && teacher?.schoolId === adminUser.schoolId);
+
+    if (!teacher || !isAuthorizedForTeacher) {
       return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanárhoz" });
     }
 
@@ -179,8 +191,13 @@ router.post('/remove-student', combinedAuth, checkSchoolAdmin, async (req: any, 
       return res.status(400).json({ message: "Student ID is required" });
     }
 
+    const adminUser = await storage.getUser(req.user.id);
     const student = await storage.getUser(studentId);
-    if (!student || (student.schoolAdminId !== schoolAdminId && req.user.role !== 'admin')) {
+    const isAuthorized = req.user.role === 'admin' || 
+      student?.schoolAdminId === schoolAdminId || 
+      (adminUser?.schoolId && student?.schoolId === adminUser.schoolId);
+
+    if (!student || !isAuthorized) {
       return res.status(403).json({ message: "Nincs jogosultsága ehhez a tanulóhoz" });
     }
 
@@ -258,6 +275,7 @@ router.post('/register-teacher', combinedAuth, checkSchoolAdmin, async (req: any
       }
     }
 
+    const adminUser = await storage.getUser(req.user.id);
     const newUser = await storage.createUser({
       username,
       password,
@@ -265,7 +283,8 @@ router.post('/register-teacher', combinedAuth, checkSchoolAdmin, async (req: any
       lastName,
       email: normalizedEmail,
       role: 'teacher',
-      schoolAdminId: req.user.id
+      schoolAdminId: req.user.id,
+      schoolId: adminUser?.schoolId
     });
     res.status(201).json(newUser);
   } catch (e) {
@@ -307,6 +326,7 @@ router.post('/register-student', combinedAuth, checkSchoolAdmin, async (req: any
       }
     }
 
+    const adminUser = await storage.getUser(req.user.id);
     const newUser = await storage.createUser({
       username,
       password,
@@ -315,6 +335,7 @@ router.post('/register-student', combinedAuth, checkSchoolAdmin, async (req: any
       email: normalizedEmail,
       role: 'student',
       schoolAdminId: req.user.id,
+      schoolId: adminUser?.schoolId,
       phone
     });
     res.status(201).json(newUser);

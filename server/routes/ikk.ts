@@ -2,7 +2,6 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
 import { ikkService } from "../ikk-service";
-import { getOpenAIClient } from "../openai";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 
@@ -73,25 +72,20 @@ let activeImport: {
 
 router.get('/status', combinedAuth, adminOnly, async (req, res) => {
   try {
-    // Disable caching for status updates to avoid 304 Not Modified issues
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // If we have any active or recently finished import in memory, return it (faster than DB)
     if (activeImport.status !== 'idle') {
       return res.json(activeImport);
     }
 
     const latestJob = await (storage as any).getLatestBackgroundJob('ikk_import');
     
-    // If we have no job at all, we are idle
     if (!latestJob) {
       return res.json({ status: 'idle', progress: 0, message: '', professionName: '', activeJobId: null });
     }
 
-    // If memory is idle but DB has a job, report the DB state
-    // But don't show "completed" or "error" forever - if it's older than 5 minutes and memory is idle, show idle
     const lastUpdate = new Date(latestJob.updatedAt || latestJob.updated_at).getTime();
     const isRecent = (Date.now() - lastUpdate) < (5 * 60 * 1000);
 
@@ -99,7 +93,6 @@ router.get('/status', combinedAuth, adminOnly, async (req, res) => {
       return res.json({ status: 'idle', progress: 0, message: '', professionName: '', activeJobId: null });
     }
 
-    // Sync memory state with DB state if memory is idle but DB has a job
     const statusData = {
       status: latestJob.status,
       progress: latestJob.progress,
@@ -138,16 +131,13 @@ router.post('/cancel', combinedAuth, adminOnly, async (req, res) => {
 
 router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
   try {
-    // 1. Memory reset
-    activeImport = {
-      status: 'idle',
-      progress: 0,
-      message: '',
-      professionName: '',
-      activeJobId: null
-    };
+    activeImport.status = 'idle';
+    activeImport.progress = 0;
+    activeImport.message = '';
+    activeImport.professionName = '';
+    activeImport.activeJobId = null;
+    activeImport.error = undefined;
 
-    // 2. Database "Hard Reset" - Delete all ikk_import jobs to clear UI state
     await db.execute(sql`
       DELETE FROM background_jobs 
       WHERE type = 'ikk_import'
@@ -160,9 +150,20 @@ router.post('/reset', combinedAuth, adminOnly, async (req, res) => {
   }
 });
 
+router.post('/reorganize/:id', combinedAuth, adminOnly, async (req, res) => {
+  try {
+    const professionId = parseInt(req.params.id);
+    await storage.reorganizeSubjects(professionId);
+    res.json({ success: true, message: "Sikeres átrendezés!" });
+  } catch (error) {
+    console.error("Reorganize error:", error);
+    res.status(500).json({ message: "Hiba az átrendezés során" });
+  }
+});
+
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
   try {
-    const { profession } = req.body;
+    const { profession, importType = 'both' } = req.body;
     if (!profession) return res.status(400).json({ message: 'Profession data is required' });
 
     const activeJob = await (storage as any).getLatestBackgroundJob('ikk_import');
@@ -174,114 +175,67 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
       if (idleMinutes < 15) {
         return res.status(400).json({ message: 'Egy importálás már folyamatban van és aktív. Kérjük várjon vagy próbálja újra később.' });
       } else {
-        console.warn(`[IKK-IMPORT] Elakadt munka észlelve (nem volt frissítés ${Math.round(idleMinutes)} perce), engedélyezem az új indítást.`);
         await (storage as any).updateBackgroundJob(activeJob.id, { 
           status: 'error', 
-          message: 'Időtúllépés miatt megszakítva (egy másik import váltotta fel).' 
+          message: 'Időtúllépés miatt megszakítva.' 
         });
       }
     }
 
-    // Create new persistent job
-    const job = await (storage as any).createBackgroundJob('ikk_import', 'Előkészítés...', { professionName: profession.name });
+    const job = await (storage as any).createBackgroundJob('ikk_import', 'Előkészítés...', { 
+      professionName: profession.name,
+      importType 
+    });
 
     // Update memory state for polling
-    activeImport = {
-      status: 'processing',
-      progress: 0,
-      message: 'Előkészítés...',
-      professionName: profession.name,
-      activeJobId: job.id
-    };
+    activeImport.status = 'processing';
+    activeImport.progress = 0;
+    activeImport.message = 'Előkészítés...';
+    activeImport.professionName = profession.name;
+    activeImport.activeJobId = job.id;
+    activeImport.error = undefined;
 
-    // Send immediate response
-    res.json({ success: true, message: 'Importálás elindítva a háttérben!', jobId: job.id });
+    res.json({ success: true, message: 'Importálás elindítva!', jobId: job.id });
 
-    // Background Execution - Start after a short delay to ensure DB connections are stabilized
     setTimeout(async () => {
       const jobId = job.id;
+      const type = importType as 'theory' | 'practical' | 'both';
+      let createdProfessionId: number | null = null;
+      let isNewProfession = false;
+      
       try {
-        // Validation: If this is not the current active job, stop immediately
-        if (activeImport.activeJobId !== jobId) {
-          console.log(`[IKK-IMPORT] Zombi munka észlelve (#${jobId}), leállítás.`);
-          return;
-        }
+        if (activeImport.activeJobId !== jobId) return;
 
-        console.log(`[IKK-IMPORT-DEBUG] Háttérfolyamat indítása... Job: ${jobId}`);
-        console.log(`[IKK-IMPORT] Megkezdve: ${profession.name} (Job: ${jobId})`);
-        
-        console.log(`[IKK-IMPORT-DEBUG] Status frissítése (AI inicializálás előtt)...`);
-        
-        // Final check before starting
-        if (activeImport.status === 'error') return;
-        activeImport.message = "AI szolgáltatás inicializálása...";
-        activeImport.progress = 2;
-        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
-        console.log(`[IKK-IMPORT-DEBUG] Status frissítve.`);
-        
-        console.time(`openai-init-${jobId}`);
-        console.log(`[IKK-IMPORT-DEBUG] OpenAI kliens betöltése...`);
         const { getOpenAIClient } = await import('../openai');
         const openai = await getOpenAIClient();
-        console.timeEnd(`openai-init-${jobId}`);
         
         activeImport.message = "Kapcsolat ellenőrzése az OpenAI-val...";
-        activeImport.progress = 4;
-        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
-        console.time(`openai-check-${jobId}`);
-        try {
-          await openai.models.list();
-          console.timeEnd(`openai-check-${jobId}`);
-        } catch (openaiErr: any) {
-          console.timeEnd(`openai-check-${jobId}`);
-          throw new Error(`OpenAI hiba: ${openaiErr.message || 'Érvénytelen API kulcs vagy hálózati hiba'}`);
-        }
-
-        // Step 1: Get PDF Content
-        activeImport.message = "PDF dokumentumok letöltése (IKK API)...";
         activeImport.progress = 5;
         await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
-        console.log(`[IKK-IMPORT] PDF letöltés indítva...`);
-        console.time(`pdf-content-${jobId}`);
+        await openai.models.list();
+
+        activeImport.message = "PDF dokumentumok letöltése (IKK API)...";
+        activeImport.progress = 10;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
         const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
-        console.timeEnd(`pdf-content-${jobId}`);
-        console.log(`[IKK-IMPORT] PDF letöltés kész. KKK: ${kkkText.length}, PTT: ${pttText.length}`);
         
-        // Step 1.5: Validate content matches profession (Security Check)
-        activeImport.message = "Dokumentumok hitelesítése...";
-        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message });
-        
-        const validationResponse = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "Te egy szakértő vagy, aki eldönti, hogy egy tananyag-dokumentum egy adott szakmához tartozik-e. Csak 'IGEN' vagy 'NEM' választ adj." },
-            { role: "user", content: `A kiválasztott szakma: ${profession.name}. A dokumentum részlete: ${pttText.substring(0, 1000)}. Ez a dokumentum ehhez a szakmához tartozik?` }
-          ],
-          max_tokens: 10
-        });
-
-        const isValid = validationResponse.choices[0].message.content?.trim().toUpperCase().includes('IGEN');
-        if (!isValid) {
-          throw new Error(`Szakmai dokumentum eltérés! A letöltött PDF nem a(z) ${profession.name} szakmához tartozik. (Valószínűleg IKK oldali hiba)`);
-        }
-
-        // Step 2: Extract Subjects and Modules (Parallel Chunks)
         const chunks = ikkService.splitPttIntoSections(pttText);
-        if (chunks.length === 0) {
-          console.error(`[IKK-IMPORT] Nincs tantárgy a PTT-ben. PTT szöveg hossza: ${pttText.length}`);
-          throw new Error("Nem sikerült tantárgyakat találni a PTT-ben. Lehet, hogy a PDF nem tartalmazza a várt struktúrát.");
-        }
+        if (chunks.length === 0) throw new Error("Nem sikerült tantárgyakat találni a PTT-ben.");
 
         const mergedSubjectsMap: Map<string, any> = new Map();
-        await runParallel(chunks, 2, async (chunk, i) => {
-          if (activeImport.status === 'error') return;
+        let analysisProgress = 0;
+        await runParallel(chunks, 1, async (chunk, i) => {
+          if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
 
           activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
-          activeImport.progress = 15 + Math.floor((i / chunks.length) * 25);
-          await (storage as any).updateBackgroundJob(jobId, { 
-            message: activeImport.message,
-            progress: activeImport.progress
-          });
+          // Map analysis to 15-40% range
+          const currentAnalysisProgress = 15 + Math.round((i / chunks.length) * 25);
+          if (currentAnalysisProgress > analysisProgress) {
+            analysisProgress = currentAnalysisProgress;
+            activeImport.progress = analysisProgress;
+          }
+          
+          await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
           const response = await withRetry(async () => {
             const openai = await getOpenAIClient();
@@ -290,7 +244,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               response_format: { type: "json_object" },
               messages: [
                 { role: "system", content: "Te egy precíz PTT elemző vagy. Csak valid JSON-t adsz vissza subjects listával." },
-                { role: "user", content: ikkService.buildExtractionPrompt(chunk) }
+                { role: "user", content: ikkService.buildExtractionPrompt(chunk, type) }
               ],
               temperature: 0,
             });
@@ -300,15 +254,12 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           if (data.subjects) {
             for (const sub of data.subjects) {
               const key = sub.name?.toLowerCase().trim();
-              if (!key || key === 'példa_tantárgy_neve' || key === 'tantárgy pontos neve') continue;
-              
+              if (!key || key.includes('példa')) continue;
               if (!mergedSubjectsMap.has(key)) mergedSubjectsMap.set(key, { ...sub, modules: [] });
               const existing = mergedSubjectsMap.get(key);
               if (sub.modules) {
                 for (const mod of sub.modules) {
-                  if (!existing.modules.some((m: any) => m.title === mod.title)) {
-                    existing.modules.push(mod);
-                  }
+                  if (!existing.modules.some((m: any) => m.title === mod.title)) existing.modules.push(mod);
                 }
               }
             }
@@ -318,55 +269,66 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const finalSubjects = Array.from(mergedSubjectsMap.values());
         if (finalSubjects.length === 0) throw new Error("Az AI nem talált feldolgozható tantárgyakat.");
 
-        // Step 3: Delete existing if any
+        // Find or create profession
         const allProfs = await storage.getProfessions();
-        const existing = allProfs.find(p => p.name === profession.name);
-        if (existing) {
-          console.log(`[IKK-IMPORT] Meglévő szakma törlése: ${existing.id}`);
-          await storage.deleteProfession(existing.id);
-        }
-
-        // Step 4: Create new profession
-        let totalModules = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
-        const professionDescription = `Importálva az IKK-ról. Ágazat: ${profession.sector?.name || profession.sector || 'N/A'}. (${finalSubjects.length} tantárgy, ${totalModules} modul). Azonosító: ${profession.okjId || 'N/A'}`;
+        let dbProfession = allProfs.find(p => p.name.trim() === profession.name.trim());
         
-        const dbProfession = await storage.createProfession({
-          name: profession.name,
-          description: professionDescription,
-          iconName: "book"
-        });
-
-        // Step 5: Generate content and save
-        let processedModules = 0;
-
-        for (const sub of finalSubjects) {
-          if ((activeImport.status as string) === 'error') break;
-          const dbSubject = await storage.createSubject({
-            professionId: dbProfession.id,
-            name: sub.name,
-            description: sub.description || "",
-            type: sub.practicalPercent > 0 ? 'practical' : 'theory',
-            orderIndex: 0,
-            hours: sub.hours || null
+        if (!dbProfession) {
+          // Create new if not exists
+          dbProfession = await storage.createProfession({
+            name: profession.name,
+            description: `Importálva az IKK-ról.`,
+            iconName: "book",
+            code: profession.okjId || profession.code
           });
+          isNewProfession = true;
+        } else {
+          // Clean description from old update notes and add new one
+          const cleanDescription = (dbProfession.description || "").split(" (Frissítve:")[0];
+          await storage.updateProfession(dbProfession.id, {
+            description: cleanDescription + ` (Frissítve: ${new Date().toLocaleDateString('hu-HU')} - ${type === 'both' ? 'Teljes' : type === 'theory' ? 'Elmélet' : 'Gyakorlat'})`
+          });
+        }
+        
+        createdProfessionId = dbProfession.id;
+        const existingSubjects = await storage.getSubjects(dbProfession.id);
 
-          // Prepare batches for this subject
-          const BATCH_SIZE = 15;
+        let processedModules = 0;
+        let totalModulesCount = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
+        
+        for (const sub of finalSubjects) {
+          if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
+
+          let dbSubject = existingSubjects.find(s => s.name === sub.name);
+          
+          if (!dbSubject) {
+            dbSubject = await storage.createSubject({
+              professionId: dbProfession.id,
+              name: sub.name,
+              code: (sub.code || "").replace(/\.$/, ""), // Clean trailing dot for better sorting
+              description: sub.description || "",
+              type: sub.practicalPercent > 0 ? 'practical' : 'theory',
+              orderIndex: 0,
+              hours: sub.hours || null
+            });
+          }
+
+          const existingModules = await storage.getModules(dbSubject.id);
+
+          const BATCH_SIZE = 4; // Further reduced for stability with more granular splitting
           const batches = [];
           for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
             batches.push(sub.modules.slice(i, i + BATCH_SIZE));
           }
 
-          // Process batches in parallel (limit 3)
-          await runParallel(batches, 3, async (batch) => {
-            if (activeImport.status === 'error') return;
+          // Safety delay between subjects
+          await new Promise(r => setTimeout(r, 1000));
 
-            activeImport.message = `${sub.name} - Tartalom generálása (${processedModules}/${totalModules})...`;
-            activeImport.progress = 40 + Math.floor((processedModules / totalModules) * 55);
-            await (storage as any).updateBackgroundJob(jobId, {
-              message: activeImport.message,
-              progress: activeImport.progress
-            });
+          await runParallel(batches, 2, async (batch, batchIndex) => {
+            if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
+
+            // Small staggered delay for parallel batches to avoid simultaneous AI hits
+            if (batchIndex > 0) await new Promise(r => setTimeout(r, batchIndex * 500));
 
             const res = await withRetry(async () => {
               const openai = await getOpenAIClient();
@@ -374,60 +336,105 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                 model: "gpt-4o-mini",
                 response_format: { type: "json_object" },
                 messages: [
-                  { role: "system", content: "Tananyagfejlesztő vagy. Generálj szakmai tartalmat és feladatokat JSON formátumban." },
+                  { role: "system", content: "Tananyagfejlesztő vagy. Generálj szakmai tartalmat JSON-ben." },
                   { role: "user", content: ikkService.buildContentPrompt(profession.name, sub.name, batch) }
                 ],
                 temperature: 0.4
+              }, {
+                timeout: 120000 // Increased to 2 minutes for large granular expansions
               });
             });
 
             const contentData = JSON.parse(res.choices[0].message.content || '{"modules":[]}');
-            const modulesToCreate: any[] = [];
-
-            for (const modData of (contentData.modules || [])) {
-              const originalMod = batch.find((m: any) => m.title === modData.title);
-              modulesToCreate.push({
-                subjectId: dbSubject.id,
-                title: modData.title,
-                content: modData.content || "",
-                practicalTasks: modData.practicalTasks || [],
-                type: originalMod?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
-                moduleNumber: ++processedModules,
-                sectionCode: originalMod?.sectionCode || null,
-                isPublished: true
+            const modulesToCreate = (contentData.modules || [])
+              .filter((modData: any) => !existingModules.some(em => em.title === modData.title))
+              .map((modData: any) => {
+                const original = batch.find((m: any) => m.title === modData.title);
+                return {
+                  subjectId: dbSubject.id,
+                  title: modData.title,
+                  content: modData.content || "",
+                  practicalTasks: modData.practicalTasks || [],
+                  type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
+                  moduleNumber: ++processedModules,
+                  sectionCode: original?.sectionCode || null,
+                  isPublished: true
+                };
               });
-            }
 
-            if (modulesToCreate.length > 0) {
-              await storage.bulkCreateModules(modulesToCreate);
+            if (modulesToCreate.length > 0) await storage.bulkCreateModules(modulesToCreate);
+            else processedModules += batch.length; // Count existing as processed for progress
+            
+            // Update progress AFTER each batch
+            const currentProgress = 40 + Math.round((processedModules / totalModulesCount) * 55);
+            if (currentProgress > activeImport.progress) {
+               activeImport.progress = currentProgress;
             }
+            activeImport.message = `${sub.name} - Tartalom (${processedModules}/${totalModulesCount})...`;
+            
+            await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
           });
+          
+          // After all modules for this subject are created and populated, distribute the hours
+          if (sub.hours && sub.hours > 0) {
+            try {
+              const allModulesForDist = await storage.getModules(dbSubject.id);
+              const hourDistributions = await ikkService.distributeSubjectHours(
+                profession.name, 
+                sub.name, 
+                sub.hours, 
+                sub.practicalPercent || 50,
+                allModulesForDist.map(m => ({ id: m.id, title: m.title, type: m.type || 'theory' }))
+              );
+              
+              for (const dist of hourDistributions) {
+                if (dist.hours > 0) {
+                  await storage.updateModule(dist.id, { suggestedHours: dist.hours.toString() });
+                }
+              }
+            } catch (err) {
+              console.error(`Error distributing hours for subject ${sub.name}:`, err);
+            }
+          }
+        }
+
+        if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') {
+          if (createdProfessionId) await storage.deleteProfession(createdProfessionId);
+          return;
         }
 
         activeImport.status = 'completed';
         activeImport.progress = 100;
-        activeImport.message = `Sikeresen importálva: ${dbProfession.name} (${processedModules} modul)`;
-        await (storage as any).updateBackgroundJob(jobId, {
-          status: activeImport.status,
-          progress: activeImport.progress,
-          message: activeImport.message
-        });
-        console.log(`[IKK-IMPORT] KÉSZ: ${profession.name}`);
+        activeImport.message = `Sikeres import: ${dbProfession.name} (ID: ${dbProfession.id})`;
+        
+        // Post-import reorganization: split subjects into theory and practical
+        if (createdProfessionId) {
+          try {
+            await storage.reorganizeSubjects(createdProfessionId);
+          } catch (reorgErr) {
+            console.error("[IKK-IMPORT] Reorganization error:", reorgErr);
+          }
+        }
+        
+        await (storage as any).updateBackgroundJob(jobId, { status: 'completed', progress: 100, message: activeImport.message });
 
       } catch (err: any) {
-        console.error("[IKK-IMPORT] KRITIKUS HIBA:", err);
+        console.error("[IKK-IMPORT] Hiba:", err);
         activeImport.status = 'error';
         activeImport.error = err.message;
-        activeImport.message = `Hiba: ${err.message}`;
-        await (storage as any).updateBackgroundJob(jobId, {
-          status: activeImport.status,
-          error: activeImport.error,
-          message: activeImport.message
-        });
+        
+        // Disabled automatic deletion to allow for partial imports and debugging
+        /*
+        if (createdProfessionId && isNewProfession) {
+          console.log(`[IKK-IMPORT] Takarítás: #${createdProfessionId}`);
+          await storage.deleteProfession(createdProfessionId);
+        }
+        */
+        
+        await (storage as any).updateBackgroundJob(jobId, { status: 'error', error: err.message, message: `Hiba: ${err.message}` });
       }
     }, 500);
   } catch (error) {
-    console.error('IKK import indítási hiba:', error);
     res.status(500).json({ message: 'Failed to start IKK import' });
   }
 });

@@ -14,13 +14,20 @@ interface DragDropProps {
     pairs: Pair[];
     instructions: string;
   };
+  onComplete?: () => void;
 }
 
-export function SlideDragDrop({ data }: DragDropProps) {
+export function SlideDragDrop({ data, onComplete }: DragDropProps) {
   const [items, setItems] = useState<string[]>([]);
   const [targets, setTargets] = useState<string[]>([]);
   const [matches, setMatches] = useState<Record<string, string>>({});
   const [isComplete, setIsComplete] = useState(false);
+  
+  useEffect(() => {
+    if (isComplete && onComplete) {
+      onComplete();
+    }
+  }, [isComplete, onComplete]);
   
   // Initialize with shuffled items
   useEffect(() => {

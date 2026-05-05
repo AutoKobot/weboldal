@@ -5,14 +5,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { extractTextFromMarkdown } from "@/lib/utils";
+import { extractTextFromMarkdown, compareSectionCodes } from "@/lib/utils";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search, Wrench, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
@@ -646,18 +647,113 @@ export default function ModuleViewer() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Mobile Header */}
-        <header className="bg-student-warm shadow-sm border-b border-neutral-100 lg:hidden">
-          <div className="flex items-center justify-between p-4">
-            <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="text-neutral-700"
+        {/* Mobile Header - Sticky and Premium */}
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-neutral-100 lg:hidden px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackNavigation}
+              className="p-2 hover:bg-neutral-100 rounded-xl flex-shrink-0"
+              aria-label="Vissza a tananyagokhoz"
+              title="Vissza"
             >
-              <Menu size={24} />
-            </button>
-            <h1 className="text-lg font-semibold text-neutral-700">Modul</h1>
-            <div className="w-6"></div>
+              <ArrowLeft size={20} className="text-neutral-500" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-black text-neutral-800 truncate leading-tight tracking-tight uppercase">
+                {module.title}
+              </h1>
+              <p className="text-[9px] text-neutral-500 font-bold uppercase tracking-widest truncate">
+                {module.sectionCode || `#${module.moduleNumber}. modul`}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileNavOpen(true)}
+              className="p-2 hover:bg-neutral-100 rounded-xl flex-shrink-0"
+              aria-label="Beállítások megnyitása"
+              title="Beállítások"
+            >
+              <Settings size={20} className="text-neutral-500" />
+            </Button>
           </div>
         </header>
+
+        {/* Mobile Multimedia Bar - Horizontal Scrollable */}
+        <div className="lg:hidden flex items-center gap-3 overflow-x-auto px-4 py-3 bg-white border-b border-neutral-50 scrollbar-hide">
+          {module.imageUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImageModal(true)}
+              className="flex-shrink-0 gap-2 bg-blue-50/50 border-blue-100 text-blue-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <ImageIcon size={14} /> Kép
+            </Button>
+          )}
+          {module.youtubeUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowYoutubeModal(true)}
+              className="flex-shrink-0 gap-2 bg-red-50/50 border-red-100 text-red-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Youtube size={14} /> Videó
+            </Button>
+          )}
+          {module.videoUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowVideoModal(true)}
+              className="flex-shrink-0 gap-2 bg-purple-50/50 border-purple-100 text-purple-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Play size={14} /> Demo
+            </Button>
+          )}
+          {module.audioUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAudioModal(true)}
+              className="flex-shrink-0 gap-2 bg-green-50/50 border-green-100 text-green-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Volume2 size={14} /> Hang
+            </Button>
+          )}
+          {module.podcastUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPodcastModal(true)}
+              className="flex-shrink-0 gap-2 bg-orange-50/50 border-orange-100 text-orange-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Headphones size={14} /> Podcast
+            </Button>
+          )}
+          {module.presentationUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPresentationModal(true)}
+              className="flex-shrink-0 gap-2 bg-indigo-50/50 border-indigo-100 text-indigo-700 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Presentation size={14} /> Prezi
+            </Button>
+          )}
+          {Boolean(module.presentationData) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInteractivePresentationModal(true)}
+              className="flex-shrink-0 gap-2 bg-slate-900 border-blue-600 text-blue-400 h-9 rounded-xl px-3 font-bold text-xs animate-pulse"
+            >
+              <MonitorPlay size={14} /> Interaktív AI
+            </Button>
+          )}
+        </div>
 
         {/* Content Area */}
         <div className="flex flex-col">
@@ -673,9 +769,9 @@ export default function ModuleViewer() {
               Vissza
             </Button>
 
-            {/* Multimédia oldalsáv */}
+            {/* Multimédia oldalsáv - Csak Desktopon fixált */}
             {module && (
-              <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-40 flex flex-col gap-2">
+              <div className="hidden lg:flex fixed right-6 top-1/2 transform -translate-y-1/2 z-40 flex-col gap-3">
                 {module.imageUrl && (
                   <Button
                     variant="outline"
@@ -873,142 +969,139 @@ export default function ModuleViewer() {
                   </div>
                 ) : (
                   <div ref={mermaidRef} className="prose prose-neutral max-w-none dark:prose-invert">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        // Custom styling for markdown elements
-                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
-                        p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>,
-                        blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
-                        pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
-                        strong: ({ children }) => {
-                          // Convert strong text to Wikipedia links for key concepts
-                          const text = String(children);
-
-                          // Common cooking ingredients and technical terms that should get Wikipedia links
-                          const importantTerms = [
-                            'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
-                            'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
-                            'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt'
-                          ];
-
-                          // Check if this text is an important term
-                          const isImportantTerm = importantTerms.some(term =>
-                            text.toLowerCase().includes(term.toLowerCase())
-                          );
-
-                          // Also check against key concepts data
-                          let keyConceptsData = [];
-                          try {
-                            keyConceptsData = module.keyConceptsData ?
-                              (typeof module.keyConceptsData === 'string' ?
-                                JSON.parse(module.keyConceptsData) :
-                                module.keyConceptsData) : [];
-                          } catch (e) {
-                            // If parsing fails, just use empty array
-                          }
-
-                          const matchingConcept = keyConceptsData.find((concept: any) =>
-                            concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
-                          );
-
-                          if (isImportantTerm || matchingConcept) {
-                            const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
+                    {(module.type !== 'practical' || (module.content && module.content.length > 50)) && (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          // Custom styling for markdown elements
+                          h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 text-primary">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 text-primary">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-lg font-medium mb-2 text-primary">{children}</h3>,
+                          p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
+                          blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic mb-4 bg-student-warm py-2">{children}</blockquote>,
+                          pre: ({ children }) => <pre className="bg-neutral-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+                          strong: ({ children }) => {
+                            // Convert strong text to Wikipedia links for key concepts
+                            const text = String(children);
+  
+                            // Common technical terms that should get Wikipedia links
+                            const importantTerms = [
+                              'paprika', 'paradicsom', 'hagyma', 'kolbász', 'lecsó', 'tojás', 'olaj',
+                              'só', 'bors', 'pirospaprika', 'cukor', 'fokhagyma', 'zöldpaprika',
+                              'kápiapaprika', 'szalonna', 'tejföl', 'liszt', 'vaj', 'tej', 'sajt',
+                              'hegesztés', 'ívhegesztés', 'elektróda', 'fém', 'ötvözet', 'acél'
+                            ];
+  
+                            // Check if this text is an important term
+                            const isImportantTerm = importantTerms.some(term =>
+                              text.toLowerCase().includes(term.toLowerCase())
+                            );
+  
+                            // Also check against key concepts data
+                            let keyConceptsData = [];
+                            try {
+                              keyConceptsData = module.keyConceptsData ?
+                                (typeof module.keyConceptsData === 'string' ?
+                                  JSON.parse(module.keyConceptsData) :
+                                  module.keyConceptsData) : [];
+                            } catch (e) {}
+  
+                            const matchingConcept = keyConceptsData.find((concept: any) =>
+                              concept.concept && text.toLowerCase().includes(concept.concept.toLowerCase())
+                            );
+  
+                            if (isImportantTerm || matchingConcept) {
+                              const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(text)}`;
+                              return (
+                                <a
+                                  href={wikipediaUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
+                                  title={`Wikipedia: ${text}`}
+                                >
+                                  {children}
+                                  <span className="text-xs">🔗</span>
+                                </a>
+                              );
+                            }
+  
+                            return <strong className="font-semibold text-primary">{children}</strong>;
+                          },
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                          table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
+                          th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
+                          td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
+                          a: ({ href, children }) => {
+                            if (href && href.includes('hu.wikipedia.org/wiki/')) {
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    fetchWikipediaContent(href);
+                                  }}
+                                  className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
+                                >
+                                  {children}
+                                  <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
+                                </button>
+                              );
+                            }
+                            return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
+                          },
+                          code: ({ className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            const language = match ? match[1] : '';
+                            if (language === 'mermaid') {
+                              return (
+                                <div className="mermaid bg-student-warm p-4 border rounded-lg my-4 shadow-sm">
+                                  {String(children).replace(/\n$/, '')}
+                                </div>
+                              );
+                            }
+                            if (language === 'svg') {
+                              return (
+                                <div 
+                                  className="svg-visualizer my-6 flex justify-center bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm overflow-hidden"
+                                  dangerouslySetInnerHTML={{ __html: String(children) }}
+                                />
+                              );
+                            }
                             return (
-                              <a
-                                href={wikipediaUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-semibold text-primary hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1"
-                                title={`Wikipedia: ${text}`}
-                              >
+                              <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
                                 {children}
-                                <span className="text-xs">🔗</span>
-                              </a>
+                              </code>
                             );
                           }
-
-                          return <strong className="font-semibold text-primary">{children}</strong>;
-                        },
-                        em: ({ children }) => <em className="italic">{children}</em>,
-                        table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
-                        th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
-                        td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
-                        a: ({ href, children }) => {
-                          // Check if this is a Wikipedia link
-                          if (href && href.includes('hu.wikipedia.org/wiki/')) {
-                            return (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  fetchWikipediaContent(href);
-                                }}
-                                className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium"
-                              >
-                                {children}
-                                <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span>
-                              </button>
-                            );
+                        }}
+                      >
+                        {(() => {
+                          if (module.conciseContent || module.detailedContent) {
+                            if (contentVersion === 'concise' && module.conciseContent) return module.conciseContent;
+                            if (contentVersion === 'detailed' && module.detailedContent) return module.detailedContent;
+                            return module.detailedContent || module.conciseContent;
                           }
-                          // Regular external links
-                          return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
-                        },
-                        code: ({ className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || '');
-                          const language = match ? match[1] : '';
-
-                          if (language === 'mermaid') {
-                            return (
-                              <div className="mermaid bg-student-warm p-4 border rounded-lg my-4">
-                                {String(children).replace(/\n$/, '')}
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <code className="bg-neutral-100 px-2 py-1 rounded text-sm font-mono" {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                      }}
-                    >
-                      {(() => {
-                        // AI enhanced modules: use selected version
-                        if (module.conciseContent || module.detailedContent) {
-                          if (contentVersion === 'concise' && module.conciseContent) {
-                            return module.conciseContent;
-                          }
-                          if (contentVersion === 'detailed' && module.detailedContent) {
-                            return module.detailedContent;
-                          }
-                          // Fallback to available content
-                          return module.detailedContent || module.conciseContent;
-                        }
-                        // Regular modules: use original content
-                        return module.content;
-                      })()}
-                    </ReactMarkdown>
+                          return module.content;
+                        })()}
+                      </ReactMarkdown>
+                    )}
 
                     {/* Practical Tasks Section */}
-                    {!!module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
-                      <div className="mt-8 pt-6 border-t border-neutral-100">
+                    {module.type === 'practical' && !!module.practicalTasks && Array.isArray(module.practicalTasks) && module.practicalTasks.length > 0 && (
+                      <div className={`${module.content && module.content.length > 50 ? "mt-8 pt-6 border-t border-neutral-100" : ""}`}>
                         <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                          <CheckCircle className="text-green-600" size={20} />
+                          <Wrench className="text-orange-600" size={20} />
                           Gyakorlati Feladatok
                         </h3>
                         <div className="grid gap-3">
                           {module.practicalTasks.map((task: string, idx: number) => (
-                            <div key={idx} className="flex items-start gap-3 bg-green-50/50 p-4 rounded-xl border border-green-100/50 hover:bg-green-50 transition-colors">
-                              <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                            <div key={idx} className="flex items-start gap-4 bg-orange-50/50 p-5 rounded-2xl border border-orange-100/50 hover:bg-orange-50 transition-all shadow-sm">
+                              <span className="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
                                 {idx + 1}
                               </span>
-                              <p className="text-neutral-700 leading-relaxed font-medium">{task}</p>
+                              <p className="text-neutral-700 leading-relaxed font-semibold text-lg">{task}</p>
                             </div>
                           ))}
                         </div>
@@ -1109,7 +1202,7 @@ export default function ModuleViewer() {
 
               const subjectModules = allModules
                 .filter(m => m.subjectId === currentModule.subjectId)
-                .sort((a, b) => a.moduleNumber - b.moduleNumber);
+                .sort((a, b) => compareSectionCodes(a.sectionCode, b.sectionCode) || (a.moduleNumber - b.moduleNumber));
 
               const currentIndex = subjectModules.findIndex(m => m.id === moduleId);
               const previousModule = subjectModules[currentIndex - 1];
@@ -1223,8 +1316,7 @@ export default function ModuleViewer() {
               // Google Drive képek: iframe preview a legmegbízhatóbb módszer
               <iframe
                 src={toGoogleDrivePreviewUrl(module.imageUrl)}
-                className="w-full rounded-lg border-0"
-                style={{ height: '70vh' }}
+                className="w-full h-[70vh] rounded-lg border-0"
                 allow="autoplay"
                 title="Modul illusztráció"
               />
@@ -1259,6 +1351,7 @@ export default function ModuleViewer() {
                 className="w-full h-full rounded-lg"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                title="YouTube videó"
               />
             )}
           </div>
@@ -1370,7 +1463,7 @@ export default function ModuleViewer() {
           </div>
 
           {/* Az iframe a teljes remaining space-t foglalja el */}
-          <div className="flex-1 w-full relative bg-neutral-100 overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="flex-1 w-full relative bg-neutral-100 overflow-hidden min-h-0">
             {module?.presentationUrl ? (() => {
               const embedUrl = toPresentationEmbedUrl(module.presentationUrl);
               const isGoogleSlides = module.presentationUrl.includes('/presentation/d/');
@@ -1485,6 +1578,7 @@ export default function ModuleViewer() {
         })() as any[]}
         moduleTitle={module.title}
       />
+      <BottomNav />
     </div>
   );
 }

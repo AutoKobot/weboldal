@@ -1,15 +1,14 @@
-
-import { storage } from "../server/storage";
+import { db } from "./server/db";
+import { sql } from "drizzle-orm";
 
 async function checkJobs() {
   try {
-    const jobs = await (storage as any).getBackgroundJobsByTag('ikk_import');
-    console.log("Recent IKK Import Jobs:");
-    jobs.slice(0, 5).forEach((j: any) => {
-      console.log(`ID: ${j.id}, Status: ${j.status}, Progress: ${j.progress}%, Error: ${j.error || 'none'}`);
-    });
+    const result = await db.execute(sql`SELECT id, type, status, progress, message FROM background_jobs ORDER BY created_at DESC LIMIT 5`);
+    console.log(JSON.stringify(result.rows, null, 2));
+    process.exit(0);
   } catch (err) {
-    console.error("Error checking jobs:", err);
+    console.error(err);
+    process.exit(1);
   }
 }
 

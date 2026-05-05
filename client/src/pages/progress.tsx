@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import BottomNav from "@/components/bottom-nav";
 import ProgressCard from "@/components/progress-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Clock, TrendingUp, Award, Menu, Wrench, CheckCircle } from "lucide-react";
+import { BookOpen, Clock, TrendingUp, Award, Menu, Wrench, CheckCircle, Settings } from "lucide-react";
 import type { Module, PracticalGrade } from "@shared/schema";
 
 export default function ProgressPage() {
@@ -56,23 +57,31 @@ export default function ProgressPage() {
         user={user}
       />
 
-      <main className="flex-1 lg:ml-0">
-        <header className="bg-student-warm shadow-sm p-4 lg:hidden">
-          <button
-            onClick={() => setIsMobileNavOpen(true)}
-            className="p-2 rounded-lg hover:bg-neutral-100"
-          >
-            <Menu size={24} />
-          </button>
+      <main className="flex-1 lg:ml-0 pb-24 lg:pb-0">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-neutral-100 lg:hidden px-6 py-4">
+          <div className="flex items-center justify-between max-w-6xl mx-auto">
+            <div>
+              <h1 className="text-xl font-black text-neutral-800 tracking-tight">Haladásom</h1>
+              <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Statisztikák és jegyek</p>
+            </div>
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="p-2 rounded-xl hover:bg-neutral-100 transition-colors"
+              aria-label="Beállítások megnyitása"
+              title="Beállítások"
+            >
+              <Settings size={22} className="text-neutral-500" />
+            </button>
+          </div>
         </header>
 
-        <div className="p-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-neutral-800 mb-2">Tanulmányi Előrehaladás</h1>
-            <p className="text-neutral-600">Kövesd nyomon a tanulási eredményeidet és haladásodat.</p>
+        <div className="p-4 lg:p-6 max-w-6xl mx-auto">
+          <div className="mb-8 hidden lg:block">
+            <h1 className="text-3xl font-black text-neutral-800 mb-2 tracking-tight">Tanulmányi Előrehaladás</h1>
+            <p className="text-neutral-600 font-medium">Kövesd nyomon a tanulási eredményeidet és haladásodat.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
             <ProgressCard
               title="Befejezett Modulok"
               value={completedModules}
@@ -211,7 +220,8 @@ export default function ProgressPage() {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+        </main>
+        <BottomNav />
+      </div>
   );
 }

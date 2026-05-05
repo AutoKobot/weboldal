@@ -13,10 +13,11 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Import, Download, Loader2, GraduationCap, BookOpen, AlertCircle } from "lucide-react";
+import { Search, Import, Download, Loader2, GraduationCap, Wrench, BookOpen, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-export function IKKManager() {
+export function IKKManager({ defaultImportType = 'both' }: { defaultImportType?: 'theory' | 'practical' | 'both' }) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isImporting, setIsImporting] = useState<string | null>(null);
@@ -35,9 +36,9 @@ export function IKKManager() {
   });
 
   const importMutation = useMutation({
-    mutationFn: async (profession: any) => {
+    mutationFn: async ({ profession, importType }: { profession: any, importType: string }) => {
       setIsImporting(profession.id);
-      const res = await apiRequest("POST", "/api/admin/ikk/import", { profession });
+      const res = await apiRequest("POST", "/api/admin/ikk/import", { profession, importType });
       return res.json();
     },
     onSuccess: (data) => {
@@ -117,13 +118,10 @@ export function IKKManager() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                {importStatus.status === 'processing' ? (
-                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-                ) : importStatus.status === 'completed' ? (
-                  <Badge className="bg-green-600">KÉSZ</Badge>
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                )}
+                <Loader2 className={`h-5 w-5 text-blue-600 animate-spin ${importStatus.status === 'processing' ? '' : 'hidden'}`} />
+                <Badge className={`bg-green-600 ${importStatus.status === 'completed' ? '' : 'hidden'}`}>KÉSZ</Badge>
+                <AlertCircle className={`h-5 w-5 text-red-600 ${importStatus.status === 'error' ? '' : 'hidden'}`} />
+                
                 <div>
                   <p className={`font-semibold ${
                     importStatus.status === 'processing' ? 'text-blue-900' : 
@@ -144,38 +142,38 @@ export function IKKManager() {
                   'bg-red-600'
                 }>{importStatus.progress}%</Badge>
                 
-                {importStatus.status === 'processing' ? (
+                <div className="flex gap-2">
                   <Button 
                     variant="destructive" 
                     size="sm" 
-                    className="h-7 px-2 text-[10px] uppercase font-bold"
+                    className={`h-7 px-2 text-[10px] uppercase font-bold ${importStatus.status === 'processing' ? '' : 'hidden'}`}
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending}
                   >
-                    {cancelMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Stop"}
+                    <Loader2 className={`h-3 w-3 mr-1 ${cancelMutation.isPending ? 'animate-spin' : 'hidden'}`} />
+                    {cancelMutation.isPending ? "Várj..." : "Stop"}
                   </Button>
-                ) : (
+                  
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-7 px-2 text-[10px] uppercase font-bold"
+                    className={`h-7 px-2 text-[10px] uppercase font-bold ${importStatus.status !== 'processing' ? '' : 'hidden'}`}
                     onClick={() => resetMutation.mutate()}
                   >
-                    Törlés
+                    Bezárás
                   </Button>
-                )}
+                </div>
               </div>
             </div>
-            <div className="w-full bg-black/5 rounded-full h-2.5 mb-2">
-              <div 
-                className={`h-2.5 rounded-full transition-all duration-500 ${
-                  importStatus.status === 'processing' ? 'bg-blue-600' : 
-                  importStatus.status === 'completed' ? 'bg-green-600' : 
-                  'bg-red-600'
-                }`} 
-                style={{ width: `${importStatus.progress}%` }}
-              ></div>
-            </div>
+            <Progress 
+              value={importStatus.progress} 
+              className="h-2.5 mb-2 bg-black/5" 
+              indicatorClassName={
+                importStatus.status === 'processing' ? 'bg-blue-600' : 
+                importStatus.status === 'completed' ? 'bg-green-600' : 
+                'bg-red-600'
+              }
+            />
             <p className={`text-xs font-medium ${
               importStatus.status === 'processing' ? 'text-blue-600 animate-pulse' : 
               importStatus.status === 'completed' ? 'text-green-600' : 
@@ -241,29 +239,39 @@ export function IKKManager() {
                       )}
                     </div>
                     
-                    <div className="flex gap-2">
-                       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-50/50">ELMÉLET</Badge>
-                       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-orange-50/50">GYAKORLAT</Badge>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        size="sm"
+                        variant={defaultImportType === 'theory' ? 'default' : 'outline'}
+                        className={`text-[10px] h-9 ${defaultImportType === 'theory' ? 'ring-2 ring-blue-400 ring-offset-1' : (isImported ? 'border-blue-200 bg-blue-50/30' : '')}`} 
+                        onClick={() => importMutation.mutate({ profession: prof, importType: 'theory' })}
+                        disabled={isImporting !== null}
+                      >
+                        <GraduationCap className={`h-3 w-3 mr-1 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
+                        Elmélet
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant={defaultImportType === 'practical' ? 'default' : 'outline'}
+                        className={`text-[10px] h-9 ${defaultImportType === 'practical' ? 'ring-2 ring-orange-400 ring-offset-1' : (isImported ? 'border-orange-200 bg-orange-50/30' : '')}`} 
+                        onClick={() => importMutation.mutate({ profession: prof, importType: 'practical' })}
+                        disabled={isImporting !== null}
+                      >
+                        <Wrench className={`h-3 w-3 mr-1 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
+                        Gyakorlat
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant={defaultImportType === 'both' ? 'default' : 'outline'}
+                        className={`col-span-2 h-9 ${defaultImportType === 'both' ? 'ring-2 ring-primary ring-offset-1' : (isImported ? 'bg-green-600 hover:bg-green-700 text-white' : '')}`} 
+                        onClick={() => importMutation.mutate({ profession: prof, importType: 'both' })}
+                        disabled={isImporting !== null}
+                      >
+                        <Download className={`h-3.5 w-3.5 mr-2 ${isImporting === prof.id ? 'animate-spin' : ''}`} />
+                        {isImporting === prof.id ? 'Feldolgozás...' : 'Teljes Import'}
+                      </Button>
                     </div>
                   </div>
-                  
-                  <Button 
-                    className={`w-full ${isImported ? 'bg-green-600 hover:bg-green-700' : ''}`} 
-                    onClick={() => importMutation.mutate(prof)}
-                    disabled={isImporting !== null}
-                  >
-                    {isImporting === prof.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Feldolgozás...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4 mr-2" />
-                        {isImported ? 'Újra-importálás' : 'Szakma Importálása'}
-                      </>
-                    )}
-                  </Button>
                 </CardContent>
               </Card>
             );

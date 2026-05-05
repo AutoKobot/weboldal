@@ -1002,10 +1002,18 @@ JSON struktúra:
         "Realistic professional photo of [the specific topic], cinematic lighting, no text, clean aesthetic"
       ],
       "interactiveType": "quiz",
-      "interactiveData": { ... }
+      "interactiveData": {
+        "question": "Kérdés szövege?",
+        "options": ["A", "B", "C", "D"],
+        "correctAnswer": "A",
+        "explanation": "Magyarázat..."
+      }
     }
   ]
 }
+
+INTERAKTIVITÁS SZABÁLYA:
+Ha egy dián kérdés vagy teszt szerepel, KÖTELEZŐ az "interactiveType": "quiz" használata és az "interactiveData" kitöltése. Az ilyen diákon a rendszer AUTOMATIKUSAN megáll a hang végén és megvárja a választ. Ne írj kérdést a sima content-be, ha azt akarod, hogy a diák válaszoljon rá!
 
 Válaszolj KIZÁRÓLAG érvényes JSON-ban!`;
 

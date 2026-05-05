@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
-import { insertProfessionSchema } from "@shared/schema";
+import { insertProfessionSchema, modules, subjects, practicalGrades, testResults } from "@shared/schema";
+import { db } from "../db";
+import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -225,11 +227,31 @@ router.post('/professions', combinedAuth, adminOnly, async (req: any, res) => {
   }
 });
 
+router.get('/professions/:id', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const profession = await storage.getProfession(id);
+    if (!profession) {
+      return res.status(404).json({ message: "Profession not found" });
+    }
+    res.json(profession);
+  } catch (error) {
+    console.error("Error fetching profession:", error);
+    res.status(500).json({ message: "Failed to fetch profession" });
+  }
+});
+
 router.put('/professions/:id', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
     const professionData = insertProfessionSchema.partial().parse(req.body);
     const updatedProfession = await storage.updateProfession(id, professionData);
+    
+    // If totalHours were modified, redistribute to subjects
+    if (professionData.totalHours !== undefined && professionData.totalHours !== null) {
+      await storage.redistributeProfessionHours(id, professionData.totalHours);
+    }
+    
     res.json(updatedProfession);
   } catch (error) {
     console.error("Error updating profession:", error);
@@ -275,6 +297,132 @@ router.get('/queue-status', combinedAuth, adminOnly, async (req, res) => {
     res.json(aiQueueManager.getQueueStatus());
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch queue status" });
+  }
+});
+
+// Grade migration endpoint for curriculum re-generation
+router.post('/migrate-grades', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    console.log("--- STARTING GRADE MIGRATION ---");
+    let migratedPractical = 0;
+    let migratedTheoretical = 0;
+    const reports = [];
+
+    // 1. Find subjects with duplicate module numbers (potential old/new split)
+    const subjectsWithDuplicates = await db.execute(sql`
+      SELECT subject_id, module_number, count(*) as count
+      FROM modules
+      GROUP BY subject_id, module_number
+      HAVING count(*) > 1
+    `);
+
+    for (const row of subjectsWithDuplicates.rows as any) {
+      const subjectId = row.subject_id;
+      const moduleNumber = row.module_number;
+
+      // Get all modules for this subject and number
+      const mods = await db.select().from(modules).where(
+        and(
+          eq(modules.subjectId, subjectId),
+          eq(modules.moduleNumber, moduleNumber)
+        )
+      ).orderBy(modules.id); // Oldest first
+
+      if (mods.length < 2) continue;
+
+      const oldMod = mods[0];
+      const newMod = mods[mods.length - 1]; // Assume the latest one is the current one
+
+      // 2. Migrate practical grades
+      const oldGrades = await db.select().from(practicalGrades).where(eq(practicalGrades.moduleId, oldMod.id));
+      for (const grade of oldGrades) {
+        const existing = await db.select().from(practicalGrades).where(
+          and(
+            eq(practicalGrades.studentId, grade.studentId),
+            eq(practicalGrades.moduleId, newMod.id)
+          )
+        );
+
+        if (existing.length === 0) {
+          await db.insert(practicalGrades).values({
+            studentId: grade.studentId,
+            teacherId: grade.teacherId,
+            moduleId: newMod.id,
+            grade: grade.grade,
+            comment: (grade.comment || "") + " (Migrálva)",
+            createdAt: grade.createdAt
+          });
+          migratedPractical++;
+        }
+      }
+
+      // 3. Migrate test results (theoretical)
+      const oldResults = await db.select().from(testResults).where(eq(testResults.moduleId, oldMod.id));
+      for (const result of oldResults) {
+        const existing = await db.select().from(testResults).where(
+          and(
+            eq(testResults.userId, result.userId),
+            eq(testResults.moduleId, newMod.id)
+          )
+        );
+
+        if (existing.length === 0) {
+          await db.insert(testResults).values({
+            userId: result.userId,
+            moduleId: newMod.id,
+            score: result.score,
+            maxScore: result.maxScore,
+            passed: result.passed,
+            details: result.details,
+            createdAt: result.createdAt
+          });
+          migratedTheoretical++;
+        }
+      }
+      
+      reports.push({
+        subjectId,
+        moduleNumber,
+        oldTitle: oldMod.title,
+        newTitle: newMod.title,
+        practicalCount: oldGrades.length,
+        theoreticalCount: oldResults.length
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      migratedPractical, 
+      migratedTheoretical,
+      details: reports 
+    });
+  } catch (error) {
+    console.error("Migration error:", error);
+    res.status(500).json({ message: "Migration failed" });
+  }
+});
+
+// Database statistics for diagnostics
+router.get('/db-stats', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const gradesCount = await db.execute(sql`SELECT count(*) as count FROM practical_grades`);
+    const testResultsCount = await db.execute(sql`SELECT count(*) as count FROM test_results`);
+    const modulesCount = await db.execute(sql`SELECT count(*) as count FROM modules`);
+    const subjectsCount = await db.execute(sql`SELECT count(*) as count FROM subjects`);
+    const professionsCount = await db.execute(sql`SELECT count(*) as count FROM professions`);
+    const usersCount = await db.execute(sql`SELECT count(*) as count FROM users`);
+
+    res.json({
+      practicalGrades: parseInt(gradesCount.rows[0].count as string),
+      testResults: parseInt(testResultsCount.rows[0].count as string),
+      modules: parseInt(modulesCount.rows[0].count as string),
+      subjects: parseInt(subjectsCount.rows[0].count as string),
+      professions: parseInt(professionsCount.rows[0].count as string),
+      users: parseInt(usersCount.rows[0].count as string)
+    });
+  } catch (error) {
+    console.error("Stats error:", error);
+    res.status(500).json({ message: "Failed to fetch stats" });
   }
 });
 

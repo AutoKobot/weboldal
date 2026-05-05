@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  LogOut, Wand2, BarChart3, ArrowLeft, 
+  LogOut, Wand2, BarChart3, ArrowLeft, Loader2,
   Settings as SettingsIcon, BookOpen, GraduationCap, Users, School, Sparkles, MessageSquare, Globe 
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { type Module, type Profession, type Subject, type User } from "@shared/schema";
 
@@ -23,6 +24,8 @@ import { SettingsManager } from "@/components/admin-dashboard/SettingsManager";
 import { PromptSettings } from "@/components/admin-dashboard/PromptSettings";
 import { IKKManager } from "@/components/admin-dashboard/IKKManager";
 import { EnhancedModuleForm } from "@/components/enhanced-module-form";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -32,6 +35,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProfessionId, setSelectedProfessionId] = useState<number | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+  const [selectedSubjectType, setSelectedSubjectType] = useState<"theory" | "practical" | null>(null);
 
   // Core Data Queries
   const { data: professions = [] } = useQuery<Profession[]>({
@@ -63,7 +67,11 @@ export default function AdminDashboard() {
   const { data: queueStatus } = useQuery<any>({
     queryKey: ["/api/admin/queue-status"],
     enabled: isAdmin,
-    refetchInterval: (data) => (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000,
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return (data?.queueSize > 0 || data?.processing > 0) ? 3000 : 10000;
+    },
+
   });
 
   const handleLogout = async () => {
@@ -76,13 +84,15 @@ export default function AdminDashboard() {
   };
 
   const stats = {
-    totalProfessions: professions.length,
-    totalSubjects: subjects.length,
-    totalModules: modules.length,
-    publishedModules: modules.filter(m => m.isPublished).length,
-    totalUsers: users.length,
-    studentUsers: users.filter(u => u.role === 'student').length,
-    teacherUsers: users.filter(u => u.role === 'teacher').length,
+    totalProfessions: (professions || []).length,
+    totalSubjects: (subjects || []).length,
+    totalModules: (modules || []).length,
+    publishedModules: (modules || []).filter(m => m.isPublished).length,
+    totalUsers: (users || []).length,
+    adminUsers: (users || []).filter(u => u.role === 'admin').length,
+    schoolAdminUsers: (users || []).filter(u => u.role === 'school_admin').length,
+    teacherUsers: (users || []).filter(u => u.role === 'teacher').length,
+    studentUsers: (users || []).filter(u => u.role === 'student').length,
   };
 
   return (
@@ -96,6 +106,13 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Rendszer felügyelet és tananyag adminisztráció</p>
           </div>
           <div className="flex items-center gap-3">
+            {queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse flex items-center gap-2 py-1.5 px-3">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="font-bold">AI FEJLESZTÉS:</span> 
+                <span>{queueStatus.processingItems?.length + queueStatus.queuedItems?.length} folyamatban</span>
+              </Badge>
+            )}
             <Button variant="outline" onClick={() => window.location.href = "/"} className="h-9 gap-2">
               <ArrowLeft size={16} /> Vissza
             </Button>
@@ -121,6 +138,8 @@ export default function AdminDashboard() {
           </TabsList>
 
           <div className="mt-6">
+            <ErrorBoundary>
+
             <TabsContent value="overview">
               <DashboardOverview stats={stats} queueStatus={queueStatus} />
             </TabsContent>
@@ -128,15 +147,20 @@ export default function AdminDashboard() {
             <TabsContent value="professions">
               <ProfessionManager 
                 professions={professions} 
+                subjects={subjects}
+                modules={modules}
                 onSelect={(id: number) => { setSelectedProfessionId(id); setActiveTab("subjects"); }} 
               />
             </TabsContent>
-
+ 
             <TabsContent value="subjects">
               <SubjectManager 
                 subjects={subjects} 
                 professions={professions}
+                modules={modules}
                 selectedProfessionId={selectedProfessionId}
+                selectedType={selectedSubjectType}
+                setSelectedType={setSelectedSubjectType}
                 onBack={() => setActiveTab("professions")}
                 onSelect={(id: number) => { setSelectedSubjectId(id); setActiveTab("modules"); }}
               />
@@ -194,6 +218,7 @@ export default function AdminDashboard() {
                 </TabsContent>
               </>
             )}
+            </ErrorBoundary>
           </div>
         </Tabs>
       </main>

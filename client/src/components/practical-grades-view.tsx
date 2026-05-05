@@ -206,7 +206,7 @@ export function PracticalGradesView({ teacherClasses, students, subjects, module
                                      const nameB = `${b.lastName || ''} ${b.firstName || ''}`.trim();
                                      return nameA.localeCompare(nameB);
                                    })
-                                  .map(student => {
+                                   .map(student => {
                                     const currentGrade = moduleGrades.find(g => g.studentId === student.id && g.moduleId === module.id);
                                     const edit = editingGrades[student.id] || { grade: "", comment: "" };
                                     
