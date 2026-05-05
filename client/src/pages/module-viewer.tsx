@@ -144,7 +144,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
         <iframe
           ref={iframeRef}
           srcDoc={htmlContent}
-          style={{ width: '100%', height: \`\${height}px\`, border: 'none', transition: 'height 0.3s ease-out' }}
+          style={{ width: '100%', height: `${height}px`, border: 'none', transition: 'height 0.3s ease-out' }}
           title="Szakmai Folyamatábra"
           scrolling="no"
           sandbox="allow-scripts allow-same-origin"
