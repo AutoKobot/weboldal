@@ -55,19 +55,72 @@ const MathParagraph = (props: any) => {
   return <p className="mb-4 leading-relaxed">{children}</p>;
 };
 
+// Self-contained Mermaid renderer — renders SVG directly into its own div
+const MermaidDiagram = ({ chart }: { chart: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (!chart || !ref.current) return;
+    let cancelled = false;
+
+    const render = async () => {
+      try {
+        const m = await import('mermaid');
+        const mermaid = m.default;
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'neutral',
+          securityLevel: 'loose',
+          fontFamily: 'Inter, sans-serif',
+        });
+        const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
+        const { svg: renderedSvg } = await mermaid.render(id, chart.trim());
+        if (!cancelled) setSvg(renderedSvg);
+      } catch (err: any) {
+        if (!cancelled) setError(String(err?.message || 'Renderelési hiba'));
+      }
+    };
+
+    render();
+    return () => { cancelled = true; };
+  }, [chart]);
+
+  if (error) {
+    return (
+      <div className="my-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+        <strong>Diagram hiba:</strong> {error}
+        <pre className="mt-2 text-xs overflow-x-auto">{chart}</pre>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mermaid-visualizer my-8 flex flex-col items-center">
+      <div
+        ref={ref}
+        className="bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center"
+        dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
+      >
+        {!svg && (
+          <div className="flex items-center gap-2 text-neutral-400 py-8">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-400" />
+            <span className="text-sm">Diagram betöltése...</span>
+          </div>
+        )}
+      </div>
+      <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
+    </div>
+  );
+};
+
 const CodeComponent = ({ className, children, ...props }: any) => {
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
   
   if (language === 'mermaid') { 
-    return (
-      <div className="mermaid-visualizer my-8 flex flex-col items-center">
-        <div className="mermaid bg-white p-6 rounded-2xl border border-neutral-100 shadow-sm w-full overflow-x-auto flex justify-center">
-          {String(children).replace(/\n$/, '')}
-        </div>
-        <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
-      </div>
-    ); 
+    return <MermaidDiagram chart={String(children)} />;
   }
   
   if (language === 'svg') { 
