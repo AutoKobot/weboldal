@@ -16,7 +16,8 @@ import {
   Users, 
   ChevronDown, 
   ChevronUp, 
-  FileText 
+  FileText,
+  MessageSquare
 } from "lucide-react";
 import { StudentDetailView } from "./StudentDetailView";
 import { Student, Module, Profession, ClassData as Class, Subject } from "./types";
