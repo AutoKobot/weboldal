@@ -21,7 +21,7 @@ import ChatInterface from "@/components/chat-interface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search, Wrench, Settings } from "lucide-react";
+import { ArrowLeft, CheckCircle, PlayCircle, Menu, Play, MessageCircle, FileText, Volume2, Image as ImageIcon, Pause, Brain, Youtube, Headphones, X, Wand2, GraduationCap, Presentation, MonitorPlay, Loader2, Search, Wrench, Settings, Network } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Module, Flashcard } from "@shared/schema";
 import QuizInterface from "@/components/quiz-interface";
@@ -30,6 +30,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 // import mermaid from 'mermaid'; // Removed for dynamic import to fix init error
 import { PresentationPlayer } from "@/components/presentation-player";
+import MindMapPlayer from "@/components/mind-map-player";
 
 
 // Recursive function to extract clean plain text from React nodes
@@ -290,6 +291,7 @@ export default function ModuleViewer() {
   const [showPodcastModal, setShowPodcastModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
   const [showInteractivePresentationModal, setShowInteractivePresentationModal] = useState(false);
+  const [showMindMapModal, setShowMindMapModal] = useState(false);
   const [selectedYoutubeVideo, setSelectedYoutubeVideo] = useState<{ title: string, videoId: string } | null>(null);
   const [contentVersion, setContentVersion] = useState<'concise' | 'detailed'>('concise');
   const [showFlashcards, setShowFlashcards] = useState(false);
@@ -588,6 +590,16 @@ export default function ModuleViewer() {
               <MonitorPlay size={14} /> Interaktív AI
             </Button>
           )}
+          {Boolean(module.mindMapData) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMindMapModal(true)}
+              className="flex-shrink-0 gap-2 bg-slate-900 border-emerald-600 text-emerald-400 h-9 rounded-xl px-3 font-bold text-xs"
+            >
+              <Network size={14} /> Élő Elmetérkép
+            </Button>
+          )}
         </div>
 
         {/* Content Area */}
@@ -688,6 +700,18 @@ export default function ModuleViewer() {
                     title="Interaktív AI Prezentáció megtekintése"
                   >
                     <MonitorPlay size={18} className="text-blue-400" />
+                  </Button>
+                )}
+
+                {Boolean(module.mindMapData) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMindMapModal(true)}
+                    className="w-12 h-12 rounded-full bg-slate-900 shadow-lg hover:shadow-xl border-2 border-emerald-600 hover:border-emerald-400"
+                    title="Élő Elmetérkép megtekintése"
+                  >
+                    <Network size={18} className="text-emerald-400" />
                   </Button>
                 )}
               </div>
@@ -1398,6 +1422,27 @@ export default function ModuleViewer() {
         })() as any[]}
         moduleTitle={module.title}
       />
+
+      <Dialog open={showMindMapModal} onOpenChange={setShowMindMapModal}>
+        <DialogContent className="max-w-7xl p-0 bg-transparent border-none overflow-hidden h-[750px]">
+          {module.mindMapData && (
+            <MindMapPlayer
+              data={(() => {
+                try {
+                  return typeof module.mindMapData === 'string'
+                    ? JSON.parse(module.mindMapData)
+                    : module.mindMapData;
+                } catch (e) {
+                  console.error("Error parsing mindMapData:", e);
+                  return null;
+                }
+              })()}
+              moduleTitle={module.title}
+              onComplete={() => setShowMindMapModal(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       <BottomNav />
     </div>
   );

@@ -556,7 +556,7 @@ export async function generateSpeech(text: string): Promise<Buffer> {
     
     if (text.length <= MAX_CHUNK_LENGTH) {
       const mp3 = await openai.audio.speech.create({
-        model: "tts-1-hd",
+        model: "tts-1",
         voice: "shimmer",
         input: text,
         speed: 1.0, 
@@ -587,7 +587,7 @@ export async function generateSpeech(text: string): Promise<Buffer> {
     for (const chunk of chunks) {
       if (!chunk) continue;
       const mp3Chunk = await openai.audio.speech.create({
-        model: "tts-1-hd",
+        model: "tts-1",
         voice: "shimmer",
         input: chunk,
         speed: 1.0, 
@@ -1180,3 +1180,72 @@ export async function generatePresentationImage(prompt: string): Promise<string>
     return "";
   }
 }
+
+export interface MindMapNode {
+  id: string;
+  label: string;
+  description: string;
+  narration: string;
+  color?: string;
+  children?: MindMapNode[];
+}
+
+export async function generateMindMapData(moduleTitle: string, moduleContent: string): Promise<MindMapNode> {
+  try {
+    const openai = await getOpenAIClient();
+
+    const prompt = `Te egy profi digitális tananyagfejlesztő vagy.
+Készíts egy interaktív, ágakra bomló, strukturált ELMETÉRKÉP (Mind Map) fastruktúrát az alábbi témából: "${moduleTitle}"
+Tananyag: ${moduleContent.substring(0, 40000)}
+
+FONTOS RENDELKEZÉSEK:
+1. Az elmetérképnek van egy egyetlen gyökér-csomópontja (Root Node), amiből ágaznak ki az alpontok (Főágak), majd azokból a részletesebb pontok (Alágak).
+2. Összesen **8 - 15 csomópont** legyen az egész fában a jobb átláthatóság érdekében. A mélysége maximum 3 szint legyen.
+3. Minden csomóponthoz (Node) tartozzon egy rövid, érdekes narrációs szöveg ("narration"), amely elmagyarázza az adott fogalmat. Ezt a lejátszó hangosan fel fogja olvasni. A narráció hossza 20-50 szó legyen csomópontonként.
+4. Minden csomóponthoz tartozzon egy rövid magyarázó címke vagy leírás ("description") is (1-2 mondat).
+5. A "label" (címke) legyen rövid (1-3 szó), tiszta magyar szakszó vagy kifejezés.
+
+JSON struktúra (Rekurzív):
+{
+  "id": "root",
+  "label": "Téma címe",
+  "description": "A téma rövid összefoglalása.",
+  "narration": "Üdvözöllek! Ebben az elmetérképben megismerkedünk a [téma] alapjaival...",
+  "color": "#3b82f6",
+  "children": [
+    {
+      "id": "node_1",
+      "label": "Főág neve",
+      "description": "Főág rövid leírása.",
+      "narration": "Az első nagy témakörünk a...",
+      "color": "#10b981",
+      "children": [
+        {
+          "id": "node_1_1",
+          "label": "Alág neve",
+          "description": "Alág részletei.",
+          "narration": "Ezen belül fontos megemlíteni a...",
+          "color": "#f59e0b"
+        }
+      ]
+    }
+  ]
+}
+
+Válaszolj KIZÁRÓLAG érvényes JSON formátumban, a fenti rekurzív struktúrával!`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 4000,
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(response.choices[0].message.content || '{}');
+  } catch (error) {
+    console.error("Mind map generation error:", error);
+    throw new Error("Failed to generate mind map data");
+  }
+}
+

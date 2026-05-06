@@ -55,6 +55,11 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **Kijelölt Osztályok Értesítései és Felugró Ablak Fix (2026-05-06)**:
   - Elválasztottuk a tanulói érkező üzeneteket (`/api/announcements/my`) és a tanári küldött üzeneteket (`/api/announcements/teacher`).
   - Ezzel véglegesen megszűnt a tanári felületen folyamatosan és bezárhatatlanul felugró, zavaró üzenetküldési modál ablak.
+- **OpenAI TTS Standard Hangköltség-felezés (2026-05-06)**:
+  - Átírtuk az összes háttérbeli hanggenerálást a drágább `tts-1-hd` modellről az optimalizált, standard `tts-1` modellre, ami azonnali 50%-os közvetlen megtakarítást jelent a hangosanyag-generálásoknál, füllel hallható minőségvesztés nélkül.
+- **Forradalmi Élő Elmetérkép Funkció (2026-05-06)**:
+  - Kiépítettük az "Élő Elmetérkép" (Living Mind Map) modult: az AI legenerál egy fastruktúrát magyarázó címkékkel, leírásokkal és narrációval, amire rekurzív hanggenerálás épül.
+  - A frontendről elérhető interaktív Mind Map Player automatikusan radial layoutba rendezi a csomópontokat, neonos, lüktető animált SVG vonalakkal ábrázolja az információ áramlását, és cinematic kameramozgással rácsúszik az éppen felolvasott csomópontra, miközben lejátsza annak egyedi magyarázó hangját.
 - **Hibajavítások**:
   - Megszűnt a modulcímek sorszám-duplikációja (pl. 3.1.1.) a robusztusabb regex-szel.
   - Pótólva a hiányzó `Wand2` és egyéb ikon importok.

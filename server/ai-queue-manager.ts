@@ -12,7 +12,7 @@ interface QueueItem {
   professionName?: string;
   moduleNumber?: number;
   customSystemMessage?: string;
-  type?: 'full' | 'quiz' | 'presentation';
+  type?: 'full' | 'quiz' | 'presentation' | 'mindmap';
   timestamp: number;
   resolve: (result: any) => void;
   reject: (error: any) => void;
@@ -214,6 +214,35 @@ export class AIQueueManager {
   }
 
   /**
+   * Add AI mind map generation task to queue
+   */
+  async queueAIMindMapGeneration(
+    moduleId: number,
+    title: string,
+    content: string
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const id = `ai-mindmap-gen-${moduleId}-${Date.now()}`;
+
+      const queueItem: QueueItem = {
+        id,
+        moduleId,
+        title,
+        content,
+        subjectId: '0',
+        type: 'mindmap',
+        timestamp: Date.now(),
+        resolve,
+        reject
+      };
+
+      this.queue.push(queueItem);
+      console.log(`📝 Added mind map to AI queue: "${title}" (Position: ${this.queue.length}, Total queued: ${this.queue.length})`);
+      setImmediate(() => this.processNext());
+    });
+  }
+
+  /**
    * Get queue status including currently processing items
    */
   getQueueStatus() {
@@ -321,6 +350,90 @@ export class AIQueueManager {
         };
       } catch (error) {
         console.error(`Quiz generation error for module ${item.moduleId}:`, error);
+        throw error;
+      }
+    }
+
+    if (item.type === 'mindmap') {
+      try {
+        console.log(`Generating mind map for module ${item.moduleId}: ${item.title}`);
+        const { generateMindMapData, generateSpeech } = await import('./openai');
+        const { uploadToSupabase } = await import("./supabase");
+
+        // 1. Legeneráljuk a fastruktúrát az AI segítségével
+        const rawMindMap = await generateMindMapData(item.title, item.content);
+        
+        // 2. Rekurzív funkció a csomópontok hanganyagainak generálásához
+        const processNodeAudio = async (node: any): Promise<any> => {
+          console.log(`Processing mind map node: ${node.label} (${node.id})`);
+          
+          let audioUrl = null;
+          if (node.narration) {
+            try {
+              console.log(`Generating speech for node: ${node.label}`);
+              const audioBuffer = await generateSpeech(node.narration);
+              
+              const audioFileName = `mindmap_audio_mod_${item.moduleId}_node_${node.id}.mp3`;
+              const folderPath = `module_${item.moduleId}/${audioFileName}`;
+              
+              const cloudUrl = await uploadToSupabase(
+                  "presentations",
+                  folderPath,
+                  Buffer.from(audioBuffer),
+                  "audio/mpeg"
+              );
+
+              if (cloudUrl) {
+                audioUrl = `${cloudUrl}?v=${Date.now()}`;
+                console.log(`[MINDMAP-STORAGE] Audio success: ${audioUrl}`);
+              } else {
+                // Lokális mentés fallback
+                const fs = await import("fs/promises");
+                const path = await import("path");
+                const audioFilePath = path.join(process.cwd(), "uploads", "presentations", audioFileName);
+                const uploadsDir = path.dirname(audioFilePath);
+                await fs.mkdir(uploadsDir, { recursive: true });
+                await fs.writeFile(audioFilePath, Buffer.from(audioBuffer));
+                audioUrl = `/uploads/presentations/${audioFileName}?v=${Date.now()}`;
+                console.warn(`Fallback active! Saved locally: ${audioUrl}`);
+              }
+              
+              await this.recordAIGenerationCost('openai', 'tts_audio', 0.015);
+            } catch (e) {
+              console.error(`Audio generation failed for node ${node.id}:`, e);
+            }
+          }
+
+          const processedNode = {
+            ...node,
+            audioUrl
+          };
+
+          if (node.children && Array.isArray(node.children)) {
+            processedNode.children = [];
+            for (const child of node.children) {
+              const processedChild = await processNodeAudio(child);
+              processedNode.children.push(processedChild);
+            }
+          }
+
+          return processedNode;
+        };
+
+        // 3. Lefuttatjuk a hanggenerálást a teljes fára a gyökértől kezdve
+        const finalizedMindMap = await processNodeAudio(rawMindMap);
+
+        // 4. Frissítjük a modult az adatbázisban
+        const updateData = { mindMapData: finalizedMindMap };
+        const updatedModule = await storage.updateModule(item.moduleId, updateData);
+        
+        return {
+          success: true,
+          module: updatedModule,
+          message: 'Elmetérkép sikeresen legenerálva'
+        };
+      } catch (error) {
+        console.error(`Mind map generation error for module ${item.moduleId}:`, error);
         throw error;
       }
     }

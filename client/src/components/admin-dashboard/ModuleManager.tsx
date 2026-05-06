@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Edit, Trash2, ArrowLeft, 
   Sparkles, Brain, CheckCircle, XCircle, Loader2, Wand2,
-  LayoutGrid, List, MonitorPlay, FileText, X, Wrench, Clock
+  LayoutGrid, List, MonitorPlay, FileText, X, Wrench, Clock, Network
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { compareSectionCodes } from "@/lib/utils";
@@ -47,6 +47,7 @@ export function ModuleManager({
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [regeneratingModules, setRegeneratingModules] = useState<Set<number>>(new Set());
   const [presentingModules, setPresentingModules] = useState<Set<number>>(new Set());
+  const [mindMappingModules, setMindMappingModules] = useState<Set<number>>(new Set());
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   // Fetch modules for this specific subject to ensure data consistency
@@ -89,6 +90,15 @@ export function ModuleManager({
     
     const inQueue = queueStatus.queuedItems?.some((item: any) => item.moduleId === moduleId && item.type === 'presentation');
     const inProcessing = queueStatus.processingItems?.some((item: any) => item.moduleId === moduleId && item.type === 'presentation');
+    return inQueue || inProcessing;
+  };
+
+  const isModuleMindMapping = (moduleId: number) => {
+    if (mindMappingModules.has(moduleId)) return true;
+    if (!queueStatus) return false;
+    
+    const inQueue = queueStatus.queuedItems?.some((item: any) => item.moduleId === moduleId && item.type === 'mindmap');
+    const inProcessing = queueStatus.processingItems?.some((item: any) => item.moduleId === moduleId && item.type === 'mindmap');
     return inQueue || inProcessing;
   };
 
@@ -237,6 +247,21 @@ export function ModuleManager({
     }
   });
 
+  const generateMindMapMutation = useMutation({
+    mutationFn: async (moduleId: number) => {
+      setMindMappingModules(prev => new Set(prev).add(moduleId));
+      await apiRequest("POST", `/api/ai/modules/${moduleId}/generate-mindmap`);
+    },
+    onSuccess: (_, moduleId) => {
+      setMindMappingModules(prev => {
+        const next = new Set(prev);
+        next.delete(moduleId);
+        return next;
+      });
+      toast({ title: "Élő Elmetérkép generálás elindítva", description: "A folyamat a háttérben fut." });
+    }
+  });
+
   const handleEdit = (module: Module) => {
     setEditingModule(module);
     form.reset({
@@ -292,6 +317,13 @@ export function ModuleManager({
           }}>
             <MonitorPlay className="h-4 w-4 mr-2" /> Bulk Interaktív HTML
           </Button>
+          <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => {
+            if(confirm('Minden modulhoz generáljunk Élő Elmetérképet? Ez több percig is eltarthat.')) {
+              filteredModules.forEach((m: any) => generateMindMapMutation.mutate(m.id));
+            }
+          }}>
+            <Network className="h-4 w-4 mr-2" /> Bulk Élő Elmetérkép
+          </Button>
           <Button onClick={() => { setEditingModule(null); form.reset({ subjectId: selectedSubjectId, moduleNumber: filteredModules.length + 1 }); setIsDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Új Modul
           </Button>
@@ -328,10 +360,10 @@ export function ModuleManager({
                         <Clock className="h-2.5 w-2.5" /> {module.suggestedHours} óra
                       </Badge>
                     )}
-                    {(isModuleRegenerating(module.id) || isModulePresenting(module.id)) && (
+                    {(isModuleRegenerating(module.id) || isModulePresenting(module.id) || isModuleMindMapping(module.id)) && (
                       <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-blue-50 text-blue-600 animate-pulse">
                         <Loader2 className="h-2 w-2 animate-spin" /> 
-                        {isModuleRegenerating(module.id) ? "AI..." : "HTML..."}
+                        {isModuleRegenerating(module.id) ? "AI..." : isModulePresenting(module.id) ? "HTML..." : "TÉRKÉP..."}
                       </Badge>
                     )}
                     {(!!module.detailedContent || !!module.keyConceptsData || (Array.isArray(module.generatedQuizzes) && module.generatedQuizzes.length > 0)) && (
@@ -342,6 +374,11 @@ export function ModuleManager({
                     {Boolean(module.presentationData) && (
                       <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-slate-900 text-blue-400 border-blue-600 font-bold animate-pulse">
                         <MonitorPlay size={10} /> INTERAKTÍV
+                      </Badge>
+                    )}
+                    {Boolean(module.mindMapData) && (
+                      <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-slate-900 text-emerald-400 border-emerald-600 font-bold">
+                        <Network size={10} /> ELMETÉRKÉP
                       </Badge>
                     )}
                   </div>
@@ -357,6 +394,9 @@ export function ModuleManager({
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => generatePresentationMutation.mutate(module.id)} title="Interaktív HTML generálás" disabled={isModulePresenting(module.id)}>
                     <MonitorPlay className="h-4 w-4 text-blue-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500" onClick={() => generateMindMapMutation.mutate(module.id)} title="Élő Elmetérkép generálás" disabled={isModuleMindMapping(module.id)}>
+                    <Network className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(module)}>
                     <Edit className="h-4 w-4" />
@@ -378,6 +418,9 @@ export function ModuleManager({
                   </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => generatePresentationMutation.mutate(module.id)} disabled={isModulePresenting(module.id)}>
                     <MonitorPlay className="h-3 w-3 mr-2 text-blue-500" /> Interaktív HTML
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full col-span-2 justify-start text-xs h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/30 font-semibold" onClick={() => generateMindMapMutation.mutate(module.id)} disabled={isModuleMindMapping(module.id)}>
+                    <Network className="h-3 w-3 mr-2" /> Élő Elmetérkép generálása
                   </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => handleEdit(module)}>
                     <Edit className="h-3 w-3 mr-2" /> Szerkesztés

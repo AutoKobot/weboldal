@@ -244,6 +244,25 @@ router.post('/modules/:id/generate-presentation', combinedAuth, async (req: any,
   }
 });
 
+router.post('/modules/:id/generate-mindmap', combinedAuth, async (req: any, res) => {
+  try {
+    if (req.user?.role !== 'admin' && req.user?.role !== 'school_admin' && req.user?.role !== 'teacher') {
+      return res.status(403).json({ message: "Admin or Teacher access required" });
+    }
+    const moduleId = parseInt(req.params.id);
+    const module = await storage.getModule(moduleId);
+    if (!module) return res.status(404).json({ message: "Module not found" });
+
+    const { aiQueueManager } = await import('../ai-queue-manager');
+    aiQueueManager.queueAIMindMapGeneration(module.id, module.title, module.detailedContent || module.content)
+      .catch(err => console.error(`Background mind map error:`, err));
+
+    res.status(202).json({ success: true, message: "Queued", status: "queued" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to queue mind map generation" });
+  }
+});
+
 router.post('/modules/:id/regenerate-quizzes', combinedAuth, async (req: any, res) => {
   try {
     const moduleId = parseInt(req.params.id);

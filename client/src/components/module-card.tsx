@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle, Wrench, MonitorPlay } from "lucide-react";
+import { CheckCircle, Play, Clock, ArrowRight, Brain, FileText, Wand2, HelpCircle, Wrench, MonitorPlay, Network } from "lucide-react";
 import type { Module } from "@shared/schema";
 
 interface ModuleCardProps {
@@ -33,6 +33,7 @@ export default function ModuleCard({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isRegeneratingQuizzes, setIsRegeneratingQuizzes] = useState(false);
   const [isGeneratingPresentation, setIsGeneratingPresentation] = useState(false);
+  const [isGeneratingMindMap, setIsGeneratingMindMap] = useState(false);
 
   const completeModuleMutation = useMutation({
     mutationFn: async () => {
@@ -162,6 +163,30 @@ export default function ModuleCard({
     },
   });
 
+  const generateMindMapMutation = useMutation({
+    mutationFn: async () => {
+      setIsGeneratingMindMap(true);
+      const response = await apiRequest('POST', `/api/ai/modules/${module.id}/generate-mindmap`);
+      return response.json();
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/public/modules'] });
+      toast({
+        title: "Siker!",
+        description: "Az Élő Elmetérkép generálás elindítva a háttérben.",
+      });
+      setIsGeneratingMindMap(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült elindítani a generálást.",
+        variant: "destructive",
+      });
+      setIsGeneratingMindMap(false);
+    },
+  });
+
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -269,6 +294,11 @@ export default function ModuleCard({
               {Boolean(module.presentationData) && (
                 <Badge className="bg-slate-900 text-blue-400 text-[10px] h-4 border-blue-600 animate-pulse">
                   <MonitorPlay size={10} className="mr-1" /> INTERAKTÍV
+                </Badge>
+              )}
+              {Boolean(module.mindMapData) && (
+                <Badge className="bg-slate-900 text-emerald-400 text-[10px] h-4 border-emerald-600">
+                  <Network size={10} className="mr-1" /> ELMETÉRKÉP
                 </Badge>
               )}
             </div>
@@ -443,6 +473,29 @@ export default function ModuleCard({
                     <>
                       <Play className="w-3 h-3 mr-1" />
                       Interaktív HTML
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    generateMindMapMutation.mutate();
+                  }}
+                  disabled={isGeneratingMindMap}
+                  className="w-full text-xs h-7 px-1 mt-1"
+                  title="Élő Elmetérkép generálása"
+                >
+                  {isGeneratingMindMap ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                      Térkép...
+                    </>
+                  ) : (
+                    <>
+                      <Network className="w-3 h-3 mr-1" />
+                      Élő Elmetérkép
                     </>
                   )}
                 </Button>

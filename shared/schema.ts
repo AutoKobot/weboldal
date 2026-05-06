@@ -129,6 +129,7 @@ export const modules = pgTable("modules", {
   podcastUrl: varchar("podcast_url"), // Külső podcast URL
   presentationUrl: varchar("presentation_url"), // Feltöltött prezentáció URL (pl. pptx)
   presentationData: jsonb("presentation_data"), // Új: Strukturált JSON az interaktív HTML prezentációhoz
+  mindMapData: jsonb("mind_map_data"), // Új: Strukturált JSON az élő elmetérképhez
   isPublished: boolean("is_published").default(false),
   generatedQuizzes: jsonb("generated_quizzes"), // 5 elre generált tesztsor
   practicalTasks: jsonb("practical_tasks"), // Gyakorlati feladatok
