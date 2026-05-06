@@ -158,7 +158,7 @@ export class EnhancedModuleGenerator {
       prompts.internetContentPrompt = `Készíts egy minden részletre kiterjedő, szakmai ELMÉLETI tananyagot!
       A tartalom legyen RÉSZLETES, professzionális és lefedjen minden szakmai aspektust.
       A cél, hogy a szövegből a tanuló TÖKÉLETESEN megértse és elsajátítsa az elméleti hátteret.
-      Használj Markdown formázást, táblázatokat és listákat a jobb érthetőségért.
+      Használj Markdown formázást, táblázatokat és listákat, svg rajzokat a jobb érthetőségért.
       
       KÖTELEZŐ: A fontosabb fogalmakat és összefüggéseket magyarázd el vizuálisan is (Mermaid diagram és SVG rajz)! Ne csak a végén legyen egy ábra, hanem a szövegbe ágyazva, ahol a leginkább segíti a megértést.
       
