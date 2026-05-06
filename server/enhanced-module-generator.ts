@@ -74,20 +74,17 @@ export class EnhancedModuleGenerator {
    */
   private async loadPrompts(): Promise<{
     youtubePrompt: string;
-    wikipediaPrompt: string;
     internetContentPrompt: string;
     conciseContentPrompt: string;
   }> {
-    const [youtubePromptSetting, wikipediaPromptSetting, internetContentPromptSetting, conciseContentPromptSetting] = await Promise.all([
+    const [youtubePromptSetting, internetContentPromptSetting, conciseContentPromptSetting] = await Promise.all([
       storage.getSystemSetting('ai_youtube_prompt'),
-      storage.getSystemSetting('ai_wikipedia_prompt'),
       storage.getSystemSetting('ai_internet_content_prompt'),
       storage.getSystemSetting('concise-content-prompt')
     ]);
 
     return {
       youtubePrompt: youtubePromptSetting?.value || 'Javasolj 2-3 konkrét, létező vagy erősen valószínű YouTube videó CÍMET ehhez a tananyaghoz JSON tömbben. A címek legyenek pontosak és szakmailag relevánsak (pl. "Műszaki rajz alapjai - Vetületek"). Ne használj túl általános kifejezéseket!\n\nCím: {title}\nTartalom: {content}',
-      wikipediaPrompt: wikipediaPromptSetting?.value || 'Azonosítsd a modul legfontosabb szakmai kifejezéseit és fogalmait, amelyekhez Wikipedia linkeket kell hozzáadni. Csak azokat a kifejezéseket válaszd ki, amelyek valóban fontosak a témához. Modulcím: {title}, Tartalom: {content}',
       internetContentPrompt: internetContentPromptSetting?.value || 'Generálj frissített, részletes tartalmat az internet segítségével. KÖTELEZŐ VIZUÁLIS ELEMEK:\n1. Legalább egy Mermaid diagram (folyamatábra) a logikai lépésekhez: ```mermaid ... ```\n2. TECHNIKAI RAJZ: Keresd meg a téma legfontosabb FIZIKAI elemét (pl. hegesztőív, tolómérő, elektromos kötés, tetőszerkezet, alkatrész) és generálj róla közvetlen SVG kódot: ```svg <svg ...>...</svg> ```. A rajz legyen letisztult, minimalista technikai vázlat, ami segíti a megértést. Modulcím: {title}, Eredeti tartalom: {content}',
       conciseContentPrompt: conciseContentPromptSetting?.value || 'Készíts tömör tananyagot (max 300 szó). KÖVETELMÉNY: Illessz be egy Mermaid folyamatábrát ÉS egy technikai SVG rajzot a legfontosabb fizikai elemről (pl. szerszám, alkatrész vázlata) ```svg ... ``` formátumban!\n\nVálasz:'
     };
@@ -163,7 +160,7 @@ export class EnhancedModuleGenerator {
       A cél, hogy a szövegből a tanuló TÖKÉLETESEN megértse és elsajátítsa az elméleti hátteret.
       Használj Markdown formázást, táblázatokat és listákat a jobb érthetőségért.
       
-      KÖTELEZŐ: A fontosabb fogalmakat vagy összefüggéseket magyarázd el vizuálisan is (Mermaid diagram vagy SVG rajz)! Ne csak a végén legyen egy ábra, hanem a szövegbe ágyazva, ahol a leginkább segíti a megértést.
+      KÖTELEZŐ: A fontosabb fogalmakat és összefüggéseket magyarázd el vizuálisan is (Mermaid diagram és SVG rajz)! Ne csak a végén legyen egy ábra, hanem a szövegbe ágyazva, ahol a leginkább segíti a megértést.
       
       Modulcím: {title}, Alapinformáció: {content}`;
       
@@ -321,18 +318,16 @@ Tartalom:
 ${content}
 
 Keress különösen:
-- Főbb alapanyagokat (pl. paprika, paradicsom, hagyma, kolbász)
-- Technikai fogalmakat és eljárásokat
-- Kulcsfontosságú eszközöket vagy módszereket
-- Szakmai terminológiákat
-- Konkrét anyagokat, összetevőket
+- Az elméleti vázhoz kapcsolódó definíciókat, eszközöket, módszereket, eljárásokat
+- A tananyag megértése szempontjából fontos fogalmakat, összefüggéseket és eljárásokat
+
 
 Válaszolj JSON formátumban:
 {
   "keyConcepts": ["fogalom1", "alapanyag1", "technika1", "fogalom2"]
 }
 
-Maximum 8 kulcsfogalom, beleértve az alapanyagokat és technikai elemeket.
+Maximum 20 kulcsfogalom, beleértve az alapanyagokat és technikai elemeket.
 `;
 
     try {
@@ -435,12 +430,10 @@ ${content}
 Követelmények:
 - Semmi bevezetőszöveg, csak szakmai tartalom
 - Egyszerű, magyarázó nyelvezet
-- Fejlett markdown struktúra (táblázatok, listák)
+- Fejlett markdown struktúra (táblázatok, listák, svg rajzok, diagramok stb.)
 - **Bold** kiemelés kulcsfogalmakhoz
-- Wikipedia linkek releváns fogalmakhoz: [fogalom](https://hu.wikipedia.org/wiki/Fogalom)
 - 500-800 szó
 - Magyar nyelv
-- **KÖTELEZŐ: Legalább egy Mermaid diagram (folyamatábra vagy elmetérkép) a vizuális szemléltetéshez!**
 - A diagram legyen helyes szintaxisú és a tartalomhoz kapcsolódó.
 
 Válasz csak a formázott tartalommal:

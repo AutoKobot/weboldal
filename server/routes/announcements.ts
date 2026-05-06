@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
-import { insertClassAnnouncementSchema } from "@shared/schema";
+import { insertClassAnnouncementSchema, classAnnouncements } from "@shared/schema";
+import { db } from "../db";
+import { eq, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -42,8 +44,20 @@ router.get('/my', combinedAuth, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const user = await storage.getUser(userId);
-    if (!user || !user.classId) return res.json([]);
+    if (!user) return res.json([]);
 
+    if (user.role === 'teacher' || user.role === 'admin' || user.role === 'school_admin') {
+      // Teachers and admins want to see the announcements they created
+      const announcements = await db
+        .select()
+        .from(classAnnouncements)
+        .where(eq(classAnnouncements.teacherId, userId))
+        .orderBy(desc(classAnnouncements.createdAt));
+      return res.json(announcements);
+    }
+
+    // Students want to see their unacknowledged announcements
+    if (!user.classId) return res.json([]);
     const announcements = await storage.getUnacknowledgedAnnouncements(userId, user.classId);
     res.json(announcements);
   } catch (error) {
