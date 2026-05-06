@@ -61,6 +61,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const chartText = (chart || '').trim();
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const imageUrl = useMemo(() => {
     if (!chartText) return '';
@@ -85,11 +86,23 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
     }
   }, [chartText]);
 
-  // Reset state when chart content changes
+  // Reset state when chart content changes and handle cached images
   useEffect(() => {
     setLoading(true);
     setError(false);
-  }, [chartText]);
+
+    // If image is already cached and complete, resolve loading immediately
+    if (imgRef.current && imgRef.current.complete) {
+      setLoading(false);
+    }
+
+    // Safety timeout to ensure loading spinner is removed within 1.5 seconds maximum
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [imageUrl]);
 
   if (!chartText || !imageUrl) return null;
 
@@ -108,9 +121,10 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
           </div>
         ) : (
           <img
+            ref={imgRef}
             src={imageUrl}
             alt="Szakmai folyamatábra"
-            className={`max-w-full h-auto transition-all duration-500 hover:scale-[1.01] ${loading ? 'opacity-0 blur-sm' : 'opacity-100 blur-0'}`}
+            className="max-w-full h-auto transition-all duration-500 hover:scale-[1.01]"
             onLoad={() => setLoading(false)}
             onError={() => {
               setLoading(false);
@@ -222,73 +236,7 @@ export default function ModuleViewer() {
   const [wikipediaContent, setWikipediaContent] = useState<{ title: string, content: string, url: string } | null>(null);
   const [isLoadingWikipedia, setIsLoadingWikipedia] = useState(false);
 
-  useEffect(() => {
-    const renderMermaidDiagrams = async () => {
-      const mermaidElements = document.querySelectorAll('code.language-mermaid, .mermaid');
-      if (mermaidElements.length > 0) {
-        const m = await import('mermaid');
-        const mermaid = m.default;
-        mermaidElements.forEach((element, index) => {
-          if (element.tagName === 'CODE' && element.textContent) {
-            const mermaidDiv = document.createElement('div');
-            mermaidDiv.className = 'mermaid';
-            mermaidDiv.textContent = element.textContent;
-            mermaidDiv.id = `mermaid-diagram-dom-${index}`;
-            element.parentNode?.insertBefore(mermaidDiv, element);
-            if (element instanceof HTMLElement) element.style.display = 'none';
-          }
-        });
-
-        setTimeout(async () => {
-          const mermaidDivs = document.querySelectorAll('.mermaid');
-          if (mermaidDivs.length > 0) {
-            try {
-              await mermaid.run({ querySelector: '.mermaid' });
-            } catch (error) {
-              await mermaid.init(undefined, mermaidDivs as any);
-            }
-          }
-        }, 100);
-      }
-    };
-
-    const observer = new MutationObserver((mutations) => {
-      let shouldRerender = false;
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach(node => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as Element;
-              if (element.classList?.contains('prose') || element.querySelector?.('code.language-mermaid, .mermaid')) {
-                shouldRerender = true;
-              }
-            }
-          });
-        }
-      });
-
-      if (shouldRerender) {
-        setTimeout(renderMermaidDiagrams, 300);
-      }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      const mermaidDivs = document.querySelectorAll('.mermaid');
-      if (mermaidDivs.length > 0) {
-        const m = await import('mermaid');
-        const mermaid = m.default;
-        mermaid.run({ querySelector: '.mermaid', suppressErrors: true }).catch(() => {
-          mermaid.init(undefined, '.mermaid');
-        });
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [module?.id, contentVersion, showFlashcards, isRegenerating]);
+  // Pure React-driven Mermaid rendering is handled by MermaidDiagram component, preventing manual DOM conflicts.
 
   const fetchWikipediaContent = async (wikipediaUrl: string) => {
     setIsLoadingWikipedia(true);
