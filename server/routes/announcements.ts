@@ -47,13 +47,8 @@ router.get('/my', combinedAuth, async (req: any, res) => {
     if (!user) return res.json([]);
 
     if (user.role === 'teacher' || user.role === 'admin' || user.role === 'school_admin') {
-      // Teachers and admins want to see the announcements they created
-      const announcements = await db
-        .select()
-        .from(classAnnouncements)
-        .where(eq(classAnnouncements.teacherId, userId))
-        .orderBy(desc(classAnnouncements.createdAt));
-      return res.json(announcements);
+      // Teachers and admins do not have received announcements, return empty array to prevent popups
+      return res.json([]);
     }
 
     // Students want to see their unacknowledged announcements
@@ -62,6 +57,21 @@ router.get('/my', combinedAuth, async (req: any, res) => {
     res.json(announcements);
   } catch (error) {
     console.error("Error fetching my announcements:", error);
+    res.json([]);
+  }
+});
+
+router.get('/teacher', combinedAuth, checkTeacherOrAdmin, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const announcements = await db
+      .select()
+      .from(classAnnouncements)
+      .where(eq(classAnnouncements.teacherId, userId))
+      .orderBy(desc(classAnnouncements.createdAt));
+    res.json(announcements);
+  } catch (error) {
+    console.error("Error fetching teacher announcements:", error);
     res.json([]);
   }
 });

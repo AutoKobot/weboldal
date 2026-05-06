@@ -35,7 +35,7 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
   const [isNewAnnDialogOpen, setIsNewAnnDialogOpen] = useState(false);
 
   const { data: announcements = [], isLoading } = useQuery<ClassAnnouncement[]>({
-    queryKey: ["/api/announcements/my"],
+    queryKey: ["/api/announcements/teacher"],
   });
 
   const createAnnouncementMutation = useMutation({
@@ -53,7 +53,7 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
       setIsNewAnnDialogOpen(false);
       setAnnTitle("");
       setAnnContent("");
-      queryClient.invalidateQueries({ queryKey: ["/api/announcements/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/announcements/teacher"] });
     },
     onError: () => {
       toast({ title: "Hiba", description: "Nem sikerült elküldeni az üzenetet.", variant: "destructive" });
@@ -67,7 +67,7 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Üzenet törölve." });
-      queryClient.invalidateQueries({ queryKey: ["/api/announcements/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/announcements/teacher"] });
     }
   });
 
