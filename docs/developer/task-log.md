@@ -134,6 +134,44 @@ This log tracks the major changes, fixes, and architectural decisions made by th
   - **Safety**: The cleanup logic now strictly only deletes a profession if it was newly created during the failed job. Existing professions are preserved.
 - **Result**: Curriculum updates are now safe to perform without risk to existing data.
 
+## Current Session: 2026-05-06
+
+### 15. Random 10-Question Shuffled Quiz Pool
+- **Problem**: Legacy quizzes consisted of nested sets of 10 questions. The new pedagogical model requires a flat array of exactly 30 questions (omitting image/icon-based questions) from which the student is served exactly 10 random shuffled ones.
+- **Solution**:
+  - Updated `generateMultipleQuizSets` in [server/enhanced-module-generator.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/enhanced-module-generator.ts) to produce exactly 30 questions in a flat array, completely omitting the `icon` question type.
+  - Updated the `/modules/:id/quiz` endpoint in [server/routes/content.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/routes/content.ts) to support both legacy arrays and the new flat 30-question pools. When a flat pool is found, it shuffles and serves exactly 10 random questions.
+- **Result**: More robust, dynamic quizzes for students with randomized coverage.
+
+### 16. Complete Elimination of Wikipedia Links
+- **Problem**: Wikipedia links were still being generated in AI detailed contents, cluttering learning text.
+- **Solution**:
+  - Removed unused `wikipediaPrompt` properties and database lookups (`ai_wikipedia_prompt`) from the `loadPrompts` method in [server/enhanced-module-generator.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/enhanced-module-generator.ts).
+  - Explicitly replaced the Wikipedia link instruction in `generateDetailedVersionWithSearch` with a direct negative constraint: `NE használj semmilyen Wikipedia vagy egyéb külső linket a szövegben!`.
+  - Fully disabled `addWikipediaLinks` and `linkBoldKeywordsSimplified` to prevent any program-level link generation.
+- **Result**: 100% clean, professional, and link-free educational materials.
+
+### 17. Automatic Mermaid Parenthesis Parser Repair
+- **Problem**: When the AI generated parentheses inside node labels (e.g. `B[Hegesztési eljárás leírása (WPS)]`), the client-side Mermaid parser crashed with syntax errors because parentheses are special symbols in Mermaid.
+- **Solution**:
+  - Added an automatic regex repair rule to `fixMermaidSyntax` in [server/openai.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/openai.ts) that detects square bracket labels containing parentheses and wraps them in double quotes (e.g., `B["Hegesztési eljárás leírása (WPS)"]`).
+  - Added explicit TypeScript typing to the replacement callback parameters to satisfy strict compiling.
+- **Result**: Auto-healing, robust visual diagrams that never crash the client-side.
+
+### 18. Teacher Dashboard Icon Crash Fix
+- **Problem**: The teacher dashboard crashed with a white screen due to a missing `MessageSquare` icon import.
+- **Solution**:
+  - Added `MessageSquare` to the `"lucide-react"` imports inside [client/src/pages/teacher-dashboard.tsx](file:///e:/Antigravity_projektek/InteractiveLearning/client/src/pages/teacher-dashboard.tsx) and [client/src/components/teacher-dashboard/StudentListView.tsx](file:///e:/Antigravity_projektek/InteractiveLearning/client/src/components/teacher-dashboard/StudentListView.tsx).
+- **Result**: Zero runtime dashboard crashes.
+
+### 19. Separated Teacher Announcements Endpoint (Fixed Repeating Popups)
+- **Problem**: When the `/api/announcements/my` endpoint returned the teacher's sent announcements, the global `ClassAnnouncementModal` interpreted them as unread received popups and opened a repeating, undismissable modal on the teacher's screen.
+- **Solution**:
+  - Reverted `/api/announcements/my` in [server/routes/announcements.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/routes/announcements.ts) to return `[]` immediately for teachers/admins.
+  - Introduced a separate `/api/announcements/teacher` endpoint for teachers' sent announcements.
+  - Updated [client/src/components/teacher-dashboard/AnnouncementsView.tsx](file:///e:/Antigravity_projektek/InteractiveLearning/client/src/components/teacher-dashboard/AnnouncementsView.tsx) to query and invalidate `/api/announcements/teacher` instead of `/api/announcements/my`.
+- **Result**: Sent announcements are managed beautifully without any repeating popups on the teacher's interface.
+
 ## Pending Tasks / Roadmap
 
 - [x] Fix "Wrench is not defined" error in student view.
@@ -145,6 +183,9 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 - [x] Implement Grade Recovery (Migration) for re-generated modules.
 - [x] Implement Durable Data Architecture (Metadata fallbacks).
 - [x] Fix critical IKK import cleanup bug.
+- [x] Fix repeating teacher popups & separate announcements endpoints.
+- [x] Auto-repair Mermaid parenthesis parser errors.
+- [x] Completely disable Wikipedia link generation.
 - [ ] Clean up "Ghost Data" (old orphaned modules) after migration is confirmed.
 - [ ] Implement AI-driven Question generation for Practical modules.
 - [ ] Optimize IKK import performance (Parallel chunk processing).

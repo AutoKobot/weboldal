@@ -43,9 +43,22 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **Sorrendezés és Láthatóság**:
   - A tantárgyak (pl. 3.1, 3.1.1) és modulok természetes numerikus sorrendben jelennek meg minden felületen.
   - Intézményi láthatóság (School-Aware): Az iskola adminok látják az összes hozzájuk tartozó tanárt és diákot, függetlenül attól, ki hozta létre őket.
+- **Wikipedia-mentes és Gazdagabb AI Tartalmak (2026-05-06)**:
+  - Teljesen eltávolítottuk a Wikipédiás hivatkozásokat mind a kódból, mind az AI-promptokból, garantálva a tiszta szakmai szövegeket.
+  - Az elméleti tananyag generálása mostantól KÖTELEZŐEN egyszerre tartalmaz mind Mermaid diagramot, mind egyedi műszaki SVG ábrát is.
+  - A kulcsfogalmak gyűjtését kiterjesztettük maximum 20 elemre, általánosítva a technikai/elméleti területekre.
+- **Dinamikus 30 Kérdéses Teszt Pool (2026-05-06)**:
+  - Az AI az új modulokhoz pontosan 30 kérdésből álló, kép nélküli lapos kérdés-poolt generál.
+  - A backend a vizsgázáskor ebből a 30 kérdésből kever össze és ad fel pontosan 10 véletlenszerű kérdést a tanulónak.
+- **Automatikus Mermaid Szintaxis-Öngyógyítás (2026-05-06)**:
+  - A háttérszerver beépített regex-szel észleli és automatikusan idézőjelek közé zárja a zárójeleket tartalmazó szögletes Mermaid feliratokat (pl. `B["Leírás (WPS)"]`), teljesen megelőzve a kirajzolási és parser összeomlásokat.
+- **Kijelölt Osztályok Értesítései és Felugró Ablak Fix (2026-05-06)**:
+  - Elválasztottuk a tanulói érkező üzeneteket (`/api/announcements/my`) és a tanári küldött üzeneteket (`/api/announcements/teacher`).
+  - Ezzel véglegesen megszűnt a tanári felületen folyamatosan és bezárhatatlanul felugró, zavaró üzenetküldési modál ablak.
 - **Hibajavítások**:
   - Megszűnt a modulcímek sorszám-duplikációja (pl. 3.1.1.) a robusztusabb regex-szel.
   - Pótólva a hiányzó `Wand2` és egyéb ikon importok.
+  - Javítottuk a hiányzó `MessageSquare` ikon import miatti összeomlást a tanár-dashboard és tanuló-listázó oldalakon.
   - Az IKK import hiba esetén nem törli a már létrehozott szakmát, segítve a hibakeresést.
 
 ## 📌 Szabályok és Irányelvek az AI számára
