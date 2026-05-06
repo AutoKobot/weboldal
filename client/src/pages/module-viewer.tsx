@@ -32,17 +32,34 @@ import remarkGfm from 'remark-gfm';
 import { PresentationPlayer } from "@/components/presentation-player";
 
 
+// Recursive function to extract clean plain text from React nodes
+const getPlainText = (node: any): string => {
+  if (node === null || node === undefined) return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(getPlainText).join('');
+  if (node.props && node.props.children) return getPlainText(node.props.children);
+  return '';
+};
+
 // Separate components to avoid TDZ and initialization errors in production
 const MathParagraph = (props: any) => {
   const { children } = props;
-  const text = String(children || '');
-  const isMath = text.includes('\\frac') || text.includes('\\rho') || text.includes('\\text{') || 
-                text.includes('\\sigma') || text.includes('\\delta') || text.includes('\\alpha') || 
-                text.includes('\\beta') || text.includes('\\lambda') || text.includes('\\omega');
-  const isChemical = /^[A-Z][a-z]?(\s*[:=]\s*[A-Z][a-z]?)+$/.test(text);
-  const isBracketMath = text.trim().startsWith('[') && text.trim().endsWith(']') && text.includes('\\');
+  const text = getPlainText(children);
+  
+  // A standalone math block must be explicitly wrapped or primarily mathematical
+  const isWrappedMath = (text.trim().startsWith('$$') && text.trim().endsWith('$$')) ||
+                        (text.trim().startsWith('\\[') && text.trim().endsWith('\\]')) ||
+                        (text.trim().startsWith('[') && text.trim().endsWith(']') && text.includes('\\'));
+                        
+  // Standalone math formulas are short and contain mathematical symbols (not full Hungarian text sentences)
+  const isStandaloneFormula = (text.includes('\\frac') || text.includes('\\rho') || text.includes('\\text{') || 
+                               text.includes('\\sigma') || text.includes('\\delta') || text.includes('\\alpha') || 
+                               text.includes('\\beta') || text.includes('\\lambda') || text.includes('\\omega')) &&
+                              (text.split(/\s+/).length < 8); // standalone formulas are short, not full text sentences
 
-  if (isMath || isChemical || isBracketMath) {
+  const isChemical = /^[A-Z][a-z]?(\s*[:=]\s*[A-Z][a-z]?)+$/.test(text);
+
+  if (isWrappedMath || isStandaloneFormula || isChemical) {
     const formula = text
       .replace(/^\[\s*/, '').replace(/\s*\]$/, '')
       .replace(/^\$\$\s*/, '').replace(/\s*\$\$/, '')

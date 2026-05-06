@@ -17,12 +17,80 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Plus, MessageSquare, Trash2, Info, AlertTriangle } from "lucide-react";
+import { Bell, Plus, MessageSquare, Trash2, Info, AlertTriangle, Users, ChevronDown, ChevronUp, Check, Clock } from "lucide-react";
 import type { User, Class, ClassAnnouncement } from "@shared/schema";
 
 interface Props {
   teacherClasses: Class[];
   students: User[];
+}
+
+function AnnouncementStats({ announcementId }: { announcementId: number }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { data: stats = [], isLoading } = useQuery<any[]>({
+    queryKey: [`/api/announcements/${announcementId}/stats`],
+    enabled: isOpen,
+  });
+
+  const total = stats.length;
+  const acknowledgedCount = stats.filter(s => s.response !== null).length;
+
+  return (
+    <div className="mt-4 border-t pt-3">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-between hover:bg-slate-50 text-gray-500 flex items-center h-8 px-2 rounded"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="flex items-center gap-2 font-semibold text-[11px] tracking-wide uppercase text-slate-500">
+          <Users className="h-4 w-4 text-slate-400" />
+          Visszajelzések ({acknowledgedCount} / {total} elolvasta)
+        </span>
+        {isOpen ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+      </Button>
+
+      {isOpen && (
+        <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pl-1 pr-1">
+          {isLoading ? (
+            <div className="text-xs text-gray-400 text-center py-2">Betöltés...</div>
+          ) : stats.length === 0 ? (
+            <div className="text-xs text-gray-400 text-center py-2">Nincsenek tanulók ebben az osztályban.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 pb-1">
+              {stats.map((s, idx) => {
+                const name = `${s.lastName || ""} ${s.firstName || ""}`.trim() || s.username;
+                const isAcked = s.response !== null;
+                return (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50/50 border border-slate-100 text-xs">
+                    <span className="font-medium text-slate-600 truncate max-w-[150px]">{name}</span>
+                    <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                      {isAcked ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] py-0 px-1.5 leading-none h-4">
+                            {s.response}
+                          </Badge>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <Badge variant="secondary" className="bg-amber-50 text-amber-600 border-amber-100 text-[10px] py-0 px-1.5 leading-none h-4">
+                            Olvasatlan
+                          </Badge>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AnnouncementsView({ teacherClasses, students }: Props) {
@@ -33,6 +101,8 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
   const [annType, setAnnType] = useState<"info" | "warning" | "error">("info");
   const [annClassId, setAnnClassId] = useState<string>("all");
   const [isNewAnnDialogOpen, setIsNewAnnDialogOpen] = useState(false);
+  const [annOptions, setAnnOptions] = useState<string[]>(["Értettem"]);
+  const [customOptionText, setCustomOptionText] = useState("");
 
   const { data: announcements = [], isLoading } = useQuery<ClassAnnouncement[]>({
     queryKey: ["/api/announcements/teacher"],
@@ -53,6 +123,8 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
       setIsNewAnnDialogOpen(false);
       setAnnTitle("");
       setAnnContent("");
+      setAnnOptions(["Értettem"]);
+      setCustomOptionText("");
       queryClient.invalidateQueries({ queryKey: ["/api/announcements/teacher"] });
     },
     onError: () => {
@@ -131,9 +203,91 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
                 <Label htmlFor="ann-content">Tartalom</Label>
                 <Textarea id="ann-content" value={annContent} onChange={(e) => setAnnContent(e.target.value)} placeholder="Részletes tájékoztatás..." className="min-h-[100px]" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="ann-options">Válaszlehetőségek (JSON formátum, opcionális)</Label>
-                <Input id="ann-options" placeholder='["Értettem", "Rendben"]' defaultValue='["Értettem"]' />
+              <div className="grid gap-2 border-t pt-3 mt-1">
+                <Label className="text-sm font-semibold text-slate-700">Visszajelzési gombok (Diák oldali gombok)</Label>
+                <span className="text-[11px] text-slate-500 leading-normal">
+                  Válasszon egy kész sablont vagy készítsen egyedi gombokat, amikkel a tanulók válaszolni tudnak.
+                </span>
+
+                {/* Preset selectors */}
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-[10px] h-7 px-2 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-medium"
+                    onClick={() => setAnnOptions(["Értettem"])}
+                  >
+                    Csak visszaigazolás ("Értettem")
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-[10px] h-7 px-2 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-medium"
+                    onClick={() => setAnnOptions(["Ott leszek", "Nem érek rá"])}
+                  >
+                    Jelenlét ("Ott leszek", "Nem érek rá")
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-[10px] h-7 px-2 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-medium"
+                    onClick={() => setAnnOptions(["Megértettem", "Kérdésem van"])}
+                  >
+                    Megértés ("Megértettem", "Kérdésem van")
+                  </Button>
+                </div>
+
+                {/* Current options chips */}
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50/50 border border-slate-100 rounded-xl min-h-[44px] items-center mt-2">
+                  {annOptions.map((opt, i) => (
+                    <Badge key={i} className="bg-white text-slate-700 border border-slate-200 shadow-sm pr-1.5 py-1 rounded-lg flex items-center gap-1 font-medium text-xs">
+                      <span>{opt}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAnnOptions(annOptions.filter((_, idx) => idx !== i))}
+                        className="text-gray-400 hover:text-red-500 shrink-0 w-3.5 h-3.5 flex items-center justify-center font-bold text-xs"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                  {annOptions.length === 0 && (
+                    <span className="text-xs text-slate-400 pl-1">Adj meg legalább egy gombot!</span>
+                  )}
+                </div>
+
+                {/* Custom option adder */}
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    placeholder="Egyedi gomb felirat (pl. Holnap pótolom)..."
+                    value={customOptionText}
+                    onChange={(e) => setCustomOptionText(e.target.value)}
+                    className="h-8 text-xs rounded-lg flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && customOptionText.trim()) {
+                        e.preventDefault();
+                        if (!annOptions.includes(customOptionText.trim())) {
+                          setAnnOptions([...annOptions, customOptionText.trim()]);
+                        }
+                        setCustomOptionText("");
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    className="h-8 text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 shrink-0"
+                    onClick={() => {
+                      if (customOptionText.trim()) {
+                        if (!annOptions.includes(customOptionText.trim())) {
+                          setAnnOptions([...annOptions, customOptionText.trim()]);
+                        }
+                        setCustomOptionText("");
+                      }
+                    }}
+                  >
+                    + Hozzáad
+                  </Button>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -149,22 +303,21 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
                     toast({ variant: "destructive", title: "Hiba", description: "Kérjük, válasszon osztályt!" });
                     return;
                   }
-                  let options = ["Értettem"];
-                  try {
-                    const optInput = document.getElementById("ann-options") as HTMLInputElement;
-                    if (optInput && optInput.value) options = JSON.parse(optInput.value);
-                  } catch (e) {}
+                  if (annOptions.length === 0) {
+                    toast({ variant: "destructive", title: "Hiba", description: "Kérjük, adjon meg legalább egy visszajelzési gombot!" });
+                    return;
+                  }
                   
                   createAnnouncementMutation.mutate({
                     classId: parseInt(annClassId),
                     title: annTitle,
                     content: annContent,
                     type: annType,
-                    options,
+                    options: annOptions,
                     isActive: true
                   });
                 }}
-                disabled={createAnnouncementMutation.isPending || !annTitle || !annContent}
+                disabled={createAnnouncementMutation.isPending || !annTitle || !annContent || annOptions.length === 0}
               >
                 {createAnnouncementMutation.isPending ? "Küldés..." : "Üzenet küldése"}
               </Button>
@@ -210,6 +363,7 @@ export function AnnouncementsView({ teacherClasses, students }: Props) {
                   <div className="flex items-center justify-between text-xs text-gray-400">
                     <span>Létrehozva: {new Date(ann.createdAt).toLocaleString('hu-HU')}</span>
                   </div>
+                  <AnnouncementStats announcementId={ann.id} />
                 </CardContent>
               </Card>
             );
