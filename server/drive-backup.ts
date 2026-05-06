@@ -34,17 +34,16 @@ export async function runSmartBackup() {
             folderId = setting?.value;
         }
 
-        if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !folderId) {
-            console.warn('[Backup] Google Drive nincs konfigurálva (hiányzó Credentials vagy Folder ID). Mentés kihagyva.');
-            return;
+        if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+            throw new Error('Google Drive hitelesítési fájl nincs megadva (GOOGLE_APPLICATION_CREDENTIALS .env változó hiányzik)');
+        }
+        if (!folderId) {
+            throw new Error('Google Drive célmappa azonosító nincs megadva (GOOGLE_DRIVE_FOLDER_ID hiányzik)');
         }
 
         const drive = await getDriveService();
         const currentHash = await generateDatabaseHash();
 
-        // 1. Ellenőrizzük az utolsó mentést (opcionális okos funkció)
-        // Itt tárolhatnánk egy fájlban az utolsó sikeres hash-t
-        
         // 2. Adatok összegyűjtése (ugyanaz a logika, mint a create-backup.ts-ben)
         const professions = await storage.getProfessions();
         const subjects = await storage.getSubjects();
@@ -95,8 +94,16 @@ export async function runSmartBackup() {
         // Ideiglenes fájl törlése
         fs.unlinkSync(tempPath);
 
-    } catch (error) {
+        return {
+            success: true,
+            fileId: response.data.id,
+            fileName: fileName,
+            hash: currentHash
+        };
+
+    } catch (error: any) {
         console.error('[Backup] Hiba a mentés során:', error);
+        throw error;
     }
 }
 

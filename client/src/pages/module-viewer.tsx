@@ -78,7 +78,10 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
       for (let i = 0; i < len; i++) {
         binary += String.fromCharCode(utf8Bytes[i]);
       }
-      const base64 = btoa(binary);
+      const base64 = btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
       return `https://mermaid.ink/svg/${base64}`;
     } catch (e) {
       console.error('Error generating mermaid.ink URL:', e);
@@ -767,14 +770,25 @@ export default function ModuleViewer() {
                           table: ({ children }) => <table className="w-full border-collapse border border-neutral-300 mb-4">{children}</table>,
                           th: ({ children }) => <th className="border border-neutral-300 px-4 py-2 bg-neutral-100 font-semibold">{children}</th>,
                           td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
-                          img: ({ src, alt }) => (
-                            <div className="flex flex-col items-center my-8">
-                              <div className="bg-white p-2 rounded-2xl shadow-md border border-neutral-100 overflow-hidden max-w-full">
-                                <img src={src} alt={alt} className="max-w-full h-auto rounded-xl hover:scale-[1.02] transition-transform duration-500" loading="lazy" />
+                          img: ({ src, alt }) => {
+                            let cleanSrc = src || '';
+                            if (cleanSrc.startsWith('https://mermaid.ink/svg/')) {
+                              const base64Part = cleanSrc.substring('https://mermaid.ink/svg/'.length);
+                              // Convert standard base64 to URL-safe base64 dynamically to prevent server-side routing failures due to '+' or '/' characters
+                              const safeBase64 = base64Part
+                                .replace(/\+/g, '-')
+                                .replace(/\//g, '_');
+                              cleanSrc = `https://mermaid.ink/svg/${safeBase64}`;
+                            }
+                            return (
+                              <div className="flex flex-col items-center my-8">
+                                <div className="bg-white p-2 rounded-2xl shadow-md border border-neutral-100 overflow-hidden max-w-full">
+                                  <img src={cleanSrc} alt={alt} className="max-w-full h-auto rounded-xl hover:scale-[1.02] transition-transform duration-500" loading="lazy" />
+                                </div>
+                                {alt && <p className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mt-3 italic">{alt}</p>}
                               </div>
-                              {alt && <p className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mt-3 italic">{alt}</p>}
-                            </div>
-                          ),
+                            );
+                          },
                           a: ({ href, children }) => {
                             if (href && href.includes('hu.wikipedia.org/wiki/')) {
                               return (<button onClick={(e) => { e.preventDefault(); fetchWikipediaContent(href); }} className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 font-medium">{children}<span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded font-medium">W</span></button>);

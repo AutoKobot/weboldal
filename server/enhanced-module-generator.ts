@@ -1976,7 +1976,10 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
           mermaid: { theme: "default" }
         };
         const jsonStr = JSON.stringify(diagramConfig);
-        const base64 = Buffer.from(jsonStr).toString('base64');
+        const base64 = Buffer.from(jsonStr).toString('base64')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
         const imageUrl = `https://mermaid.ink/svg/${base64}`;
         
         // Replace the code block with a centered markdown image
