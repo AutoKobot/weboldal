@@ -58,7 +58,7 @@ export function fixMermaidSyntax(content: string): string {
       let fixedLine = line;
 
       // Automatically wrap square bracket content containing parentheses in double quotes to prevent Mermaid parser errors
-      fixedLine = fixedLine.replace(/([a-zA-Z0-9_-]+)\[([^"\]]+)\]/g, (match, id, text) => {
+      fixedLine = fixedLine.replace(/([a-zA-Z0-9_-]+)\[([^"\]]+)\]/g, (match: string, id: string, text: string) => {
         if (text.includes('(') || text.includes(')')) {
           return `${id}["${text}"]`;
         }
