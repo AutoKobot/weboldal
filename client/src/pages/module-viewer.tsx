@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
+import mermaid from "mermaid";
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'neutral',
+  securityLevel: 'loose',
+  fontFamily: 'Arial, sans-serif',
+});
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -56,54 +64,73 @@ const MathParagraph = (props: any) => {
   return <div className="mb-4 leading-relaxed">{children}</div>;
 };
 
-// Completely isolated Mermaid renderer using mermaid.ink API for robust, platform-independent SVG rendering
+// 100% local, offline-capable Mermaid diagram renderer using the official 'mermaid' package.
+// This completely avoids any third-party external requests to mermaid.ink, bypassing firewall or adblock issues.
 const MermaidDiagram = ({ chart }: { chart: string }) => {
+  const chartText = (chart || '').trim();
+  const [svg, setSvg] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const chartText = (chart || '').trim();
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [errorMsg, setErrorMsg] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+  const uniqueId = useRef(`mermaid-${Math.floor(Math.random() * 1000000)}`);
 
-  const imageUrl = useMemo(() => {
-    if (!chartText) return '';
-    try {
-      // Safe base64 encoding supporting unicode/diacritics (Hungarian characters)
-      // Encoding the raw Mermaid code directly as a plain string is 100% stable on mermaid.ink
-      const utf8Bytes = new TextEncoder().encode(chartText);
-      let binary = '';
-      const len = utf8Bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(utf8Bytes[i]);
-      }
-      const base64 = btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-      return `https://mermaid.ink/svg/${base64}`;
-    } catch (e) {
-      console.error('Error generating mermaid.ink URL:', e);
-      return '';
-    }
-  }, [chartText]);
-
-  // Reset state when chart content changes and handle cached images
   useEffect(() => {
+    if (!chartText) return;
     setLoading(true);
     setError(false);
+    setErrorMsg('');
 
-    // If image is already cached and complete, resolve loading immediately
-    if (imgRef.current && imgRef.current.complete) {
-      setLoading(false);
+    let active = true;
+
+    const renderDiagram = async () => {
+      try {
+        // Clean up any markdown code block wrappers if they exist
+        const cleanedCode = chartText
+          .replace(/```mermaid/g, '')
+          .replace(/```/g, '')
+          .trim();
+
+        const { svg: renderedSvg } = await mermaid.render(uniqueId.current, cleanedCode);
+        
+        if (active) {
+          setSvg(renderedSvg);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Local Mermaid render error:', err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        
+        // Clean up any temporary injection elements that mermaid adds on error
+        const badEl = document.getElementById(uniqueId.current);
+        if (badEl) badEl.remove();
+        
+        if (active) {
+          setErrorMsg(errorMessage);
+          setError(true);
+          setLoading(false);
+        }
+      }
+    };
+
+    renderDiagram();
+
+    return () => {
+      active = false;
+    };
+  }, [chartText]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(chartText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
     }
+  };
 
-    // Safety timeout to ensure loading spinner is removed within 1.5 seconds maximum
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [imageUrl]);
-
-  if (!chartText || !imageUrl) return null;
+  if (!chartText) return null;
 
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center w-full">
@@ -115,20 +142,42 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
         )}
         
         {error ? (
-          <div className="text-amber-600 bg-amber-50 p-4 rounded-xl border border-amber-200 text-sm font-mono whitespace-pre-wrap w-full text-center">
-            ⚠ Diagram megjelenítési hiba. Ellenőrizd a diagram szintaxisát!
+          <div className="w-full bg-rose-50 border border-rose-200 rounded-2xl p-6 text-left shadow-inner">
+            <div className="flex items-center gap-2 text-rose-800 font-bold mb-4">
+              <span className="text-xl">⚠</span>
+              <h4 className="text-sm uppercase tracking-wider">Fejlesztői Hibakereső (Mermaid Debugger)</h4>
+            </div>
+            
+            <div className="mb-4">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-rose-500 block mb-1">Rendszer Hibaüzenet:</span>
+              <div className="bg-rose-100 border border-rose-300 text-rose-900 rounded-lg p-3 text-xs font-mono break-words overflow-x-auto max-h-[120px]">
+                {errorMsg || "Ismeretlen renderelési hiba lépett fel."}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-rose-500">Nyers Mermaid Forráskód:</span>
+                <button 
+                  onClick={handleCopy} 
+                  className="text-[10px] uppercase tracking-widest font-bold bg-white text-rose-700 hover:bg-rose-100 px-2 py-1 rounded border border-rose-300 transition-colors cursor-pointer"
+                >
+                  {copied ? 'Sikeresen másolva! ✓' : 'Kód Másolása'}
+                </button>
+              </div>
+              <pre className="bg-neutral-900 text-neutral-100 rounded-lg p-3 text-xs font-mono overflow-x-auto max-h-[150px] whitespace-pre-wrap">
+                {chartText}
+              </pre>
+            </div>
+            
+            <p className="text-[11px] text-rose-600/80 italic text-center">
+              Másold ki a fenti kódot, és próbáld ki a hivatalos Mermaid Live Editor-ban a javításhoz!
+            </p>
           </div>
         ) : (
-          <img
-            ref={imgRef}
-            src={imageUrl}
-            alt="Szakmai folyamatábra"
-            className="max-w-full h-auto transition-all duration-500 hover:scale-[1.01]"
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setError(true);
-            }}
+          <div 
+            className="max-w-full h-auto overflow-x-auto flex justify-center w-full mermaid-svg-container"
+            dangerouslySetInnerHTML={{ __html: svg }} 
           />
         )}
       </div>
@@ -792,20 +841,10 @@ export default function ModuleViewer() {
                                   // Not a JSON string, keep it as raw text
                                 }
                                 
-                                // Re-encode as plain text URL-safe Base64 which is 100% stable
-                                const utf8Bytes = new TextEncoder().encode(rawCode);
-                                let cleanBinary = '';
-                                for (let i = 0; i < utf8Bytes.byteLength; i++) {
-                                  cleanBinary += String.fromCharCode(utf8Bytes[i]);
-                                }
-                                const safeBase64 = cleanBinary ? btoa(cleanBinary)
-                                  .replace(/\+/g, '-')
-                                  .replace(/\//g, '_')
-                                  .replace(/=+$/, '') : '';
-                                
-                                cleanSrc = `https://mermaid.ink/svg/${safeBase64}`;
+                                // Render locally using MermaidDiagram instead of an external img tag!
+                                return <MermaidDiagram chart={rawCode} />;
                               } catch (e) {
-                                console.error('Error self-healing mermaid link:', e);
+                                console.error('Error fallbacking to local Mermaid:', e);
                               }
                             }
                             return (
