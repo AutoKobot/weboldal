@@ -220,15 +220,17 @@ export class EnhancedModuleGenerator {
     let conciseWithSVG = boldLinkedConcise;
     try {
       conciseWithSVG = await this.convertMermaidToSVGImages(boldLinkedConcise);
+      conciseWithSVG = await this.convertWikipediaImagesToAIImages(conciseWithSVG);
     } catch (e) {
-      console.error("[ENHANCED-GEN] Mermaid conversion for concise failed, skipping...", e);
+      console.error("[ENHANCED-GEN] Mermaid/Image conversion for concise failed, skipping...", e);
     }
 
     let detailedWithSVG = boldLinkedDetailed;
     try {
       detailedWithSVG = await this.convertMermaidToSVGImages(boldLinkedDetailed);
+      detailedWithSVG = await this.convertWikipediaImagesToAIImages(detailedWithSVG);
     } catch (e) {
-      console.error("[ENHANCED-GEN] Mermaid conversion for detailed failed, skipping...", e);
+      console.error("[ENHANCED-GEN] Mermaid/Image conversion for detailed failed, skipping...", e);
     }
 
     let quizSets: any[] = [];
@@ -1315,6 +1317,64 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
       }
     }
     
+    return newContent;
+  }
+
+  async convertWikipediaImagesToAIImages(content: string): Promise<string> {
+    if (!content) return content;
+    let newContent = content;
+
+    // 1. Match Markdown images: ![alt](url) where url contains wikipedia-commons-local-public or AUTH_mw
+    const markdownRegex = /!\[([^\]]+)\]\(([^)]*(?:wikipedia-commons-local-public|AUTH_mw)[^)]*)\)/g;
+    let match;
+    const matches: Array<{ fullMatch: string, alt: string }> = [];
+
+    while ((match = markdownRegex.exec(content)) !== null) {
+      matches.push({
+        fullMatch: match[0],
+        alt: match[1]
+      });
+    }
+
+    // 2. Match HTML images: <img ... src="url" ... alt="alt" ...> or <img ... alt="alt" ... src="url" ...>
+    const htmlRegex = /<img[^>]+(?:src=["']([^"']*(?:wikipedia-commons-local-public|AUTH_mw)[^"']*)["'][^>]+alt=["']([^"']+)["']|alt=["']([^"']+)["'][^>]+src=["']([^"']*(?:wikipedia-commons-local-public|AUTH_mw)[^"']*)["'])[^>]*>/g;
+    while ((match = htmlRegex.exec(content)) !== null) {
+      const src = match[1] || match[4];
+      const alt = match[2] || match[3];
+      if (alt) {
+        matches.push({
+          fullMatch: match[0],
+          alt: alt
+        });
+      }
+    }
+
+    if (matches.length === 0) {
+      return content;
+    }
+
+    console.log(`[AI-IMAGE-REPLACE] Found ${matches.length} broken Wikipedia images. Replacing with AI generated illustrations...`);
+
+    const { generatePresentationImage } = await import('./openai');
+
+    for (const item of matches) {
+      try {
+        console.log(`[AI-IMAGE-REPLACE] Generating AI illustration for: "${item.alt}"`);
+        // Let's create a rich technical illustration prompt in Hungarian/English for Flux
+        const prompt = `Professional clear technical educational illustration/diagram, schematic or symbol for: "${item.alt}". Clean design, white background, no text, modern vector-style, highly detailed, pedagogical.`;
+        
+        const imageUrl = await generatePresentationImage(prompt);
+        
+        if (imageUrl) {
+          const replacement = `\n\n<div align="center">\n  <img src="${imageUrl}" alt="${item.alt}" style="max-width: 400px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" />\n  <p><em>${item.alt} (AI-generált ábra)</em></p>\n</div>\n\n`;
+          newContent = newContent.replace(item.fullMatch, replacement);
+          console.log(`[AI-IMAGE-REPLACE] Successfully replaced image with AI generated URL.`);
+        }
+      } catch (err) {
+        console.error(`[AI-IMAGE-REPLACE] Failed to generate AI image for: "${item.alt}"`, err);
+      }
+    }
+
     return newContent;
   }
 }

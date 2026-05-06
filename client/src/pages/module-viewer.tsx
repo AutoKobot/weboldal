@@ -858,6 +858,9 @@ export default function ModuleViewer() {
                           td: ({ children }) => <td className="border border-neutral-300 px-4 py-2">{children}</td>,
                           img: ({ src, alt }) => {
                             let cleanSrc = src || '';
+                            if (cleanSrc.includes('/v1/AUTH_mw/wikipedia-commons-local-public.')) {
+                              cleanSrc = cleanSrc.replace(/\/v1\/AUTH_mw\/wikipedia-commons-local-public\.[a-f0-9]+/g, 'https://upload.wikimedia.org/wikipedia/commons');
+                            }
                             if (cleanSrc.startsWith('https://mermaid.ink/svg/')) {
                               try {
                                 const base64Part = cleanSrc.substring('https://mermaid.ink/svg/'.length)
@@ -915,6 +918,7 @@ export default function ModuleViewer() {
                             else rawContent = module.detailedContent || module.conciseContent || "";
                           } else { rawContent = module.content || ""; }
                           return rawContent
+                            .replace(/\/v1\/AUTH_mw\/wikipedia-commons-local-public\.[a-f0-9]+/g, 'https://upload.wikimedia.org/wikipedia/commons')
                             .replace(/<div align="center">/g, '')
                             .replace(/<\/div>/g, '')
                             .replace(/<p>/g, '\n\n')

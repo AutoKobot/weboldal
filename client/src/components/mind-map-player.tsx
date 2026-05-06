@@ -211,10 +211,21 @@ export default function MindMapPlayer({ data, moduleTitle, onComplete }: MindMap
       const rect = canvasRef.current.getBoundingClientRect();
       const vx = rect.width / 2;
       const vy = rect.height / 2;
-      // Pan to node smoothly
+      
+      // Determine dynamic zoom level based on node depth to create a strong focus zoom effect
+      let targetZoom = 1.0;
+      if (node.depth === 0) {
+        targetZoom = 0.9;   // Wider view for central theme
+      } else if (node.depth === 1) {
+        targetZoom = 1.2;   // Closer focus for main categories
+      } else {
+        targetZoom = 1.4;   // Strong immersive zoom-in for deep details
+      }
+      
+      setZoom(targetZoom);
       setPan({
-        x: vx - node.x * zoom,
-        y: vy - node.y * zoom
+        x: vx - node.x * targetZoom,
+        y: vy - node.y * targetZoom
       });
     }
   };
@@ -422,10 +433,10 @@ export default function MindMapPlayer({ data, moduleTitle, onComplete }: MindMap
                 {/* Node wrapper with click handler */}
                 <div 
                   onClick={() => handleNodeClick(item.id)}
-                  className={`relative flex flex-col items-center justify-center p-4 min-w-[130px] max-w-[190px] text-center rounded-xl border cursor-pointer transition-all duration-300 ${
+                  className={`relative flex flex-col items-center justify-center p-4 min-w-[130px] max-w-[190px] text-center rounded-xl border cursor-pointer transition-all duration-500 ease-out ${
                     isActive 
-                      ? 'bg-slate-900/90 shadow-2xl scale-110 z-30' 
-                      : 'bg-slate-950/70 opacity-80 hover:opacity-100 hover:scale-105 hover:bg-slate-900/60 z-20'
+                      ? 'bg-slate-900/95 shadow-2xl scale-115 z-30 ring-2 ring-indigo-500/20' 
+                      : 'bg-slate-950/60 opacity-40 hover:opacity-100 hover:scale-105 hover:bg-slate-900/50 z-20 scale-95'
                   }`}
                   style={{
                     borderColor: isActive ? nodeColor : `${nodeColor}40`,
