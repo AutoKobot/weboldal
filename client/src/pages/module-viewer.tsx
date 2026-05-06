@@ -66,13 +66,9 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
   const imageUrl = useMemo(() => {
     if (!chartText) return '';
     try {
-      const diagramConfig = {
-        code: chartText,
-        mermaid: { theme: 'neutral' }
-      };
-      const jsonStr = JSON.stringify(diagramConfig);
       // Safe base64 encoding supporting unicode/diacritics (Hungarian characters)
-      const utf8Bytes = new TextEncoder().encode(jsonStr);
+      // Encoding the raw Mermaid code directly as a plain string is 100% stable on mermaid.ink
+      const utf8Bytes = new TextEncoder().encode(chartText);
       let binary = '';
       const len = utf8Bytes.byteLength;
       for (let i = 0; i < len; i++) {
@@ -773,12 +769,44 @@ export default function ModuleViewer() {
                           img: ({ src, alt }) => {
                             let cleanSrc = src || '';
                             if (cleanSrc.startsWith('https://mermaid.ink/svg/')) {
-                              const base64Part = cleanSrc.substring('https://mermaid.ink/svg/'.length);
-                              // Convert standard base64 to URL-safe base64 dynamically to prevent server-side routing failures due to '+' or '/' characters
-                              const safeBase64 = base64Part
-                                .replace(/\+/g, '-')
-                                .replace(/\//g, '_');
-                              cleanSrc = `https://mermaid.ink/svg/${safeBase64}`;
+                              try {
+                                const base64Part = cleanSrc.substring('https://mermaid.ink/svg/'.length)
+                                  .replace(/-/g, '+')
+                                  .replace(/_/g, '/'); // Convert URL-safe to standard for decoding
+                                
+                                // Safe decode supporting UTF-8
+                                const binary = atob(base64Part);
+                                const bytes = new Uint8Array(binary.length);
+                                for (let i = 0; i < binary.length; i++) {
+                                  bytes[i] = binary.charCodeAt(i);
+                                }
+                                const decodedText = new TextDecoder().decode(bytes);
+                                
+                                let rawCode = decodedText;
+                                try {
+                                  const parsed = JSON.parse(decodedText);
+                                  if (parsed && typeof parsed === 'object' && parsed.code) {
+                                    rawCode = parsed.code;
+                                  }
+                                } catch {
+                                  // Not a JSON string, keep it as raw text
+                                }
+                                
+                                // Re-encode as plain text URL-safe Base64 which is 100% stable
+                                const utf8Bytes = new TextEncoder().encode(rawCode);
+                                let cleanBinary = '';
+                                for (let i = 0; i < utf8Bytes.byteLength; i++) {
+                                  cleanBinary += String.fromCharCode(utf8Bytes[i]);
+                                }
+                                const safeBase64 = cleanBinary ? btoa(cleanBinary)
+                                  .replace(/\+/g, '-')
+                                  .replace(/\//g, '_')
+                                  .replace(/=+$/, '') : '';
+                                
+                                cleanSrc = `https://mermaid.ink/svg/${safeBase64}`;
+                              } catch (e) {
+                                console.error('Error self-healing mermaid link:', e);
+                              }
                             }
                             return (
                               <div className="flex flex-col items-center my-8">
