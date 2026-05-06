@@ -56,8 +56,20 @@ router.get('/modules/:id/quiz', combinedAuth, async (req: any, res) => {
     if (!module || !module.generatedQuizzes || !Array.isArray(module.generatedQuizzes) || module.generatedQuizzes.length === 0) {
       return res.status(404).json({ message: "Nincs kvíz generálva ehhez a modulhoz. Kérd meg a tanárod az újragenerálásra!", needsRegeneration: true });
     }
-    const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
-    res.json({ questions: module.generatedQuizzes[randomIndex] });
+
+    let questions = [];
+    if (Array.isArray(module.generatedQuizzes[0])) {
+      // Old schema: nested array of quiz sets (e.g., 5 sets of 10 questions each)
+      const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
+      questions = module.generatedQuizzes[randomIndex];
+    } else {
+      // New schema: flat array of questions (e.g., 30 questions)
+      // Shuffle the questions and take exactly 10 random questions for the student
+      const shuffled = [...module.generatedQuizzes].sort(() => 0.5 - Math.random());
+      questions = shuffled.slice(0, 10);
+    }
+
+    res.json({ questions });
   } catch (error) {
     console.error("Quiz load error:", error);
     res.status(500).json({ message: "Failed to load quiz" });

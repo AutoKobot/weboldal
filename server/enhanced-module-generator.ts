@@ -686,13 +686,8 @@ Válasz csak a definícióval:`;
         const searchQuery = `${concept} oktatás magyar`;
         const youtubeVideos = await this.searchYouTubeWithCache(searchQuery);
 
-        // Generate basic Wikipedia link for this concept
-        const encodedConcept = encodeURIComponent(concept.replace(/\s+/g, '_'));
-        const wikipediaLinks = [{
-          text: concept,
-          url: `https://hu.wikipedia.org/wiki/${encodedConcept}`,
-          description: `Wikipedia cikk: ${concept}`
-        }];
+        // Wikipedia links are disabled for concepts as requested
+        const wikipediaLinks: any[] = [];
 
         enrichedConcepts.push({
           concept,
@@ -1110,87 +1105,10 @@ ${webInfo.map(info => `${info.text}\n*Forrás: ${info.source}*`).join('\n\n')}`;
   }
 
   /**
-   * Optimized bold keyword linking with configurable settings
+   * Optimized bold keyword linking with configurable settings (Disabled as requested)
    */
   private async linkBoldKeywordsSimplified(content: string, title: string): Promise<string> {
-    const settings = await this.getOptimizationSettings();
-
-    if (!settings.enableBoldLinking) {
-      console.log('🔗 Bold keyword linking disabled in optimization settings');
-      return content;
-    }
-
-    console.log(`🔗 Starting optimized bold keyword linking (max: ${settings.maxBoldKeywords})...`);
-
-    // Find all bold patterns in content
-    const boldPattern = /\*\*([^*]+)\*\*/g;
-    const boldMatches = content.match(boldPattern);
-
-    if (!boldMatches || boldMatches.length === 0) {
-      console.log('❌ No bold patterns found in content');
-      return content;
-    }
-
-    console.log(`🔍 Found ${boldMatches.length} bold patterns to process`);
-
-    let linkedContent = content;
-    const processedKeywords = new Set<string>();
-
-    // Use configurable limit for bold keywords
-    const limitedMatches = boldMatches.slice(0, settings.maxBoldKeywords);
-
-    for (const boldMatch of limitedMatches) {
-      const boldText = boldMatch.replace(/\*\*/g, '');
-
-      if (processedKeywords.has(boldText.toLowerCase()) || boldText.length < 3) {
-        continue; // Skip already processed or too short keywords
-      }
-
-      processedKeywords.add(boldText.toLowerCase());
-
-      try {
-        console.log(`🔍 Processing bold keyword: "${boldText}"`);
-
-        // Generate context-aware search query based on title content
-        let searchQuery = `${boldText}`;
-
-        // Add context based on title and content analysis
-        const titleLower = title.toLowerCase();
-        if (titleLower.includes('robot') || titleLower.includes('automatiz')) {
-          searchQuery += ' robotika ipari automatizálás';
-        } else if (titleLower.includes('biztonság') || titleLower.includes('felelősség')) {
-          searchQuery += ' munkavédelem biztonság';
-        } else if (titleLower.includes('szállítás') || titleLower.includes('kezelés')) {
-          searchQuery += ' logisztika szállítás';
-        } else {
-          searchQuery += ' ipari technológia';
-        }
-
-        searchQuery += ' magyarország';
-        console.log(`🌐 Searching for: ${searchQuery}`);
-
-        // Create Wikipedia link directly (restored working method)
-        const encodedKeyword = encodeURIComponent(boldText.replace(/\s+/g, '_'));
-        const wikipediaUrl = `https://hu.wikipedia.org/wiki/${encodedKeyword}`;
-
-        console.log(`✅ Linking "${boldText}" to Wikipedia: ${wikipediaUrl}`);
-
-        // Replace all instances of this bold keyword with Wikipedia link
-        const boldRegex = new RegExp(`\\*\\*${boldText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*`, 'gi');
-        linkedContent = linkedContent.replace(boldRegex, `**[${boldText}](${wikipediaUrl})**`);
-
-        // Use configurable delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, settings.boldKeywordDelay));
-
-      } catch (error) {
-        console.error(`❌ Failed to link keyword "${boldText}":`, error);
-      }
-    }
-
-    const linkCount = (linkedContent.match(/\*\*\[[^\]]+\]\([^)]+\)\*\*/g) || []).length;
-    console.log(`🔗 Successfully linked ${linkCount} bold keywords out of ${limitedMatches.length} processed`);
-
-    return linkedContent;
+    return content;
   }
 
   /**
@@ -1691,65 +1609,21 @@ KÖTELEZŐ ELEM: A válaszba illessz be vizuális ábrákat (pl. mermaid folyama
    * Extract Wikipedia links from content for a specific concept
    */
   private extractWikipediaLinksFromContent(concept: string): Array<{ text: string, url: string, description?: string }> {
-    const conceptLower = concept.toLowerCase();
-
-    // Generate common Wikipedia URL variations for this concept
-    const wikipediaLinks = [];
-
-    // Basic Wikipedia link
-    const encodedConcept = encodeURIComponent(concept.replace(/\s+/g, '_'));
-    wikipediaLinks.push({
-      text: concept,
-      url: `https://hu.wikipedia.org/wiki/${encodedConcept}`,
-      description: `Wikipedia cikk: ${concept}`
-    });
-
-    return wikipediaLinks;
+    return [];
   }
 
   /**
-   * Add Wikipedia links to content based on keywords
+   * Add Wikipedia links to content based on keywords (Disabled as requested)
    */
   private addWikipediaLinksToContent(content: string, keywords: string[]): string {
-    let linkedContent = content;
-
-    keywords.forEach(keyword => {
-      // Escape special regex characters in keyword
-      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escapedKeyword}\\b(?![\\]\\)])`, 'gi');
-      const wikiUrl = `https://hu.wikipedia.org/wiki/${encodeURIComponent(keyword)}`;
-      linkedContent = linkedContent.replace(regex, `[${keyword}](${wikiUrl})`);
-    });
-
-    return linkedContent;
+    return content;
   }
 
   /**
    * Add Wikipedia links to key technical terms (legacy method)
    */
   private addWikipediaLinks(content: string): string {
-    // Common technical terms that should have Wikipedia links
-    const technicalTerms = [
-      'robot', 'robotika', 'automatizálás', 'hegesztés', 'welding',
-      'főzés', 'gasztronómia', 'kulináris', 'lecsó', 'paprika',
-      'paradicsom', 'kolbász', 'tojás', 'programozás', 'kód',
-      'algoritmus', 'szoftver', 'hardware', 'technológia'
-    ];
-
-    let linkedContent = content;
-
-    technicalTerms.forEach(term => {
-      const regex = new RegExp(`\\b${term}\\b(?![\\]\\)])`, 'gi');
-      linkedContent = linkedContent.replace(regex, (match) => {
-        const wikiTerm = match.toLowerCase().replace(/á/g, 'a').replace(/é/g, 'e')
-          .replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ö/g, 'o')
-          .replace(/ő/g, 'o').replace(/ú/g, 'u').replace(/ü/g, 'u')
-          .replace(/ű/g, 'u');
-        return `[${match}](https://hu.wikipedia.org/wiki/${encodeURIComponent(wikiTerm)})`;
-      });
-    });
-
-    return linkedContent;
+    return content;
   }
 
   /**
@@ -1877,68 +1751,67 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
 
   async generateMultipleQuizSets(title: string, content: string): Promise<any[]> {
     try {
-      console.log('📝 Generating 5 quiz sets of mixed question types (10 questions each)...');
+      console.log('📝 Generating 30 quiz questions (no image/icon questions)...');
       const apiKey = process.env.OPENAI_API_KEY || (await storage.getSystemSetting('openai_api_key'))?.value;
       if (!apiKey) { console.error('❌ No OpenAI API key'); return []; }
 
       const openai = new OpenAI({ apiKey });
-      const snippet = content.substring(0, 3000);
-      const allSets: any[] = [];
+      const snippet = content.substring(0, 4000);
 
-      for (let i = 0; i < 5; i++) {
-        try {
-          const resp = await openai.chat.completions.create({
-            model: 'gpt-4o-mini', // Using gpt-4o-mini for better logic in complex questions
-            messages: [
-              { 
-                role: 'system', 
-                content: `Te egy szakértő oktató vagy. A feladatod, hogy változatos, szakmai tesztkérdéseket készíts egy tananyaghoz. 
-                HASZNÁLJ KÜLÖNBÖZŐ KÉRDÉSTÍPUSOKAT vegyesen:
-                1. 'single': Sima feleletválasztós (1 jó válasz).
-                2. 'multiple': Több jó válasz is lehet (jelöld meg az összeset).
-                3. 'ordering': Sorrendbe állítás (pl. folyamat lépései).
-                4. 'icon': Válaszd ki a legmegfelelőbb ikont a fogalomhoz (Lucide-react ikon nevek: wrench, battery, zap, shield, alert-triangle, settings, cpu, hammer, activity, thermometer stb.).
-                5. 'find_incorrect': Melyik állítás HAMIS? (3 igaz, 1 hamis).
-                
-                Válaszolj KIZÁRÓLAG érvényes JSON formátumban.` 
-              },
-              { 
-                role: 'user', 
-                content: `Generálj PONTOSAN 10 változatos tesztkérdést magyar nyelven.
-                Modulcím: "${title}"
-                Tananyag: ${snippet}
-                
-                A 10 kérdés legyen vegyes típusú (single, multiple, ordering, icon, find_incorrect).
-                
-                Válasz JSON formátuma:
-                {"questions":[
-                  {"type":"single", "question":"...", "options":["A","B","C","D"], "correctAnswer":0, "explanation":"..."},
-                  {"type":"multiple", "question":"...", "options":["A","B","C","D"], "correctAnswers":[0, 2], "explanation":"..."},
-                  {"type":"ordering", "question":"Állítsd sorrendbe...", "options":["Lépés 1","Lépés 2","Lépés 3"], "correctOrder":[1, 0, 2], "explanation":"..."},
-                  {"type":"icon", "question":"Melyik ikon jelöli a hőt?", "options":["thermometer","zap","wrench","shield"], "correctAnswer":0, "explanation":"..."},
-                  {"type":"find_incorrect", "question":"Melyik állítás HAMIS?", "options":["Igaz 1","Igaz 2","Hamis","Igaz 3"], "correctAnswer":2, "explanation":"..."}
-                ]}` 
-              }
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.7,
-            max_tokens: 4000,
-          });
-          
-          let text = (resp.choices[0]?.message?.content || '').replace(/```json\n?|```/g, '').trim();
-          const parsed = JSON.parse(text);
-          const qs = parsed.questions || (Array.isArray(parsed) ? parsed : null);
-          
-          if (qs && Array.isArray(qs) && qs.length >= 5) {
-            allSets.push(qs);
-            console.log(`  ✅ Set ${i + 1}/5: ${qs.length} mixed questions`);
-          } else { console.warn(`  ⚠️ Set ${i + 1}/5: invalid structure`); }
-        } catch (err: any) { console.error(`  ❌ Set ${i + 1}/5:`, err.message?.substring(0, 80)); }
-        if (i < 4) await new Promise(r => setTimeout(r, 1000));
+      const resp = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: `Te egy szakértő oktató vagy. A feladatod, hogy változatos, szakmai tesztkérdéseket készíts egy tananyaghoz.
+            HASZNÁLJ KÜLÖNBÖZŐ KÉRDÉSTÍPUSOKAT vegyesen:
+            1. 'single': Sima feleletválasztós (1 jó válasz).
+            2. 'multiple': Több jó válasz is lehet (jelöld meg az összeset).
+            3. 'ordering': Sorrendbe állítás (pl. folyamat lépései).
+            4. 'find_incorrect': Melyik állítás HAMIS? (3 igaz, 1 hamis).
+            
+            KÉPEKET, KÉPES VAGY IKON KÉRDÉSEKET (pl. 'icon' típus) TILOS LÉTREHOZNI!
+            
+            Válaszolj KIZÁRÓLAG érvényes JSON formátumban.` 
+          },
+          { 
+            role: 'user', 
+            content: `Generálj PONTOSAN 30 változatos tesztkérdést magyar nyelven.
+            Modulcím: "${title}"
+            Tananyag: ${snippet}
+            
+            A 30 kérdés legyen vegyes típusú (single, multiple, ordering, find_incorrect).
+            KÉPES/IKON KÉRDÉSEKET NE GENERÁLJ!
+            
+            Válasz JSON formátuma:
+            {"questions":[
+              {"type":"single", "question":"...", "options":["A","B","C","D"], "correctAnswer":0, "explanation":"..."},
+              {"type":"multiple", "question":"...", "options":["A","B","C","D"], "correctAnswers":[0, 2], "explanation":"..."},
+              {"type":"ordering", "question":"Állítsd sorrendbe...", "options":["Lépés 1","Lépés 2","Lépés 3"], "correctOrder":[1, 0, 2], "explanation":"..."},
+              {"type":"find_incorrect", "question":"Melyik állítás HAMIS?", "options":["Igaz 1","Igaz 2","Hamis","Igaz 3"], "correctAnswer":2, "explanation":"..."}
+            ]}` 
+          }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+        max_tokens: 4000,
+      });
+      
+      let text = (resp.choices[0]?.message?.content || '').replace(/```json\n?|```/g, '').trim();
+      const parsed = JSON.parse(text);
+      const questions = parsed.questions || (Array.isArray(parsed) ? parsed : null);
+      
+      if (questions && Array.isArray(questions) && questions.length >= 10) {
+        console.log(`  ✅ Generated ${questions.length} quiz questions successfully.`);
+        return questions; // Return as a flat array of questions (new schema)
+      } else {
+        console.warn(`  ⚠️ Invalid quiz structure or too few questions generated.`);
+        return [];
       }
-      console.log(`${allSets.length > 0 ? '✅' : '⚠️'} Generated ${allSets.length}/5 quiz sets with diverse types.`);
-      return allSets;
-    } catch (error) { console.error("❌ Quiz generation failed:", error); return []; }
+    } catch (error) { 
+      console.error("❌ Quiz generation failed:", error); 
+      return []; 
+    }
   }
 
   async convertMermaidToSVGImages(content: string): Promise<string> {
