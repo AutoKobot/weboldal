@@ -56,99 +56,68 @@ const MathParagraph = (props: any) => {
   return <div className="mb-4 leading-relaxed">{children}</div>;
 };
 
-// Completely isolated Mermaid renderer using an iframe to bypass React/Vite/CSS conflicts
+// Completely isolated Mermaid renderer using mermaid.ink API for robust, platform-independent SVG rendering
 const MermaidDiagram = ({ chart }: { chart: string }) => {
-  const [height, setHeight] = useState(150);
   const [loading, setLoading] = useState(true);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
+  const [error, setError] = useState(false);
   const chartText = (chart || '').trim();
 
-  // Listen for resize messages from the iframe
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      if (e.source === iframeRef.current?.contentWindow && e.data?.type === 'mermaid-resize') {
-        if (e.data.height && e.data.height > 50) {
-          setHeight(e.data.height + 40);
-        }
-        setLoading(false);
+  const imageUrl = useMemo(() => {
+    if (!chartText) return '';
+    try {
+      const diagramConfig = {
+        code: chartText,
+        mermaid: { theme: 'neutral' }
+      };
+      const jsonStr = JSON.stringify(diagramConfig);
+      // Safe base64 encoding supporting unicode/diacritics (Hungarian characters)
+      const utf8Bytes = new TextEncoder().encode(jsonStr);
+      let binary = '';
+      const len = utf8Bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(utf8Bytes[i]);
       }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+      const base64 = btoa(binary);
+      return `https://mermaid.ink/svg/${base64}`;
+    } catch (e) {
+      console.error('Error generating mermaid.ink URL:', e);
+      return '';
+    }
+  }, [chartText]);
 
-  // Fallback loading removal
+  // Reset state when chart content changes
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 5000);
-    return () => clearTimeout(t);
-  }, []);
+    setLoading(true);
+    setError(false);
+  }, [chartText]);
 
-  if (!chartText) return null;
-
-  // Safe escaping for inserting into HTML body
-  const safeChart = chartText
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  // HTML document with ES Module import for Mermaid v10+
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { 
-          margin: 0; padding: 20px; 
-          display: flex; justify-content: center; align-items: center; 
-          font-family: 'Inter', sans-serif; background: transparent; overflow: hidden;
-        }
-        .mermaid { display: flex; justify-content: center; width: 100%; }
-        svg { max-width: 100%; height: auto !important; }
-        .error-box { color: #d97706; background: #fffbeb; padding: 12px; border: 1px solid #fcd34d; border-radius: 8px; font-size: 12px; font-family: monospace; white-space: pre-wrap; width: 100%; }
-      </style>
-    </head>
-    <body>
-      <div class="mermaid" id="container">${safeChart}</div>
-      <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        
-        try {
-          mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
-          await mermaid.run({ nodes: [document.getElementById('container')] });
-          
-          setTimeout(() => {
-            const svg = document.querySelector('svg');
-            const height = svg ? svg.getBoundingClientRect().height : document.body.scrollHeight;
-            window.parent.postMessage({ type: 'mermaid-resize', height }, '*');
-          }, 300);
-        } catch (err) {
-          document.body.innerHTML = '<div class="error-box">⚠ Diagram renderelési hiba:<br><br>' + err.message + '</div>';
-          window.parent.postMessage({ type: 'mermaid-resize', height: document.body.scrollHeight }, '*');
-        }
-      </script>
-    </body>
-    </html>
-  `;
+  if (!chartText || !imageUrl) return null;
 
   return (
     <div className="mermaid-visualizer my-8 flex flex-col items-center w-full">
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm w-full relative flex justify-center overflow-hidden min-h-[100px]">
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm w-full p-6 relative flex justify-center items-center overflow-hidden min-h-[100px]">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center -z-10 bg-neutral-50/50">
-             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-neutral-300" />
+          <div className="absolute inset-0 flex items-center justify-center bg-neutral-50/50 z-10">
+             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
           </div>
         )}
         
-        <iframe
-          ref={iframeRef}
-          srcDoc={htmlContent}
-          style={{ width: '100%', height: `${height}px`, border: 'none', transition: 'height 0.3s ease-out' }}
-          title="Szakmai Folyamatábra"
-          scrolling="no"
-          sandbox="allow-scripts allow-same-origin"
-        />
+        {error ? (
+          <div className="text-amber-600 bg-amber-50 p-4 rounded-xl border border-amber-200 text-sm font-mono whitespace-pre-wrap w-full text-center">
+            ⚠ Diagram megjelenítési hiba. Ellenőrizd a diagram szintaxisát!
+          </div>
+        ) : (
+          <img
+            src={imageUrl}
+            alt="Szakmai folyamatábra"
+            className={`max-w-full h-auto transition-all duration-500 hover:scale-[1.01] ${loading ? 'opacity-0 blur-sm' : 'opacity-100 blur-0'}`}
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setLoading(false);
+              setError(true);
+            }}
+          />
+        )}
       </div>
       <span className="text-[10px] uppercase tracking-widest text-neutral-400 mt-3 font-semibold italic">Szakmai folyamatábra</span>
     </div>
