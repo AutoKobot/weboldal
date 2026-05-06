@@ -57,6 +57,14 @@ export function fixMermaidSyntax(content: string): string {
       // Fix parentheses in node text that break syntax
       let fixedLine = line;
 
+      // Automatically wrap square bracket content containing parentheses in double quotes to prevent Mermaid parser errors
+      fixedLine = fixedLine.replace(/([a-zA-Z0-9_-]+)\[([^"\]]+)\]/g, (match, id, text) => {
+        if (text.includes('(') || text.includes(')')) {
+          return `${id}["${text}"]`;
+        }
+        return match;
+      });
+
       // Handle nodes with parentheses in labels - escape them properly
       fixedLine = fixedLine.replace(/([A-Z]\w*)\(([^)]*\([^)]*\)[^)]*)\)/g, (match: string, nodeId: string, content: string) => {
         const escapedContent = content.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
