@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, XCircle, Brain, Trophy, ChevronRight, HelpCircle } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
@@ -40,7 +39,6 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   const [evaluations, setEvaluations] = useState<(QuizEvaluation | null)[]>([]);
   const [isQuizStarted, setIsQuizStarted] = useState(false);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
-  const [openAnswer, setOpenAnswer] = useState('');
   const { toast } = useToast();
 
   const generateQuizMutation = useMutation({
@@ -77,40 +75,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
     },
   });
 
-  const evaluateAnswerMutation = useMutation({
-    mutationFn: async ({ question, correctAnswer, userAnswer, explanation }: {
-      question: string;
-      correctAnswer: string;
-      userAnswer: string;
-      explanation: string;
-    }) => {
-      const response = await apiRequest('POST', '/api/quiz/evaluate', {
-        question,
-        correctAnswer,
-        userAnswer,
-        explanation
-      });
-      return await response.json();
-    },
-    onSuccess: (evaluation: QuizEvaluation) => {
-      const newEvaluations = [...evaluations];
-      newEvaluations[currentQuestionIndex] = evaluation;
-      setEvaluations(newEvaluations);
 
-      toast({
-        title: `Pontszám: ${evaluation.score}/100`,
-        description: evaluation.isCorrect ? "Helyes válasz!" : "Javítható válasz",
-        variant: evaluation.isCorrect ? "default" : "destructive",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Értékelési hiba",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const submitQuizResultMutation = useMutation({
     mutationFn: async (result: { score: number; maxScore: number; passed: boolean; details: any }) => {
@@ -241,39 +206,20 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       return;
     }
 
-    const userAnswer = currentQuestion.options[userIndex];
     const correctAnswer = currentQuestion.options[correctIndex];
-
-    evaluateAnswerMutation.mutate({
-      question: currentQuestion.question,
-      correctAnswer,
-      userAnswer,
-      explanation: currentQuestion.explanation
-    });
-  };
-
-  const handleSubmitOpenAnswer = () => {
-    if (!openAnswer.trim()) {
-      toast({ title: "Válasz hiányzik", description: "Írj egy választ!", variant: "destructive" });
-      return;
-    }
-
-    const currentQuestion = questions[currentQuestionIndex];
-    const correctIndex = currentQuestion.correctAnswer ?? 0;
-    const correctAnswer = currentQuestion.options[correctIndex];
-
-    evaluateAnswerMutation.mutate({
-      question: currentQuestion.question,
-      correctAnswer,
-      userAnswer: openAnswer,
-      explanation: currentQuestion.explanation
-    });
+    const evaluation: QuizEvaluation = { 
+      score: 0, 
+      isCorrect: false, 
+      feedback: `Sajnos helytelen válasz. A helyes megoldás: ${correctAnswer}.` 
+    };
+    const newEvaluations = [...evaluations];
+    newEvaluations[currentQuestionIndex] = evaluation;
+    setEvaluations(newEvaluations);
   };
 
   const goToNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setOpenAnswer('');
     } else {
       setIsQuizCompleted(true);
       const finalScore = calculateFinalScore();
@@ -437,16 +383,9 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
             )}
 
             <div className="space-y-4 pt-4 border-t">
-              <Button onClick={handleSubmitAnswer} className="w-full h-14 text-xl font-bold" disabled={evaluateAnswerMutation.isPending}>
-                {evaluateAnswerMutation.isPending ? <Loader2 className="animate-spin" /> : "Válasz beküldése"}
+              <Button onClick={handleSubmitAnswer} className="w-full h-14 text-xl font-bold">
+                Válasz beküldése
               </Button>
-              <Textarea 
-                placeholder="VAGY írd le saját szavaiddal a részleteket..." 
-                value={openAnswer} 
-                onChange={e => setOpenAnswer(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <Button variant="ghost" size="sm" onClick={handleSubmitOpenAnswer} className="w-full opacity-50" disabled={!openAnswer.trim()}>Szöveges kiértékelés</Button>
             </div>
           </div>
         ) : (
