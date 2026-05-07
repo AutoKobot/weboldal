@@ -17,11 +17,6 @@ export interface EnhancedModuleContent {
       description: string;
       url: string;
     }>;
-    wikipediaLinks?: Array<{
-      text: string;
-      url: string;
-      description?: string;
-    }>;
   }>;
   generatedQuizzes?: Array<Array<{
     question: string;
@@ -220,17 +215,15 @@ export class EnhancedModuleGenerator {
     let conciseWithSVG = boldLinkedConcise;
     try {
       conciseWithSVG = await this.convertMermaidToSVGImages(boldLinkedConcise);
-      conciseWithSVG = await this.convertWikipediaImagesToAIImages(conciseWithSVG);
     } catch (e) {
-      console.error("[ENHANCED-GEN] Mermaid/Image conversion for concise failed, skipping...", e);
+      console.error("[ENHANCED-GEN] Mermaid conversion for concise failed, skipping...", e);
     }
 
     let detailedWithSVG = boldLinkedDetailed;
     try {
       detailedWithSVG = await this.convertMermaidToSVGImages(boldLinkedDetailed);
-      detailedWithSVG = await this.convertWikipediaImagesToAIImages(detailedWithSVG);
     } catch (e) {
-      console.error("[ENHANCED-GEN] Mermaid/Image conversion for detailed failed, skipping...", e);
+      console.error("[ENHANCED-GEN] Mermaid conversion for detailed failed, skipping...", e);
     }
 
     let quizSets: any[] = [];
@@ -477,14 +470,10 @@ Válasz csak a definícióval:`;
         const searchQuery = `${concept} oktatás magyar`;
         const youtubeVideos = await this.searchYouTubeWithCache(searchQuery);
 
-        // Wikipedia links are disabled for concepts as requested
-        const wikipediaLinks: any[] = [];
-
         enrichedConcepts.push({
           concept,
           definition,
-          youtubeVideos,
-          wikipediaLinks
+          youtubeVideos
         });
       } catch (error) {
         console.error(`Error enriching concept: ${concept}`, error);
@@ -492,8 +481,7 @@ Válasz csak a definícióval:`;
         enrichedConcepts.push({
           concept,
           definition: `${concept} - definíció generálása sikertelen`,
-          youtubeVideos: [] as any[],
-          wikipediaLinks: []
+          youtubeVideos: [] as any[]
         });
       }
     }
@@ -689,209 +677,7 @@ JSON válasz (2-3 kifejezés):`;
     }
   }
 
-  /**
-   * Generate Wikipedia keywords with consistent field detection
-   */
-  private async generateWikipediaKeywordsConsistent(title: string, content: string, prompt: string, detectedField: string, fieldExamples: string[], subjectName?: string, professionName?: string): Promise<string[]> {
-    try {
-      console.log('🔥 SEQUENTIAL AI STEP 2A: Generating Wikipedia keywords with pre-detected field');
-      console.log(`🎯 Using fixed field: ${detectedField} with examples:`, fieldExamples);
 
-      const structuredPrompt = `
-Elemezd ezt a tartalmat és adj vissza 15-25 magyar kulcsszót JSON array formátumban, amelyekhez Wikipedia linkeket kell készíteni.
-
-Cím: ${title}
-Tartalom: ${content.substring(0, 800)}
-Szakma: ${professionName || 'Általános'}
-Tantárgy: ${subjectName || 'Általános'}
-Terület: ${detectedField}
-
-KÖVETELMÉNYEK:
-- 15-25 releváns kulcsszó
-- Szakmai kifejezések és fogalmak
-- Gyakorlati és elméleti fogalmak egyaránt
-- Magyar Wikipedia-ban elérhető fogalmak
-- Például ehhez a területhez: ${JSON.stringify(fieldExamples)}
-
-Válasz csak JSON array formátumban:`;
-
-      console.log('📝 Wikipedia prompt being used for keywords');
-      const response = await generateChatResponse(structuredPrompt, 'chat');
-
-      // Extract keywords from response
-      const cleanResponse = response.message.trim();
-      console.log('🔍 Wikipedia AI response:', cleanResponse.substring(0, 200) + '...');
-
-      // Try to extract JSON array
-      const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
-
-      if (jsonMatch) {
-        try {
-          const keywords = JSON.parse(jsonMatch[0]);
-          let filteredKeywords: string[] = [];
-
-          if (Array.isArray(keywords)) {
-            // Handle array of objects format: [{kulcsszó: "...", wikipedia: "..."}, ...]
-            filteredKeywords = keywords
-              .slice(0, 30)
-              .map(item => {
-                if (typeof item === 'object' && item !== null) {
-                  return item.kulcsszó || item.kulcsszo || item.keyword || item.term || '';
-                }
-                return typeof item === 'string' ? item : '';
-              })
-              .filter(term => typeof term === 'string' && term.length > 2 && term.length < 50)
-              .map(term => term.trim().toLowerCase());
-          }
-
-          console.log('✅ Wikipedia keywords extracted from JSON:', filteredKeywords);
-          return filteredKeywords;
-        } catch (parseError) {
-          console.log('JSON parse failed for Wikipedia keywords, trying manual extraction');
-        }
-      }
-
-      // Fallback: return field-specific keywords
-      console.log('📝 Using field-specific fallback keywords');
-      return fieldExamples.slice(0, 5);
-    } catch (error) {
-      console.error('Wikipedia keywords generation failed:', error);
-      return fieldExamples.slice(0, 3); // Safe fallback
-    }
-  }
-
-  /**
-   * Generate Wikipedia keywords using dedicated prompt (legacy method)
-   */
-  private async generateWikipediaKeywords(title: string, content: string, prompt: string, subjectName?: string, professionName?: string): Promise<string[]> {
-    try {
-      console.log('🔥 SEQUENTIAL AI STEP 2A: Generating Wikipedia keywords with admin prompt');
-
-      // Detect professional field and get appropriate examples
-      const field = this.detectProfessionalField(title, content, subjectName, professionName);
-      const examples = this.getFieldSpecificExamples(field);
-
-      console.log(`🎯 Detected field for Wikipedia: ${field}, using examples:`, examples);
-
-      const structuredPrompt = `
-Elemezd ezt a tartalmat és adj vissza 15-25 magyar kulcsszót JSON array formátumban, amelyekhez Wikipedia linkeket kell készíteni.
-
-Cím: ${title}
-Tartalom: ${content.substring(0, 800)}
-Szakma: ${professionName || 'Általános'}
-Tantárgy: ${subjectName || 'Általános'}
-
-KÖVETELMÉNYEK:
-- 15-25 releváns kulcsszó
-- Szakmai kifejezések és fogalmak
-- Gyakorlati és elméleti fogalmak egyaránt
-- Magyar Wikipedia-ban elérhető fogalmak
-- Például ehhez a területhez: ${JSON.stringify(examples)}
-
-Válasz csak JSON array formátumban:`;
-
-      console.log('📝 Wikipedia prompt being used for keywords');
-      const response = await generateChatResponse(structuredPrompt, 'chat');
-
-      // Extract keywords from response
-      const cleanResponse = response.message.trim();
-      console.log('🔍 Wikipedia AI response:', cleanResponse.substring(0, 200) + '...');
-
-      // Try to extract JSON array
-      const jsonMatch = cleanResponse.match(/\[[\s\S]*?\]/);
-
-      if (jsonMatch) {
-        try {
-          const keywords = JSON.parse(jsonMatch[0]);
-          let filteredKeywords: string[] = [];
-
-          if (Array.isArray(keywords)) {
-            // Handle array of objects format: [{kulcsszó: "...", wikipedia: "..."}, ...]
-            filteredKeywords = keywords
-              .slice(0, 30)
-              .map(item => {
-                if (typeof item === 'object' && item !== null) {
-                  return item.kulcsszó || item.kulcsszo || item.keyword || item.term || '';
-                }
-                return typeof item === 'string' ? item : '';
-              })
-              .filter(term => typeof term === 'string' && term.length > 2 && term.length < 50)
-              .map(term => term.trim().toLowerCase());
-          }
-
-          console.log('✅ Wikipedia keywords extracted from JSON:', filteredKeywords);
-          return filteredKeywords;
-        } catch (parseError) {
-          console.log('JSON parse failed for Wikipedia keywords, trying manual extraction');
-        }
-      }
-
-      // Use AI to intelligently extract Wikipedia-relevant keywords from content with context awareness
-      try {
-        const field = this.detectProfessionalField(title, content, subjectName, professionName);
-        const examples = this.getFieldSpecificExamples(field);
-        const contextualPrompt = `${field.toUpperCase()} TARTALOM: ${examples.join(', ')} témakörben keress fogalmakat.`;
-
-        const keywordPrompt = `${contextualPrompt}
-
-Elemezd a következő tananyag tartalmát és találd meg a legfontosabb szakmai fogalmakat Wikipedia linkekhez:
-
-Cím: ${title}
-Tartalom: ${content.substring(0, 600)}
-
-FONTOS: A kulcsszavak tükrözzék a TÉNYLEGES tartalmat!
-
-JSON válasz:`;
-
-        console.log('🔍 AI-powered Wikipedia keyword extraction started');
-        const keywordResponse = await generateChatResponse(keywordPrompt, 'chat');
-
-        // Try to extract JSON from AI response
-        const jsonMatch = keywordResponse.message.match(/\[[\s\S]*?\]/);
-        if (jsonMatch) {
-          try {
-            const aiKeywords = JSON.parse(jsonMatch[0]);
-            if (Array.isArray(aiKeywords) && aiKeywords.length > 0) {
-              const cleanKeywords = aiKeywords
-                .filter(term => typeof term === 'string' && term.length > 2 && term.length < 30)
-                .map(term => term.trim().toLowerCase());
-              console.log('✅ AI-extracted Wikipedia keywords:', cleanKeywords);
-              return cleanKeywords;
-            }
-          } catch (parseError) {
-            console.log('AI keyword extraction parse failed, using fallback');
-          }
-        }
-      } catch (aiError) {
-        console.log('AI keyword extraction failed, using fallback');
-      }
-
-      // Fallback: extract basic terms from content
-      const fallbackKeywords = new Set<string>();
-
-      // Extract bold terms
-      const boldTerms = content.match(/\*\*([^*]+)\*\*/g);
-      if (boldTerms) {
-        boldTerms.forEach(term => {
-          const cleaned = term.replace(/\*\*/g, '').trim().toLowerCase();
-          if (cleaned.length > 2 && cleaned.length < 20) {
-            fallbackKeywords.add(cleaned);
-          }
-        });
-      }
-
-      // Extract from title
-      const titleWords = title.toLowerCase().split(' ').filter(word => word.length > 3);
-      titleWords.forEach(word => fallbackKeywords.add(word));
-
-      const finalKeywords = Array.from(fallbackKeywords);
-      console.log('⚡ Fallback Wikipedia keywords extracted:', finalKeywords);
-      return finalKeywords.length > 0 ? finalKeywords : [title.toLowerCase().split(' ')[0]];
-    } catch (error) {
-      console.error('Wikipedia keywords generation failed:', error);
-      return [];
-    }
-  }
 
   /**
    * Generate internet-enhanced content using dedicated prompt
@@ -1057,26 +843,7 @@ KÖTELEZŐ ELEM: A válaszba illessz be vizuális ábrákat (pl. mermaid folyama
     return enrichedConcepts;
   }
 
-  /**
-   * Extract Wikipedia links from content for a specific concept
-   */
-  private extractWikipediaLinksFromContent(concept: string): Array<{ text: string, url: string, description?: string }> {
-    return [];
-  }
 
-  /**
-   * Add Wikipedia links to content based on keywords (Disabled as requested)
-   */
-  private addWikipediaLinksToContent(content: string, keywords: string[]): string {
-    return content;
-  }
-
-  /**
-   * Add Wikipedia links to key technical terms (legacy method)
-   */
-  private addWikipediaLinks(content: string): string {
-    return content;
-  }
 
   /**
    * Extract YouTube search terms using AI based on module content and admin system message
@@ -1215,7 +982,7 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
         messages: [
           { 
             role: 'system', 
-            content: `Te egy szakértő oktató vagy. A feladatod, hogy változatos, szakmai tesztkérdéseket készíts egy tananyaghoz.
+            content: `Te egy szakértő oktató vagy. A feladatod, hogy változatos, jól érthető szakmai tesztkérdéseket készíts egy tananyaghoz.
             HASZNÁLJ KÜLÖNBÖZŐ KÉRDÉSTÍPUSOKAT vegyesen:
             1. 'single': Sima feleletválasztós (1 jó válasz).
             2. 'multiple': Több jó válasz is lehet (jelöld meg az összeset).
@@ -1320,63 +1087,7 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
     return newContent;
   }
 
-  async convertWikipediaImagesToAIImages(content: string): Promise<string> {
-    if (!content) return content;
-    let newContent = content;
 
-    // 1. Match Markdown images: ![alt](url) where url contains wikipedia-commons-local-public or AUTH_mw
-    const markdownRegex = /!\[([^\]]+)\]\(([^)]*(?:wikipedia-commons-local-public|AUTH_mw)[^)]*)\)/g;
-    let match;
-    const matches: Array<{ fullMatch: string, alt: string }> = [];
-
-    while ((match = markdownRegex.exec(content)) !== null) {
-      matches.push({
-        fullMatch: match[0],
-        alt: match[1]
-      });
-    }
-
-    // 2. Match HTML images: <img ... src="url" ... alt="alt" ...> or <img ... alt="alt" ... src="url" ...>
-    const htmlRegex = /<img[^>]+(?:src=["']([^"']*(?:wikipedia-commons-local-public|AUTH_mw)[^"']*)["'][^>]+alt=["']([^"']+)["']|alt=["']([^"']+)["'][^>]+src=["']([^"']*(?:wikipedia-commons-local-public|AUTH_mw)[^"']*)["'])[^>]*>/g;
-    while ((match = htmlRegex.exec(content)) !== null) {
-      const src = match[1] || match[4];
-      const alt = match[2] || match[3];
-      if (alt) {
-        matches.push({
-          fullMatch: match[0],
-          alt: alt
-        });
-      }
-    }
-
-    if (matches.length === 0) {
-      return content;
-    }
-
-    console.log(`[AI-IMAGE-REPLACE] Found ${matches.length} broken Wikipedia images. Replacing with AI generated illustrations...`);
-
-    const { generatePresentationImage } = await import('./openai');
-
-    for (const item of matches) {
-      try {
-        console.log(`[AI-IMAGE-REPLACE] Generating AI illustration for: "${item.alt}"`);
-        // Let's create a rich technical illustration prompt in Hungarian/English for Flux
-        const prompt = `Professional clear technical educational illustration/diagram, schematic or symbol for: "${item.alt}". Clean design, white background, no text, modern vector-style, highly detailed, pedagogical.`;
-        
-        const imageUrl = await generatePresentationImage(prompt);
-        
-        if (imageUrl) {
-          const replacement = `\n\n<div align="center">\n  <img src="${imageUrl}" alt="${item.alt}" style="max-width: 400px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" />\n  <p><em>${item.alt} (AI-generált ábra)</em></p>\n</div>\n\n`;
-          newContent = newContent.replace(item.fullMatch, replacement);
-          console.log(`[AI-IMAGE-REPLACE] Successfully replaced image with AI generated URL.`);
-        }
-      } catch (err) {
-        console.error(`[AI-IMAGE-REPLACE] Failed to generate AI image for: "${item.alt}"`, err);
-      }
-    }
-
-    return newContent;
-  }
 }
 
 export const enhancedModuleGenerator = new EnhancedModuleGenerator();

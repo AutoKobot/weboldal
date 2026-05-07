@@ -261,7 +261,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       submitQuizResultMutation.mutate({
         score: finalScore,
         maxScore: 100,
-        passed: finalScore >= 60,
+        passed: finalScore >= 45,
         details: { questions, evaluations }
       });
     }
@@ -276,7 +276,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-700';
-    if (score >= 70) return 'text-yellow-600';
+    if (score >= 55) return 'text-yellow-600';
     return 'text-red-600';
   };
 
@@ -314,7 +314,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   if (isQuizCompleted) {
     const finalScore = calculateFinalScore();
-    const isPassed = finalScore >= 60;
+    const isPassed = finalScore >= 45;
     return (
       <Card className="w-full max-w-2xl mx-auto border-2 shadow-2xl">
         <CardHeader className="text-center">

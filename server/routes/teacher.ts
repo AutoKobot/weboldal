@@ -120,10 +120,10 @@ router.get('/classes/:id/grades', combinedAuth, checkTeacher, async (req: any, r
     );
 
     const toGrade = (score: number) => {
-      if (score >= 95) return 5;
-      if (score >= 80) return 4;
-      if (score >= 70) return 3;
-      if (score >= 60) return 2;
+      if (score >= 90) return 5;
+      if (score >= 65) return 4;
+      if (score >= 55) return 3;
+      if (score >= 45) return 2;
       return 1;
     };
 
@@ -156,10 +156,10 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
     );
 
     const toGrade = (score: number) => {
-      if (score >= 95) return 5;
-      if (score >= 80) return 4;
-      if (score >= 70) return 3;
-      if (score >= 60) return 2;
+      if (score >= 90) return 5;
+      if (score >= 65) return 4;
+      if (score >= 55) return 3;
+      if (score >= 45) return 2;
       return 1;
     };
 

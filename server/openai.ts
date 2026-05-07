@@ -954,7 +954,7 @@ Válaszolj JSON formátumban:
     return {
       score: Math.max(1, Math.min(100, result.score)),
       feedback: result.feedback,
-      isCorrect: result.score >= 60
+      isCorrect: result.score >= 45
     };
   } catch (error) {
     console.error("Error evaluating answer:", error);

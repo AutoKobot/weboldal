@@ -189,10 +189,10 @@ export default function HomePage() {
 
   // Átlagjegy számítás
   const scoreToGrade = (score: number) => {
-    if (score >= 95) return 5;
-    if (score >= 80) return 4;
-    if (score >= 70) return 3;
-    if (score >= 60) return 2;
+    if (score >= 90) return 5;
+    if (score >= 65) return 4;
+    if (score >= 55) return 3;
+    if (score >= 45) return 2;
     return 1;
   };
   const now = new Date();
@@ -664,7 +664,7 @@ function TeacherHomeDashboard({ user, navigate, isMobileNavOpen, setIsMobileNavO
   const avgScore = allScores.length > 0
     ? allScores.reduce((a, b) => a + b, 0) / allScores.length
     : null;
-  const scoreToGrade = (s: number) => s >= 95 ? 5 : s >= 80 ? 4 : s >= 70 ? 3 : s >= 60 ? 2 : 1;
+  const scoreToGrade = (s: number) => s >= 90 ? 5 : s >= 65 ? 4 : s >= 55 ? 3 : s >= 45 ? 2 : 1;
   const avgGrade = avgScore !== null ? scoreToGrade(avgScore) : null;
   const avgScorePct = avgScore !== null ? Math.round(avgScore) : null;
 
