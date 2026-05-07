@@ -47,11 +47,15 @@ export function fixMermaidSyntax(content: string): string {
       // Check if this is a diagram type declaration
       if (line.match(/^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gitgraph)/)) {
         if (!hasValidStart) {
-          cleanedLines.push(line);
           hasValidStart = true;
+          // If the line is purely a declaration, push it and skip regular processing
+          if (!line.includes('[') && !line.includes('(') && !line.includes('-->')) {
+            cleanedLines.push(line);
+            continue;
+          }
+        } else {
+          continue;
         }
-        // Skip duplicate diagram declarations
-        continue;
       }
 
       // Fix parentheses in node text that break syntax
