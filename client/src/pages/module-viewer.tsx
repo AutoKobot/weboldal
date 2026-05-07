@@ -1429,7 +1429,7 @@ export default function ModuleViewer() {
 
       <Dialog open={showMindMapModal} onOpenChange={setShowMindMapModal}>
         <DialogContent className="max-w-7xl p-0 bg-transparent border-none overflow-hidden h-[750px]">
-          {module.mindMapData && (
+          {Boolean(module.mindMapData) && (
             <MindMapPlayer
               data={(() => {
                 try {

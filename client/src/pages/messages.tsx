@@ -481,7 +481,7 @@ export default function MessagesPage() {
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white w-full py-6 rounded-2xl shadow-lg shadow-blue-100 font-bold flex items-center justify-center gap-2"
                       >
-                        <UserIcon className="h-5 w-5" />
+                        <User className="h-5 w-5" />
                         Üzenet küldése a tanáromnak
                       </Button>
                     </div>
