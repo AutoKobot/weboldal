@@ -45,7 +45,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   const generateQuizMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('GET', `/api/modules/${moduleId}/quiz`);
+      const response = await apiRequest('GET', `/api/modules/${moduleId}/quiz?_t=${Date.now()}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Ismeretlen hiba történt' }));
         throw new Error(errorData.message || 'Nem sikerült a kvíz betöltése');
@@ -195,13 +195,32 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
     if (currentQuestion.type === 'ordering') {
       const correctOrder = currentQuestion.correctOrder || [];
       const userOrder = selection as number[];
-      const isCorrect = correctOrder.length === userOrder.length && 
-                       correctOrder.every((val, index) => Number(val) === Number(userOrder[index]));
+      
+      const parsedIndices = correctOrder.map(val => Number(val));
+      const isOneBased = parsedIndices.every(num => !isNaN(num)) && 
+                         parsedIndices.includes(currentQuestion.options.length) && 
+                         !parsedIndices.includes(0);
+
+      const expectedTextOrder = correctOrder.map(val => {
+        let num = Number(val);
+        if (!isNaN(num)) {
+          if (isOneBased) num -= 1;
+          if (num >= 0 && num < currentQuestion.options.length) {
+            return currentQuestion.options[num];
+          }
+        }
+        return String(val);
+      });
+
+      const userTextOrder = userOrder.map(idx => currentQuestion.options[idx]);
+
+      const isCorrect = expectedTextOrder.length === userTextOrder.length &&
+                       expectedTextOrder.every((val, index) => val?.trim().toLowerCase() === userTextOrder[index]?.trim().toLowerCase());
 
       const evaluation: QuizEvaluation = {
         score: isCorrect ? 100 : 0,
         isCorrect,
-        feedback: isCorrect ? "Helyes sorrend!" : "Sajnos a sorrend helytelen. A folyamat: " + correctOrder.map(i => currentQuestion.options[Number(i)]).join(" → ")
+        feedback: isCorrect ? "Helyes sorrend!" : "Sajnos a sorrend helytelen. A folyamat: " + expectedTextOrder.join(" → ")
       };
 
       const newEvaluations = [...evaluations];

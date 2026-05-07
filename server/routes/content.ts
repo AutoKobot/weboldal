@@ -51,6 +51,7 @@ router.post('/quiz/evaluate', combinedAuth, async (req: any, res) => {
 
 router.get('/modules/:id/quiz', combinedAuth, async (req: any, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const moduleId = parseInt(req.params.id);
     const module = await storage.getModule(moduleId);
     if (!module || !module.generatedQuizzes || !Array.isArray(module.generatedQuizzes) || module.generatedQuizzes.length === 0) {
