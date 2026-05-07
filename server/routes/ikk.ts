@@ -313,67 +313,156 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             });
           }
 
-          const existingModules = await storage.getModules(dbSubject.id);
+          const isPractical = dbSubject.type === 'practical' || sub.practicalPercent > 0;
 
-          const BATCH_SIZE = 4; // Further reduced for stability with more granular splitting
-          const batches = [];
-          for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
-            batches.push(sub.modules.slice(i, i + BATCH_SIZE));
-          }
+          if (isPractical) {
+            // --- 3-STEP MULTI-STEP PRACTICAL IMPORT PIPELINE ---
+            activeImport.message = `${sub.name} - 1. lépés: Nyers műhelytevékenységek kigyűjtése...`;
+            await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-          // Safety delay between subjects
-          await new Promise(r => setTimeout(r, 1000));
-
-          await runParallel(batches, 2, async (batch, batchIndex) => {
-            if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
-
-            // Small staggered delay for parallel batches to avoid simultaneous AI hits
-            if (batchIndex > 0) await new Promise(r => setTimeout(r, batchIndex * 500));
-
-            const res = await withRetry(async () => {
+            // Step 1: Extract raw workshop activities
+            const rawActivitiesRes = await withRetry(async () => {
               const openai = await getOpenAIClient();
               return openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 response_format: { type: "json_object" },
                 messages: [
-                  { role: "system", content: "Tananyagfejlesztő vagy. Generálj szakmai tartalmat JSON-ben." },
-                  { role: "user", content: ikkService.buildContentPrompt(profession.name, sub.name, batch) }
+                  { role: "system", content: "Szakoktató és PTT elemző vagy. Csak valid JSON-t adsz vissza." },
+                  { role: "user", content: ikkService.buildWorkshopActivityExtractionPrompt(pttText) }
                 ],
-                temperature: 0.4
-              }, {
-                timeout: 120000 // Increased to 2 minutes for large granular expansions
+                temperature: 0.1
               });
             });
 
-            const contentData = JSON.parse(res.choices[0].message.content || '{"modules":[]}');
-            const modulesToCreate = (contentData.modules || [])
-              .filter((modData: any) => !existingModules.some(em => em.title === modData.title))
-              .map((modData: any) => {
-                const original = batch.find((m: any) => m.title === modData.title);
-                return {
-                  subjectId: dbSubject.id,
-                  title: modData.title,
-                  content: modData.content || "",
-                  practicalTasks: modData.practicalTasks || [],
-                  type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
-                  moduleNumber: ++processedModules,
-                  sectionCode: original?.sectionCode || null,
-                  isPublished: true
-                };
+            const rawActivitiesData = JSON.parse(rawActivitiesRes.choices[0].message.content || '{"rawActivities":[]}');
+            const rawActivities = rawActivitiesData.rawActivities || [];
+
+            if (rawActivities.length > 0) {
+              activeImport.message = `${sub.name} - 2. lépés: 1 napos tanulási egységekbe szervezés...`;
+              await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
+
+              // Step 2: 1-day granularity sizing
+              const sizedModulesRes = await withRetry(async () => {
+                const openai = await getOpenAIClient();
+                return openai.chat.completions.create({
+                  model: "gpt-4o-mini",
+                  response_format: { type: "json_object" },
+                  messages: [
+                    { role: "system", content: "Gyakorlati tanmenet-tervező vagy. Csak valid JSON-t adsz vissza." },
+                    { role: "user", content: ikkService.buildWorkshopDaySizingPrompt(sub.name, rawActivities) }
+                  ],
+                  temperature: 0.2
+                });
               });
 
-            if (modulesToCreate.length > 0) await storage.bulkCreateModules(modulesToCreate);
-            else processedModules += batch.length; // Count existing as processed for progress
-            
-            // Update progress AFTER each batch
-            const currentProgress = 40 + Math.round((processedModules / totalModulesCount) * 55);
-            if (currentProgress > activeImport.progress) {
-               activeImport.progress = currentProgress;
+              const sizedModulesData = JSON.parse(sizedModulesRes.choices[0].message.content || '{"modules":[]}');
+              const sizedModules = sizedModulesData.modules || [];
+
+              // Step 3: Expand and create day-sized modules in parallel/sequentially
+              let practicalProcessed = 0;
+              for (const sizedMod of sizedModules) {
+                if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
+
+                activeImport.message = `${sub.name} - 3. lépés: ${sizedMod.title} útmutató generálása...`;
+                await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
+
+                const expandedRes = await withRetry(async () => {
+                  const openai = await getOpenAIClient();
+                  return openai.chat.completions.create({
+                    model: "gpt-4o-mini",
+                    response_format: { type: "json_object" },
+                    messages: [
+                      { role: "system", content: "Gyakorlati tananyagfejlesztő vagy. Csak valid JSON-t adsz vissza." },
+                      { role: "user", content: ikkService.buildPracticalDayContentPrompt(profession.name, sub.name, sizedMod.title, sizedMod.activities || []) }
+                    ],
+                    temperature: 0.3
+                  });
+                });
+
+                const expandedData = JSON.parse(expandedRes.choices[0].message.content || '{}');
+
+                await storage.createModule({
+                  subjectId: dbSubject.id,
+                  title: sizedMod.title,
+                  content: expandedData.content || "",
+                  practicalTasks: expandedData.practicalTasks || [],
+                  type: 'practical',
+                  moduleNumber: ++processedModules,
+                  sectionCode: sizedMod.sectionCode || null,
+                  isPublished: true
+                });
+
+                practicalProcessed++;
+                const currentProgress = 40 + Math.round((processedModules / (totalModulesCount || 10)) * 55);
+                if (currentProgress > activeImport.progress) {
+                  activeImport.progress = Math.min(95, currentProgress);
+                }
+              }
             }
-            activeImport.message = `${sub.name} - Tartalom (${processedModules}/${totalModulesCount})...`;
-            
-            await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
-          });
+          } else {
+            // --- Standard Theory Module Processing ---
+            const existingModules = await storage.getModules(dbSubject.id);
+
+            const BATCH_SIZE = 4; // Further reduced for stability with more granular splitting
+            const batches = [];
+            for (let i = 0; i < sub.modules.length; i += BATCH_SIZE) {
+              batches.push(sub.modules.slice(i, i + BATCH_SIZE));
+            }
+
+            // Safety delay between subjects
+            await new Promise(r => setTimeout(r, 1000));
+
+            await runParallel(batches, 2, async (batch, batchIndex) => {
+              if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
+
+              // Small staggered delay for parallel batches to avoid simultaneous AI hits
+              if (batchIndex > 0) await new Promise(r => setTimeout(r, batchIndex * 500));
+
+              const res = await withRetry(async () => {
+                const openai = await getOpenAIClient();
+                return openai.chat.completions.create({
+                  model: "gpt-4o-mini",
+                  response_format: { type: "json_object" },
+                  messages: [
+                    { role: "system", content: "Tananyagfejlesztő vagy. Generálj szakmai tartalmat JSON-ben." },
+                    { role: "user", content: ikkService.buildContentPrompt(profession.name, sub.name, batch) }
+                  ],
+                  temperature: 0.4
+                }, {
+                  timeout: 120000 // Increased to 2 minutes for large granular expansions
+                });
+              });
+
+              const contentData = JSON.parse(res.choices[0].message.content || '{"modules":[]}');
+              const modulesToCreate = (contentData.modules || [])
+                .filter((modData: any) => !existingModules.some(em => em.title === modData.title))
+                .map((modData: any) => {
+                  const original = batch.find((m: any) => m.title === modData.title);
+                  return {
+                    subjectId: dbSubject.id,
+                    title: modData.title,
+                    content: modData.content || "",
+                    practicalTasks: modData.practicalTasks || [],
+                    type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
+                    moduleNumber: ++processedModules,
+                    sectionCode: original?.sectionCode || null,
+                    isPublished: true
+                  };
+                });
+
+              if (modulesToCreate.length > 0) await storage.bulkCreateModules(modulesToCreate);
+              else processedModules += batch.length; // Count existing as processed for progress
+              
+              // Update progress AFTER each batch
+              const currentProgress = 40 + Math.round((processedModules / (totalModulesCount || 10)) * 55);
+              if (currentProgress > activeImport.progress) {
+                 activeImport.progress = Math.min(95, currentProgress);
+              }
+              activeImport.message = `${sub.name} - Tartalom (${processedModules}/${totalModulesCount || 10})...`;
+              
+              await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
+            });
+          }
           
           // After all modules for this subject are created and populated, distribute the hours
           if (sub.hours && sub.hours > 0) {

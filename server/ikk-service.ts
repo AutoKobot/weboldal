@@ -308,6 +308,103 @@ VÁLASZ (JSON):
 `.trim();
   }
 
+  buildWorkshopActivityExtractionPrompt(chunk: string): string {
+    return `
+Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. 
+A feladatod, hogy kigyűjts MINDEN gyakorlati, műhelyben elvégezhető tevékenységet, feladatot és követelményt a megadott szövegből.
+
+── SZABÁLYOK ──
+1. Csak a VALÓDI, fizikai, kézzel fogható műhelygyakorlathoz kapcsolódó tevékenységeket gyűjtsd ki (pl. mérések, fűrészelés, hegesztés, vezetékezés, hibakeresés, beállítások, szerszámhasználat).
+2. Könyörtelenül szűrj ki minden pedagógiai sallangot (pl. "a tanuló ismeri...", "képes megérteni...") és elméleti leírást.
+3. A kigyűjtött elemeket egy tömör, világos listaként add vissza.
+
+VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
+{
+  "rawActivities": [
+    "Első kigyűjtött műhelytevékenység leírása...",
+    "Második kigyűjtött műhelytevékenység leírása..."
+  ]
+}
+
+ELEMEZENDŐ SZÖVEG:
+${chunk}
+`.trim();
+  }
+
+  buildWorkshopDaySizingPrompt(subjectName: string, rawActivities: string[]): string {
+    return `
+Te egy zseniális SZAKOKTATÓ és gyakorlati tanmenet-tervező vagy.
+Kaptál egy listát, ami egy adott tantárgyhoz kigyűjtött nyers műhelytevékenységeket tartalmazza.
+
+Tantárgy: ${subjectName}
+
+── FELADAT ──
+1. Csoportosítsd és strukturáld ezeket a tevékenységeket egymásra épülő, szekvenciális egységekre (modulokra).
+2. **KÖTELEZŐ 1 NAPOS MÉRETEZÉS**: Minden egyes egység (modul) pontosan akkora méretű legyen, amit egy tanuló **1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat)** alatt reálisan meg tud tanulni és el tud végezni a műhelyben!
+3. Adj minden napnak egy vonzó, szakmailag pontos "Nap [X]: [Cím]" formátumú nevet (pl. "1. nap: Kéziszerszámok biztonságos használata és fémfűrészelés alapjai").
+4. A válaszként kapott modulok sora egy tökéletes, logikusan egymásra épülő napi tanmenetet alkosson.
+
+VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
+{
+  "modules": [
+    {
+      "title": "1. nap: Kéziszerszámok biztonságos használata és fémfűrészelés alapjai",
+      "type": "practical",
+      "sectionCode": "nap-1",
+      "activities": [
+        "Nyers műhelytevékenység leírása..."
+      ]
+    }
+  ]
+}
+
+NYERS MŰHELYTEVÉKENYSÉGEK LISTÁJA:
+${rawActivities.map((act, i) => `${i + 1}. ${act}`).join('\n')}
+`.trim();
+  }
+
+  buildPracticalDayContentPrompt(professionName: string, subjectName: string, moduleTitle: string, activities: string[]): string {
+    return `
+Te egy profi szakoktató és gyakorlati tananyagfejlesztő vagy. 
+Generálj részletes gyakorlati útmutatót tanulók számára egy adott gyakorlati naphoz (műhelynaphoz).
+
+Szakma: ${professionName}
+Tantárgy: ${subjectName}
+Gyakorlati nap címe: ${moduleTitle}
+
+── FELADAT ──
+Írj egy alapos, cselekvés-orientált gyakorlati útmutatót az alábbi SZIGORÚ szabályok szerint:
+
+1. A "content" mezőbe írj egy rövid (max 3-4 mondat) szakmai bevezetőt és motivációt a mai műhelygyakorlat céljáról, a használandó főbb berendezésekről és a megszerezhető szakmai készségekről.
+2. A "practicalTasks" mezőbe generálj pontosan 6-8 konkrét, szakmailag szigorúan egymásra épülő gyakorlati feladatot (instrukciót), amelyek lefedik a mai napra kijelölt tevékenységeket, és egy valós ipari munkafolyamatot (workflow) követnek:
+   - 1. Lépés: Előkészítés és munkavédelem (egyéni védőeszközök (EVE) ellenőrzése, munkaterület biztonságossá tétele, szerszámok és anyagok előkészítése).
+   - 2. Lépés: Mérési, előrajzolási, kalibrálási vagy gépbeállítási paraméterek meghatározása (pl. anyagelőkészítés).
+   - 3-5. Lépés: Technológiai főműveletek végrehajtása (cselekvés-orientált, szakmailag precíz lépések, pl. megmunkálás, hegesztés, vezetékezés, programozás, hibakeresés).
+   - 6. Lépés: Utóműveletek (pl. sorjázás, tisztítás, rögzítés, felületkezelés, összeszerelés).
+   - 7. Lépés: Minőségellenőrzés és mérés (dimenziók, tűréshatárok, működés ellenőrzése).
+   - 8. Lépés: Rendrakás és szakmai adminisztráció (szerszámok elrakása, hulladékkezelés, munkalap vagy jegyzőkönyv kitöltése).
+3. Mindegyik feladat legyen cselekvés-orientált, felszólító módban megfogalmazva (pl. "Állítsa be...", "Végezze el...", "Mérje meg..."), kerülve a felesleges elméletet.
+
+KIJELÖLT NAPI TEVÉKENYSÉGEK:
+${activities.map((act, i) => `- ${act}`).join('\n')}
+
+VÁLASZ (JSON):
+{
+  "content": "A mai műhelynap célja...",
+  "practicalTasks": [
+    "1. Lépés: ...",
+    "2. Lépés: ...",
+    "3. Lépés: ...",
+    "4. Lépés: ...",
+    "5. Lépés: ...",
+    "6. Lépés: ...",
+    "7. Lépés: ...",
+    "8. Lépés: ..."
+  ]
+}
+`.trim();
+  }
+
   async structureCurriculum(_professionName: string, _kkkText: string, chunk: string, importType?: 'theory' | 'practical' | 'both'): Promise<string> {
     return this.buildExtractionPrompt(chunk, importType);
   }
