@@ -58,17 +58,28 @@ router.get('/modules/:id/quiz', combinedAuth, async (req: any, res) => {
       return res.status(404).json({ message: "Nincs kvíz generálva ehhez a modulhoz. Kérd meg a tanárod az újragenerálásra!", needsRegeneration: true });
     }
 
-    let questions = [];
+    // Unbiased Fisher-Yates shuffle algorithm
+    const shuffle = <T>(array: T[]): T[] => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    let flatPool: any[] = [];
     if (Array.isArray(module.generatedQuizzes[0])) {
-      // Old schema: nested array of quiz sets (e.g., 5 sets of 10 questions each)
-      const randomIndex = Math.floor(Math.random() * module.generatedQuizzes.length);
-      questions = module.generatedQuizzes[randomIndex];
+      // Old schema: nested array of quiz sets -> Flatten to get a large pool of 50 questions!
+      flatPool = module.generatedQuizzes.flat();
     } else {
       // New schema: flat array of questions (e.g., 30 questions)
-      // Shuffle the questions and take exactly 10 random questions for the student
-      const shuffled = [...module.generatedQuizzes].sort(() => 0.5 - Math.random());
-      questions = shuffled.slice(0, 10);
+      flatPool = module.generatedQuizzes;
     }
+
+    // Force strict randomization using Fisher-Yates and select exactly 10 questions
+    const shuffledPool = shuffle(flatPool);
+    const questions = shuffledPool.slice(0, 10);
 
     res.json({ questions });
   } catch (error) {

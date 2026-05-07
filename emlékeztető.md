@@ -60,9 +60,24 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **Forradalmi Élő Elmetérkép Funkció (2026-05-06)**:
   - Kiépítettük az "Élő Elmetérkép" (Living Mind Map) modult: az AI legenerál egy fastruktúrát magyarázó címkékkel, leírásokkal és narrációval, amire rekurzív hanggenerálás épül.
   - A frontendről elérhető interaktív Mind Map Player automatikusan radial layoutba rendezi a csomópontokat, neonos, lüktető animált SVG vonalakkal ábrázolja az információ áramlását, és cinematic kameramozgással rácsúszik az éppen felolvasott csomópontra, miközben lejátsza annak egyedi magyarázó hangját.
-- **Hibajavítások**:
+- **Pedagógiai Értékelési Thresholdok Finomítása (2026-05-07)**:
+  - A tesztek értékelését a tanulók számára kedvezőbbé tettük a következő határokkal: 45%-tól 2-es (elégséges), 55%-tól 3-as (közepes), 65%-tól 4-es (jó), 90%-tól 5-ös (jeles).
+  - A backend score-to-grade átalakítókat (`routes.ts`, `routes/teacher.ts`) és az összes kliensoldali felületet (`student-dashboard.tsx`, `home.tsx`, `StudentDetailView.tsx`, `quiz-interface.tsx`) az új sávokhoz igazítottuk.
+  - Az OpenAI válasz-kiértékelő modell küszöbét (`openai.ts`) szintén 60-ról 45 pontra csökkentettük, így a sikeres átmenetel határa egységesen 45% lett.
+- **Wikipédia Komponensek Teljes Eltávolítása (2026-05-07)**:
+  - Véglegesen kitisztítottuk az összes korábbi Wikipédia-maradványt az `enhanced-module-generator.ts` fájlból, beleértve az interfészeket, kulcsszókereső segédfüggvényeket és képátalakító rutinokat.
+- **Golyóálló Sorrendbe Állítás Kiértékelés (2026-05-07)**:
+  - A [quiz-interface.tsx](file:///e:/Antigravity_projektek/InteractiveLearning/client/src/components/quiz-interface.tsx) fájlban lecseréltük a merev index-összehasonlító logikát egy robusztus, szöveg-alapú kiértékelő motorra.
+  - Az új motor automatikusan kezeli a vegyes szám/szöveg indexeket, az 1-alapú AI eltolódásokat, és szövegesen veti össze a diák által kiválasztott lépéseket az elvárt folyamattal, megszüntetve a fals negatív értékeléseket.
+- **Kvíz Ismétlődés Megelőzés, Fisher-Yates Shuffle & Laposított Pool (2026-05-07)**:
+  - Lecseréltük a korábbi instabil és elfogult JavaScript `.sort()` alapú keverést a matematikailag tökéletes, teljesen pártatlan **Fisher-Yates keverési algoritmusra** a backend oldalon.
+  - Beépítettünk egy automatikus laposító motort (`flatPool`): ha a modul a régi struktúrát használja (pl. 5 darab előre legyártott 10-kérdéses külön tesztsor), a rendszer összefésüli mind az 50 kérdést egyetlen nagy medencébe, majd ebből kever ki Fisher-Yates módszerrel 10 teljesen egyedi kérdést. Az új 30-kérdéses poolnál ugyanígy 30-ból választ ki 10 teljesen véletlenszerűt.
+  - Hozzáadtuk a `Cache-Control` no-cache fejlécet a `/api/modules/:id/quiz` végpontra, és kliensoldalon egy dinamikus `_t=${Date.now()}` időbélyeg-alapú cache-bustert vezettünk be. Ez garantálja a maximális változatosságot minden egyes kattintáskor!
+- **Hibajavítások és Kódtisztítás (2026-05-07)**:
+  - Feloldottuk a Git összeolvadási konfliktusokat a régi `routes.ts` fájlban, egyszerűen átirányítva azt az új `routes/index.ts` modulra.
+  - Kijavítottuk a diák műszerfalán lévő mobil menü gomb akadálymentesítési (a11y) hibáját a megfelelő `title` és `aria-label` attribútumok hozzáadásával.
   - Megszűnt a modulcímek sorszám-duplikációja (pl. 3.1.1.) a robusztusabb regex-szel.
-  - Pótólva a hiányzó `Wand2` és egyéb ikon importok.
+  - Pótolva a hiányzó `Wand2` és egyéb ikon importok.
   - Javítottuk a hiányzó `MessageSquare` ikon import miatti összeomlást a tanár-dashboard és tanuló-listázó oldalakon.
   - Az IKK import hiba esetén nem törli a már létrehozott szakmát, segítve a hibakeresést.
 
