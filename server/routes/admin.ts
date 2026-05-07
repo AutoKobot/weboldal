@@ -2,7 +2,7 @@ import { runSmartBackup } from "../drive-backup";
 import { Router } from "express";
 import { storage } from "../storage";
 import { combinedAuth } from "./middleware";
-import { insertProfessionSchema, modules, subjects, practicalGrades, testResults } from "@shared/schema";
+import { insertProfessionSchema, modules, subjects, practicalGrades, testResults, users } from "@shared/schema";
 import { db } from "../db";
 import { eq, sql, and } from "drizzle-orm";
 
@@ -182,6 +182,78 @@ router.post('/users/:id/unlock-all-modules', combinedAuth, adminOnly, async (req
   } catch (error) {
     console.error("Error unlocking modules:", error);
     res.status(500).json({ message: "Failed to unlock modules" });
+  }
+});
+
+router.post('/users/restore-all-progress', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    console.log(`[RESTORE] Module restore triggered by admin: ${req.user.username}`);
+    
+    // 1. Get all published modules
+    const allPublishedModules = await db.select().from(modules);
+    const totalModuleCount = allPublishedModules.length;
+
+    // 2. Fetch all student users
+    const students = await db.select().from(users).where(eq(users.role, "student"));
+    
+    let updatedCount = 0;
+    const reports = [];
+
+    for (const student of students) {
+      const currentCompleted = student.completedModules || [];
+      
+      // Fetch passed tests
+      const passedTests = await db.select().from(testResults).where(
+        and(
+          eq(testResults.userId, student.id),
+          eq(testResults.passed, true)
+        )
+      );
+      const passedTestModuleIds = passedTests
+        .map(t => t.moduleId)
+        .filter((id): id is number => id !== null);
+
+      // Fetch practical grades
+      const practicals = await db.select().from(practicalGrades).where(
+        eq(practicalGrades.studentId, student.id)
+      );
+      const practicalModuleIds = practicals
+        .map(p => p.moduleId)
+        .filter((id): id is number => id !== null);
+
+      // Combine and get unique actual completed module IDs
+      const actualCompletedSet = new Set([...passedTestModuleIds, ...practicalModuleIds]);
+      const actualCompletedModuleIds = Array.from(actualCompletedSet);
+
+      if (currentCompleted.length !== actualCompletedModuleIds.length) {
+        await db.update(users)
+          .set({ 
+            completedModules: actualCompletedModuleIds,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, student.id));
+          
+        updatedCount++;
+        reports.push({
+          username: student.username,
+          name: `${student.lastName} ${student.firstName}`,
+          beforeCount: currentCompleted.length,
+          afterCount: actualCompletedModuleIds.length,
+          unlockedAccidentally: currentCompleted.length >= totalModuleCount
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Student modules restored successfully",
+      totalStudentsChecked: students.length,
+      totalStudentsUpdated: updatedCount,
+      details: reports
+    });
+  } catch (error: any) {
+    console.error("[RESTORE] Module restore failed:", error);
+    res.status(500).json({ message: "Restore failed", error: error.message });
   }
 });
 

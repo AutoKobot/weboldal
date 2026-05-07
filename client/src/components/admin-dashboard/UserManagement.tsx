@@ -74,6 +74,27 @@ export function UserManagement({ users, professions, isLoading }: UserManagement
     }
   });
 
+  const restoreAllProgressMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/users/restore-all-progress");
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({ 
+        title: "Sikeres helyreállítás", 
+        description: `Sikeresen javítva: ${data.totalStudentsUpdated} diák profilja (${data.totalStudentsChecked} ellenőrzött diákból).` 
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (err: any) => {
+      toast({ 
+        title: "Hiba a visszaállításkor", 
+        description: err.message || "Nem sikerült a folyamat végrehajtása", 
+        variant: "destructive" 
+      });
+    }
+  });
+
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ userId, newPassword }: any) => {
       await apiRequest("POST", `/api/admin/users/${userId}/reset-password`, { newPassword });
@@ -104,14 +125,29 @@ export function UserManagement({ users, professions, isLoading }: UserManagement
             <span className="text-purple-600">● Diák: {studentUsers}</span>
           </p>
         </div>
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Keresés név, email vagy iskola alapján..."
-            className="pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-10 text-xs text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400"
+            onClick={() => {
+              if (confirm("Biztosan visszaállítod az ÖSSZES diák modulhozzáférését a valós teljesítéseikre (tesztek + gyakorlatok alapján)? Ez visszazárja a véletlenül megnyitott modulokat.")) {
+                restoreAllProgressMutation.mutate();
+              }
+            }}
+            disabled={restoreAllProgressMutation.isPending}
+          >
+            🔄 Diák haladások javítása
+          </Button>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Keresés név, email vagy iskola alapján..."
+              className="pl-9 h-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
