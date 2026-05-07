@@ -39,11 +39,28 @@ router.post('/school-admin/login', async (req: any, res) => {
   }
 });
 
-router.get('/user', (req: any, res) => {
-  if (req.user) return res.json(req.user);
-  if (req.session?.adminUser) return res.json({ ...req.session.adminUser, role: 'admin' });
-  if (req.session?.schoolAdminUser) return res.json({ ...req.session.schoolAdminUser, role: 'school_admin' });
-  res.status(401).end();
+router.get('/user', async (req: any, res) => {
+  try {
+    if (req.user) {
+      const userId = req.user.claims?.sub || req.user.id;
+      const freshUser = await storage.getUser(userId);
+      if (freshUser) {
+        // Update session to keep it synchronized
+        if (req.session?.passport?.user) {
+          req.session.passport.user = freshUser;
+        }
+        req.user = freshUser;
+        return res.json(freshUser);
+      }
+      return res.json(req.user);
+    }
+    if (req.session?.adminUser) return res.json({ ...req.session.adminUser, role: 'admin' });
+    if (req.session?.schoolAdminUser) return res.json({ ...req.session.schoolAdminUser, role: 'school_admin' });
+    res.status(401).end();
+  } catch (error) {
+    console.error("Error fetching fresh user in auth route:", error);
+    res.status(500).json({ message: "Failed to fetch user data" });
+  }
 });
 
 router.get('/school-admin/logout', (req: any, res) => {

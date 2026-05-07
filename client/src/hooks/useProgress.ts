@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Module } from '@shared/schema';
+import { compareSectionCodes } from '@/lib/utils';
 
 export function useProgress(modules: Module[], completedModules: number[]) {
     const unlockedModules = useMemo(() => {
@@ -14,8 +15,8 @@ export function useProgress(modules: Module[], completedModules: number[]) {
         }, {} as Record<number, Module[]>);
 
         Object.values(modulesBySubject).forEach(subjectModules => {
-            // Sort modules by moduleNumber (represents learning sequence)
-            const sortedModules = [...subjectModules].sort((a, b) => a.moduleNumber - b.moduleNumber);
+            // Sort modules by sectionCode and moduleNumber (represents learning sequence)
+            const sortedModules = [...subjectModules].sort((a, b) => compareSectionCodes(a.sectionCode, b.sectionCode) || (a.moduleNumber - b.moduleNumber));
 
             // First module of any subject is always unlocked
             if (sortedModules.length > 0) {
