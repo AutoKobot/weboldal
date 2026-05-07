@@ -195,12 +195,13 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
     if (currentQuestion.type === 'ordering') {
       const correctOrder = currentQuestion.correctOrder || [];
       const userOrder = selection as number[];
-      const isCorrect = JSON.stringify(correctOrder) === JSON.stringify(userOrder);
+      const isCorrect = correctOrder.length === userOrder.length && 
+                       correctOrder.every((val, index) => Number(val) === Number(userOrder[index]));
 
       const evaluation: QuizEvaluation = {
         score: isCorrect ? 100 : 0,
         isCorrect,
-        feedback: isCorrect ? "Helyes sorrend!" : "Sajnos a sorrend helytelen. A folyamat: " + correctOrder.map(i => currentQuestion.options[i]).join(" → ")
+        feedback: isCorrect ? "Helyes sorrend!" : "Sajnos a sorrend helytelen. A folyamat: " + correctOrder.map(i => currentQuestion.options[Number(i)]).join(" → ")
       };
 
       const newEvaluations = [...evaluations];
