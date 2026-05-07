@@ -364,10 +364,10 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.02 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="w-full h-full min-h-full px-8 py-10"
+                className="w-full h-full min-h-full px-4 md:px-8 py-4 md:py-6"
               >
                 {currentSlide && (
-                  <div className={`grid h-full w-full gap-10 max-w-[1400px] mx-auto 
+                  <div className={`grid h-full w-full gap-6 md:gap-10 max-w-[1400px] mx-auto 
                     ${currentSlide?.layout === 'split-right-image' || currentSlide?.layout === 'grid' ? 'lg:grid-cols-[1.1fr,1fr]' : 'grid-cols-1'}`}
                   >
                     <div className="flex flex-col justify-center min-w-0 order-1">
@@ -376,17 +376,17 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                       >
-                        <Badge className="mb-4 bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-xs">
+                        <Badge className="mb-2 md:mb-4 bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-xs">
                           {currentSlide?.subtitle || "Interaktív Tananyag"}
                         </Badge>
-                        <h1 className="text-4xl lg:text-5xl font-black text-white mb-8 leading-[1.15] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-4 md:mb-6 leading-[1.15] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
                           {currentSlide?.title}
                         </h1>
-                        <div className="prose prose-invert prose-lg max-w-none 
-                          prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-5
+                        <div className="prose prose-invert prose-sm md:prose-base lg:prose-lg max-w-none 
+                          prose-p:text-slate-300 prose-p:leading-relaxed prose-p:mb-3 md:prose-p:mb-4
                           prose-headings:text-white prose-headings:font-bold
                           prose-strong:text-blue-400 prose-strong:font-bold
-                          prose-ul:my-6 prose-li:my-2 prose-li:text-slate-300"
+                          prose-ul:my-3 md:prose-ul:my-4 prose-li:my-1 prose-li:text-slate-300"
                         >
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {currentSlide?.content || ""}
@@ -394,7 +394,7 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
                         </div>
                       </motion.div>
                       
-                      <div className="mt-10">
+                      <div className="mt-6 md:mt-10">
                         <InteractiveContent 
                           slide={currentSlide} 
                           onComplete={() => setIsInteractiveCompleted(true)}
@@ -408,18 +408,18 @@ export function PresentationPlayer({ slides = [], open, onOpenChange, moduleTitl
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         className={`h-full flex items-center justify-center order-2 min-w-0`}
                       >
-                        <div className={`grid gap-4 w-full h-[60vh] lg:h-[65vh] max-w-full 
+                        <div className={`grid gap-4 w-full h-[35vh] md:h-[45vh] lg:h-[48vh] max-h-[50vh] max-w-full 
                           ${(currentSlide?.imageUrls?.length || 1) > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}
                         >
                           {currentSlide?.imageUrls && currentSlide.imageUrls.length > 0 ? (
                             currentSlide.imageUrls.map((url: string, idx: number) => (
-                              <div key={idx} className="relative rounded-[2rem] overflow-hidden shadow-xl border-2 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
+                              <div key={idx} className="relative rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-xl border-2 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
                                 <SlideImage src={url} alt={`Visual ${idx + 1}`} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent pointer-events-none" />
                               </div>
                             ))
                           ) : (
-                            <div className="relative rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
+                            <div className="relative rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-4 border-slate-800/40 bg-slate-900/50 flex items-center justify-center group h-full">
                               <SlideImage src={currentSlide?.imageUrl || ''} alt="Visual" />
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
                             </div>
