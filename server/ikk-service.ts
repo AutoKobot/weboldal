@@ -224,6 +224,12 @@ Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
    - A "sectionCode" végére MINDIG fűzz egy kisbetűt, ha felbontást végzel: 3.3.2.6.1.a, 3.3.2.6.1.b, stb.
    - **CÉL**: Egy modul ne legyen hosszabb 200-300 szónál a kifejtés után. Ha a forrásanyag túl sűrű, bontsd tovább!
 
+── GYAKORLATI MODULOK LÉPCSŐZETES FELÉPÍTÉSE (RENDKÍVÜL FONTOS) ──
+Gyakorlati tantárgyak és modulok kinyerésekor KÖTELEZŐ egy logikusan, szakmailag szigorúan egymásra épülő, lépcsőzetes elsajátítási szemléletet (progressive learning curve) követni:
+1. Biztosíts szakmai egymásra épülést: a legelső modulok mindig az alapokat adják meg (pl. munkavédelmi és technológiai előkészítés, szerszámok és anyagok kiválasztása), amit a részletes, középhaladó végrehajtási folyamatok (főműveletek), majd a komplex feladatok, és végül az ellenőrzési, befejezési fázisok követnek.
+2. A PTT szövegében szereplő gyakorlati követelményeket és leírásokat úgy csoportosítsd és bontsd modulokra, hogy azok egy koherens, egymást követő cselekvési láncolatot alkossanak.
+3. Kerüld az ad-hoc, elszórt vagy ismétlődő gyakorlati témákat. Csak a szakma szempontjából releváns, valós ipari gyakorlatot tükröző lépések szerepeljenek a modulok sorrendjében.
+
 ── EXTRAKCIÓS SZABÁLYOK ──
 - SZŰRÉS: ${typeFocus} modulokat keresünk.
 - ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, elméleti összefüggések, anyagismeret, fogalmak.
@@ -275,9 +281,15 @@ Minden modulhoz írj egy alapos, de lényegre törő szakmai kifejtést az aláb
    - A "practicalTasks" mező KÖTELEZŐEN ÜRES lista maradjon: [].
 
 2. HA A MODUL [PRACTICAL] (Gyakorlat):
-   - A "content" mezőbe írj egy rövid (max 3 mondat) bevezetőt a feladat céljáról.
-   - A "practicalTasks" mezőbe generálj 5-8 konkrét, lépésről-lépésre végrehajtható szakmai feladatot (instrukciót).
-   - A feladatok legyenek cselekvés-orientáltak és technikai jellegűek (pl. "Állítsa be a nyomást 4 barra...", "Ellenőrizze a tömítettséget...").
+   - A "content" mezőbe írj egy rövid (max 3 mondat) szakmai bevezetőt a feladat konkrét céljáról és az elsajátítandó szakmai fogásokról.
+   - A "practicalTasks" mezőbe generálj pontosan 6-8 konkrét, szakmailag szigorúan egymásra épülő, lépcsőzetesen felépülő gyakorlati feladatot (instrukciót), amelyek egy valós ipari munkafolyamatot (workflow) követnek:
+     * 1. Lépés: Előkészítés és munkavédelem (egyéni védőeszközök kiválasztása, munkaterület, szerszámok és anyagok ellenőrzése).
+     * 2. Lépés: Mérési, előrajzolási, kalibrálási vagy gépbeállítási paraméterek meghatározása (pl. anyagelőkészítés).
+     * 3-5. Lépés: Technológiai főműveletek végrehajtása (cselekvés-orientált, szakmailag precíz lépések, pl. megmunkálás, hegesztés, vezetékezés, programozás, hibakeresés).
+     * 6. Lépés: Utóműveletek (pl. sorjázás, tisztítás, rögzítés, felületkezelés, összeszerelés).
+     * 7. Lépés: Minőségellenőrzés és mérés (dimenziók, tűréshatárok, tömítettség vagy működés ellenőrzése és mérése).
+     * 8. Lépés: Rendrakás és szakmai adminisztráció (szerszámok elrakása, hulladékkezelés, munkalap vagy jegyzőkönyv kitöltése).
+   - Mindegyik feladat legyen cselekvés-orientált, felszólító módban megfogalmazva (pl. "Állítsa be a nyomást...", "Végezze el a...", "Mérje meg a..."), kerülve a felesleges elméletet vagy elnagyolt instrukciókat. Just return the array of these tasks.
 
 ── SZIGORÚ TILALOM ──
 - NE keverd az elméleti magyarázatot a gyakorlati feladatokkal!
