@@ -998,7 +998,7 @@ PRÉMIUM VIZUÁLIS SZABÁLYOK:
 1. DESIGN STÍLUS: "Clean, precise technical illustration, engineering drawing style, blueprint or vector-style educational diagram, high-quality, clear lines".
 2. EGY KÉP (SZIGORÚ): Minden diának PONTOSAN 1 képet KELL tartalmaznia a "imagePrompts" listában.
 3. SZÖVEG TILOS: A képeken SEMMILYEN szöveg, felirat vagy írás nem szerepelhet! Az AI ne tegyen semmilyen karaktert a képre.
-4. TÉMAKÖR: A kép a dián szereplő tényleges témáról szóljon. Inkább mérnöki ábra, tervrajz vagy egyértelmű műszaki illusztráció legyen, ami jól elmagyarázza a fogalmat, ne pedig egy sima fotó.
+4. TÉMAKÖR ÉS RÉSZLETESSÉG: A kép a dián szereplő tényleges témáról szóljon. Inkább mérnöki ábra, tervrajz vagy egyértelmű műszaki illusztráció legyen, ami jól elmagyarázza a fogalmat, ne pedig egy sima fotó. LÉGY NAGYON PRECIÍZ! Ne csak a témát add meg absztrakt módon, hanem pontosan, fizikailag írd le, hogy minek kell szerepelnie a rajzon (pl. "a side-view technical drawing of a wooden chair with arrows pointing to the 90-degree backrest angle and lumbar support, showing exact structural components").
 5. NYELV (KRITIKUS): Az "imagePrompts" tartalmát KIZÁRÓLAG ANGOL NYELVEN (English) írd meg, mert a képgeneráló modell nem ért magyarul! Azonban MINDEN MÁS MEZŐ (title, content, narration, interactiveData kérdései és válaszai) KÖTELEZŐEN MAGYAR NYELVEN kell, hogy készüljön!
 
 JSON struktúra:
@@ -1012,7 +1012,7 @@ JSON struktúra:
       "narration": "Hungarian narration.",
       "layout": "split-right-image",
       "imagePrompts": [
-        "Clean technical illustration of [the specific topic], engineering drawing style, clear white background, no text, precise lines"
+        "Clean technical illustration of [exact, detailed physical description of the object, components, and angles], engineering drawing style, clear white background, no text, precise lines"
       ],
       "interactiveType": "quiz",
       "interactiveData": {
