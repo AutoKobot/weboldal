@@ -254,11 +254,13 @@ async function generateOpenAIChatResponse(
     systemPrompt = customPrompt;
   } else if (customSystemMessage) {
     systemPrompt = customSystemMessage;
-    if (moduleContent) {
-      systemPrompt += `\n\nJelenlegi modul: ${moduleContent.substring(0, 500)}`;
-    }
   } else {
-    systemPrompt = `Tapasztalt magyar oktatóként segíts a diákoknak részletesen és érthetően. Adj strukturált, praktikus magyarázatokat példákkal. ${moduleContent ? `\n\nTananyag: ${moduleContent.substring(0, 400)}` : ''}`;
+    systemPrompt = `Tapasztalt magyar oktatóként segíts a diákoknak részletesen és érthetően. Adj strukturált, praktikus magyarázatokat példákkal.`;
+  }
+
+  // Append strictly enforcing module boundaries
+  if (moduleContent && moduleContent !== 'basic_ai_only' && moduleContent !== 'chat') {
+    systemPrompt += `\n\n### SZIGORÚ KONTEXTUS (Kizárólag ezen tananyag alapján válaszolj!):\nTananyag:\n${moduleContent.substring(0, 3000)}`;
   }
 
   const messages: any[] = [
@@ -320,11 +322,13 @@ async function generateGeminiChatResponse(
     systemPrompt = customPrompt;
   } else if (customSystemMessage) {
     systemPrompt = customSystemMessage;
-    if (moduleContent) {
-      systemPrompt += `\n\nJelenlegi modul: ${moduleContent.substring(0, 500)}`;
-    }
   } else {
-    systemPrompt = `Te egy professzionális tananyag-fejlesztő AI vagy. A feladatod: a kapott bemeneti szöveget ALAPANYAGKÉNT kezelve készíts belőle részletes, strukturált, oktatási célú tananyagot. NE másold le egyszerűen a szöveget! Bővítsd ki magyarázatokkal, példákkal, és tagold logikusan. ${moduleContent ? `\n\nTananyag: ${moduleContent.substring(0, 400)}` : ''}`;
+    systemPrompt = `Te egy professzionális tananyag-fejlesztő AI vagy. A feladatod: a kapott bemeneti szöveget ALAPANYAGKÉNT kezelve készíts belőle részletes, strukturált, oktatási célú tananyagot. NE másold le egyszerűen a szöveget! Bővítsd ki magyarázatokkal, példákkal, és tagold logikusan.`;
+  }
+
+  // Strict context enforce for Gemini
+  if (moduleContent && moduleContent !== 'basic_ai_only' && moduleContent !== 'chat') {
+    systemPrompt += `\n\n### SZIGORÚ KONTEXTUS (Kizárólag ezen tananyag alapján válaszolj!):\nTananyag:\n${moduleContent.substring(0, 3000)}`;
   }
 
   // Build conversation history for Gemini
@@ -634,11 +638,13 @@ export async function generateSynchronizedStreamingResponse(
       systemPrompt = customPrompt;
     } else if (customSystemMessage) {
       systemPrompt = customSystemMessage;
-      if (moduleContent) {
-        systemPrompt += `\n\nJelenlegi modul: ${moduleContent.substring(0, 500)}`;
-      }
     } else {
-      systemPrompt = `Tapasztalt magyar oktatóként segíts a diákoknak részletesen és érthetően. Adj strukturált, praktikus magyarázatokat példákkal. ${moduleContent ? `\n\nTananyag: ${moduleContent.substring(0, 400)}` : ''}`;
+      systemPrompt = `Tapasztalt magyar oktatóként segíts a diákoknak részletesen és érthetően. Adj strukturált, praktikus magyarázatokat példákkal.`;
+    }
+
+    // Append detailed content constraints
+    if (moduleContent) {
+      systemPrompt += `\n\n### SZIGORÚ KONTEXTUS (Csak ezen téma alapján válaszolj!):\nTananyag:\n${moduleContent.substring(0, 3000)}`;
     }
 
     const messages: any[] = [

@@ -166,7 +166,7 @@ router.post('/message/synchronized-stream', combinedAuth, async (req: any, res) 
     await recordCost('OpenAI', 'Chat', Math.ceil(finalAnswer.length/4) * 0.00015);
 
     // End connection
-    res.write(`data: [DONE]\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
 
   } catch (error) {
