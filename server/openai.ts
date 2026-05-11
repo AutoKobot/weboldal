@@ -995,10 +995,11 @@ A kapott tananyagot BŐVÍTSD KI a saját releváns szakmai tudásoddal (mintha 
 A "narration" mezők (hangos prezentáció szövege) együttes hossza az összes dián összesítve érje el a **700 - 2000 szót**. Ez azért kritikus, hogy az ebből generált hanganyag **legalább 5 perces, de maximum 15 perces** legyen (átlagos beszédsebességgel számolva). Minden dián adj meg kellően részletes, magyarázó és érdekfeszítő "narration" szöveget!
 
 PRÉMIUM VIZUÁLIS SZABÁLYOK:
-1. DESIGN STÍLUS: "Realistic, professional photograph or high-quality 3D cinematic render, clean and modern composition, appropriate for an educational slide".
+1. DESIGN STÍLUS: "Clean, precise technical illustration, engineering drawing style, blueprint or vector-style educational diagram, high-quality, clear lines".
 2. EGY KÉP (SZIGORÚ): Minden diának PONTOSAN 1 képet KELL tartalmaznia a "imagePrompts" listában.
 3. SZÖVEG TILOS: A képeken SEMMILYEN szöveg, felirat vagy írás nem szerepelhet! Az AI ne tegyen semmilyen karaktert a képre.
-4. TÉMAKÖR: A kép a dián szereplő tényleges témáról szóljon (élethűen ábrázolva), de ne legyen túlságosan technikai/részletes - a látvány és a dizájn a fontos.
+4. TÉMAKÖR: A kép a dián szereplő tényleges témáról szóljon. Inkább mérnöki ábra, tervrajz vagy egyértelmű műszaki illusztráció legyen, ami jól elmagyarázza a fogalmat, ne pedig egy sima fotó.
+5. NYELV (KRITIKUS): Az "imagePrompts" tartalmát KIZÁRÓLAG ANGOL NYELVEN (English) írd meg, mert a képgeneráló modell nem ért magyarul!
 
 JSON struktúra:
 {
@@ -1011,7 +1012,7 @@ JSON struktúra:
       "narration": "Hungarian narration.",
       "layout": "split-right-image",
       "imagePrompts": [
-        "Realistic professional photo of [the specific topic], cinematic lighting, no text, clean aesthetic"
+        "Clean technical illustration of [the specific topic], engineering drawing style, clear white background, no text, precise lines"
       ],
       "interactiveType": "quiz",
       "interactiveData": {
@@ -1066,7 +1067,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Realistic professional cinematic 3D render or high-quality photograph, NO TEXT, clean design, highly detailed: ${prompt}. No text on the image, cinematic lighting, professional composition.`,
+        prompt: `Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: ${prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.`,
         n: 1,
         size: "1024x1024",
         quality: "standard",
@@ -1101,7 +1102,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Realistic professional cinematic photo or 3D render, high-quality, NO TEXT, clean modern aesthetic: ${prompt}. Completely text-free, cinematic lighting, realistic style.`,
+          prompt: `Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: ${prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
@@ -1139,7 +1140,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Realistic high-quality photograph or 3D cinematic render, NO TEXT, professional design: ${prompt}. No text, characters or symbols on the image.`,
+          prompt: `Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: ${prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.`,
           model: modelName,
           n: 1,
           size: "1024x1024"
