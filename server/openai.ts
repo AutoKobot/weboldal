@@ -999,7 +999,7 @@ PRÉMIUM VIZUÁLIS SZABÁLYOK:
 2. EGY KÉP (SZIGORÚ): Minden diának PONTOSAN 1 képet KELL tartalmaznia a "imagePrompts" listában.
 3. SZÖVEG TILOS: A képeken SEMMILYEN szöveg, felirat vagy írás nem szerepelhet! Az AI ne tegyen semmilyen karaktert a képre.
 4. TÉMAKÖR: A kép a dián szereplő tényleges témáról szóljon. Inkább mérnöki ábra, tervrajz vagy egyértelmű műszaki illusztráció legyen, ami jól elmagyarázza a fogalmat, ne pedig egy sima fotó.
-5. NYELV (KRITIKUS): Az "imagePrompts" tartalmát KIZÁRÓLAG ANGOL NYELVEN (English) írd meg, mert a képgeneráló modell nem ért magyarul!
+5. NYELV (KRITIKUS): Az "imagePrompts" tartalmát KIZÁRÓLAG ANGOL NYELVEN (English) írd meg, mert a képgeneráló modell nem ért magyarul! Azonban MINDEN MÁS MEZŐ (title, content, narration, interactiveData kérdései és válaszai) KÖTELEZŐEN MAGYAR NYELVEN kell, hogy készüljön!
 
 JSON struktúra:
 {
