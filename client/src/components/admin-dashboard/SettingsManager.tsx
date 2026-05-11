@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   Select, 
   SelectContent, 
@@ -15,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { 
   Settings, Brain, Key, Eye, EyeOff, 
-  Database, CheckCircle, XCircle, AlertTriangle 
+  Database, CheckCircle, XCircle, AlertTriangle, Bot
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DashboardStats, ApiStatus, AISettings } from "./types";
@@ -30,6 +31,22 @@ interface SettingsManagerProps {
 export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvider }: SettingsManagerProps) {
   const { toast } = useToast();
   const [aiProvider, setAiProvider] = useState(currentAiProvider);
+
+  // Global feature toggles
+  const { data: aiChatEnabledData } = useQuery({
+    queryKey: ['/api/settings/ai-chat-enabled'],
+  });
+  const aiChatEnabled = (aiChatEnabledData as any)?.enabled !== false;
+
+  const toggleAiChatMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await apiRequest("POST", "/api/settings/ai-chat-enabled", { enabled });
+    },
+    onSuccess: () => {
+      toast({ title: "Siker", description: "AI Tanár állapota frissítve" });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/ai-chat-enabled"] });
+    }
+  });
   
   // API Keys state
   const [openaiKey, setOpenaiKey] = useState("");
@@ -113,6 +130,36 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
       <h2 className="text-xl font-semibold">Rendszer beállítások</h2>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Feature Toggles */}
+        <Card className="border-orange-200 bg-orange-50/20 md:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-orange-700">
+              <Bot className="h-5 w-5" />
+              Kiemelt Funkciók Kezelése
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 rounded-lg bg-white border border-orange-100 shadow-sm">
+              <div className="space-y-0.5">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  AI Tanár Chat Funkció 
+                  <Badge variant={aiChatEnabled ? "default" : "secondary"} className={aiChatEnabled ? "bg-green-600" : ""}>
+                    {aiChatEnabled ? "AKTÍV" : "KIKAPCSOLVA"}
+                  </Badge>
+                </Label>
+                <p className="text-sm text-muted-foreground max-w-xl">
+                  Engedélyezi a diákok számára az AI Tanárral való beszélgetést és a hangos magyarázatokat a modulok mellett. Kikapcsolás esetén ez a fül nem jelenik meg a diákoknak.
+                </p>
+              </div>
+              <Switch 
+                checked={aiChatEnabled} 
+                onCheckedChange={(checked) => toggleAiChatMutation.mutate(checked)} 
+                className="data-[state=checked]:bg-orange-600"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <Card>
           <CardHeader>

@@ -6,6 +6,7 @@ import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";
+import { generateEdgeSpeech } from "./edge-tts";
 
 export interface QuizEvaluation {
   score: number;
@@ -455,17 +456,6 @@ export async function generateChatResponse(
         message: `Itt vannak a keresési eredmények a következőre: "${userMessage}"\n\n${formattedResults}`,
         suggestions: ["További információk", "Másik keresés", "Kérdések a témáról"]
       };
-    } else if (taskRoute.type === 'youtube') {
-      // Format YouTube results for chat response
-      const videos = taskRoute.data;
-      const formattedVideos = videos.map((video: any) =>
-        `**${video.snippet.title}**\n${video.snippet.description.substring(0, 200)}...\nYouTube link: https://youtube.com/watch?v=${video.id.videoId}`
-      ).join('\n\n');
-
-      return {
-        message: `YouTube videók a következő témában: "${userMessage}"\n\n${formattedVideos}`,
-        suggestions: ["Videó megtekintése", "További videók", "Kapcsolódó témák"]
-      };
     }
 
     if (provider === 'gemini') {
@@ -553,6 +543,20 @@ Provide a concise but comprehensive explanation with examples where helpful.`;
 
 export async function generateSpeech(text: string): Promise<Buffer> {
   try {
+    // Először megpróbáljuk a kiváló minőségű, ingyenes Microsoft Edge Neural TTS-t
+    try {
+      // Tisztítsuk meg a szöveget a biztonság kedvéért a markdown elemektől a beszédszintetizátor számára
+      const cleanText = text.replace(/\*\*/g, '').replace(/#/g, '');
+      
+      // Az Edge TTS simán kezel nagyobb blokkokat is
+      console.log(`[SPEECH] Attempting free Edge TTS for ${cleanText.length} chars...`);
+      return await generateEdgeSpeech(cleanText, 'hu-HU-NoemiNeural');
+    } catch (edgeError) {
+      console.error("[SPEECH] Edge TTS fallback alert:", edgeError);
+      // Ha valamiért hiba történt az Edge websockettel, továbblépünk az OpenAI tartalékra
+    }
+
+    // TARTALÉK (FALLBACK): Ha a Microsoft Edge nem elérhető, az OpenAI fizetős API-jával oldjuk meg a generálást.
     const openai = await getOpenAIClient();
     
     // Chunk text if it exceeds API limits (4096 characters for OpenAI TTS)
@@ -561,7 +565,7 @@ export async function generateSpeech(text: string): Promise<Buffer> {
     if (text.length <= MAX_CHUNK_LENGTH) {
       const mp3 = await openai.audio.speech.create({
         model: "tts-1",
-        voice: "shimmer",
+        voice: "nova",
         input: text,
         speed: 1.0, 
         response_format: "mp3",
@@ -592,7 +596,7 @@ export async function generateSpeech(text: string): Promise<Buffer> {
       if (!chunk) continue;
       const mp3Chunk = await openai.audio.speech.create({
         model: "tts-1",
-        voice: "shimmer",
+        voice: "nova",
         input: chunk,
         speed: 1.0, 
         response_format: "mp3",
@@ -603,7 +607,7 @@ export async function generateSpeech(text: string): Promise<Buffer> {
     // MP3 files can be concatenated safely
     return Buffer.concat(buffers);
   } catch (error) {
-    console.error("OpenAI TTS API error:", error);
+    console.error("All TTS providers failed:", error);
     throw new Error("Failed to generate speech");
   }
 }
@@ -696,14 +700,8 @@ export async function generateSynchronizedStreamingResponse(
             // CRITICAL FIX: Track audio generation promises to wait for completion
             const audioPromise = (async () => {
               try {
-                const audioResponse = await openai.audio.speech.create({
-                  model: "tts-1",
-                  voice: "nova",
-                  input: textForAudio,
-                  response_format: "mp3",
-                });
-
-                const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+                // Szupergyors, ingyenes Edge TTS használata OpenAI API helyett a chat során is!
+                const audioBuffer = await generateEdgeSpeech(textForAudio, 'hu-HU-NoemiNeural');
                 onAudioChunk(audioBuffer, timestamp, textForAudio);
               } catch (audioError) {
                 console.error('Error generating audio chunk:', audioError);
@@ -726,14 +724,8 @@ export async function generateSynchronizedStreamingResponse(
       // Track final audio generation promise
       const finalAudioPromise = (async () => {
         try {
-          const audioResponse = await openai.audio.speech.create({
-            model: "tts-1",
-            voice: "nova",
-            input: finalText,
-            response_format: "mp3",
-          });
-
-          const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+          // Utolsó szövegtömb konvertálása Edge TTS segítségével
+          const audioBuffer = await generateEdgeSpeech(finalText, 'hu-HU-NoemiNeural');
           onAudioChunk(audioBuffer, finalTimestamp, finalText);
         } catch (audioError) {
           console.error('Error generating final audio chunk:', audioError);

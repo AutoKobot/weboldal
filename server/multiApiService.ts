@@ -185,10 +185,9 @@ export class MultiApiService {
   }> {
     try {
       // Parallel search for internet and YouTube content
-      const [searchResults, youtubeResults] = await Promise.all([
-        this.searchInternet(query).catch(() => []),
-        this.searchYoutube(query).catch(() => [])
-      ]);
+      // Parallel search for internet content (YouTube disabled per user request)
+      const searchResults = await this.searchInternet(query).catch(() => []);
+      const youtubeResults: any[] = [];
 
       // Format search results for GPT
       const searchContext = searchResults.map((result: any) => 
@@ -223,9 +222,11 @@ export class MultiApiService {
       return await this.handleSearchTask(userMessage);
     }
     
+    /* DEPRECATED: YouTube search disabled per user request
     if (message.includes('youtube') || message.includes('videó')) {
       return await this.handleYoutubeTask(userMessage);
     }
+    */
     
     if (message.includes('hang') || message.includes('beszéd') || message.includes('felolvas')) {
       return await this.handleSpeechTask(userMessage);
