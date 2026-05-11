@@ -45,6 +45,23 @@ interface OnboardingWizardProps {
   userName?: string;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
+const cardHover = {
+  hover: { scale: 1.03, y: -5, transition: { type: "spring", stiffness: 400, damping: 10 } }
+};
+
 export default function OnboardingWizard({ 
   isOpen, 
   onClose, 
@@ -58,443 +75,349 @@ export default function OnboardingWizard({
     {
       id: 'welcome',
       title: `Üdvözöllek, ${userName}!`,
-      description: 'Készen állsz egy izgalmas tanulási kalandra?',
-      icon: <Sparkles className="h-8 w-8 text-yellow-500" />,
+      description: 'Készen állsz egy lenyűgöző tanulási kalandra?',
+      icon: <Sparkles className="h-8 w-8 text-yellow-300 drop-shadow-md" />,
       content: (
-        <div className="text-center space-y-4">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-24 h-24 mx-auto flex items-center justify-center">
-            <User className="h-12 w-12 text-white" />
-          </div>
-          <p className="text-lg text-neutral-600">
-            Ez a Global Learning System, egy AI-alapú oktatási platform, amely személyre szabott tanulási élményt nyújt.
-          </p>
-          <p className="text-sm text-neutral-500">
-            A következő percekben megmutatjuk, hogyan használhatod a platform összes funkcióját.
-          </p>
-        </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="text-center space-y-6 py-6">
+          <motion.div variants={itemVariants} className="relative mx-auto w-32 h-32">
+            <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full blur-2xl opacity-60 animate-pulse"></div>
+            <div className="relative bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full w-full h-full mx-auto flex items-center justify-center shadow-2xl border-4 border-white/50 backdrop-blur-sm">
+              <User className="h-16 w-16 text-white drop-shadow-lg" />
+            </div>
+          </motion.div>
+          <motion.div variants={itemVariants} className="space-y-2">
+            <h3 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+              Global Learning System
+            </h3>
+            <p className="text-lg text-neutral-600 font-medium">
+              Egy új generációs, AI-vezérelt oktatási platform.
+            </p>
+          </motion.div>
+          <motion.p variants={itemVariants} className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+            Hagyd, hogy végigvezessünk a rendszer prémium funkcióin, melyek teljesen új szintre emelik a tanulás élményét!
+          </motion.p>
+        </motion.div>
       )
     },
     {
       id: 'structure',
       title: 'Tananyag felépítése',
       description: 'Ismerd meg a hierarchikus tanulási rendszert',
-      icon: <BookOpen className="h-8 w-8 text-blue-500" />,
+      icon: <BookOpen className="h-8 w-8 text-blue-200" />,
       content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-2 border-blue-200 bg-blue-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <div className="w-6 h-6 bg-blue-500 rounded text-white flex items-center justify-center text-xs">1</div>
-                  Szakmacsoport
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-neutral-600">Pl. Hegesztő, Lakatos</p>
-              </CardContent>
-            </Card>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 py-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <motion.div variants={itemVariants} whileHover="hover" custom={1}>
+              <Card className="h-full border-0 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-lg shadow-blue-500/10 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-3 text-blue-900">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg shadow-md text-white flex items-center justify-center text-sm font-bold">1</div>
+                    Szakma
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-blue-700/80 font-medium">Pl. Hegesztő, Lakatos</p>
+                </CardContent>
+              </Card>
+            </motion.div>
             
-            <Card className="border-2 border-green-200 bg-green-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green-500 rounded text-white flex items-center justify-center text-xs">2</div>
-                  Tantárgy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-neutral-600">Pl. Anyagismeret, Lecsó készítés</p>
-              </CardContent>
-            </Card>
+            <motion.div variants={itemVariants} whileHover="hover" custom={2}>
+              <Card className="h-full border-0 bg-gradient-to-br from-teal-50 to-teal-100/50 shadow-lg shadow-teal-500/10 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-teal-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-3 text-teal-900">
+                    <div className="w-8 h-8 bg-teal-500 rounded-lg shadow-md text-white flex items-center justify-center text-sm font-bold">2</div>
+                    Tantárgy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-teal-700/80 font-medium">Pl. Anyagismeret, Hegesztés</p>
+                </CardContent>
+              </Card>
+            </motion.div>
             
-            <Card className="border-2 border-purple-200 bg-purple-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <div className="w-6 h-6 bg-purple-500 rounded text-white flex items-center justify-center text-xs">3</div>
-                  Modul
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-neutral-600">Konkrét leckék és gyakorlatok</p>
-              </CardContent>
-            </Card>
+            <motion.div variants={itemVariants} whileHover="hover" custom={3}>
+              <Card className="h-full border-0 bg-gradient-to-br from-purple-50 to-purple-100/50 shadow-lg shadow-purple-500/10 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-3 text-purple-900">
+                    <div className="w-8 h-8 bg-purple-600 rounded-lg shadow-md text-white flex items-center justify-center text-sm font-bold">3</div>
+                    Modul
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-purple-700/80 font-medium">Konkrét leckék és gyakorlatok</p>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
           
-          <div className="bg-neutral-50 p-4 rounded-lg">
-            <p className="text-sm text-neutral-600 text-center">
-              <span className="font-medium">Szakmacsoport</span> → <span className="font-medium">Tantárgy</span> → <span className="font-medium">Modul</span>
+          <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-md p-5 rounded-xl border border-neutral-200/50 shadow-sm">
+            <p className="text-sm text-neutral-700 text-center flex items-center justify-center gap-3">
+              <span className="font-bold text-blue-600 px-3 py-1 bg-blue-50 rounded-full">Szakmacsoport</span> 
+              <ChevronRight className="w-4 h-4 text-neutral-400" />
+              <span className="font-bold text-teal-600 px-3 py-1 bg-teal-50 rounded-full">Tantárgy</span> 
+              <ChevronRight className="w-4 h-4 text-neutral-400" />
+              <span className="font-bold text-purple-600 px-3 py-1 bg-purple-50 rounded-full">Modul</span>
             </p>
-            <p className="text-xs text-neutral-500 text-center mt-2">
-              Minden szakmához tartoznak tantárgyak, minden tantárgyhoz modulok
+            <p className="text-xs text-neutral-500 text-center mt-3 font-medium">
+              Minden szakmához tartoznak tantárgyak, minden tantárgyhoz modulok.
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )
     },
     {
       id: 'ai-teacher',
       title: 'AI Tanár funkcionalitás',
-      description: 'Fedezd fel az intelligens asszisztenst',
-      icon: <MessageCircle className="h-8 w-8 text-green-500" />,
+      description: 'Fedezd fel az intelligens személyes asszisztenst',
+      icon: <MessageCircle className="h-8 w-8 text-green-200" />,
       content: (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-green-100 to-blue-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-2">Mit tud az AI Tanár?</h4>
-            <ul className="space-y-2 text-sm text-neutral-600">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Válaszol kérdéseidre a tananyaggal kapcsolatban
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Részletes magyarázatokat ad
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Gyakorlati példákkal segít
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Személyre szabja a válaszokat
-              </li>
-            </ul>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button variant="outline" className="h-auto p-3 flex flex-col items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-blue-500" />
-              <span className="text-xs">Szöveges chat</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-3 flex flex-col items-center gap-2">
-              <Volume2 className="h-5 w-5 text-purple-500" />
-              <span className="text-xs">Hangos magyarázat</span>
-            </Button>
-            <Button variant="outline" className="h-auto p-3 flex flex-col items-center gap-2">
-              <Brain className="h-5 w-5 text-orange-500" />
-              <span className="text-xs">Tudáspróba</span>
-            </Button>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'voice-features',
-      title: 'Hangos funkciók',
-      description: 'Modern hang streaming technológia',
-      icon: <Volume2 className="h-8 w-8 text-purple-500" />,
-      content: (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-3">Innovatív hangos élmény</h4>
-            
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Badge variant="outline" className="bg-purple-50">1</Badge>
-                <div>
-                  <p className="font-medium text-sm">Valós idejű hang streaming</p>
-                  <p className="text-xs text-neutral-600">A szöveg és hang szinkronban érkezik</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Badge variant="outline" className="bg-purple-50">2</Badge>
-                <div>
-                  <p className="font-medium text-sm">Szinkronizált lejátszás</p>
-                  <p className="text-xs text-neutral-600">Időbélyeg alapú koordináció</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Badge variant="outline" className="bg-purple-50">3</Badge>
-                <div>
-                  <p className="font-medium text-sm">Magyar nyelv optimalizálás</p>
-                  <p className="text-xs text-neutral-600">Természetes kiejtés és hangsúly</p>
-                </div>
-              </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+          <motion.div variants={itemVariants} className="bg-gradient-to-br from-green-50 to-emerald-100 p-6 rounded-2xl border border-green-200/50 shadow-md relative overflow-hidden">
+            <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
+              <Brain className="w-48 h-48 -mt-10 -mr-10 text-green-900" />
             </div>
-          </div>
-          
-          <div className="bg-neutral-50 p-3 rounded-lg border-l-4 border-purple-500">
-            <p className="text-sm text-neutral-600">
-              <span className="font-medium">Tipp:</span> A hangos magyarázat gombbal kérhetsz audio magyarázatot bármikor!
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'profession-selection',
-      title: 'Szakmaválasztás',
-      description: 'Válaszd ki a tanulni kívánt szakmát',
-      icon: <GraduationCap className="h-8 w-8 text-indigo-500" />,
-      content: (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-2">Szakmaválasztás lépései:</h4>
-            <div className="space-y-3 text-sm text-neutral-600">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-indigo-500 rounded-full text-white flex items-center justify-center text-xs font-medium">1</div>
-                <div>
-                  <p className="font-medium">Böngéssz a szakmák között</p>
-                  <p className="text-xs text-neutral-500">Hegesztő, Lakatos, Ács, stb.</p>
+            <h4 className="font-bold text-green-900 mb-4 flex items-center gap-2 text-lg">
+              <Sparkles className="w-5 h-5 text-green-600" /> Mit tud az AI Tanár?
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+              {[
+                "Azonnal válaszol kérdéseidre",
+                "Részletes magyarázatokat ad",
+                "Gyakorlati példákkal segít",
+                "Személyre szabja a válaszokat"
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-3 bg-white/60 backdrop-blur-sm p-3 rounded-xl">
+                  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-md">
+                    <CheckCircle className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-green-900">{text}</span>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-green-500 rounded-full text-white flex items-center justify-center text-xs font-medium">2</div>
-                <div>
-                  <p className="font-medium">Válassz szakmát</p>
-                  <p className="text-xs text-neutral-500">Ez határozza meg az elérhető tantárgyakat</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-purple-500 rounded-full text-white flex items-center justify-center text-xs font-medium">3</div>
-                <div>
-                  <p className="font-medium">Kezdd el a tanulást</p>
-                  <p className="text-xs text-neutral-500">A modulok sorban nyílnak meg</p>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          </motion.div>
           
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <Target className="h-4 w-4 inline mr-1" />
-              <strong>Fontos:</strong> A szakmaválasztás után csak az ahhoz tartozó tantárgyak és modulok lesznek elérhetők.
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { icon: MessageCircle, color: "blue", label: "Szöveges chat" },
+              { icon: Volume2, color: "purple", label: "Hangos magyarázat" },
+              { icon: Brain, color: "orange", label: "Tudáspróba" }
+            ].map((btn, i) => (
+              <motion.div key={i} variants={itemVariants} whileHover="hover">
+                <Button variant="outline" className="h-full w-full py-4 flex flex-col items-center gap-3 bg-white hover:bg-neutral-50 shadow-sm border-neutral-200/60 rounded-xl transition-all">
+                  <div className={`p-3 rounded-full bg-${btn.color}-50 text-${btn.color}-600`}>
+                    <btn.icon className="h-6 w-6" />
+                  </div>
+                  <span className="text-sm font-semibold text-neutral-700">{btn.label}</span>
+                </Button>
+              </motion.div>
+            ))}
           </div>
-        </div>
-      )
-    },
-    {
-      id: 'progressive-unlock',
-      title: 'Progresszív feloldás',
-      description: 'Hogyan nyílnak meg az új modulok',
-      icon: <Lock className="h-8 w-8 text-orange-500" />,
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-2 border-orange-200 bg-orange-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-orange-500" />
-                  Zárolt modulok
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-neutral-600">Még nem elérhetők, előbb teljesítened kell az előző modulokat</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-2 border-green-200 bg-green-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Unlock className="h-4 w-4 text-green-500" />
-                  Feloldott modulok
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-neutral-600">Elérhetők tanulásra, még nem teljesítettek</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-100 to-green-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-2">Működés:</h4>
-            <ul className="space-y-2 text-sm text-neutral-600">
-              <li className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded-full text-white flex items-center justify-center text-xs">1</div>
-                Az első modul mindig elérhető
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-orange-500 rounded-full text-white flex items-center justify-center text-xs">2</div>
-                Teljesítsd a tudáspróbát legalább 45% (2-es) eredménnyel
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 rounded-full text-white flex items-center justify-center text-xs">3</div>
-                A következő modul automatikusan feloldódik
-              </li>
-            </ul>
-          </div>
-          
-          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <Trophy className="h-4 w-4 inline mr-1" />
-              <strong>Teljesítési küszöb:</strong> A sikeres átmenetel határa 45%, ezzel automatikusan megnyílik a következő modul.
-            </p>
-          </div>
-        </div>
+        </motion.div>
       )
     },
     {
       id: 'living-mind-map',
       title: 'Élő Elmetérkép és Prezentációk',
       description: 'Fedezd fel a forradalmi vizuális tanulást',
-      icon: <Brain className="h-8 w-8 text-pink-500" />,
+      icon: <Brain className="h-8 w-8 text-pink-300" />,
       content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-pink-50 border-2 border-pink-200 p-3 rounded-lg text-center">
-              <Image className="h-6 w-6 text-pink-500 mx-auto mb-1" />
-              <p className="text-xs font-medium text-pink-700">Prezentációk</p>
-              <p className="text-xs text-pink-600">AI Képek és Tesztek</p>
-            </div>
-            <div className="bg-cyan-50 border-2 border-cyan-200 p-3 rounded-lg text-center">
-              <Sparkles className="h-6 w-6 text-cyan-500 mx-auto mb-1" />
-              <p className="text-xs font-medium text-cyan-700">Elmetérkép</p>
-              <p className="text-xs text-cyan-600">Animált fastruktúra</p>
-            </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <motion.div variants={itemVariants} whileHover="hover">
+              <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200/50 p-5 rounded-2xl text-center shadow-lg shadow-pink-500/10 h-full">
+                <div className="w-12 h-12 mx-auto bg-pink-500 rounded-2xl rotate-3 shadow-md flex items-center justify-center mb-3">
+                  <Image className="h-6 w-6 text-white -rotate-3" />
+                </div>
+                <p className="text-sm font-bold text-pink-900">Prezentációk</p>
+                <p className="text-xs text-pink-700 mt-1 font-medium">Profi AI képek és interaktív tesztek</p>
+              </div>
+            </motion.div>
+            <motion.div variants={itemVariants} whileHover="hover">
+              <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200/50 p-5 rounded-2xl text-center shadow-lg shadow-cyan-500/10 h-full">
+                <div className="w-12 h-12 mx-auto bg-cyan-500 rounded-2xl -rotate-3 shadow-md flex items-center justify-center mb-3">
+                  <Sparkles className="h-6 w-6 text-white rotate-3" />
+                </div>
+                <p className="text-sm font-bold text-cyan-900">Élő Elmetérkép</p>
+                <p className="text-xs text-cyan-700 mt-1 font-medium">Lüktető animált fastruktúra</p>
+              </div>
+            </motion.div>
           </div>
           
-          <div className="bg-gradient-to-r from-pink-100 to-cyan-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-2">Hogyan működik a Living Mind Map?</h4>
-            <ul className="space-y-2 text-sm text-neutral-600">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-pink-500" />
-                Az AI logikai fastruktúrába szervezi a tananyagot
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-pink-500" />
-                Lüktető, neonos animált vonalak kötik össze a fogalmakat
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-cyan-500" />
-                "Cinematic" kameramozgás rázoomol az éppen felolvasott részre
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-cyan-500" />
-                Minden csomóponthoz egyedi magyarázó narráció tartozik
-              </li>
+          <motion.div variants={itemVariants} className="bg-gradient-to-r from-neutral-900 to-neutral-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/20 blur-3xl rounded-full"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/20 blur-3xl rounded-full"></div>
+            <h4 className="font-bold text-white mb-4 relative z-10">Működés közben:</h4>
+            <ul className="space-y-3 text-sm text-neutral-300 relative z-10">
+              {[
+                "Az AI logikai fastruktúrába szervezi a tananyagot",
+                "Neonos animált vonalak kötik össze a fogalmakat",
+                "\"Cinematic\" kameramozgás rázoomol a felolvasott részre",
+                "Minden csomóponthoz magyarázó narráció tartozik"
+              ].map((text, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${i % 2 === 0 ? 'bg-pink-500 shadow-[0_0_10px_#ec4899]' : 'bg-cyan-500 shadow-[0_0_10px_#06b6d4]'}`}></div>
+                  <span className="font-medium">{text}</span>
+                </li>
+              ))}
             </ul>
-          </div>
-          
-          <div className="bg-pink-50 border border-pink-200 p-3 rounded-lg">
-            <p className="text-sm text-pink-800">
-              <Play className="h-4 w-4 inline mr-1" />
-              <strong>Újdonság:</strong> Próbáld ki a reszponzív interaktív prezentációkat és az Élő Elmetérkép lejátszót minden tananyaghoz!
-            </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )
     },
     {
-      id: 'admin-features',
-      title: 'Adminisztrációs funkciók',
-      description: 'Rendszerbeállítások és felhasználó kezelés',
-      icon: <Settings className="h-8 w-8 text-gray-500" />,
+      id: 'profession-selection',
+      title: 'Szakmaválasztás',
+      description: 'Irányítsd te a jövődet',
+      icon: <GraduationCap className="h-8 w-8 text-indigo-300" />,
       content: (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-gray-100 to-blue-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-2">Admin funkciók:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h5 className="font-medium text-sm mb-2">Felhasználó kezelés</h5>
-                <ul className="space-y-1 text-xs text-neutral-600">
-                  <li>• Felhasználók listázása</li>
-                  <li>• Szerepkörök módosítása</li>
-                  <li>• Felhasználók törlése</li>
-                  <li>• Szakma hozzárendelés</li>
-                </ul>
-              </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+          <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-violet-100 p-6 rounded-2xl shadow-lg shadow-indigo-500/10 border border-indigo-200/50">
+            <h4 className="font-bold text-indigo-900 mb-4 text-lg">A tanulás lépései:</h4>
+            <div className="space-y-4 text-sm relative">
+              <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-indigo-200/50"></div>
               
-              <div>
-                <h5 className="font-medium text-sm mb-2">Tartalom kezelés</h5>
-                <ul className="space-y-1 text-xs text-neutral-600">
-                  <li>• Modulok szerkesztése</li>
-                  <li>• Tantárgyak kezelése</li>
-                  <li>• Szakmák adminisztrációja</li>
-                  <li>• AI beállítások</li>
-                </ul>
-              </div>
+              {[
+                { title: "Böngéssz a szakmák között", desc: "Találd meg a neked valót (pl. Hegesztő, Lakatos)", color: "indigo" },
+                { title: "Válassz szakmát", desc: "Ez határozza meg az elérhető tantárgyakat", color: "purple" },
+                { title: "Kezdd el a tanulást", desc: "A modulok izgalmas sorrendben nyílnak meg", color: "pink" }
+              ].map((step, i) => (
+                <motion.div key={i} whileHover={{ x: 5 }} className="flex items-start gap-4 relative z-10">
+                  <div className={`w-8 h-8 rounded-xl bg-${step.color}-500 shadow-lg shadow-${step.color}-500/30 text-white flex items-center justify-center text-sm font-bold shrink-0 mt-0.5`}>
+                    {i + 1}
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm p-3 rounded-xl flex-1 border border-white">
+                    <p className={`font-bold text-${step.color}-900`}>{step.title}</p>
+                    <p className={`text-xs text-${step.color}-700/80 font-medium mt-1`}>{step.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
+          </motion.div>
+          
+          <motion.div variants={itemVariants} className="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 flex items-start gap-3">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+              <Target className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-neutral-800">Fókuszált haladás</p>
+              <p className="text-xs text-neutral-500 font-medium mt-1">A szakmaválasztás után csak az ahhoz tartozó, releváns tantárgyak és modulok lesznek láthatók.</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )
+    },
+    {
+      id: 'progressive-unlock',
+      title: 'Progresszív feloldás',
+      description: 'Játékos és logikus előrehaladás',
+      icon: <Lock className="h-8 w-8 text-orange-200" />,
+      content: (
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <motion.div variants={itemVariants} whileHover="hover">
+              <div className="h-full bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200/50 p-5 rounded-2xl shadow-lg shadow-orange-500/5 relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                <div className="flex items-center gap-3 mb-3 relative z-10">
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-xl shadow-inner">
+                    <Lock className="h-5 w-5" />
+                  </div>
+                  <h4 className="font-bold text-orange-900">Zárolt modulok</h4>
+                </div>
+                <p className="text-sm text-orange-800/80 font-medium relative z-10">Még rejtve vannak, amíg az előző kihívásokat nem teljesíted.</p>
+              </div>
+            </motion.div>
+            
+            <motion.div variants={itemVariants} whileHover="hover">
+              <div className="h-full bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50 p-5 rounded-2xl shadow-lg shadow-green-500/5 relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                <div className="flex items-center gap-3 mb-3 relative z-10">
+                  <div className="p-2 bg-green-100 text-green-600 rounded-xl shadow-inner">
+                    <Unlock className="h-5 w-5" />
+                  </div>
+                  <h4 className="font-bold text-green-900">Feloldott modulok</h4>
+                </div>
+                <p className="text-sm text-green-800/80 font-medium relative z-10">Szabadon tanulhatók, a tudás csak rád vár.</p>
+              </div>
+            </motion.div>
           </div>
           
-          <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
-            <p className="text-sm text-green-800">
-              <Settings className="h-4 w-4 inline mr-1" />
-              <strong>Admin hozzáférés:</strong> Csak admin jogosultsággal rendelkező felhasználók férhetnek hozzá ezekhez a funkciókhoz.
-            </p>
-          </div>
-        </div>
+          <motion.div variants={itemVariants} className="bg-neutral-900 p-6 rounded-2xl shadow-xl text-white">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center justify-center shrink-0">
+                <Trophy className="h-8 w-8 text-white drop-shadow-md" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg mb-1 text-yellow-400">45% – A bűvös határ</h4>
+                <p className="text-sm text-neutral-300 leading-relaxed">
+                  Teljesítsd a tudáspróbát <strong className="text-white">legalább 45%-os (elégséges)</strong> eredménnyel, és azonnal, automatikusan feloldódik a következő kaland!
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
       )
     },
     {
       id: 'quiz-system',
-      title: 'Intelligens tudáspróba',
-      description: 'AI-generált kérdések és értékelés',
-      icon: <Brain className="h-8 w-8 text-orange-500" />,
+      title: 'Intelligens Tudáspróba',
+      description: 'Nem csak teszt, igazi tanulás',
+      icon: <Brain className="h-8 w-8 text-orange-200" />,
       content: (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-orange-100 to-yellow-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-3">Automatikus tudásfelmérés</h4>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+          <motion.div variants={itemVariants} className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-2xl border border-orange-200/50 shadow-lg shadow-orange-500/10">
+            <h4 className="font-bold text-orange-900 mb-5 text-lg">Hogyan működik?</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h5 className="font-medium text-sm mb-2">Hogyan működik?</h5>
-                <ul className="space-y-1 text-xs text-neutral-600">
-                  <li>• AI generálja a kérdéseket</li>
-                  <li>• Modul tartalomhoz igazított</li>
-                  <li>• Azonnali visszajelzés</li>
-                  <li>• Részletes magyarázatok</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h5 className="font-medium text-sm mb-2">Automatikus értékelés</h5>
-                <ul className="space-y-1 text-xs text-neutral-600">
-                  <li>• 45% (Elégséges) küszöbérték</li>
-                  <li>• Automatikus modul feloldás</li>
-                  <li>• 30 kérdéses dinamikus pool</li>
-                  <li>• Fisher-Yates pártatlan keverés</li>
-                </ul>
-              </div>
+              {[
+                { icon: Brain, title: "30-as Medence", desc: "Egy 30 kérdéses dinamikus poolból válogat." },
+                { icon: Sparkles, title: "Fisher-Yates", desc: "Matematikailag tökéletes, pártatlan keverés minden alkalommal." },
+                { icon: Target, title: "Azonnali Értékelés", desc: "Minden válaszhoz részletes AI magyarázat jár." },
+                { icon: Trophy, title: "45% Küszöb", desc: "Elégséges (2-es) eredménnyel már feloldod a folytatást." }
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3 bg-white/70 backdrop-blur-sm p-3 rounded-xl border border-white">
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-lg shrink-0">
+                    <item.icon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-orange-900 text-sm">{item.title}</h5>
+                    <p className="text-xs text-orange-800/70 font-medium mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-          
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <Brain className="h-4 w-4 inline mr-1" />
-              <strong>Újdonság:</strong> A tudáspróba most nagyobb felugró ablakban jelenik meg a jobb felhasználói élmény érdekében.
-            </p>
-          </div>
-          
-          <div className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-500">
-            <p className="text-sm text-neutral-600">
-              <span className="font-medium">45% teljesítés (Elégséges)</span> esetén a modul sikeresnek minősül és feloldja a következőt!
-            </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )
     },
     {
       id: 'getting-started',
-      title: 'Kezdjük el!',
-      description: 'Most már készen állsz a tanulásra',
-      icon: <CheckCircle className="h-8 w-8 text-green-500" />,
+      title: 'Induljon a kaland!',
+      description: 'A tudás csak egy karnyújtásnyira van.',
+      icon: <CheckCircle className="h-8 w-8 text-green-200" />,
       content: (
-        <div className="text-center space-y-4">
-          <div className="bg-gradient-to-r from-green-100 to-blue-100 p-6 rounded-lg">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h4 className="text-lg font-medium text-neutral-800 mb-2">
-              Szuper! Most már minden tudod! 🎉
-            </h4>
-            <p className="text-sm text-neutral-600 mb-4">
-              Készen állsz, hogy elkezdd a tanulást a Global Learning System-mel.
-            </p>
-          </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="text-center space-y-6 py-4">
+          <motion.div variants={itemVariants} className="relative mx-auto w-40 h-40">
+            <div className="absolute inset-0 bg-gradient-to-tr from-green-400 to-emerald-600 rounded-full blur-2xl opacity-40 animate-pulse"></div>
+            <div className="relative bg-gradient-to-tr from-green-500 to-emerald-600 rounded-full w-full h-full mx-auto flex items-center justify-center shadow-2xl border-4 border-white/50 backdrop-blur-sm">
+              <CheckCircle className="h-20 w-20 text-white drop-shadow-lg" />
+            </div>
+          </motion.div>
           
-          <div className="bg-neutral-50 p-4 rounded-lg">
-            <h5 className="font-medium text-sm mb-2">Következő lépések:</h5>
-            <ol className="text-xs text-neutral-600 space-y-1 text-left">
-              <li>1. Válassz egy szakmacsoportot</li>
-              <li>2. Böngészd a tantárgyakat</li>
-              <li>3. Kezdj egy modullal</li>
-              <li>4. Használd az AI Tanárt segítséghez</li>
-              <li>5. Teszteld tudásod a tudáspróbával</li>
-            </ol>
-          </div>
-        </div>
+          <motion.div variants={itemVariants} className="space-y-2">
+            <h4 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600">
+              Szuper! Most már mindent tudsz! 🎉
+            </h4>
+            <p className="text-lg text-neutral-600 font-medium">
+              Vágj bele életed legjobb tanulási élményébe.
+            </p>
+          </motion.div>
+        </motion.div>
       ),
       action: {
-        text: 'Kezdjük a tanulást!',
+        text: 'Kezdjük a tanulást! 🚀',
         onClick: () => onComplete()
       }
     }
@@ -522,75 +445,82 @@ export default function OnboardingWizard({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="bg-white/95 backdrop-blur-xl border border-white/40 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.15)] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {steps[currentStep].icon}
+        {/* Modern Glassmorphic Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-7 relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md shadow-inner border border-white/10">
+                {steps[currentStep].icon}
+              </div>
               <div>
-                <h2 className="text-xl font-bold">{steps[currentStep].title}</h2>
-                <p className="text-blue-100 text-sm">{steps[currentStep].description}</p>
+                <h2 className="text-2xl font-extrabold tracking-tight drop-shadow-md">{steps[currentStep].title}</h2>
+                <p className="text-blue-100/90 font-medium">{steps[currentStep].description}</p>
               </div>
             </div>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={onClose}
-              className="text-white hover:bg-white/20"
+              className="text-white hover:bg-white/20 rounded-full w-10 h-10 transition-all hover:rotate-90"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </Button>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
+          <div className="space-y-3 relative z-10">
+            <div className="flex items-center justify-between text-xs font-bold tracking-wider uppercase text-blue-100">
               <span>Lépés {currentStep + 1} / {steps.length}</span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="bg-white/20" />
+            <Progress value={progress} className="h-2 bg-black/20 overflow-hidden [&>div]:bg-white" />
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-96">
+        {/* Dynamic Animated Content */}
+        <div className="p-8 overflow-y-auto flex-1 min-h-[350px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, x: 30, filter: "blur(4px)" }}
+              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, x: -30, filter: "blur(4px)" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="h-full flex flex-col justify-center"
             >
               {steps[currentStep].content}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Footer */}
-        <div className="bg-neutral-50 p-6 flex items-center justify-between">
+        {/* Polished Footer */}
+        <div className="bg-neutral-50/80 backdrop-blur-md p-6 flex items-center justify-between border-t border-neutral-200/50 shrink-0">
           <Button
             variant="ghost"
             onClick={skipTutorial}
-            className="text-neutral-600"
+            className="text-neutral-500 font-semibold hover:text-neutral-800 hover:bg-neutral-200/50 rounded-xl"
           >
             Átugrás
           </Button>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {currentStep > 0 && (
               <Button
                 variant="outline"
                 onClick={prevStep}
-                className="flex items-center gap-2"
+                className="rounded-xl border-neutral-300 font-semibold hover:bg-neutral-100 transition-all"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 mr-1" />
                 Vissza
               </Button>
             )}
@@ -598,16 +528,16 @@ export default function OnboardingWizard({
             {currentStep < steps.length - 1 ? (
               <Button
                 onClick={nextStep}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600"
+                className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-105"
               >
                 Tovább
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
               steps[currentStep].action && (
                 <Button
                   onClick={steps[currentStep].action!.onClick}
-                  className="bg-gradient-to-r from-green-600 to-blue-600"
+                  className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold shadow-lg shadow-green-500/30 transition-all hover:scale-105 px-6"
                 >
                   {steps[currentStep].action!.text}
                 </Button>
