@@ -306,7 +306,7 @@ export default function OnboardingWizard({
               </li>
               <li className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-orange-500 rounded-full text-white flex items-center justify-center text-xs">2</div>
-                Teljesítsd a tudáspróbát 88% felett
+                Teljesítsd a tudáspróbát legalább 45% (2-es) eredménnyel
               </li>
               <li className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-green-500 rounded-full text-white flex items-center justify-center text-xs">3</div>
@@ -318,68 +318,58 @@ export default function OnboardingWizard({
           <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
             <p className="text-sm text-yellow-800">
               <Trophy className="h-4 w-4 inline mr-1" />
-              <strong>Teljesítési küszöb:</strong> 88% vagy magasabb eredmény szükséges a modul elvégzéséhez.
+              <strong>Teljesítési küszöb:</strong> A sikeres átmenetel határa 45%, ezzel automatikusan megnyílik a következő modul.
             </p>
           </div>
         </div>
       )
     },
     {
-      id: 'multimedia-content',
-      title: 'Multimédia tartalmak',
-      description: 'Videók, képek és hanganyagok elérése',
-      icon: <Play className="h-8 w-8 text-red-500" />,
+      id: 'living-mind-map',
+      title: 'Élő Elmetérkép és Prezentációk',
+      description: 'Fedezd fel a forradalmi vizuális tanulást',
+      icon: <Brain className="h-8 w-8 text-pink-500" />,
       content: (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-blue-50 border-2 border-blue-200 p-3 rounded-lg text-center">
-              <Image className="h-6 w-6 text-blue-500 mx-auto mb-1" />
-              <p className="text-xs font-medium text-blue-700">Képek</p>
-              <p className="text-xs text-blue-600">🖼️</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-pink-50 border-2 border-pink-200 p-3 rounded-lg text-center">
+              <Image className="h-6 w-6 text-pink-500 mx-auto mb-1" />
+              <p className="text-xs font-medium text-pink-700">Prezentációk</p>
+              <p className="text-xs text-pink-600">AI Képek és Tesztek</p>
             </div>
-            <div className="bg-red-50 border-2 border-red-200 p-3 rounded-lg text-center">
-              <Play className="h-6 w-6 text-red-500 mx-auto mb-1" />
-              <p className="text-xs font-medium text-red-700">YouTube</p>
-              <p className="text-xs text-red-600">📺</p>
-            </div>
-            <div className="bg-purple-50 border-2 border-purple-200 p-3 rounded-lg text-center">
-              <Play className="h-6 w-6 text-purple-500 mx-auto mb-1" />
-              <p className="text-xs font-medium text-purple-700">Videók</p>
-              <p className="text-xs text-purple-600">🎬</p>
-            </div>
-            <div className="bg-green-50 border-2 border-green-200 p-3 rounded-lg text-center">
-              <Headphones className="h-6 w-6 text-green-500 mx-auto mb-1" />
-              <p className="text-xs font-medium text-green-700">Hang</p>
-              <p className="text-xs text-green-600">🔊</p>
+            <div className="bg-cyan-50 border-2 border-cyan-200 p-3 rounded-lg text-center">
+              <Sparkles className="h-6 w-6 text-cyan-500 mx-auto mb-1" />
+              <p className="text-xs font-medium text-cyan-700">Elmetérkép</p>
+              <p className="text-xs text-cyan-600">Animált fastruktúra</p>
             </div>
           </div>
           
-          <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-lg">
-            <h4 className="font-medium text-neutral-800 mb-2">Elérés módja:</h4>
+          <div className="bg-gradient-to-r from-pink-100 to-cyan-100 p-4 rounded-lg">
+            <h4 className="font-medium text-neutral-800 mb-2">Hogyan működik a Living Mind Map?</h4>
             <ul className="space-y-2 text-sm text-neutral-600">
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Oldalsávban megjelenő színes ikonok
+                <CheckCircle className="h-4 w-4 text-pink-500" />
+                Az AI logikai fastruktúrába szervezi a tananyagot
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Kattintásra felugró ablakban nyílnak meg
+                <CheckCircle className="h-4 w-4 text-pink-500" />
+                Lüktető, neonos animált vonalak kötik össze a fogalmakat
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Csak akkor láthatók, ha van tartalom
+                <CheckCircle className="h-4 w-4 text-cyan-500" />
+                "Cinematic" kameramozgás rázoomol az éppen felolvasott részre
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Nem zavarják a szöveg olvasását
+                <CheckCircle className="h-4 w-4 text-cyan-500" />
+                Minden csomóponthoz egyedi magyarázó narráció tartozik
               </li>
             </ul>
           </div>
           
-          <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg">
-            <p className="text-sm text-purple-800">
+          <div className="bg-pink-50 border border-pink-200 p-3 rounded-lg">
+            <p className="text-sm text-pink-800">
               <Play className="h-4 w-4 inline mr-1" />
-              <strong>Újdonság:</strong> A multimédia tartalmak most külön ablakokban nyílnak meg, így a tananyag szövege tisztán olvasható marad.
+              <strong>Újdonság:</strong> Próbáld ki a reszponzív interaktív prezentációkat és az Élő Elmetérkép lejátszót minden tananyaghoz!
             </p>
           </div>
         </div>
@@ -448,12 +438,12 @@ export default function OnboardingWizard({
               </div>
               
               <div>
-                <h5 className="font-medium text-sm mb-2">Automatikus teljesítés</h5>
+                <h5 className="font-medium text-sm mb-2">Automatikus értékelés</h5>
                 <ul className="space-y-1 text-xs text-neutral-600">
-                  <li>• 88% küszöbérték</li>
-                  <li>• Automatikus modul lezárás</li>
-                  <li>• Haladás követés</li>
-                  <li>• Teljesítmény statisztika</li>
+                  <li>• 45% (Elégséges) küszöbérték</li>
+                  <li>• Automatikus modul feloldás</li>
+                  <li>• 30 kérdéses dinamikus pool</li>
+                  <li>• Fisher-Yates pártatlan keverés</li>
                 </ul>
               </div>
             </div>
@@ -468,7 +458,7 @@ export default function OnboardingWizard({
           
           <div className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-500">
             <p className="text-sm text-neutral-600">
-              <span className="font-medium">88% teljesítés</span> esetén a modul automatikusan befejezettnek minősül!
+              <span className="font-medium">45% teljesítés (Elégséges)</span> esetén a modul sikeresnek minősül és feloldja a következőt!
             </p>
           </div>
         </div>

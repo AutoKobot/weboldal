@@ -389,7 +389,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                   type: 'practical',
                   moduleNumber: ++processedModules,
                   sectionCode: sizedMod.sectionCode || null,
-                  isPublished: true
+                  isPublished: false
                 });
 
                 practicalProcessed++;
@@ -446,7 +446,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                     type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
                     moduleNumber: ++processedModules,
                     sectionCode: original?.sectionCode || null,
-                    isPublished: true
+                    isPublished: false
                   };
                 });
 
