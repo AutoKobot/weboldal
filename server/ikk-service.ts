@@ -134,25 +134,37 @@ export class IKKService {
       return `- "${s.name}" | DB: ${s.hours ?? '?'} óra | Elm.modulok: ${theoryN} | Gyak.modulok: ${practicalN}`;
     }).join('\n');
 
-    // ── 2. Extract PTT context: find relevant lines near each subject name ──
-    // Instead of dumping the full PTT, extract only the sections near subject names (±500 chars)
+    // ── 2. Extract PTT context: find relevant sections ──
     let pttContext = '';
     if (pttText) {
       const contextParts: string[] = [];
+      
+      // Include the beginning of the PTT (first 4000 chars) as it usually contains the main summary table
+      contextParts.push(`[PTT ÖSSZESÍTŐ TÁBLÁZAT ÉS FEJLÉC]:\n${pttText.substring(0, 4000)}`);
+      
       for (const subject of subjects) {
         const idx = pttText.toLowerCase().indexOf(subject.name.toLowerCase().substring(0, 20));
         if (idx !== -1) {
-          const start = Math.max(0, idx - 200);
-          const end = Math.min(pttText.length, idx + 600);
-          contextParts.push(`[${subject.name}]:\n${pttText.substring(start, end)}`);
+          // Increase window to 2500 chars to ensure we reach the "X.X.X.4" point (theory/practice split)
+          const start = Math.max(0, idx - 300);
+          const end = Math.min(pttText.length, idx + 2500);
+          contextParts.push(`[${subject.name} részletei]:\n${pttText.substring(start, end)}`);
         }
       }
-      pttContext = contextParts.slice(0, 30).join('\n---\n'); // max 30 subjects
+      // Use more context, but keep it within reasonable token limits for gpt-4o-mini
+      pttContext = contextParts.slice(0, 15).join('\n---\n'); 
     }
 
     const prompt = `
-Te egy PTT (Programtanterv) elemző vagy.
+Te egy PTT (Programtanterv) elemző szakértő vagy. 
 Szakma: ${professionName}
+
+DOKUMENTUM FELÉPÍTÉSE (FONTOS):
+1. A PTT elején van egy táblázat, ahol több oszlopban is szerepelnek óraszámok (pl. 3 éves vs. 2 éves képzés). 
+   - HASZNÁLD AZ ELSŐ "ÖSSZES ÓRASZÁM" OSZLOPOT (általában a 3-éves nappali képzésé, pl. Hegesztőnél 1977 óra).
+2. A tantárgyak leírásánál az óraszámok gyakran "X/Y" formátumban vannak (pl. 288/288 vagy 190/217). 
+   - MINDIG AZ ELSŐ ÉRTÉKET VEDD FIGYELEMBE (X).
+3. A tantárgyaknál az "X.X.X.4" pontban (pl. 3.3.1.4) szerepel a gyakorlati arány (pl. "legalább 50%-át gyakorlati helyszínen...").
 
 FELADAT:
 Minden tantárgyhoz állapítsd meg az ELMÉLETI és GYAKORLATI óraszám-ARÁNYT (0.0 – 1.0 között).
@@ -161,11 +173,10 @@ Minden tantárgyhoz állapítsd meg az ELMÉLETI és GYAKORLATI óraszám-ARÁNY
 - practicalRatio = 0.5 → 50-50%
 
 SZABÁLYOK:
-1. Elsősorban a PTT szövegből keresd az "X% gyakorlati" vagy "elmélet/gyakorlat" megjegyzéseket.
-2. Ha nincs ilyen adat, nézd az elméleti és gyakorlati modulok arányát (Elm.modulok / összes).
-3. Ha egy tantárgy neve tartalmazza: "Gyakorlati", "Műhely", "Üzemi" → practicalRatio ≥ 0.7
-4. Ha tartalmazza: "Elmélet", "Ismeret", "Technológia" → practicalRatio ≤ 0.4
-5. Válaszolj CSAK valid JSON-nel, minden tantárgyhoz.
+1. Elsősorban a tantárgy részletes leírásában (X.X.X.4 pont) keresd a "%-os" arányt!
+2. Ha ott nincs adat, nézd a PTT eleji összefoglaló táblázat oszlopait.
+3. Ha végképp nincs adat, nézd az elméleti és gyakorlati modulok arányát a DB adatokban.
+4. Válaszolj CSAK valid JSON-nel.
 
 TANTÁRGYAK (DB adatok):
 ${subjectSummary}
@@ -176,7 +187,7 @@ ${pttContext || '(nem elérhető)'}
 VÁLASZ:
 {
   "subjects": [
-    { "name": "Tantárgy neve", "practicalRatio": 0.3 }
+    { "name": "Tantárgy neve", "practicalRatio": 0.5 }
   ]
 }
 `.trim();
@@ -333,7 +344,11 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 
 ── FONTOS INSTRUKCIÓK ──
 1. HOURS: Keresd meg a tantárgy neve melletti óraszámot.
+   - Ha "X/Y" formátumot látsz (pl. 190/217), MINDIG AZ ELSŐT (X) rögzítsd! 
+   - Ha egy sorban több óraszám oszlopot látsz, az első "Total/Összes" oszlopot használd.
 2. PRACTICALPERCENT: Keresd meg a tantárgyra vonatkozó gyakorlati arányt.
+   - Keresd az "X.X.X.4" alpontot (pl. 3.3.1.4), amely kimondja: "A képzés órakeretének legalább X%-át gyakorlati helyszínen...". 
+   - Ha ilyen nincs, becsüld meg a modulok típusa alapján (elmélet vs gyakorlat).
 3. MODULES: Légy nagyon részletes! Inkább legyen több kis modul, mint egy óriási. A mobil kijelzőkön a kisebb egységek jobban olvashatóak.
 
 ELEMEZENDŐ SZÖVEG:
