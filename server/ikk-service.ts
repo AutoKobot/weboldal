@@ -98,13 +98,18 @@ export class IKKService {
   }
 
   /**
-   * AI-alapú óraszám-generálás: a PTT szövegét + a tantárgy/modul struktúrát elküldi az AI-nak,
-   * amely összehasonlítja a PTT-ben szereplő óraszámokat és visszaadja tantárgyanként
-   * az elméleti és gyakorlati órákat. A rendszer ezeket egyenlően osztja szét a modulok között.
+   * AI-alapú óraszám-generálás egy már importált szakmához.
+   *
+   * Stratégia (megbízhatósági sorrendben):
+   *   1. A subjects.hours már tartalmazza a teljes tantárgy-órát (az importáláskor kinyerve).
+   *   2. Az AI CSAK az elmélet/gyakorlat arányt állapítja meg (PTT szöveg alapján).
+   *      Ha a PTT hosszú, csak a tantárgyneveket és a közelükben lévő szövegeket elemzi.
+   *   3. Az arány alapján a rendszer EGYENLŐEN osztja el az órákat az azonos típusú modulok között.
+   *   4. Ha nincs PTT-adat, a modul-típus arányával becsüljük (theoryMods / totalMods).
    *
    * @param professionName Szakma neve
-   * @param pttText        A PTT dokumentum teljes szövege
-   * @param subjects       Tantárgyak listája moduljaikkal (id, name, modules[])
+   * @param pttText        A PTT dokumentum teljes szövege (lehet üres)
+   * @param subjects       Tantárgyak listája moduljaikkal (id, name, hours, modules[])
    * @returns              Modul-szintű óra elosztás: { moduleId, hours }[]
    */
   async generateHoursFromPtt(
@@ -122,107 +127,115 @@ export class IKKService {
     const { getOpenAIClient } = await import('./openai');
     const openai = await getOpenAIClient();
 
-    // Build a compact subject/module list for the prompt
-    const subjectList = subjects
-      .map(s => {
-        const mods = s.modules
-          .map(m => `    - [${m.type.toUpperCase()}] ${m.title}`)
-          .join('\n');
-        return `Tantárgy: "${s.name}" (DB óra: ${s.hours ?? 'ismeretlen'})\n${mods}`;
-      })
-      .join('\n\n');
+    // ── 1. Compact subject list for AI (only names + hours + module type counts) ──
+    const subjectSummary = subjects.map(s => {
+      const theoryN = s.modules.filter(m => m.type === 'theory').length;
+      const practicalN = s.modules.filter(m => m.type === 'practical').length;
+      return `- "${s.name}" | DB: ${s.hours ?? '?'} óra | Elm.modulok: ${theoryN} | Gyak.modulok: ${practicalN}`;
+    }).join('\n');
 
-    // We truncate pttText to avoid exceeding context limits (keep first 12k chars)
-    const pttExcerpt = pttText.length > 12000 ? pttText.substring(0, 12000) + '\n...[csonkítva]' : pttText;
+    // ── 2. Extract PTT context: find relevant lines near each subject name ──
+    // Instead of dumping the full PTT, extract only the sections near subject names (±500 chars)
+    let pttContext = '';
+    if (pttText) {
+      const contextParts: string[] = [];
+      for (const subject of subjects) {
+        const idx = pttText.toLowerCase().indexOf(subject.name.toLowerCase().substring(0, 20));
+        if (idx !== -1) {
+          const start = Math.max(0, idx - 200);
+          const end = Math.min(pttText.length, idx + 600);
+          contextParts.push(`[${subject.name}]:\n${pttText.substring(start, end)}`);
+        }
+      }
+      pttContext = contextParts.slice(0, 30).join('\n---\n'); // max 30 subjects
+    }
 
     const prompt = `
-Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy.
+Te egy PTT (Programtanterv) elemző vagy.
 Szakma: ${professionName}
 
 FELADAT:
-A PTT szövegéből keresd meg az egyes tantárgyakhoz rendelt TELJES óraszámot, és oszd fel azokat ELMÉLETI és GYAKORLATI órákra.
-Majd add vissza tantárgyanként:
-- theoryHours: az elméleti órák száma
-- practicalHours: a gyakorlati órák száma
+Minden tantárgyhoz állapítsd meg az ELMÉLETI és GYAKORLATI óraszám-ARÁNYT (0.0 – 1.0 között).
+- practicalRatio = 1.0 → 100% gyakorlat
+- practicalRatio = 0.0 → 100% elmélet
+- practicalRatio = 0.5 → 50-50%
 
 SZABÁLYOK:
-1. Ha egy tantárgy óraszáma nem szerepel a PTT-ben, használd az adatbázisban tárolt értéket ("DB óra" mező).
-2. Ha sem a PTT-ben, sem az adatbázisban nincs adat, becsüld meg a modulok száma alapján (1 modul ≈ 2 óra).
-3. Az elméleti és gyakorlati arány meghatározásához keresd a tantárgy melletti "%-os" arány vagy "elmélet/gyakorlat" bontást a PTT-ben.
-4. Ha nincs bontás, az összes THEORY típusú modul → elmélet, PRACTICAL típusú → gyakorlat.
-5. Válaszolj KIZÁRÓLAG valid JSON-nel.
+1. Elsősorban a PTT szövegből keresd az "X% gyakorlati" vagy "elmélet/gyakorlat" megjegyzéseket.
+2. Ha nincs ilyen adat, nézd az elméleti és gyakorlati modulok arányát (Elm.modulok / összes).
+3. Ha egy tantárgy neve tartalmazza: "Gyakorlati", "Műhely", "Üzemi" → practicalRatio ≥ 0.7
+4. Ha tartalmazza: "Elmélet", "Ismeret", "Technológia" → practicalRatio ≤ 0.4
+5. Válaszolj CSAK valid JSON-nel, minden tantárgyhoz.
 
-TANTÁRGYAK ÉS MODULJAIK:
-${subjectList}
+TANTÁRGYAK (DB adatok):
+${subjectSummary}
 
-PTT SZÖVEG (részlet):
-${pttExcerpt}
+PTT SZÖVEG (releváns részletek):
+${pttContext || '(nem elérhető)'}
 
-VÁLASZ FORMÁTUMA:
+VÁLASZ:
 {
   "subjects": [
-    {
-      "name": "Tantárgy neve",
-      "theoryHours": 36,
-      "practicalHours": 36
-    }
+    { "name": "Tantárgy neve", "practicalRatio": 0.3 }
   ]
 }
 `.trim();
 
-    let aiSubjectHours: { name: string; theoryHours: number; practicalHours: number }[] = [];
+    let aiRatios: { name: string; practicalRatio: number }[] = [];
 
     try {
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: 'PTT elemző szakértő vagy. Csak valid JSON-t adsz vissza.' },
+          { role: 'system', content: 'PTT elemző vagy. Csak valid JSON-t adsz vissza.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.1,
       });
       const parsed = JSON.parse(response.choices[0].message.content || '{}');
-      aiSubjectHours = parsed.subjects || [];
+      aiRatios = parsed.subjects || [];
+      console.log(`[generateHoursFromPtt] AI ${aiRatios.length} tantárgyhoz adott arányt.`);
     } catch (err) {
-      console.error('[generateHoursFromPtt] AI hiba:', err);
-      // Fallback: use subject.hours evenly split
+      console.error('[generateHoursFromPtt] AI hiba, fallback módra váltás:', err);
     }
 
-    // Now distribute evenly among modules
+    // ── 3. Distribute hours per module ──
     const result: { moduleId: number; hours: number }[] = [];
 
     for (const subject of subjects) {
-      const aiEntry = aiSubjectHours.find(
-        s => s.name?.toLowerCase().trim() === subject.name?.toLowerCase().trim()
-      );
-
       const theoryModules = subject.modules.filter(m => m.type === 'theory');
       const practicalModules = subject.modules.filter(m => m.type === 'practical');
+      const totalModules = subject.modules.length;
 
-      let theoryHours: number;
-      let practicalHours: number;
+      if (totalModules === 0) continue;
 
-      if (aiEntry) {
-        theoryHours = aiEntry.theoryHours || 0;
-        practicalHours = aiEntry.practicalHours || 0;
+      // Determine total hours: DB value preferred, fallback: 2 óra/modul becsléssel
+      const totalHours = subject.hours || (totalModules * 2);
+
+      // Determine practical ratio
+      const aiEntry = aiRatios.find(
+        r => r.name?.toLowerCase().trim() === subject.name?.toLowerCase().trim()
+      );
+      let practicalRatio: number;
+      if (aiEntry !== undefined) {
+        practicalRatio = Math.max(0, Math.min(1, aiEntry.practicalRatio));
       } else {
-        // Fallback: use stored hours, split 50/50 or by module count ratio
-        const total = subject.hours || (subject.modules.length * 2);
-        const ratio = theoryModules.length / (subject.modules.length || 1);
-        theoryHours = Math.round(total * ratio);
-        practicalHours = total - theoryHours;
+        // Fallback: use module type ratio
+        practicalRatio = totalModules > 0 ? practicalModules.length / totalModules : 0.5;
       }
 
-      // Evenly distribute theory hours among theory modules
+      const practicalHours = Math.round(totalHours * practicalRatio);
+      const theoryHours = totalHours - practicalHours;
+
+      // Distribute evenly within type
       if (theoryModules.length > 0 && theoryHours > 0) {
-        const perTheory = Math.round((theoryHours / theoryModules.length) * 2) / 2; // round to 0.5
+        const perTheory = Math.round((theoryHours / theoryModules.length) * 2) / 2;
         for (const m of theoryModules) {
           result.push({ moduleId: m.id, hours: perTheory });
         }
       }
 
-      // Evenly distribute practical hours among practical modules
       if (practicalModules.length > 0 && practicalHours > 0) {
         const perPractical = Math.round((practicalHours / practicalModules.length) * 2) / 2;
         for (const m of practicalModules) {
@@ -231,6 +244,7 @@ VÁLASZ FORMÁTUMA:
       }
     }
 
+    console.log(`[generateHoursFromPtt] ${result.length} modul kapott óraszámot.`);
     return result;
   }
 

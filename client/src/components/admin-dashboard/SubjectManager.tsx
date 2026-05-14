@@ -46,14 +46,29 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
     return parseFloat(String(subject?.totalSuggestedHours || 0)) || 0;
   };
 
+  // Az elméleti VAGY gyakorlati tantárgyak óráinak összege.
+  // Először a subject.hours mezőből összesít (PTT import). Ha nincs, a totalSuggestedHours-t használja.
   const calculateTypeTotalHours = (type: string) => {
     return subjects
-      .filter((s: any) => s.professionId === selectedProfessionId && (type === 'theory' ? (s.type === 'theory' || !s.type) : s.type === type))
+      .filter((s: any) => s.professionId === selectedProfessionId && (
+        type === 'theory' ? (s.type === 'theory' || !s.type) : s.type === type
+      ))
       .reduce((sum: number, s: any) => {
         const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
-        const hours = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
+        const moduleHours = parseFloat(String(s.totalSuggestedHours || 0)) || 0;
+        // AI óragenerálás után a moduleHours a pontosabb, egyébként a subject.hours
+        const hours = moduleHours > 0 ? moduleHours : (sHours !== null ? sHours : 0);
         return sum + (Number(hours) || 0);
       }, 0);
+  };
+
+  // Jelzi, hogy az AI óragenerálás lefutott-e (van-e modul szintű adat)
+  const hasModuleHours = (type: string) => {
+    return subjects
+      .filter((s: any) => s.professionId === selectedProfessionId && (
+        type === 'theory' ? (s.type === 'theory' || !s.type) : s.type === type
+      ))
+      .some((s: any) => parseFloat(String(s.totalSuggestedHours || 0)) > 0);
   };
 
   const handleBack = () => {
@@ -180,7 +195,11 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
               <Badge variant="secondary" className="mt-4 bg-blue-50 text-blue-700 border-blue-100 font-bold flex gap-2">
                 <span>{subjects.filter((s: any) => s.professionId === selectedProfessionId && (s.type === 'theory' || !s.type)).length} tantárgy</span>
                 <span className="opacity-40">|</span>
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {calculateTypeTotalHours('theory')} óra</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {Math.round(calculateTypeTotalHours('theory'))} óra
+                  {hasModuleHours('theory') && <span className="text-[9px] opacity-60 ml-0.5">(PTT)</span>}
+                </span>
               </Badge>
             </CardHeader>
           </Card>
@@ -201,7 +220,11 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
               <Badge variant="secondary" className="mt-4 bg-orange-50 text-orange-700 border-orange-100 font-bold flex gap-2">
                 <span>{subjects.filter((s: any) => s.professionId === selectedProfessionId && s.type === 'practical').length} tantárgy</span>
                 <span className="opacity-40">|</span>
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {calculateTypeTotalHours('practical')} óra</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {Math.round(calculateTypeTotalHours('practical'))} óra
+                  {hasModuleHours('practical') && <span className="text-[9px] opacity-60 ml-0.5">(PTT)</span>}
+                </span>
               </Badge>
             </CardHeader>
           </Card>
@@ -223,15 +246,27 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
                     <span className="text-[10px] text-muted-foreground font-medium">
                       {subject.moduleCount || 0} modul
                     </span>
-                    {subject.hours ? (
-                      <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200 h-4 flex items-center gap-1">
-                        <Clock className="h-2.5 w-2.5" /> {subject.hours} óra
-                      </Badge>
-                    ) : calculateSubjectModuleHours(subject.id) > 0 ? (
-                      <Badge variant="outline" className="text-[10px] bg-blue-50/50 text-blue-600 border-blue-100 h-4 flex items-center gap-1 italic">
-                        <Clock className="h-2.5 w-2.5" /> ~{Math.round(calculateSubjectModuleHours(subject.id))} óra (jav.)
-                      </Badge>
-                    ) : null}
+                    {(() => {
+                      const moduleHours = calculateSubjectModuleHours(subject.id);
+                      const subjectHours = subject.hours;
+                      if (subjectHours) {
+                        // subjects.hours tárolva (PTT importból vagy kézi)
+                        return (
+                          <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200 h-4 flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" /> {subjectHours} óra
+                            {moduleHours > 0 && <span className="opacity-50 ml-0.5">• {Math.round(moduleHours)} PTT</span>}
+                          </Badge>
+                        );
+                      } else if (moduleHours > 0) {
+                        // Csak modul szintű adat (AI óragenerálás után)
+                        return (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50/70 text-amber-700 border-amber-200 h-4 flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" /> {Math.round(moduleHours)} óra (PTT)
+                          </Badge>
+                        );
+                      }
+                      return null;
+                    })()}
                     {(subject as any).developedCount > 0 && (
                       <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-100 h-4 flex items-center gap-1 font-bold">
                         <Wand2 className="h-2.5 w-2.5" /> {(subject as any).developedCount}/{(subject as any).moduleCount} AI

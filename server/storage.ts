@@ -926,6 +926,12 @@ export class DatabaseStorage implements IStorage {
       theoryCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.type = 'theory')`,
       practicalCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.type = 'practical')`,
       interactiveCount: sql<number>`(SELECT count(*)::int FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.presentation_data IS NOT NULL)`,
+      // Összesített javasolt óraszámok modulok suggestedHours mezőjéből (AI óragenerálás után töltődik)
+      theoryHours: sql<number>`(SELECT COALESCE(SUM(modules.suggested_hours), 0)::numeric FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.type = 'theory')`,
+      practicalHours: sql<number>`(SELECT COALESCE(SUM(modules.suggested_hours), 0)::numeric FROM modules JOIN subjects ON modules.subject_id = subjects.id WHERE subjects.profession_id = professions.id AND modules.type = 'practical')`,
+      // Tantárgy-szintű óraszámok (subjects.hours mezőből, importkor/szerkesztéskor kerül be)
+      subjectTheoryHours: sql<number>`(SELECT COALESCE(SUM(subjects.hours), 0)::int FROM subjects WHERE subjects.profession_id = professions.id AND subjects.type = 'theory')`,
+      subjectPracticalHours: sql<number>`(SELECT COALESCE(SUM(subjects.hours), 0)::int FROM subjects WHERE subjects.profession_id = professions.id AND subjects.type = 'practical')`,
     })
     .from(professions);
 

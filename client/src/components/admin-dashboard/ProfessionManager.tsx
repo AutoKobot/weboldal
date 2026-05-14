@@ -258,33 +258,34 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                   </div>
                   
                   <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
-                    <div className="flex gap-1.5">
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
-                        <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} ELMÉLET
-                        <span className="opacity-40 ml-1">|</span>
-                        <span className="ml-1 font-bold">
-                          {subjects
-                            .filter((s: any) => s.professionId === prof.id && (s.type === 'theory' || !s.type))
-                            .reduce((sum, s) => {
-                              const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
-                              const h = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
-                              return sum + (Number(h) || 0);
-                            }, 0).toFixed(0)} óra
-                        </span>
-                      </Badge>
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
-                        <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} GYAKORLAT
-                        <span className="opacity-40 ml-1">|</span>
-                        <span className="ml-1 font-bold">
-                          {subjects
-                            .filter((s: any) => s.professionId === prof.id && s.type === 'practical')
-                            .reduce((sum, s) => {
-                              const sHours = typeof s.hours === 'number' ? s.hours : (parseFloat(String(s.hours)) || null);
-                              const h = sHours !== null ? sHours : (parseFloat(String(s.totalSuggestedHours)) || 0);
-                              return sum + (Number(h) || 0);
-                            }, 0).toFixed(0)} óra
-                        </span>
-                      </Badge>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {(() => {
+                        // Use module-level suggestedHours if available (after AI generation), otherwise subject.hours
+                        const hasModuleHours = (parseFloat(String(prof.theoryHours)) + parseFloat(String(prof.practicalHours))) > 0;
+                        const theoryH = hasModuleHours
+                          ? Math.round(parseFloat(String(prof.theoryHours)))
+                          : (prof.subjectTheoryHours || 0);
+                        const practicalH = hasModuleHours
+                          ? Math.round(parseFloat(String(prof.practicalHours)))
+                          : (prof.subjectPracticalHours || 0);
+                        const source = hasModuleHours ? '(PTT)' : '(tantárgy)';
+                        return (
+                          <>
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50/50 border-blue-200 text-blue-700 flex items-center gap-1">
+                              <GraduationCap className="h-2.5 w-2.5" /> {prof.theoryCount || 0} elm. modul
+                              {theoryH > 0 && (
+                                <><span className="opacity-40 ml-1">|</span><span className="ml-1 font-bold">{theoryH} óra {source}</span></>
+                              )}
+                            </Badge>
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-50/50 border-orange-200 text-orange-700 flex items-center gap-1">
+                              <Wrench className="h-2.5 w-2.5" /> {prof.practicalCount || 0} gyak. modul
+                              {practicalH > 0 && (
+                                <><span className="opacity-40 ml-1">|</span><span className="ml-1 font-bold">{practicalH} óra {source}</span></>
+                              )}
+                            </Badge>
+                          </>
+                        );
+                      })()}
                     </div>
                     {prof.interactiveCount > 0 && (
                       <Badge variant="outline" className="text-[10px] w-full bg-slate-900 text-blue-400 border-blue-600 h-6 flex items-center justify-center gap-2 font-bold animate-pulse">
