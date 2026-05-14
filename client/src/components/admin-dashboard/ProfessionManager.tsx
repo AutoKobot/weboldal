@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2, Clock,
-  Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap, Wand2, MonitorPlay
+  Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap, Wand2, MonitorPlay, Timer
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Profession, insertProfessionSchema } from "./types";
@@ -136,6 +136,25 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
     onError: (error: Error) => {
       toast({ title: "Hiba", description: error.message, variant: "destructive" });
       setIsImporting(null);
+    }
+  });
+
+  const [isGeneratingHours, setIsGeneratingHours] = useState<number | null>(null);
+  const generateHoursMutation = useMutation({
+    mutationFn: async (professionId: number) => {
+      setIsGeneratingHours(professionId);
+      const res = await apiRequest("POST", `/api/admin/ikk/generate-hours/${professionId}`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Óraszámok kész", description: data.message });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
+      setIsGeneratingHours(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+      setIsGeneratingHours(null);
     }
   });
 
@@ -279,7 +298,7 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         variant="ghost"
                         className="text-[9px] h-7 bg-blue-50/30 hover:bg-blue-50 text-blue-700 border border-blue-100" 
                         onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'theory' }); }}
-                        disabled={isImporting !== null}
+                        disabled={isImporting !== null || isGeneratingHours !== null}
                       >
                         {isImporting === prof.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <GraduationCap className="h-3 w-3 mr-1" />}
                         Elmélet Frissítés
@@ -289,7 +308,7 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         variant="ghost"
                         className="text-[9px] h-7 bg-orange-50/30 hover:bg-orange-50 text-orange-700 border border-orange-100" 
                         onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'practical' }); }}
-                        disabled={isImporting !== null}
+                        disabled={isImporting !== null || isGeneratingHours !== null}
                       >
                         {isImporting === prof.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wrench className="h-3 w-3 mr-1" />}
                         Gyakorlat Frissítés
@@ -299,10 +318,23 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         variant="secondary"
                         className="col-span-2 text-[9px] h-7 font-bold" 
                         onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'both' }); }}
-                        disabled={isImporting !== null}
+                        disabled={isImporting !== null || isGeneratingHours !== null}
                       >
                         <Download className="h-3 w-3 mr-1" />
                         Teljes IKK Szinkronizálás
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="col-span-2 text-[9px] h-7 font-bold border-amber-300 bg-amber-50/40 text-amber-800 hover:bg-amber-100"
+                        onClick={(e) => { e.stopPropagation(); generateHoursMutation.mutate(prof.id); }}
+                        disabled={isImporting !== null || isGeneratingHours !== null}
+                        title="PTT dokumentáció alapján AI óraszám-eloszlás (elmélet/gyakorlat szétválasztása)"
+                      >
+                        {isGeneratingHours === prof.id
+                          ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          : <Timer className="h-3 w-3 mr-1" />}
+                        {isGeneratingHours === prof.id ? 'Óraszámok generálása...' : 'AI Óraszám-eloszlás (PTT)'}
                       </Button>
                     </div>
                   </div>

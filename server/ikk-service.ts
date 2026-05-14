@@ -97,77 +97,141 @@ export class IKKService {
     };
   }
 
-  async distributeSubjectHours(
+  /**
+   * AI-alapú óraszám-generálás: a PTT szövegét + a tantárgy/modul struktúrát elküldi az AI-nak,
+   * amely összehasonlítja a PTT-ben szereplő óraszámokat és visszaadja tantárgyanként
+   * az elméleti és gyakorlati órákat. A rendszer ezeket egyenlően osztja szét a modulok között.
+   *
+   * @param professionName Szakma neve
+   * @param pttText        A PTT dokumentum teljes szövege
+   * @param subjects       Tantárgyak listája moduljaikkal (id, name, modules[])
+   * @returns              Modul-szintű óra elosztás: { moduleId, hours }[]
+   */
+  async generateHoursFromPtt(
     professionName: string,
-    subjectName: string,
-    totalHours: number,
-    practicalPercent: number,
-    modules: { title: string, id: number, type: string }[]
-  ): Promise<{ id: number, hours: number }[]> {
-    if (!totalHours || modules.length === 0) return modules.map(m => ({ id: m.id, hours: 0 }));
+    pttText: string,
+    subjects: {
+      id: number;
+      name: string;
+      hours?: number | null;
+      modules: { id: number; title: string; type: string }[];
+    }[]
+  ): Promise<{ moduleId: number; hours: number }[]> {
+    if (subjects.length === 0) return [];
 
-    try {
-      const { getOpenAIClient } = await import('./openai');
-      const openai = await getOpenAIClient();
+    const { getOpenAIClient } = await import('./openai');
+    const openai = await getOpenAIClient();
 
-      const theoryModules = modules.filter(m => m.type === 'theory');
-      const practicalModules = modules.filter(m => m.type === 'practical');
+    // Build a compact subject/module list for the prompt
+    const subjectList = subjects
+      .map(s => {
+        const mods = s.modules
+          .map(m => `    - [${m.type.toUpperCase()}] ${m.title}`)
+          .join('\n');
+        return `Tantárgy: "${s.name}" (DB óra: ${s.hours ?? 'ismeretlen'})\n${mods}`;
+      })
+      .join('\n\n');
 
-      const targetPracticalHours = Math.round(totalHours * (practicalPercent / 100));
-      const targetTheoryHours = totalHours - targetPracticalHours;
+    // We truncate pttText to avoid exceeding context limits (keep first 12k chars)
+    const pttExcerpt = pttText.length > 12000 ? pttText.substring(0, 12000) + '\n...[csonkítva]' : pttText;
 
-      const prompt = `
-Te egy SZAKOKTATÓ és tanmenet-tervező vagy.
+    const prompt = `
+Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy.
 Szakma: ${professionName}
-Tantárgy: ${subjectName}
-Összes keretidő: ${totalHours} óra
-Ebből GYAKORLAT cél: ${targetPracticalHours} óra (${practicalPercent}%)
-Ebből ELMÉLET cél: ${targetTheoryHours} óra (${100 - practicalPercent}%)
 
-FELADAT: Oszd el az órákat a modulok között úgy, hogy:
-1. A GYAKORLATI modulok (PRACTICAL) óraszámainak összege pontosan ${targetPracticalHours} legyen.
-2. Az ELMÉLETI modulok (THEORY) óraszámainak összege pontosan ${targetTheoryHours} legyen.
-3. A modulok súlya és komplexitása alapján differenciálj.
+FELADAT:
+A PTT szövegéből keresd meg az egyes tantárgyakhoz rendelt TELJES óraszámot, és oszd fel azokat ELMÉLETI és GYAKORLATI órákra.
+Majd add vissza tantárgyanként:
+- theoryHours: az elméleti órák száma
+- practicalHours: a gyakorlati órák száma
 
 SZABÁLYOK:
-1. Az óraszámok összege pontosan ${totalHours} legyen!
-2. Használj kerekített számokat (0.5-ös pontossággal, pl. 1.5, 2, 4.5).
-3. Válaszolj szigorú JSON formátumban: {"distributions": [{"id": [modul_id], "hours": [óra]}]}
+1. Ha egy tantárgy óraszáma nem szerepel a PTT-ben, használd az adatbázisban tárolt értéket ("DB óra" mező).
+2. Ha sem a PTT-ben, sem az adatbázisban nincs adat, becsüld meg a modulok száma alapján (1 modul ≈ 2 óra).
+3. Az elméleti és gyakorlati arány meghatározásához keresd a tantárgy melletti "%-os" arány vagy "elmélet/gyakorlat" bontást a PTT-ben.
+4. Ha nincs bontás, az összes THEORY típusú modul → elmélet, PRACTICAL típusú → gyakorlat.
+5. Válaszolj KIZÁRÓLAG valid JSON-nel.
 
-MODULOK LISTÁJA:
-GYAKORLATI MODULOK:
-${practicalModules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
+TANTÁRGYAK ÉS MODULJAIK:
+${subjectList}
 
-ELMÉLETI MODULOK:
-${theoryModules.map(m => `- ID: ${m.id} | Cím: ${m.title}`).join('\n')}
-`;
+PTT SZÖVEG (részlet):
+${pttExcerpt}
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        response_format: { type: "json_object" },
-        messages: [{ role: "system", content: "Tanmenet-tervező szakértő vagy." }, { role: "user", content: prompt }],
-        temperature: 0.3,
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || '{}');
-      return result.distributions || [];
-    } catch (error) {
-      console.error('Hiba az óraszámok elosztásakor:', error);
-      // Fallback: simple average within types if AI fails
-      const practicalMods = modules.filter(m => m.type === 'practical');
-      const theoryMods = modules.filter(m => m.type === 'theory');
-
-      const targetPrac = totalHours * (practicalPercent / 100);
-      const targetTheo = totalHours - targetPrac;
-
-      const pracAvg = practicalMods.length > 0 ? targetPrac / practicalMods.length : 0;
-      const theoAvg = theoryMods.length > 0 ? targetTheo / theoryMods.length : 0;
-
-      return modules.map(m => ({
-        id: m.id,
-        hours: m.type === 'practical' ? Math.round(pracAvg * 2) / 2 : Math.round(theoAvg * 2) / 2
-      }));
+VÁLASZ FORMÁTUMA:
+{
+  "subjects": [
+    {
+      "name": "Tantárgy neve",
+      "theoryHours": 36,
+      "practicalHours": 36
     }
+  ]
+}
+`.trim();
+
+    let aiSubjectHours: { name: string; theoryHours: number; practicalHours: number }[] = [];
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'PTT elemző szakértő vagy. Csak valid JSON-t adsz vissza.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+      });
+      const parsed = JSON.parse(response.choices[0].message.content || '{}');
+      aiSubjectHours = parsed.subjects || [];
+    } catch (err) {
+      console.error('[generateHoursFromPtt] AI hiba:', err);
+      // Fallback: use subject.hours evenly split
+    }
+
+    // Now distribute evenly among modules
+    const result: { moduleId: number; hours: number }[] = [];
+
+    for (const subject of subjects) {
+      const aiEntry = aiSubjectHours.find(
+        s => s.name?.toLowerCase().trim() === subject.name?.toLowerCase().trim()
+      );
+
+      const theoryModules = subject.modules.filter(m => m.type === 'theory');
+      const practicalModules = subject.modules.filter(m => m.type === 'practical');
+
+      let theoryHours: number;
+      let practicalHours: number;
+
+      if (aiEntry) {
+        theoryHours = aiEntry.theoryHours || 0;
+        practicalHours = aiEntry.practicalHours || 0;
+      } else {
+        // Fallback: use stored hours, split 50/50 or by module count ratio
+        const total = subject.hours || (subject.modules.length * 2);
+        const ratio = theoryModules.length / (subject.modules.length || 1);
+        theoryHours = Math.round(total * ratio);
+        practicalHours = total - theoryHours;
+      }
+
+      // Evenly distribute theory hours among theory modules
+      if (theoryModules.length > 0 && theoryHours > 0) {
+        const perTheory = Math.round((theoryHours / theoryModules.length) * 2) / 2; // round to 0.5
+        for (const m of theoryModules) {
+          result.push({ moduleId: m.id, hours: perTheory });
+        }
+      }
+
+      // Evenly distribute practical hours among practical modules
+      if (practicalModules.length > 0 && practicalHours > 0) {
+        const perPractical = Math.round((practicalHours / practicalModules.length) * 2) / 2;
+        for (const m of practicalModules) {
+          result.push({ moduleId: m.id, hours: perPractical });
+        }
+      }
+    }
+
+    return result;
   }
 
   private preprocessText(text: string): string {

@@ -161,6 +161,103 @@ router.post('/reorganize/:id', combinedAuth, adminOnly, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/ikk/generate-hours/:professionId
+ *
+ * Önálló óraszám-generálás egy már importált szakmához.
+ * Folyamata:
+ *   1. Lekéri a szakma tantárgyait és moduljait az adatbázisból
+ *   2. Újra letölti a PTT dokumentumot az IKK-ról
+ *   3. Az AI összehasonlítja a PTT óraszámait a tantárgy/modul struktúrával
+ *   4. Tantárgyanként visszaadja az elméleti és gyakorlati órákat
+ *   5. A rendszer EGYENLŐEN osztja szét a modulok között (típus szerint)
+ */
+router.post('/generate-hours/:professionId', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const professionId = parseInt(req.params.professionId);
+    if (isNaN(professionId)) return res.status(400).json({ message: 'Érvénytelen szakma azonosító.' });
+
+    const dbProfession = await storage.getProfession(professionId);
+    if (!dbProfession) return res.status(404).json({ message: 'A szakma nem található.' });
+
+    // Fetch subjects and their modules from DB
+    const dbSubjects = await storage.getSubjects(professionId);
+    if (dbSubjects.length === 0) {
+      return res.status(400).json({ message: 'Nincsenek tantárgyak ehhez a szakmához.' });
+    }
+
+    // Build full subject+module list
+    const subjectsWithModules: {
+      id: number;
+      name: string;
+      hours?: number | null;
+      modules: { id: number; title: string; type: string }[];
+    }[] = [];
+
+    for (const sub of dbSubjects) {
+      const mods = await storage.getModules(sub.id);
+      subjectsWithModules.push({
+        id: sub.id,
+        name: sub.name,
+        hours: sub.hours,
+        modules: mods.map(m => ({ id: m.id, title: m.title, type: m.type || 'theory' }))
+      });
+    }
+
+    // Try to get the PTT document from IKK
+    let pttText = '';
+    try {
+      // We need the IKK profession data to get the PTT attachment
+      // Use the profession code (okjId) to find it in the IKK listing
+      const ikkProfessions = await ikkService.getProfessions();
+      const ikkProf = ikkProfessions.find(
+        p => p.name.trim() === dbProfession.name.trim() ||
+             (dbProfession as any).code === p.okjId
+      );
+      if (ikkProf) {
+        const { pttText: downloaded } = await ikkService.getProfessionContent(ikkProf);
+        pttText = downloaded;
+        console.log(`[generate-hours] PTT letöltve: ${pttText.length} karakter`);
+      } else {
+        console.warn(`[generate-hours] IKK szakma nem található: "${dbProfession.name}" – csak DB adatok alapján folytatjuk.`);
+      }
+    } catch (pttErr: any) {
+      console.warn('[generate-hours] PTT letöltés sikertelen, folytatjuk DB adatokkal:', pttErr.message);
+    }
+
+    // Run AI hour generation
+    const hourDistributions = await ikkService.generateHoursFromPtt(
+      dbProfession.name,
+      pttText,
+      subjectsWithModules
+    );
+
+    if (hourDistributions.length === 0) {
+      return res.status(500).json({ message: 'Az AI nem tudott óraszámokat generálni.' });
+    }
+
+    // Persist the hours to the modules
+    let updatedCount = 0;
+    for (const dist of hourDistributions) {
+      if (dist.hours > 0) {
+        await storage.updateModule(dist.moduleId, { suggestedHours: dist.hours.toString() });
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Óraszámok sikeresen generálva: ${updatedCount} modul frissítve.`,
+      updatedCount,
+      distributions: hourDistributions
+    });
+
+  } catch (error: any) {
+    console.error('[generate-hours] Hiba:', error);
+    res.status(500).json({ message: `Hiba az óraszám generálás során: ${error.message}` });
+  }
+});
+
 router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const { profession, importType = 'both' } = req.body;
@@ -462,28 +559,6 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               
               await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
             });
-          }
-          
-          // After all modules for this subject are created and populated, distribute the hours
-          if (sub.hours && sub.hours > 0) {
-            try {
-              const allModulesForDist = await storage.getModules(dbSubject.id);
-              const hourDistributions = await ikkService.distributeSubjectHours(
-                profession.name, 
-                sub.name, 
-                sub.hours, 
-                sub.practicalPercent || 50,
-                allModulesForDist.map(m => ({ id: m.id, title: m.title, type: m.type || 'theory' }))
-              );
-              
-              for (const dist of hourDistributions) {
-                if (dist.hours > 0) {
-                  await storage.updateModule(dist.id, { suggestedHours: dist.hours.toString() });
-                }
-              }
-            } catch (err) {
-              console.error(`Error distributing hours for subject ${sub.name}:`, err);
-            }
           }
         }
 
