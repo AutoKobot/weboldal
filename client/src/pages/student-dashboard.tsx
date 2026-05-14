@@ -126,9 +126,9 @@ export default function StudentDashboard() {
   // Calculate Average Grades
   const scoreToGrade = (score: number) => {
     if (score >= 90) return 5;
-    if (score >= 65) return 4;
-    if (score >= 55) return 3;
-    if (score >= 45) return 2;
+    if (score >= 80) return 4;
+    if (score >= 70) return 3;
+    if (score >= 60) return 2;
     return 1;
   };
 

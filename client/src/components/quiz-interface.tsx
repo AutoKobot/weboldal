@@ -226,7 +226,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       submitQuizResultMutation.mutate({
         score: finalScore,
         maxScore: 100,
-        passed: finalScore >= 45,
+        passed: finalScore >= 60,
         details: { questions, evaluations }
       });
     }
@@ -240,9 +240,19 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-700';
-    if (score >= 55) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 90) return 'text-green-700';   // 5
+    if (score >= 80) return 'text-blue-600';    // 4
+    if (score >= 70) return 'text-yellow-600';  // 3
+    if (score >= 60) return 'text-orange-500';  // 2
+    return 'text-red-600';                      // 1 - megbukott
+  };
+
+  const scoreToGrade = (score: number): { grade: number; label: string; bg: string; text: string; border: string } => {
+    if (score >= 90) return { grade: 5, label: 'Jeles',     bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-300' };
+    if (score >= 80) return { grade: 4, label: 'Jó',        bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-300'  };
+    if (score >= 70) return { grade: 3, label: 'Közepes',   bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-300'};
+    if (score >= 60) return { grade: 2, label: 'Elégséges', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-300'};
+    return              { grade: 1, label: 'Elégtelen',  bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-300'   };
   };
 
   if (!isQuizStarted) {
@@ -279,7 +289,8 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   if (isQuizCompleted) {
     const finalScore = calculateFinalScore();
-    const isPassed = finalScore >= 45;
+    const isPassed = finalScore >= 60;
+    const gradeInfo = scoreToGrade(finalScore);
     return (
       <Card className="w-full max-w-2xl mx-auto border-2 shadow-2xl">
         <CardHeader className="text-center">
@@ -287,7 +298,14 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
           <CardTitle className="text-3xl font-black">{isPassed ? 'Gratulálunk!' : 'Sajnos nem sikerült'}</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-6">
-          <div className={`text-5xl font-black ${getScoreColor(finalScore)}`}>{finalScore}%</div>
+          {/* Százalék + Érdemjegy */}
+          <div className="flex items-center justify-center gap-6">
+            <div className={`text-6xl font-black ${getScoreColor(finalScore)}`}>{finalScore}%</div>
+            <div className={`flex flex-col items-center justify-center px-5 py-3 rounded-2xl border-2 ${gradeInfo.bg} ${gradeInfo.border}`}>
+              <span className={`text-5xl font-black leading-none ${gradeInfo.text}`}>{gradeInfo.grade}</span>
+              <span className={`text-xs font-bold uppercase tracking-widest mt-1 ${gradeInfo.text}`}>{gradeInfo.label}</span>
+            </div>
+          </div>
           <div className="space-y-2">
             {evaluations.map((e, i) => e && (
               <div key={i} className="flex justify-between p-2 bg-muted/30 rounded border text-sm">
