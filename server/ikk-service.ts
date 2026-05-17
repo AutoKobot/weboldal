@@ -110,7 +110,9 @@ export class IKKService {
    * @param professionName Szakma neve
    * @param pttText        A PTT dokumentum teljes szövege (lehet üres)
    * @param subjects       Tantárgyak listája moduljaikkal (id, name, hours, modules[])
-   * @returns              M   async generateHoursFromPtt(
+   * @returns              Modulokhoz rendelt óraszámok listája
+   */
+  async generateHoursFromPtt(
     professionName: string,
     pttText: string,
     subjects: {
@@ -184,15 +186,6 @@ TANTÁRGYAK (DB adatok):
 ${subjectSummary}
 
 PTT SZÖVEG (releváns részletek):
-${pttContext || '(nem elérhető)'}
-
-VÁLASZ:
-{
-  "subjects": [
-    { "name": "Tantárgy neve", "practicalRatio": 0.5 }
-  ]
-}
-`.trim();TT SZÖVEG (releváns részletek):
 ${pttContext || '(nem elérhető)'}
 
 VÁLASZ:
