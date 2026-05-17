@@ -373,42 +373,67 @@ export function ModuleManager({
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => {
+          <Button variant="outline" size="sm" onClick={async () => {
             if(confirm('Minden modul tartalmát fejlesszük az AI segítségével?')) {
-              filteredModules.forEach((m: any) => regenerateMutation.mutate(m.id));
+              for (const m of filteredModules) {
+                try {
+                  await regenerateMutation.mutateAsync(m.id);
+                  await new Promise(resolve => setTimeout(resolve, 150));
+                } catch (err) {
+                  console.error("Bulk content generation failed for module", m.id, err);
+                }
+              }
             }
           }}>
             <Wand2 className="h-4 w-4 mr-2" /> Bulk AI Tartalom Fejlesztés
           </Button>
-          <Button variant="outline" size="sm" className="text-purple-600 border-purple-200 hover:bg-purple-50" onClick={() => {
+          <Button variant="outline" size="sm" className="text-purple-600 border-purple-200 hover:bg-purple-50" onClick={async () => {
             if(confirm('Minden elméleti modulhoz generáljunk 30 tesztkérdést az AI segítségével? (Csak a tartalommal rendelkező moduloknál indul el)')) {
-              filteredModules.forEach((m: any) => {
-                if (m.type !== 'practical' && (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id))) {
-                  generateQuizMutation.mutate(m.id);
+              const eligibleModules = filteredModules.filter(
+                (m: any) => m.type !== 'practical' && (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id))
+              );
+              for (const m of eligibleModules) {
+                try {
+                  await generateQuizMutation.mutateAsync(m.id);
+                  await new Promise(resolve => setTimeout(resolve, 150));
+                } catch (err) {
+                  console.error("Bulk quiz generation failed for module", m.id, err);
                 }
-              });
+              }
             }
           }}>
             <FileText className="h-4 w-4 mr-2" /> Bulk AI Teszt Generálás
           </Button>
-          <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
+          <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={async () => {
             if(confirm('Minden modulhoz generáljunk interaktív HTML tartalmat? Ez több percig is eltarthat. (Csak a tartalommal rendelkező moduloknál indul el)')) {
-              filteredModules.forEach((m: any) => {
-                if (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id)) {
-                  generatePresentationMutation.mutate(m.id);
+              const eligibleModules = filteredModules.filter(
+                (m: any) => !!m.detailedContent || !!m.content || isModuleRegenerating(m.id)
+              );
+              for (const m of eligibleModules) {
+                try {
+                  await generatePresentationMutation.mutateAsync(m.id);
+                  await new Promise(resolve => setTimeout(resolve, 150));
+                } catch (err) {
+                  console.error("Bulk presentation generation failed for module", m.id, err);
                 }
-              });
+              }
             }
           }}>
             <MonitorPlay className="h-4 w-4 mr-2" /> Bulk Interaktív HTML
           </Button>
-          <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => {
+          <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={async () => {
             if(confirm('Minden modulhoz generáljunk Élő Elmetérképet? Ez több percig is eltarthat. (Csak a tartalommal rendelkező moduloknál indul el)')) {
-              filteredModules.forEach((m: any) => {
-                if (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id)) {
-                  generateMindMapMutation.mutate(m.id);
+              const eligibleModules = filteredModules.filter(
+                (m: any) => !!m.detailedContent || !!m.content || isModuleRegenerating(m.id)
+              );
+              for (const m of eligibleModules) {
+                try {
+                  await generateMindMapMutation.mutateAsync(m.id);
+                  await new Promise(resolve => setTimeout(resolve, 150));
+                } catch (err) {
+                  console.error("Bulk mind map generation failed for module", m.id, err);
                 }
-              });
+              }
             }
           }}>
             <Network className="h-4 w-4 mr-2" /> Bulk Élő Elmetérkép
