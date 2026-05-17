@@ -92,12 +92,13 @@ export class EnhancedModuleGenerator {
     customSystemMessage?: string,
     subjectName?: string,
     professionName?: string,
-    moduleType?: 'theory' | 'practical'
+    moduleType?: 'theory' | 'practical',
+    skipQuizzes?: boolean
   ): Promise<EnhancedModuleContent> {
     const timeout = 300000; // 5 minute timeout
 
     return Promise.race([
-      this.performEnhancement(title, basicContent, subjectContext, customSystemMessage, subjectName, professionName, moduleType),
+      this.performEnhancement(title, basicContent, subjectContext, customSystemMessage, subjectName, professionName, moduleType, skipQuizzes),
       new Promise<EnhancedModuleContent>((_, reject) =>
         setTimeout(() => reject(new Error('Generation timeout after 5 minutes')), timeout)
       )
@@ -120,7 +121,8 @@ export class EnhancedModuleGenerator {
     customSystemMessage?: string,
     subjectName?: string,
     professionName?: string,
-    moduleType?: 'theory' | 'practical'
+    moduleType?: 'theory' | 'practical',
+    skipQuizzes?: boolean
   ): Promise<EnhancedModuleContent> {
     // Load specialized prompts from database
     const prompts = await this.loadPrompts();
@@ -227,14 +229,14 @@ export class EnhancedModuleGenerator {
     }
 
     let quizSets: any[] = [];
-    if (moduleType !== 'practical') {
+    if (moduleType !== 'practical' && !skipQuizzes) {
       try {
         quizSets = await this.generateMultipleQuizSets(title, boldLinkedDetailed);
       } catch (e) {
         console.error("[ENHANCED-GEN] Quiz generation failed, skipping...", e);
       }
     } else {
-      console.log("[ENHANCED-GEN] Skipping quizzes for practical module");
+      console.log("[ENHANCED-GEN] Skipping quizzes for practical module (or skipQuizzes is true)");
     }
     console.log(`[ENHANCED-GEN] Step 3 OK (YT terms: ${youtubeSearchTerms.length}, Quizzes: ${quizSets.length})`);
 

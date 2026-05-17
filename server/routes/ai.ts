@@ -315,30 +315,26 @@ router.post('/modules/:id/regenerate', combinedAuth, async (req: any, res) => {
       }
     }
 
-    console.log(`[AI-REGENERATE] Starting regeneration for module: ${module.id} (${module.title})`);
+    console.log(`[AI-REGENERATE] Queueing regeneration for module: ${module.id} (${module.title})`);
     
-    const enhancedContent = await enhancedModuleGenerator.generateEnhancedModule(
-      title || module.title, content || module.content, subjectContext, undefined, subjectName, professionName, module.type as 'theory' | 'practical'
-    );
+    const { aiQueueManager } = await import('../ai-queue-manager');
+    aiQueueManager.queueAIRegeneration(
+      module.id,
+      title || module.title,
+      content || module.content,
+      module.subjectId?.toString() || '0',
+      undefined,
+      subjectName,
+      professionName,
+      module.moduleNumber
+    ).catch(err => console.error(`Background regeneration error:`, err));
 
-    console.log(`[AI-REGENERATE] Content generated successfully. Saving to database...`);
-
-    const updatedModule = await storage.updateModule(moduleId, {
-      content: enhancedContent.detailedVersion, // Sync main content with detailed version
-      conciseContent: enhancedContent.conciseVersion,
-      detailedContent: enhancedContent.detailedVersion,
-      keyConceptsData: enhancedContent.keyConceptsWithVideos,
-      generatedQuizzes: enhancedContent.generatedQuizzes
-    });
-
-    console.log(`[AI-REGENERATE] Module ${moduleId} updated successfully.`);
-    res.json(updatedModule);
+    res.status(202).json({ success: true, message: "Queued", status: "queued" });
   } catch (error: any) {
     console.error("Error regenerating module:", error);
     res.status(500).json({ 
-      message: "Failed to regenerate module content",
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: "Failed to queue module content regeneration",
+      error: error.message
     });
   }
 });

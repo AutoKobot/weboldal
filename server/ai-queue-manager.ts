@@ -21,7 +21,7 @@ interface QueueItem {
 export class AIQueueManager {
   private queue: QueueItem[] = [];
   private processing: Set<string> = new Set();
-  private maxConcurrent = 1; // Process only one module at a time to prevent overload
+  private maxConcurrent = 3; // Process up to 3 modules in parallel to allow concurrent bulk execution
   private processingInterval: NodeJS.Timeout | null = null;
   private queueFilePath = './ai_queue_backup.json';
 
@@ -282,6 +282,32 @@ export class AIQueueManager {
   }
 
   /**
+   * Check if a queue item has a dependency that is currently processing or queued ahead of it
+   */
+  private hasPendingDependency(item: QueueItem): boolean {
+    // 1. Is there ANY task for the SAME moduleId currently being processed?
+    const activeTasks = Array.from(this.processingMetadata.values());
+    for (const active of activeTasks) {
+      if (active.moduleId === item.moduleId) {
+        return true;
+      }
+    }
+
+    // 2. If the current item is a non-content task ('quiz', 'presentation', 'mindmap'),
+    // is there a content task ('full') for the SAME moduleId STILL in the queue (ahead of it)?
+    if (item.type !== 'full') {
+      const idx = this.queue.indexOf(item);
+      const queueAhead = idx >= 0 ? this.queue.slice(0, idx) : this.queue;
+      const hasContentTaskAhead = queueAhead.some(q => q.moduleId === item.moduleId && q.type === 'full');
+      if (hasContentTaskAhead) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Process next item in queue
    */
   private async processNext() {
@@ -289,7 +315,22 @@ export class AIQueueManager {
       return;
     }
 
-    const item = this.queue.shift();
+    // Find the first item in the queue that has no pending dependencies
+    let itemIndex = -1;
+    for (let i = 0; i < this.queue.length; i++) {
+      if (!this.hasPendingDependency(this.queue[i])) {
+        itemIndex = i;
+        break;
+      }
+    }
+
+    // If no item is ready (all are waiting for a dependency to finish processing), return
+    if (itemIndex === -1) {
+      return;
+    }
+
+    // Remove the item from the queue
+    const item = this.queue.splice(itemIndex, 1)[0];
     if (!item) return;
 
     this.processing.add(item.id);
@@ -621,7 +662,9 @@ export class AIQueueManager {
         fullContext,
         contextualSystemMessage,
         item.subjectName,
-        item.professionName
+        item.professionName,
+        undefined,
+        true // skipQuizzes = true
       );
 
       // Record additional costs for web search and YouTube API calls
@@ -665,7 +708,6 @@ export class AIQueueManager {
         conciseContent: finalConciseContent,
         detailedContent: finalDetailedContent,
         keyConceptsData: enhancedContent.keyConceptsWithVideos || null,
-        generatedQuizzes: enhancedContent.generatedQuizzes,
         isPublished: true
       };
 

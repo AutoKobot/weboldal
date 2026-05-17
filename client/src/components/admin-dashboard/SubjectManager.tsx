@@ -324,6 +324,9 @@ export function SubjectManager({ subjects, professions, modules = [], selectedPr
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingSubject ? "Tantárgy szerkesztése" : "Új tantárgy"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Szerkessze vagy hozza létre a tantárgy részleteit.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => editingSubject ? updateMutation.mutate({ id: editingSubject.id, data }) : createMutation.mutate(data))} className="space-y-4">

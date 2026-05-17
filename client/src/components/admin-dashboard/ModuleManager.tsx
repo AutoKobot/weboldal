@@ -45,6 +45,7 @@ export function ModuleManager({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [regeneratingModules, setRegeneratingModules] = useState<Set<number>>(new Set());
+  const [quizGeneratingModules, setQuizGeneratingModules] = useState<Set<number>>(new Set());
   const [presentingModules, setPresentingModules] = useState<Set<number>>(new Set());
   const [mindMappingModules, setMindMappingModules] = useState<Set<number>>(new Set());
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -80,6 +81,15 @@ export function ModuleManager({
     // Check both queued and currently processing items
     const inQueue = queueStatus.queuedItems?.some((item: any) => item.moduleId === moduleId && item.type === 'full');
     const inProcessing = queueStatus.processingItems?.some((item: any) => item.moduleId === moduleId && item.type === 'full');
+    return inQueue || inProcessing;
+  };
+
+  const isModuleQuizGenerating = (moduleId: number) => {
+    if (quizGeneratingModules.has(moduleId)) return true;
+    if (!queueStatus) return false;
+    
+    const inQueue = queueStatus.queuedItems?.some((item: any) => item.moduleId === moduleId && item.type === 'quiz');
+    const inProcessing = queueStatus.processingItems?.some((item: any) => item.moduleId === moduleId && item.type === 'quiz');
     return inQueue || inProcessing;
   };
 
@@ -214,7 +224,26 @@ export function ModuleManager({
         next.delete(moduleId);
         return next;
       });
-      toast({ title: "AI Újragenerálás sikeres", description: "A tananyag és a teszt frissült." });
+      toast({ title: "AI Tananyag Fejlesztés elindítva", description: "A tananyag fejlesztése a háttérben fut." });
+    }
+  });
+
+  const generateQuizMutation = useMutation({
+    mutationFn: async (moduleId: number) => {
+      setQuizGeneratingModules(prev => new Set(prev).add(moduleId));
+      await apiRequest("POST", `/api/ai/modules/${moduleId}/regenerate-quizzes`);
+    },
+    onSuccess: (_, moduleId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      
+      setQuizGeneratingModules(prev => {
+        const next = new Set(prev);
+        next.delete(moduleId);
+        return next;
+      });
+      toast({ title: "AI Teszt generálás elindítva", description: "A tesztkérdések generálása a háttérben fut." });
     }
   });
 
@@ -255,6 +284,64 @@ export function ModuleManager({
 
   return (
     <div className="space-y-6">
+      {/* AI Queue Monitor Box */}
+      {queueStatus && (queueStatus.queueSize > 0 || queueStatus.processingCount > 0) && (
+        <Card className="border-purple-200 bg-purple-50/30 backdrop-blur-md shadow-sm border relative overflow-hidden animate-in fade-in duration-300">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-xl text-purple-700 animate-pulse">
+                  <Wand2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                    AI Fejlesztési Monitor
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 font-bold border-purple-200">
+                      Aktív
+                    </Badge>
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {queueStatus.processingCount} folyamat fut párhuzamosan &bull; {queueStatus.queueSize} feladat sorban áll
+                  </p>
+                </div>
+              </div>
+
+              {/* Displaying active items */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-semibold text-slate-500 mr-1">Aktív feladatok:</span>
+                {queueStatus.processingItems && queueStatus.processingItems.length > 0 ? (
+                  queueStatus.processingItems.map((item: any, idx: number) => {
+                    const typeLabels: any = {
+                      'full': { label: 'Tartalom', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: <Sparkles size={12} className="mr-1 text-indigo-500" /> },
+                      'quiz': { label: 'Teszt', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: <FileText size={12} className="mr-1 text-amber-500" /> },
+                      'presentation': { label: 'HTML Dia', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: <MonitorPlay size={12} className="mr-1 text-blue-500" /> },
+                      'mindmap': { label: 'Elmetérkép', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: <Network size={12} className="mr-1 text-emerald-500" /> }
+                    };
+                    const typeInfo = typeLabels[item.type] || { label: 'AI Feladat', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Wand2 size={12} className="mr-1 text-purple-500" /> };
+                    return (
+                      <Badge key={idx} variant="outline" className={`h-6 text-[10px] font-bold flex items-center ${typeInfo.color}`} title={item.title}>
+                        {typeInfo.icon}
+                        <span className="max-w-[120px] truncate mr-1">{item.title}</span>
+                        <span className="opacity-60">({typeInfo.label})</span>
+                      </Badge>
+                    );
+                  })
+                ) : (
+                  <span className="text-xs text-slate-500 font-medium">Feladatok betöltése a futószalagra...</span>
+                )}
+                {queueStatus.queueSize > 0 && (
+                  <Badge variant="outline" className="h-6 text-[10px] font-bold bg-slate-100 text-slate-600 border-slate-200 flex items-center">
+                    <Loader2 size={10} className="mr-1 animate-spin" />
+                    +{queueStatus.queueSize} további sorban
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-5 w-5" /></Button>
@@ -287,18 +374,37 @@ export function ModuleManager({
               filteredModules.forEach((m: any) => regenerateMutation.mutate(m.id));
             }
           }}>
-            <Wand2 className="h-4 w-4 mr-2" /> Bulk AI Fejlesztés
+            <Wand2 className="h-4 w-4 mr-2" /> Bulk AI Tartalom Fejlesztés
+          </Button>
+          <Button variant="outline" size="sm" className="text-purple-600 border-purple-200 hover:bg-purple-50" onClick={() => {
+            if(confirm('Minden elméleti modulhoz generáljunk 30 tesztkérdést az AI segítségével? (Csak a tartalommal rendelkező moduloknál indul el)')) {
+              filteredModules.forEach((m: any) => {
+                if (m.type !== 'practical' && (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id))) {
+                  generateQuizMutation.mutate(m.id);
+                }
+              });
+            }
+          }}>
+            <FileText className="h-4 w-4 mr-2" /> Bulk AI Teszt Generálás
           </Button>
           <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
-            if(confirm('Minden modulhoz generáljunk interaktív HTML tartalmat? Ez több percig is eltarthat.')) {
-              filteredModules.forEach((m: any) => generatePresentationMutation.mutate(m.id));
+            if(confirm('Minden modulhoz generáljunk interaktív HTML tartalmat? Ez több percig is eltarthat. (Csak a tartalommal rendelkező moduloknál indul el)')) {
+              filteredModules.forEach((m: any) => {
+                if (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id)) {
+                  generatePresentationMutation.mutate(m.id);
+                }
+              });
             }
           }}>
             <MonitorPlay className="h-4 w-4 mr-2" /> Bulk Interaktív HTML
           </Button>
           <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => {
-            if(confirm('Minden modulhoz generáljunk Élő Elmetérképet? Ez több percig is eltarthat.')) {
-              filteredModules.forEach((m: any) => generateMindMapMutation.mutate(m.id));
+            if(confirm('Minden modulhoz generáljunk Élő Elmetérképet? Ez több percig is eltarthat. (Csak a tartalommal rendelkező moduloknál indul el)')) {
+              filteredModules.forEach((m: any) => {
+                if (!!m.detailedContent || !!m.content || isModuleRegenerating(m.id)) {
+                  generateMindMapMutation.mutate(m.id);
+                }
+              });
             }
           }}>
             <Network className="h-4 w-4 mr-2" /> Bulk Élő Elmetérkép
@@ -339,10 +445,10 @@ export function ModuleManager({
                         <Clock className="h-2.5 w-2.5" /> {module.suggestedHours} óra
                       </Badge>
                     )}
-                    {(isModuleRegenerating(module.id) || isModulePresenting(module.id) || isModuleMindMapping(module.id)) && (
+                    {(isModuleRegenerating(module.id) || isModuleQuizGenerating(module.id) || isModulePresenting(module.id) || isModuleMindMapping(module.id)) && (
                       <Badge variant="outline" className="text-[10px] h-4 flex items-center gap-1 bg-blue-50 text-blue-600 animate-pulse">
                         <Loader2 className="h-2 w-2 animate-spin" /> 
-                        {isModuleRegenerating(module.id) ? "AI..." : isModulePresenting(module.id) ? "HTML..." : "TÉRKÉP..."}
+                        {isModuleRegenerating(module.id) ? "AI..." : isModuleQuizGenerating(module.id) ? "TESZT..." : isModulePresenting(module.id) ? "HTML..." : "TÉRKÉP..."}
                       </Badge>
                     )}
                     {(!!module.detailedContent || !!module.keyConceptsData || (Array.isArray(module.generatedQuizzes) && module.generatedQuizzes.length > 0)) && (
@@ -368,13 +474,39 @@ export function ModuleManager({
                   <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => togglePublishMutation.mutate({ id: module.id, isPublished: !module.isPublished })}>
                     {module.isPublished ? "Visszavonás" : "Közzététel"}
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => regenerateMutation.mutate(module.id)} title="AI fejlesztés + Teszt" disabled={isModuleRegenerating(module.id)}>
+                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => regenerateMutation.mutate(module.id)} title="AI Tartalom Fejlesztése" disabled={isModuleRegenerating(module.id)}>
                     <Sparkles className="h-4 w-4 text-purple-500" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => generatePresentationMutation.mutate(module.id)} title="Interaktív HTML generálás" disabled={isModulePresenting(module.id)}>
+                  {module.type !== 'practical' && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8" 
+                      onClick={() => generateQuizMutation.mutate(module.id)} 
+                      title={(!module.detailedContent && !module.content) ? "Először generálj tartalmat!" : isModuleRegenerating(module.id) ? "Tartalom generálás folyamatban..." : "AI Teszt Generálása"} 
+                      disabled={isModuleQuizGenerating(module.id) || isModuleRegenerating(module.id) || (!module.detailedContent && !module.content)}
+                    >
+                      <FileText className="h-4 w-4 text-purple-400" />
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8" 
+                    onClick={() => generatePresentationMutation.mutate(module.id)} 
+                    title={(!module.detailedContent && !module.content) ? "Először generálj tartalmat!" : isModuleRegenerating(module.id) ? "Tartalom generálás folyamatban..." : "Interaktív HTML generálás"} 
+                    disabled={isModulePresenting(module.id) || isModuleRegenerating(module.id) || (!module.detailedContent && !module.content)}
+                  >
                     <MonitorPlay className="h-4 w-4 text-blue-500" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500" onClick={() => generateMindMapMutation.mutate(module.id)} title="Élő Elmetérkép generálás" disabled={isModuleMindMapping(module.id)}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-emerald-500" 
+                    onClick={() => generateMindMapMutation.mutate(module.id)} 
+                    title={(!module.detailedContent && !module.content) ? "Először generálj tartalmat!" : isModuleRegenerating(module.id) ? "Tartalom generálás folyamatban..." : "Élő Elmetérkép generálás"} 
+                    disabled={isModuleMindMapping(module.id) || isModuleRegenerating(module.id) || (!module.detailedContent && !module.content)}
+                  >
                     <Network className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(module)}>
@@ -392,14 +524,45 @@ export function ModuleManager({
                   {module.content ? module.content.substring(0, 100) + '...' : 'Nincs tartalom'}
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t">
-                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => regenerateMutation.mutate(module.id)} disabled={isModuleRegenerating(module.id)}>
-                    <Sparkles className="h-3 w-3 mr-2 text-purple-500" /> Tartalom+Teszt
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-xs h-8" 
+                    onClick={() => regenerateMutation.mutate(module.id)} 
+                    disabled={isModuleRegenerating(module.id)}
+                    title="Alapvető tananyag fejlesztése AI-val, YouTube videók beágyazása és Mermaid diagramok generálása"
+                  >
+                    <Sparkles className="h-3 w-3 mr-2 text-purple-500" /> Tartalom Fejl.
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => generatePresentationMutation.mutate(module.id)} disabled={isModulePresenting(module.id)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-xs h-8" 
+                    onClick={() => generateQuizMutation.mutate(module.id)} 
+                    disabled={module.type === 'practical' || isModuleQuizGenerating(module.id) || isModuleRegenerating(module.id) || (!module.detailedContent && !module.content)}
+                    title={module.type === 'practical' ? "Gyakorlati modulhoz nem tartozik teszt" : (!module.detailedContent && !module.content) ? "Először generálj tartalmat!" : isModuleRegenerating(module.id) ? "Tartalom generálás folyamatban..." : "30 darab változatos AI tesztkérdés generálása"}
+                  >
+                    <FileText className="h-3 w-3 mr-2 text-purple-400" /> Teszt Generálás
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-xs h-8" 
+                    onClick={() => generatePresentationMutation.mutate(module.id)} 
+                    disabled={isModulePresenting(module.id) || isModuleRegenerating(module.id) || (!module.detailedContent && !module.content)}
+                    title={(!module.detailedContent && !module.content) ? "Először generálj tartalmat!" : isModuleRegenerating(module.id) ? "Tartalom generálás folyamatban..." : "Interaktív HTML bemutató és hanganyag generálása"}
+                  >
                     <MonitorPlay className="h-3 w-3 mr-2 text-blue-500" /> Interaktív HTML
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full col-span-2 justify-start text-xs h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/30 font-semibold" onClick={() => generateMindMapMutation.mutate(module.id)} disabled={isModuleMindMapping(module.id)}>
-                    <Network className="h-3 w-3 mr-2" /> Élő Elmetérkép generálása
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-xs h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/30 font-semibold" 
+                    onClick={() => generateMindMapMutation.mutate(module.id)} 
+                    disabled={isModuleMindMapping(module.id) || isModuleRegenerating(module.id) || (!module.detailedContent && !module.content)}
+                    title={(!module.detailedContent && !module.content) ? "Először generálj tartalmat!" : isModuleRegenerating(module.id) ? "Tartalom generálás folyamatban..." : "Interaktív elmetérkép generálása hangalámondással"}
+                  >
+                    <Network className="h-3 w-3 mr-2" /> Élő Elmetérkép
                   </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start text-xs h-8" onClick={() => handleEdit(module)}>
                     <Edit className="h-3 w-3 mr-2" /> Szerkesztés
@@ -430,6 +593,9 @@ export function ModuleManager({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingModule ? "Modul szerkesztése" : "Új modul"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Szerkessze vagy hozza létre a modult és annak tartalmát.
+            </DialogDescription>
           </DialogHeader>
           <ModuleEditor 
             key={editingModule ? editingModule.id : 'new'}
