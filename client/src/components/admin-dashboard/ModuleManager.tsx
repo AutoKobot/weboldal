@@ -65,7 +65,7 @@ export function ModuleManager({
   const { data: queueStatus } = useQuery<any>({
     queryKey: ["/api/ai/queue-status"],
     queryFn: async () => {
-      const res = await fetch("/api/ai/queue-status");
+      const res = await fetch("/api/ai/queue-status", { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
     },
@@ -218,6 +218,7 @@ export function ModuleManager({
       queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/queue-status"] });
       
       setRegeneratingModules(prev => {
         const next = new Set(prev);
@@ -237,6 +238,7 @@ export function ModuleManager({
       queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/modules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/queue-status"] });
       
       setQuizGeneratingModules(prev => {
         const next = new Set(prev);
@@ -253,6 +255,7 @@ export function ModuleManager({
       await apiRequest("POST", `/api/ai/modules/${moduleId}/generate-presentation`);
     },
     onSuccess: (_, moduleId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/queue-status"] });
       setPresentingModules(prev => {
         const next = new Set(prev);
         next.delete(moduleId);
@@ -268,6 +271,7 @@ export function ModuleManager({
       await apiRequest("POST", `/api/ai/modules/${moduleId}/generate-mindmap`);
     },
     onSuccess: (_, moduleId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/queue-status"] });
       setMindMappingModules(prev => {
         const next = new Set(prev);
         next.delete(moduleId);
