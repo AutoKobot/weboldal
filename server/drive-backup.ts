@@ -18,8 +18,10 @@ async function getDriveService() {
 }
 
 async function generateDatabaseHash() {
+    // Only fetch lightweight module list for hash (avoid loading huge content/media fields)
     const modules = await storage.getModules();
-    const data = JSON.stringify(modules);
+    // Use only IDs and updatedAt for a stable, memory-efficient hash
+    const data = JSON.stringify(modules.map((m: any) => ({ id: m.id, updatedAt: m.updatedAt })));
     return crypto.createHash('md5').update(data).digest('hex');
 }
 
@@ -44,11 +46,32 @@ export async function runSmartBackup() {
         const drive = await getDriveService();
         const currentHash = await generateDatabaseHash();
 
-        // 2. Adatok összegyűjtése (ugyanaz a logika, mint a create-backup.ts-ben)
+        // 2. Adatok összegyűjtése – csak metaadatok, nehéz tartalom (content, presentationData stb.) nélkül
         const professions = await storage.getProfessions();
         const subjects = await storage.getSubjects();
-        const modules = await storage.getModules();
-        const users = await storage.getUsers();
+        // Moduloknál csak strukturális mezők – a content/media mezők rengeteg RAM-ot foglalnának
+        const allModules = await storage.getModules();
+        const modules = allModules.map((m: any) => ({
+            id: m.id,
+            subjectId: m.subjectId,
+            title: m.title,
+            isPublished: m.isPublished,
+            order: m.order,
+            type: m.type,
+            suggestedHours: m.suggestedHours,
+            updatedAt: m.updatedAt,
+        }));
+        // Felhasználóknál nem mentjük a password hash-t és a completedModules tömböt
+        const allUsers = await storage.getAllUsers();
+        const users = allUsers.map((u: any) => ({
+            id: u.id,
+            username: u.username,
+            role: u.role,
+            email: u.email,
+            schoolId: u.schoolId,
+            classId: u.classId,
+            createdAt: u.createdAt,
+        }));
         
         const backupData = {
             professions,

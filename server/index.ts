@@ -70,10 +70,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Ensure database schema is up to date before starting the server
+  // A DatabaseStorage konstruktora automatikusan hívja az ensureSchemaUpToDate()-t,
+  // ezért itt nem kell duplikálni – csak logoljuk hogy a storage kész.
   try {
-    const { storage } = await import("./storage");
-    await storage.ensureSchemaUpToDate();
+    await import("./storage");
     log("🚀 Adatbázis séma ellenőrizve és készen áll.");
   } catch (err) {
     log(`❌ Kritikus hiba az adatbázis inicializálásakor: ${err}`);
