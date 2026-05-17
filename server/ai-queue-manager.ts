@@ -24,11 +24,20 @@ export class AIQueueManager {
   private maxConcurrent = 1; // Process 1 by 1 sequentially to stay strictly under Replit's 512MB RAM limit
   private processingInterval: NodeJS.Timeout | null = null;
   private queueFilePath = './ai_queue_backup.json';
+  private isSettled = false; // Postpone AI generations during Vite compilation window on startup
 
   constructor() {
     this.loadQueueFromDisk();
     this.startProcessing();
     this.setupGracefulShutdown();
+
+    // Delay actual background AI processing by 30 seconds on server boot
+    // to give Vite dev compiler time to compile frontend without RAM contention
+    setTimeout(() => {
+      this.isSettled = true;
+      console.log("🚀 Server boot settling complete. AI Queue processing activated.");
+      this.processNext();
+    }, 30000);
   }
 
   /**
@@ -311,6 +320,9 @@ export class AIQueueManager {
    * Process next item in queue
    */
   private async processNext() {
+    if (!this.isSettled) {
+      return;
+    }
     if (this.processing.size >= this.maxConcurrent || this.queue.length === 0) {
       return;
     }
