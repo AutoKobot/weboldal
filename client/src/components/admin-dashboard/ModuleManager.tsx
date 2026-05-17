@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,17 +141,6 @@ export function ModuleManager({
 
   const filteredModules = sortedModules;
 
-  const form = useForm({
-    resolver: zodResolver(insertModuleSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      moduleNumber: filteredModules.length + 1,
-      subjectId: selectedSubjectId,
-      isPublished: false,
-    }
-  });
-
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/modules", data);
@@ -164,7 +152,6 @@ export function ModuleManager({
       queryClient.invalidateQueries({ queryKey: ["/api/public/subjects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/ai/queue-status"] });
       setIsDialogOpen(false);
-      form.reset();
       toast({ title: "Siker", description: "Modul létrehozva" });
     }
   });
@@ -181,7 +168,6 @@ export function ModuleManager({
       queryClient.invalidateQueries({ queryKey: ["/api/ai/queue-status"] });
       setIsDialogOpen(false);
       setEditingModule(null);
-      form.reset();
       toast({ title: "Siker", description: "Modul frissítve" });
     }
   });
@@ -264,13 +250,6 @@ export function ModuleManager({
 
   const handleEdit = (module: Module) => {
     setEditingModule(module);
-    form.reset({
-      title: module.title,
-      content: module.content,
-      moduleNumber: module.moduleNumber,
-      subjectId: module.subjectId,
-      isPublished: module.isPublished || false,
-    });
     setIsDialogOpen(true);
   };
 
@@ -324,7 +303,7 @@ export function ModuleManager({
           }}>
             <Network className="h-4 w-4 mr-2" /> Bulk Élő Elmetérkép
           </Button>
-          <Button onClick={() => { setEditingModule(null); form.reset({ subjectId: selectedSubjectId, moduleNumber: filteredModules.length + 1 }); setIsDialogOpen(true); }}>
+          <Button onClick={() => { setEditingModule(null); setIsDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Új Modul
           </Button>
         </div>
@@ -453,7 +432,10 @@ export function ModuleManager({
             <DialogTitle>{editingModule ? "Modul szerkesztése" : "Új modul"}</DialogTitle>
           </DialogHeader>
           <ModuleEditor 
+            key={editingModule ? editingModule.id : 'new'}
             module={editingModule || undefined}
+            subjectId={selectedSubjectId}
+            nextModuleNumber={filteredModules.length + 1}
             onSave={(data) => editingModule ? updateMutation.mutate({ id: editingModule.id, data }) : createMutation.mutate(data)}
             onCancel={() => setIsDialogOpen(false)}
             subjects={subjects}

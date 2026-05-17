@@ -226,10 +226,12 @@ router.post('/generate-hours/:professionId', combinedAuth, adminOnly, async (req
     }
 
     // Run AI hour generation
+    const { trainingFormat = '3year' } = req.body;
     const hourDistributions = await ikkService.generateHoursFromPtt(
       dbProfession.name,
       pttText,
-      subjectsWithModules
+      subjectsWithModules,
+      trainingFormat as '3year' | '2year'
     );
 
     if (hourDistributions.length === 0) {

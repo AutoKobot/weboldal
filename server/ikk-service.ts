@@ -110,9 +110,7 @@ export class IKKService {
    * @param professionName Szakma neve
    * @param pttText        A PTT dokumentum teljes szövege (lehet üres)
    * @param subjects       Tantárgyak listája moduljaikkal (id, name, hours, modules[])
-   * @returns              Modul-szintű óra elosztás: { moduleId, hours }[]
-   */
-  async generateHoursFromPtt(
+   * @returns              M   async generateHoursFromPtt(
     professionName: string,
     pttText: string,
     subjects: {
@@ -120,7 +118,8 @@ export class IKKService {
       name: string;
       hours?: number | null;
       modules: { id: number; title: string; type: string }[];
-    }[]
+    }[],
+    trainingFormat: '3year' | '2year' = '3year'
   ): Promise<{ moduleId: number; hours: number }[]> {
     if (subjects.length === 0) return [];
 
@@ -158,23 +157,26 @@ export class IKKService {
     const prompt = `
 Te egy PTT (Programtanterv) elemző szakértő vagy. 
 Szakma: ${professionName}
+Választott képzési forma: ${trainingFormat === '3year' ? '3 ÉVES (nappali tagozat)' : '2 ÉVES (felnőttképzés/rövidített)'}
 
 DOKUMENTUM FELÉPÍTÉSE (FONTOS):
-1. A PTT elején van egy táblázat, ahol több oszlopban is szerepelnek óraszámok (pl. 3 éves vs. 2 éves képzés). 
-   - HASZNÁLD AZ ELSŐ "ÖSSZES ÓRASZÁM" OSZLOPOT (általában a 3-éves nappali képzésé, pl. Hegesztőnél 1977 óra).
-2. A tantárgyak leírásánál az óraszámok gyakran "X/Y" formátumban vannak (pl. 288/288 vagy 190/217). 
-   - MINDIG AZ ELSŐ ÉRTÉKET VEDD FIGYELEMBE (X).
+1. A PTT elején van egy táblázat, ahol több oszlopban is szerepelnek óraszámok. 
+   - HA "3year": HASZNÁLD AZ ELSŐ "ÖSSZES ÓRASZÁM" OSZLOPOT (általában a 3. v. 4. numerikus oszlop).
+   - HA "2year": HASZNÁLD AZ UTOLSÓ "ÖSSZES ÓRASZÁM" OSZLOPOT (a táblázat jobb szélén).
+2. A tantárgyak leírásánál az óraszámok gyakran "X/Y" formátumban vannak (pl. 190/217). 
+   - HA "3year": MINDIG AZ ELSŐ ÉRTÉKET VEDD FIGYELEMBE (X).
+   - HA "2year": MINDIG A MÁSODIK ÉRTÉKET VEDD FIGYELEMBE (Y).
 3. A tantárgyaknál az "X.X.X.4" pontban (pl. 3.3.1.4) szerepel a gyakorlati arány (pl. "legalább 50%-át gyakorlati helyszínen...").
 
 FELADAT:
-Minden tantárgyhoz állapítsd meg az ELMÉLETI és GYAKORLATI óraszám-ARÁNYT (0.0 – 1.0 között).
+Minden tantárgyhoz állapítsd meg az ELMÉLETI és GYAKORLATI óraszám-ARÁNYT (0.0 – 1.0 között) a választott képzési forma (${trainingFormat}) alapján.
 - practicalRatio = 1.0 → 100% gyakorlat
 - practicalRatio = 0.0 → 100% elmélet
 - practicalRatio = 0.5 → 50-50%
 
 SZABÁLYOK:
 1. Elsősorban a tantárgy részletes leírásában (X.X.X.4 pont) keresd a "%-os" arányt!
-2. Ha ott nincs adat, nézd a PTT eleji összefoglaló táblázat oszlopait.
+2. Ha ott nincs adat, nézd a PTT eleji összefoglaló táblázat megfelelő oszlopát (${trainingFormat}).
 3. Ha végképp nincs adat, nézd az elméleti és gyakorlati modulok arányát a DB adatokban.
 4. Válaszolj CSAK valid JSON-nel.
 
@@ -182,6 +184,15 @@ TANTÁRGYAK (DB adatok):
 ${subjectSummary}
 
 PTT SZÖVEG (releváns részletek):
+${pttContext || '(nem elérhető)'}
+
+VÁLASZ:
+{
+  "subjects": [
+    { "name": "Tantárgy neve", "practicalRatio": 0.5 }
+  ]
+}
+`.trim();TT SZÖVEG (releváns részletek):
 ${pttContext || '(nem elérhető)'}
 
 VÁLASZ:

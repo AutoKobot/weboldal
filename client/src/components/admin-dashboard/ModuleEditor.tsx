@@ -26,12 +26,14 @@ const moduleEditorSchema = insertModuleSchema.extend({
 
 interface ModuleEditorProps {
   module?: Module;
+  subjectId: number;
+  nextModuleNumber: number;
   subjects: Subject[];
   onSave: (data: any) => void;
   onCancel: () => void;
 }
 
-export function ModuleEditor({ module, subjects, onSave, onCancel }: ModuleEditorProps) {
+export function ModuleEditor({ module, subjectId, nextModuleNumber, subjects, onSave, onCancel }: ModuleEditorProps) {
   const form = useForm({
     resolver: zodResolver(moduleEditorSchema),
     defaultValues: module ? {
@@ -48,8 +50,8 @@ export function ModuleEditor({ module, subjects, onSave, onCancel }: ModuleEdito
     } : {
       title: "",
       content: "",
-      moduleNumber: 1,
-      subjectId: 0,
+      moduleNumber: nextModuleNumber,
+      subjectId: subjectId,
       isPublished: false,
       keyConceptsData: [],
     }

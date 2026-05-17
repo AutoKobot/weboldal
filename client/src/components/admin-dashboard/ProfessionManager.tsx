@@ -140,10 +140,13 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
   });
 
   const [isGeneratingHours, setIsGeneratingHours] = useState<number | null>(null);
+  const [isFormatDialogOpen, setIsFormatDialogOpen] = useState(false);
+  const [formatTargetId, setFormatTargetId] = useState<number | null>(null);
+
   const generateHoursMutation = useMutation({
-    mutationFn: async (professionId: number) => {
+    mutationFn: async ({ professionId, trainingFormat }: { professionId: number, trainingFormat: string }) => {
       setIsGeneratingHours(professionId);
-      const res = await apiRequest("POST", `/api/admin/ikk/generate-hours/${professionId}`);
+      const res = await apiRequest("POST", `/api/admin/ikk/generate-hours/${professionId}`, { trainingFormat });
       return res.json();
     },
     onSuccess: (data) => {
@@ -328,7 +331,11 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         size="sm"
                         variant="outline"
                         className="col-span-2 text-[9px] h-7 font-bold border-amber-300 bg-amber-50/40 text-amber-800 hover:bg-amber-100"
-                        onClick={(e) => { e.stopPropagation(); generateHoursMutation.mutate(prof.id); }}
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setFormatTargetId(prof.id);
+                          setIsFormatDialogOpen(true);
+                        }}
                         disabled={isImporting !== null || isGeneratingHours !== null}
                         title="PTT dokumentáció alapján AI óraszám-eloszlás (elmélet/gyakorlat szétválasztása)"
                       >
@@ -443,6 +450,51 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
             </DialogDescription>
           </DialogHeader>
           <IKKManager />
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isFormatDialogOpen} onOpenChange={setIsFormatDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Képzési forma kiválasztása</DialogTitle>
+            <DialogDescription>
+              Válaszd ki a képzés formáját a PTT alapú óraszám-elosztáshoz. Az AI ez alapján fogja keresni a megfelelő oszlopokat a dokumentumban.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button 
+              variant="outline" 
+              className="flex flex-col h-24 gap-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+              onClick={() => {
+                if (formatTargetId) {
+                  generateHoursMutation.mutate({ professionId: formatTargetId, trainingFormat: '3year' });
+                  setIsFormatDialogOpen(false);
+                }
+              }}
+            >
+              <Calendar className="h-6 w-6 text-blue-600" />
+              <div className="text-sm font-bold">3 éves képzés</div>
+              <div className="text-[10px] text-muted-foreground uppercase font-bold">Nappali tagozat</div>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col h-24 gap-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50"
+              onClick={() => {
+                if (formatTargetId) {
+                  generateHoursMutation.mutate({ professionId: formatTargetId, trainingFormat: '2year' });
+                  setIsFormatDialogOpen(false);
+                }
+              }}
+            >
+              <Clock className="h-6 w-6 text-orange-600" />
+              <div className="text-sm font-bold">2 éves képzés</div>
+              <div className="text-[10px] text-muted-foreground uppercase font-bold">Rövidített / Felnőtt</div>
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-start">
+            <Button type="button" variant="ghost" onClick={() => setIsFormatDialogOpen(false)}>
+              Mégse
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
