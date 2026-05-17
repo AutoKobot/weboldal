@@ -21,7 +21,7 @@ interface QueueItem {
 export class AIQueueManager {
   private queue: QueueItem[] = [];
   private processing: Set<string> = new Set();
-  private maxConcurrent = 3; // Process up to 3 modules in parallel to allow concurrent bulk execution
+  private maxConcurrent = 1; // Process 1 by 1 sequentially to stay strictly under Replit's 512MB RAM limit
   private processingInterval: NodeJS.Timeout | null = null;
   private queueFilePath = './ai_queue_backup.json';
 
