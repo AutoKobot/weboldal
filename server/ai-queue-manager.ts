@@ -349,6 +349,17 @@ export class AIQueueManager {
         item.resolve(result);
         this.processing.delete(item.id);
         this.processingMetadata.delete(item.id);
+
+        // Force garbage collection if exposed
+        if (typeof global !== 'undefined' && (global as any).gc) {
+          try {
+            (global as any).gc();
+            console.log("🧹 Manual garbage collection triggered after task success");
+          } catch (gcErr) {
+            console.error("Failed to run manual GC:", gcErr);
+          }
+        }
+
         // Immediately pick up the next item from the queue without waiting for the interval
         if (this.queue.length > 0) {
           console.log(`🔄 Auto-starting next queued task (${this.queue.length} remaining)...`);
@@ -360,6 +371,17 @@ export class AIQueueManager {
         item.reject(error);
         this.processing.delete(item.id);
         this.processingMetadata.delete(item.id);
+
+        // Force garbage collection if exposed
+        if (typeof global !== 'undefined' && (global as any).gc) {
+          try {
+            (global as any).gc();
+            console.log("🧹 Manual garbage collection triggered after task failure");
+          } catch (gcErr) {
+            console.error("Failed to run manual GC:", gcErr);
+          }
+        }
+
         // Even on error, continue with the next item
         if (this.queue.length > 0) {
           console.log(`🔄 Continuing queue after error (${this.queue.length} remaining)...`);
