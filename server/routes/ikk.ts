@@ -419,6 +419,14 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             }
           }
 
+          // Határozzuk meg a megfelelő óraszámot az elmélet/gyakorlat típusnak megfelelően
+          let subjectHours = sub.totalHours || sub.hours || null;
+          if (subjectType === 'theory' && sub.theoryHours !== undefined) {
+            subjectHours = sub.theoryHours;
+          } else if (subjectType === 'practical' && sub.practicalHours !== undefined) {
+            subjectHours = sub.practicalHours;
+          }
+
           let dbSubject = existingSubjects.find(s => s.name === subjectName && s.type === subjectType);
           
           if (!dbSubject) {
@@ -429,8 +437,11 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               description: sub.description || "",
               type: subjectType,
               orderIndex: 0,
-              hours: sub.hours || null
+              hours: subjectHours
             });
+          } else {
+            // Frissítsük az óraszámot a korábbi hibás (megcserélt) importok javítása érdekében is
+            await storage.updateSubject(dbSubject.id, { hours: subjectHours });
           }
 
           const isPractical = subjectType === 'practical';

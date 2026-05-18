@@ -243,9 +243,20 @@ export default function ModuleCard({
 
   const isAccessible = (userRole === 'admin' || userRole === 'teacher') || (module.isPublished && (isUnlocked || isCompleted));
 
+  // A kártya háttér- és szegélyszíne a teljesítettség és zároltság állapotától függően
+  const getCardBgColor = () => {
+    if (isCompleted) {
+      return "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)] dark:bg-emerald-950/20 dark:border-emerald-500/20";
+    }
+    if (!isUnlocked && userRole !== 'admin' && userRole !== 'teacher') {
+      return "bg-slate-100/40 border-slate-200/50 opacity-60 grayscale cursor-not-allowed";
+    }
+    return "bg-[#d1ae9924] border-white/20";
+  };
+
   return (
     <Card
-      className="rounded-lg border text-card-foreground shadow-sm glassmorphism gradient-overlay hover-lift transition-all duration-300 flex flex-col h-full cursor-pointer border-white/20 bg-[#d1ae9924]"
+      className={`rounded-lg border text-card-foreground shadow-sm glassmorphism gradient-overlay hover-lift transition-all duration-300 flex flex-col h-full cursor-pointer ${getCardBgColor()}`}
       onClick={isAccessible ? handleCardClick : undefined}
     >
       <CardHeader className="pb-3 flex-shrink-0">

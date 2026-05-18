@@ -45,6 +45,20 @@ router.get('/user', async (req: any, res) => {
       const userId = req.user.claims?.sub || req.user.id;
       const freshUser = await storage.getUser(userId);
       if (freshUser) {
+        // Auto-sync profession from class if student
+        if (freshUser.role === 'student' && freshUser.classId) {
+          try {
+            const studentClass = await storage.getClassById(freshUser.classId);
+            if (studentClass?.professionId && freshUser.selectedProfessionId !== studentClass.professionId) {
+              await storage.updateUserProfession(freshUser.id, studentClass.professionId);
+              freshUser.selectedProfessionId = studentClass.professionId;
+              console.log(`🔄 Auto-synchronized student ${freshUser.username}'s profession to class profession ID: ${studentClass.professionId}`);
+            }
+          } catch (syncError) {
+            console.error("Error auto-syncing student profession from class:", syncError);
+          }
+        }
+
         // Update session to keep it synchronized
         if (req.session?.passport?.user) {
           req.session.passport.user = freshUser;

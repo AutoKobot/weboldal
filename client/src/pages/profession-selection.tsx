@@ -56,6 +56,63 @@ export default function ProfessionSelection() {
     return null;
   }
 
+  // Diákoknak tilos a manuális választás ha nincs beosztva
+  if (user?.role === 'student' && !user?.selectedProfessionId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Dekoratív háttér elemek a premium hatáshoz */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl"></div>
+        </div>
+
+        <Card className="w-full max-w-lg border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl shadow-2xl text-white relative z-10 overflow-hidden">
+          {/* Top subtle glow bar */}
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600"></div>
+
+          <CardHeader className="text-center pb-2 pt-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-6 mx-auto animate-pulse">
+              <Users className="h-8 w-8" />
+            </div>
+            <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-200 to-white bg-clip-text text-transparent">
+              Osztálybesorolás szükséges
+            </CardTitle>
+            <CardDescription className="text-slate-400 text-base mt-2">
+              Kedves {user?.firstName || user?.username || 'Tanuló'}!
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6 pt-4 text-center">
+            <p className="text-slate-300 leading-relaxed">
+              Az interaktív tananyagok eléréséhez az iskolai adminisztrátornak be kell sorolnia téged egy osztályba. Az osztályod alapján a rendszer **automatikusan** hozzárendeli a számodra megfelelő szakmát.
+            </p>
+            
+            <div className="p-4 rounded-xl bg-blue-950/40 border border-blue-800/30 text-sm text-blue-200/90 flex items-start gap-3 text-left">
+              <Clock className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-blue-300 block mb-1">Mi a teendő?</span>
+                Nincs szükség manuális választásra. Amint a besorolásod megtörténik, a rendszer azonnal aktiválja a szakmád tananyagait, és közvetlenül hozzáférsz a tantárgyaidhoz.
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4">
+              <Link href="/platform-info">
+                <Button variant="outline" className="w-full sm:w-auto border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white">
+                  Platform Információk
+                </Button>
+              </Link>
+              <Link href="/settings">
+                <Button variant="ghost" className="w-full sm:w-auto text-slate-400 hover:text-white hover:bg-slate-800">
+                  Beállítások
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Különböző ikonok a szakmákhoz
   const getProfessionIcon = (professionName: string) => {
     const name = professionName.toLowerCase();

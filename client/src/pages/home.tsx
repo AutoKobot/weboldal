@@ -48,6 +48,13 @@ export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
 
+  // Redirect students without an assigned profession/class to the waiting screen
+  useEffect(() => {
+    if (user?.role === 'student' && !user?.selectedProfessionId) {
+      navigate('/profession-selection', { replace: true });
+    }
+  }, [user, navigate]);
+
   // Check if user has seen onboarding
   useEffect(() => {
     const hasSeenKey = `onboarding_seen_${user?.id}`;
@@ -55,7 +62,7 @@ export default function HomePage() {
     setHasSeenOnboarding(hasSeen);
 
     // Show onboarding for new users
-    if (!hasSeen && user) {
+    if (!hasSeen && user && user.selectedProfessionId) {
       setTimeout(() => setShowOnboarding(true), 1000);
     }
   }, [user]);

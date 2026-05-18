@@ -972,7 +972,7 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
 
   async generateMultipleQuizSets(title: string, content: string): Promise<any[]> {
     try {
-      console.log('📝 Generating 30 quiz questions (no image/icon questions)...');
+      console.log('📝 Generating 20 high-quality quiz questions (no image/icon questions)...');
       const apiKey = process.env.OPENAI_API_KEY || (await storage.getSystemSetting('openai_api_key'))?.value;
       if (!apiKey) { console.error('❌ No OpenAI API key'); return []; }
 
@@ -984,7 +984,13 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
         messages: [
           { 
             role: 'system', 
-            content: `Te egy szakértő oktató vagy. A feladatod, hogy változatos, jól érthető szakmai tesztkérdéseket készíts egy tananyaghoz.
+            content: `Te egy szakértő oktató és szakmai pedagógus vagy. A feladatod, hogy rendkívül magas szakmai színvonalú, pontosan és egyértelműen megfogalmazott szakmai tesztkérdéseket készíts egy tananyaghoz.
+            
+            KÖVETELMÉNYEK A KÉRDÉSEKHEZ:
+            1. Nyelvezet és érthetőség: A kérdések és válaszok legyenek nyelvileg kifogástalanok, világosak, szakmailag precízek és teljesen egyértelműek. Kerüld a kétértelmű, homályos vagy félreérthető megfogalmazásokat!
+            2. Pedagógiai érték: A rossz válaszlehetőségek (distractors) legyenek hihetőek, szakmailag relevánsak, de egyértelműen helytelenek. Kerüld a komolytalan, túlzottan nyilvánvaló vagy vicces rossz válaszokat, hogy a teszt valóban felmérje a diák tudását.
+            3. Részletes magyarázat: Minden egyes kérdéshez írj egy alapos, oktató jellegű magyarázatot ("explanation" mező), amely világosan kifejti, miért a kijelölt válasz a helyes, és a többi miért helytelen.
+            
             HASZNÁLJ KÜLÖNBÖZŐ KÉRDÉSTÍPUSOKAT vegyesen:
             1. 'single': Sima feleletválasztós (1 jó válasz).
             2. 'multiple': Több jó válasz is lehet (jelöld meg az összeset).
@@ -997,11 +1003,11 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
           },
           { 
             role: 'user', 
-            content: `Generálj PONTOSAN 30 változatos tesztkérdést magyar nyelven.
+            content: `Generálj PONTOSAN 20 rendkívül magas minőségű, precízen megfogalmazott tesztkérdést magyar nyelven.
             Modulcím: "${title}"
             Tananyag: ${snippet}
             
-            A 30 kérdés legyen vegyes típusú (single, multiple, ordering, find_incorrect).
+            A 20 kérdés legyen vegyes típusú (single, multiple, ordering, find_incorrect).
             KÉPES/IKON KÉRDÉSEKET NE GENERÁLJ!
             
             Válasz JSON formátuma:

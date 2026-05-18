@@ -171,10 +171,17 @@ DOKUMENTUM FELÉPÍTÉSE (FONTOS):
 3. A tantárgyaknál az "X.X.X.4" pontban (pl. 3.3.1.4) szerepel a gyakorlati arány (pl. "legalább 50%-át gyakorlati helyszínen...").
 
 FELADAT:
-Minden tantárgyhoz állapítsd meg az ELMÉLETI és GYAKORLATI óraszám-ARÁNYT (0.0 – 1.0 között) a választott képzési forma (${trainingFormat}) alapján.
-- practicalRatio = 1.0 → 100% gyakorlat
-- practicalRatio = 0.0 → 100% elmélet
-- practicalRatio = 0.5 → 50-50%
+Minden tantárgyhoz állapítsd meg az ELMÉLETI (theoryRatio) és GYAKORLATI (practicalRatio) óraszám-ARÁNYT (0.0 – 1.0 között) a választott képzési forma (${trainingFormat}) alapján.
+- theoryRatio: az elméleti oktatás aránya (0.0 - 1.0)
+- practicalRatio: a gyakorlati oktatás aránya (0.0 - 1.0)
+
+FONTOS RENDKÍVÜLI UTASÍTÁS A FELCSERÉLŐDÉS ELKERÜLÉSÉRE:
+A magyar programtantervben (PTT) az Elméleti oktatás aránya/óraszáma mindig az ELSŐ helyen szerepel, a Gyakorlati oktatás pedig a MÁSODIKON!
+Például:
+- Ha a szöveg azt írja: "Elmélet: 30%, Gyakorlat: 70%" -> "theoryRatio": 0.3, "practicalRatio": 0.7
+- Ha a szöveg azt írja: "Gyakorlat: legalább 60%" -> "theoryRatio": 0.4, "practicalRatio": 0.6
+- Ha az óraszámok eloszlása pl. "120 óra elmélet és 280 óra gyakorlat" -> "theoryRatio": 0.3, "practicalRatio": 0.7
+MINDIG ellenőrizd le kétszer is, hogy nem cserélted-e fel az elméleti (theoryRatio) és gyakorlati (practicalRatio) arányokat!
 
 SZABÁLYOK:
 1. Elsősorban a tantárgy részletes leírásában (X.X.X.4 pont) keresd a "%-os" arányt!
@@ -191,12 +198,12 @@ ${pttContext || '(nem elérhető)'}
 VÁLASZ:
 {
   "subjects": [
-    { "name": "Tantárgy neve", "practicalRatio": 0.5 }
+    { "name": "Tantárgy neve", "theoryRatio": 0.3, "practicalRatio": 0.7 }
   ]
 }
 `.trim();
 
-    let aiRatios: { name: string; practicalRatio: number }[] = [];
+    let aiRatios: { name: string; theoryRatio: number; practicalRatio: number }[] = [];
 
     try {
       const response = await openai.chat.completions.create({
@@ -234,7 +241,16 @@ VÁLASZ:
       );
       let practicalRatio: number;
       if (aiEntry !== undefined) {
-        practicalRatio = Math.max(0, Math.min(1, aiEntry.practicalRatio));
+        const pRatio = Math.max(0, Math.min(1, aiEntry.practicalRatio));
+        const tRatio = Math.max(0, Math.min(1, aiEntry.theoryRatio ?? (1 - pRatio)));
+        
+        // Normalize the ratios to sum to exactly 1.0
+        const sum = pRatio + tRatio;
+        if (sum > 0) {
+          practicalRatio = pRatio / sum;
+        } else {
+          practicalRatio = 0.5;
+        }
       } else {
         // Fallback: use module type ratio
         practicalRatio = totalModules > 0 ? practicalModules.length / totalModules : 0.5;
@@ -320,6 +336,13 @@ A kinyerés során össze KELL hangolnod a PTT összesítő táblázatát a rés
 - Ha a gyakorlati százalék 0% (pl. "legalább 0%-át gyakorlati helyszínen..."), akkor a tantárgy 100% ELMÉLET (theory). Minden modulja "theory" típusú legyen!
 - Ha a gyakorlati százalék nagyobb mint 0% (pl. 50%), akkor a tantárgy elméleti és gyakorlati moduljai külön válnak (lásd a typeFocus szűrést).
 
+── FONTOS: ÓRASZÁMOK PONTOS MEGHATÁROZÁSA ÉS A FELCSERÉLÉS ELKERÜLÉSE ──
+A magyar programtantervben (PTT) az Elméleti oktatás óraszáma/aránya mindig az ELSŐ helyen szerepel, a Gyakorlati oktatás pedig a MÁSODIKON!
+Például:
+- Ha a táblázatban pl. '90 / 210' van, vagy két oszlopban '90' és '210' szerepel -> "theoryHours": 90, "practicalHours": 210
+- Ha a szöveg azt írja: "Elmélet: 30 óra, Gyakorlat: 70 óra" -> "theoryHours": 30, "practicalHours": 70
+MINDIG ellenőrizd le kétszer is, hogy nem cserélted-e fel az elméleti (theoryHours) és gyakorlati (practicalHours) óraszámokat!
+
 ── KÓDOLÁS ÉS CÍMEK ──
 - A "sectionCode" végére fűzz ABC sorrendben betűket a felosztott 1-órás moduloknál: 3.1.1.6.1.a, 3.1.1.6.1.b, 3.1.1.6.1.c, stb.
 - A modulok címe legyen pontos, szakmai és diák-központú (pl. "Álláskeresés - 1. rész: Karriertervezés").
@@ -336,8 +359,10 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
     {
       "name": "Tantárgy neve",
       "code": "3.X.X",
-      "hours": 18,
-      "practicalPercent": 0,
+      "totalHours": 100,
+      "theoryHours": 30,
+      "practicalHours": 70,
+      "practicalPercent": 70,
       "modules": [
         { "title": "Álláskeresés - 1. rész: Karriertervezés", "type": "theory", "sectionCode": "3.1.1.6.1.a" },
         { "title": "Álláskeresés - 2. rész: Munkaerőpiac", "type": "theory", "sectionCode": "3.1.1.6.1.b" }

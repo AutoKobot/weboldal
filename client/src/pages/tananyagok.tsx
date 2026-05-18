@@ -25,8 +25,18 @@ export default function TananyagokPage() {
   // Check URL for profession and type parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const professionParam = urlParams.get('profession');
+    let professionParam = urlParams.get('profession');
     const typeParam = urlParams.get('type') as "theory" | "practical" | null;
+
+    // Ha tanuló, szigorúan csak a saját szakmáját láthatja (elkerülve az URL manipulációt)
+    if (user?.role === 'student' && user?.selectedProfessionId) {
+      if (!professionParam || parseInt(professionParam) !== user.selectedProfessionId) {
+        professionParam = user.selectedProfessionId.toString();
+        const newUrl = `/tananyagok?profession=${user.selectedProfessionId}${typeParam ? `&type=${typeParam}` : ''}`;
+        navigate(newUrl, { replace: true });
+        return;
+      }
+    }
 
     if (professionParam) {
       setSelectedProfession(parseInt(professionParam));
@@ -39,7 +49,7 @@ export default function TananyagokPage() {
     } else {
       setSelectedType(null);
     }
-  }, [location]);
+  }, [location, user]);
 
   const { data: professions = [], isLoading: professionsLoading } = useQuery<Profession[]>({
     queryKey: ['/api/public/professions'],
@@ -85,6 +95,61 @@ export default function TananyagokPage() {
   });
 
   if (!user) return null;
+
+  // Diákoknak kötelező az osztálybesorolás, ha még nincs szakma hozzárendelve
+  if (user?.role === 'student' && !user?.selectedProfessionId) {
+    return (
+      <div className="flex min-h-screen bg-student-warm relative">
+        <DynamicBackground />
+        <div className="hidden lg:block lg:w-64 lg:flex-shrink-0">
+          <div className="sticky top-0 h-screen overflow-y-auto">
+            <Sidebar user={user} />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg border border-slate-200/80 bg-white/70 backdrop-blur-xl shadow-2xl text-slate-800 relative z-10 overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600"></div>
+
+            <CardHeader className="text-center pb-2 pt-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 mb-6 mx-auto animate-pulse">
+                <GraduationCap className="h-8 w-8" />
+              </div>
+              <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 bg-clip-text text-transparent">
+                Osztálybesorolás szükséges
+              </CardTitle>
+              <CardDescription className="text-slate-500 text-base mt-2">
+                Kedves {user?.firstName || user?.username || 'Tanuló'}!
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6 pt-4 text-center">
+              <p className="text-slate-600 leading-relaxed font-medium">
+                Az interaktív tananyagok eléréséhez az iskolai adminisztrátornak be kell sorolnia téged egy osztályba. Az osztályod alapján a rendszer **automatikusan** hozzárendeli a számodra megfelelő szakmát.
+              </p>
+              
+              <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 text-sm text-blue-800 flex items-start gap-3 text-left">
+                <Clock className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-blue-900 block mb-1">Mi a teendő?</span>
+                  Nincs szükség manuális választásra. Amint a besorolásod megtörténik, a rendszer azonnal aktiválja a szakmád tananyagait, és közvetlenül hozzáférsz a tantárgyaidhoz.
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4">
+                <Button variant="outline" className="w-full sm:w-auto border-slate-300 hover:bg-slate-50 text-slate-700" onClick={() => navigate("/platform-info")}>
+                  Platform Információk
+                </Button>
+                <Button variant="ghost" className="w-full sm:w-auto text-slate-500 hover:text-slate-800" onClick={() => navigate("/settings")}>
+                  Beállítások
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const { toast } = useToast();
 
@@ -345,14 +410,16 @@ export default function TananyagokPage() {
                       </h2>
                       <p className="text-slate-500 font-medium">A kiválasztott szakma elméleti vagy gyakorlati moduljai</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      onClick={handleBackToProfessions}
-                      className="flex items-center space-x-2 text-slate-500 hover:text-primary font-bold transition-colors"
-                    >
-                      <ArrowLeft size={18} />
-                      <span>Vissza a szakmákhoz</span>
-                    </Button>
+                    {user?.role !== 'student' && (
+                      <Button
+                        variant="ghost"
+                        onClick={handleBackToProfessions}
+                        className="flex items-center space-x-2 text-slate-500 hover:text-primary font-bold transition-colors"
+                      >
+                        <ArrowLeft size={18} />
+                        <span>Vissza a szakmákhoz</span>
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">

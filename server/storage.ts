@@ -2067,10 +2067,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignStudentToClass(studentId: string, classId: number): Promise<void> {
-    await db
-      .update(users)
-      .set({ classId })
-      .where(eq(users.id, studentId));
+    await this.addStudentToClass(studentId, classId);
   }
 
   async addStudentToClass(studentId: string, classId: number): Promise<void> {
@@ -3620,7 +3617,7 @@ export class DatabaseStorage implements IStorage {
           
           // 1. Original becomes Theory
           await db.update(subjects)
-            .set({ type: 'theory', updatedAt: new Date() })
+            .set({ type: 'theory', hours: theoryModules.length, updatedAt: new Date() })
             .where(eq(subjects.id, subject.id));
           
           // 2. Create New Practical Subject
@@ -3631,7 +3628,7 @@ export class DatabaseStorage implements IStorage {
             description: subject.description,
             type: 'practical',
             orderIndex: subject.orderIndex,
-            hours: subject.hours,
+            hours: practicalModules.length,
             schoolId: subject.schoolId,
             createdAt: new Date(),
             updatedAt: new Date()
