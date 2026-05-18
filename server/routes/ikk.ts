@@ -321,6 +321,9 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         const chunks = ikkService.splitPttIntoSections(pttText);
         if (chunks.length === 0) throw new Error("Nem sikerült tantárgyakat találni a PTT-ben.");
 
+        // Extract table context (first 8000 characters containing the complete subject/topic hours table)
+        const tableContext = pttText.substring(0, 8000);
+
         const mergedSubjectsMap: Map<string, any> = new Map();
         let analysisProgress = 0;
         await runParallel(chunks, 1, async (chunk, i) => {
@@ -343,7 +346,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               response_format: { type: "json_object" },
               messages: [
                 { role: "system", content: "Te egy precíz PTT elemző vagy. Csak valid JSON-t adsz vissza subjects listával." },
-                { role: "user", content: ikkService.buildExtractionPrompt(chunk, type) }
+                { role: "user", content: ikkService.buildExtractionPrompt(chunk, tableContext, type) }
               ],
               temperature: 0,
             });
@@ -398,21 +401,39 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         for (const sub of finalSubjects) {
           if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
 
-          let dbSubject = existingSubjects.find(s => s.name === sub.name);
+          let subjectType: 'theory' | 'practical' = 'theory';
+          let subjectName = sub.name;
+
+          if (type === 'practical') {
+            subjectType = 'practical';
+            if (!subjectName.toLowerCase().includes('gyakorlat')) {
+              subjectName = subjectName + ' gyakorlat';
+            }
+          } else if (type === 'theory') {
+            subjectType = 'theory';
+          } else {
+            // In 'both' mode
+            subjectType = sub.practicalPercent > 0 ? 'practical' : 'theory';
+            if (subjectType === 'practical' && !subjectName.toLowerCase().includes('gyakorlat')) {
+              subjectName = subjectName + ' gyakorlat';
+            }
+          }
+
+          let dbSubject = existingSubjects.find(s => s.name === subjectName && s.type === subjectType);
           
           if (!dbSubject) {
             dbSubject = await storage.createSubject({
               professionId: dbProfession.id,
-              name: sub.name,
+              name: subjectName,
               code: (sub.code || "").replace(/\.$/, ""), // Clean trailing dot for better sorting
               description: sub.description || "",
-              type: sub.practicalPercent > 0 ? 'practical' : 'theory',
+              type: subjectType,
               orderIndex: 0,
               hours: sub.hours || null
             });
           }
 
-          const isPractical = dbSubject.type === 'practical' || sub.practicalPercent > 0;
+          const isPractical = subjectType === 'practical';
 
           if (isPractical) {
             // --- 3-STEP MULTI-STEP PRACTICAL IMPORT PIPELINE ---
@@ -542,7 +563,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                     title: modData.title,
                     content: modData.content || "",
                     practicalTasks: modData.practicalTasks || [],
-                    type: original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'),
+                    type: type === 'theory' ? 'theory' : (type === 'practical' ? 'practical' : (original?.type || (sub.practicalPercent > 0 ? 'practical' : 'theory'))),
                     moduleNumber: ++processedModules,
                     sectionCode: original?.sectionCode || null,
                     isPublished: false

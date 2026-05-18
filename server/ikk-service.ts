@@ -299,35 +299,36 @@ VÁLASZ:
     return finalChunks;
   }
 
-  buildExtractionPrompt(chunk: string, importType: 'theory' | 'practical' | 'both' = 'both'): string {
+  buildExtractionPrompt(chunk: string, tableContext: string, importType: 'theory' | 'practical' | 'both' = 'both'): string {
     const typeFocus = importType === 'theory' ? 'CSAK AZ ELMÉLETI' : importType === 'practical' ? 'CSAK A GYAKORLATI' : 'AZ ÖSSZES';
     
     return `
-Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE/FELBONTÁSA.
+Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE/FELBONTÁSA az 1 TANÓRA = 1 MODUL elv alapján.
 Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
 
-── TANTÁRGY ÉS MODUL STRUKTÚRA ──
-1. TANTÁRGY: Minden "X.X.X [Név] tantárgy [óra] óra" formátumú egységet rögzíts.
-2. MODULOK ÉS GRANULÁRIS FELBONTÁS (KRITIKUS): 
-   - Keress meg minden szakmai egységet (fejezetet).
-   - **KÖTELEZŐ FELBONTÁS**: Ha egy fejezet (pl. 3.3.2.6.1) több, jól elkülöníthető témát, felsorolást vagy alpontot tartalmaz, akkor azt KÖTELEZŐ több kisebb, logikus modulra bontani!
-     * Példa: Ha egy felsorolásban szerepelnek fémes anyagok, nem-fémes anyagok és segédanyagok, akkor ezeket NE egy modulba tedd, hanem bontsd 3 külön modulra!
-     * Példa (Gyakorlatnál): Hegesztésnél bontsd szét pozíciók (PA, PB, PC, PF, stb.) és varrattípusok szerint.
-   - Minden ilyen almodult (a, b, c...) vegyél fel külön elemként. 
-   - A "sectionCode" végére MINDIG fűzz egy kisbetűt, ha felbontást végzel: 3.3.2.6.1.a, 3.3.2.6.1.b, stb.
-   - **CÉL**: Egy modul ne legyen hosszabb 200-300 szónál a kifejtés után. Ha a forrásanyag túl sűrű, bontsd tovább!
+── KÉTOLDALÚ KINYERÉSI STRATÉGIA (KÖTELEZŐ) ──
+A kinyerés során össze KELL hangolnod a PTT összesítő táblázatát a részletes szöveges leírással:
+1. TÁBLÁZAT KÖRNYEZET (Témakörök és Óraszámok): Olvasd el a kapott TÁBLÁZAT KÖRNYEZETET, és keresd meg a chunk-ban lévő tantárgyhoz tartozó témakörök óraszámait (N).
+2. SZÖVEGES RÉSZ (Kulcsszavak és Részletek): Keresd meg a tantárgy témaköreit (pl. 3.1.1.6 A tantárgy témakörei).
+3. 1-ÓRÁS GRANULÁRIS FELBONTÁS:
+   - Minden egyes témakörhöz (pl. 3.1.1.6.1 Álláskeresés, melynek óraszáma a táblázatban N = 5 óra) PONTOSAN N darab önálló, 1-órás almodult kell generálnod!
+   - Csoportosítsd és oszd el a témakör alatti kulcsszavakat, felsorolásokat pontosan N darab egyenletes és szakmailag koherens leckére.
+   - Ha a forrásszöveg rövid, de az óraszám magas (pl. 3 óra), akkor se vonj össze modulokat! Ehelyett bontsd fel a meglévő témákat mélyebb elméleti vagy gyakorlati szempontok szerint (pl. alapfogalmak, részletes ipari szabályok, esettanulmányok).
 
-── GYAKORLATI MODULOK LÉPCSŐZETES FELÉPÍTÉSE (RENDKÍVÜL FONTOS) ──
-Gyakorlati tantárgyak és modulok kinyerésekor KÖTELEZŐ egy logikusan, szakmailag szigorúan egymásra épülő, lépcsőzetes elsajátítási szemléletet (progressive learning curve) követni:
-1. Biztosíts szakmai egymásra épülést: a legelső modulok mindig az alapokat adják meg (pl. munkavédelmi és technológiai előkészítés, szerszámok és anyagok kiválasztása), amit a részletes, középhaladó végrehajtási folyamatok (főműveletek), majd a komplex feladatok, és végül az ellenőrzési, befejezési fázisok követnek.
-2. A PTT szövegében szereplő gyakorlati követelményeket és leírásokat úgy csoportosítsd és bontsd modulokra, hogy azok egy koherens, egymást követő cselekvési láncolatot alkossanak.
-3. Kerüld az ad-hoc, elszórt vagy ismétlődő gyakorlati témákat. Csak a szakma szempontjából releváns, valós ipari gyakorlatot tükröző lépések szerepeljenek a modulok sorrendjében.
+── ELMÉLET ÉS GYAKORLAT TÍPUSÚ SZÉTVÁLASZTÁS ──
+- Keresd meg a tantárgy alatti ".4"-es pontot (pl. 3.1.1.4).
+- Ha a gyakorlati százalék 0% (pl. "legalább 0%-át gyakorlati helyszínen..."), akkor a tantárgy 100% ELMÉLET (theory). Minden modulja "theory" típusú legyen!
+- Ha a gyakorlati százalék nagyobb mint 0% (pl. 50%), akkor a tantárgy elméleti és gyakorlati moduljai külön válnak (lásd a typeFocus szűrést).
 
-── EXTRAKCIÓS SZABÁLYOK ──
-- SZŰRÉS: ${typeFocus} modulokat keresünk.
-- ELMÉLET DEFINÍCIÓ: Ismeretek, szabályok, elméleti összefüggések, anyagismeret, fogalmak.
-- GYAKORLAT DEFINÍCIÓ: Cselekvések, készségek, konkrét szakmai műveletek végrehajtása.
-- CÍM (FONTOS): A modul címe legyen pontos és szakmai (pl. "Szerkezeti anyagok szilárdsági jellemzői" vagy "Ipari gázok kezelése és tárolása").
+── KÓDOLÁS ÉS CÍMEK ──
+- A "sectionCode" végére fűzz ABC sorrendben betűket a felosztott 1-órás moduloknál: 3.1.1.6.1.a, 3.1.1.6.1.b, 3.1.1.6.1.c, stb.
+- A modulok címe legyen pontos, szakmai és diák-központú (pl. "Álláskeresés - 1. rész: Karriertervezés").
+
+TÁBLÁZAT KÖRNYEZET (Témakörök óraszámaival):
+${tableContext}
+
+ELEMEZENDŐ SZÖVEG:
+${chunk}
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
@@ -335,28 +336,15 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
     {
       "name": "Tantárgy neve",
       "code": "3.X.X",
-      "hours": 72,
-      "practicalPercent": 50,
+      "hours": 18,
+      "practicalPercent": 0,
       "modules": [
-        { "title": "Szakmai cím 1", "type": "theory", "sectionCode": "3.X.X.6.1.a" },
-        { "title": "Szakmai cím 2", "type": "theory", "sectionCode": "3.X.X.6.1.b" },
-        { "title": "Szakmai cím 3", "type": "practical", "sectionCode": "3.X.X.6.1.c" }
+        { "title": "Álláskeresés - 1. rész: Karriertervezés", "type": "theory", "sectionCode": "3.1.1.6.1.a" },
+        { "title": "Álláskeresés - 2. rész: Munkaerőpiac", "type": "theory", "sectionCode": "3.1.1.6.1.b" }
       ]
     }
   ]
 }
-
-── FONTOS INSTRUKCIÓK ──
-1. HOURS: Keresd meg a tantárgy neve melletti óraszámot.
-   - Ha "X/Y" formátumot látsz (pl. 190/217), MINDIG AZ ELSŐT (X) rögzítsd! 
-   - Ha egy sorban több óraszám oszlopot látsz, az első "Total/Összes" oszlopot használd.
-2. PRACTICALPERCENT: Keresd meg a tantárgyra vonatkozó gyakorlati arányt.
-   - Keresd az "X.X.X.4" alpontot (pl. 3.3.1.4), amely kimondja: "A képzés órakeretének legalább X%-át gyakorlati helyszínen...". 
-   - Ha ilyen nincs, becsüld meg a modulok típusa alapján (elmélet vs gyakorlat).
-3. MODULES: Légy nagyon részletes! Inkább legyen több kis modul, mint egy óriási. A mobil kijelzőkön a kisebb egységek jobban olvashatóak.
-
-ELEMEZENDŐ SZÖVEG:
-${chunk}
 `.trim();
   }
 
@@ -503,7 +491,7 @@ VÁLASZ (JSON):
   }
 
   async structureCurriculum(_professionName: string, _kkkText: string, chunk: string, importType?: 'theory' | 'practical' | 'both'): Promise<string> {
-    return this.buildExtractionPrompt(chunk, importType);
+    return this.buildExtractionPrompt(chunk, '', importType);
   }
 }
 
