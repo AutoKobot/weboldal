@@ -42,6 +42,64 @@ const getPlainText = (node: any): string => {
   return '';
 };
 
+// Helper to split text by math delimiters and render math equations inline using CodeCogs LaTeX rendering API
+const renderTextWithMath = (text: string) => {
+  if (!text) return text;
+  
+  // Regex to catch:
+  // 1. $$ ... $$ (block math)
+  // 2. $ ... $ (inline math)
+  // 3. \( ... \) (inline math)
+  // 4. ( ( ... ) ) or ( ( ... ) (parenthesis math typos)
+  const regex = /(\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|(?:\(\s*\()+.*?(?:\)\s*\))+)/g;
+  
+  const parts = text.split(regex);
+  if (parts.length === 1) return text;
+  
+  return parts.map((part, index) => {
+    const isMath = /^\$\$.*?\$\$$|^\$.*?\$|^\\\(.*?\\\)$|^(?:\(\s*\()+.*?(?:\)\s*\))+$/.test(part);
+    if (!isMath) return part;
+    
+    // Clean delimiters
+    const formula = part
+      .replace(/^\$\$/, '').replace(/\$\$$/, '')
+      .replace(/^\$/, '').replace(/\$/, '')
+      .replace(/^\\\( /, '').replace(/ \\\)$/, '')
+      .replace(/^\\\( /, '').replace(/\\\)$/, '')
+      .replace(/^\\\(/, '').replace(/\\\)$/, '')
+      .replace(/^(\(\s*)+/, '').replace(/(\)\s*)+$/, '')
+      .trim();
+      
+    if (!formula) return part;
+    
+    const isBlock = part.startsWith('$$');
+    
+    if (isBlock) {
+      const blockMathUrl = `https://latex.codecogs.com/svg.latex?\\huge&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
+      return (
+        <div key={index} className="math-visualizer my-8 flex flex-col items-center">
+          <div className="bg-neutral-50/40 p-8 rounded-3xl border border-neutral-100 border-dashed hover:bg-white hover:border-solid hover:shadow-md transition-all duration-500">
+            <img src={blockMathUrl} alt={formula} className="max-h-24 h-auto" />
+          </div>
+          <span className="text-[9px] uppercase tracking-wider text-neutral-400 mt-3 font-bold opacity-60">Szakmai vázlat / Képlet</span>
+        </div>
+      );
+    }
+    
+    const mathUrl = `https://latex.codecogs.com/svg.latex?\\inline&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
+    return (
+      <span key={index} className="inline-flex items-center mx-1 bg-neutral-50/80 px-2 py-0.5 rounded border border-neutral-100/50 hover:bg-white transition-colors duration-300">
+        <img 
+          src={mathUrl} 
+          alt={formula} 
+          className="inline-block max-h-4 h-auto align-middle" 
+          style={{ verticalAlign: 'middle', display: 'inline-block', margin: '0 2px' }}
+        />
+      </span>
+    );
+  });
+};
+
 // Separate components to avoid TDZ and initialization errors in production
 const MathParagraph = (props: any) => {
   const { children } = props;
@@ -57,13 +115,14 @@ const MathParagraph = (props: any) => {
                                text.includes('\\sigma') || text.includes('\\delta') || text.includes('\\alpha') || 
                                text.includes('\\beta') || text.includes('\\lambda') || text.includes('\\omega')) &&
                               (text.split(/\s+/).length < 8); // standalone formulas are short, not full text sentences
-
+ 
   const isChemical = /^[A-Z][a-z]?(\s*[:=]\s*[A-Z][a-z]?)+$/.test(text);
-
+ 
   if (isWrappedMath || isStandaloneFormula || isChemical) {
     const formula = text
       .replace(/^\[\s*/, '').replace(/\s*\]$/, '')
       .replace(/^\$\$\s*/, '').replace(/\s*\$\$/, '')
+      .replace(/^\$\s*/, '').replace(/\s*\$/, '')
       .replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
       .trim();
       
@@ -78,8 +137,14 @@ const MathParagraph = (props: any) => {
       </div>
     );
   }
+ 
+  // Map children to process strings for inline math
+  const processedChildren = Array.isArray(children)
+    ? children.map((child) => typeof child === 'string' ? renderTextWithMath(child) : child)
+    : (typeof children === 'string' ? renderTextWithMath(children) : children);
+
   // Use div instead of p to prevent invalid nesting when children contain block elements (e.g. MermaidDiagram)
-  return <div className="mb-4 leading-relaxed">{children}</div>;
+  return <div className="mb-4 leading-relaxed">{processedChildren}</div>;
 };
 
 // 100% local, offline-capable Mermaid diagram renderer using the official 'mermaid' package.

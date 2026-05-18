@@ -13,6 +13,63 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from "@/hooks/useAuth";
 
+// Helper to split text by math delimiters and render math equations inline using CodeCogs LaTeX rendering API
+const renderTextWithMath = (text: string) => {
+  if (!text) return text;
+  
+  // Regex to catch:
+  // 1. $$ ... $$ (block math)
+  // 2. $ ... $ (inline math)
+  // 3. \( ... \) (inline math)
+  // 4. ( ( ... ) ) or ( ( ... ) (parenthesis math typos)
+  const regex = /(\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|(?:\(\s*\()+.*?(?:\)\s*\))+)/g;
+  
+  const parts = text.split(regex);
+  if (parts.length === 1) return text;
+  
+  return parts.map((part, index) => {
+    const isMath = /^\$\$.*?\$\$$|^\$.*?\$|^\\\(.*?\\\)$|^(?:\(\s*\()+.*?(?:\)\s*\))+$/.test(part);
+    if (!isMath) return part;
+    
+    // Clean delimiters
+    const formula = part
+      .replace(/^\$\$/, '').replace(/\$\$$/, '')
+      .replace(/^\$/, '').replace(/\$/, '')
+      .replace(/^\\\( /, '').replace(/ \\\)$/, '')
+      .replace(/^\\\( /, '').replace(/\\\)$/, '')
+      .replace(/^\\\(/, '').replace(/\\\)$/, '')
+      .replace(/^(\(\s*)+/, '').replace(/(\)\s*)+$/, '')
+      .trim();
+      
+    if (!formula) return part;
+    
+    const isBlock = part.startsWith('$$');
+    
+    if (isBlock) {
+      const blockMathUrl = `https://latex.codecogs.com/svg.latex?\\huge&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
+      return (
+        <div key={index} className="math-visualizer my-4 flex flex-col items-center">
+          <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200 border-dashed hover:bg-white hover:shadow-sm transition-all duration-500">
+            <img src={blockMathUrl} alt={formula} className="max-h-16 h-auto" />
+          </div>
+        </div>
+      );
+    }
+    
+    const mathUrl = `https://latex.codecogs.com/svg.latex?\\inline&space;\\color{Gray}{${encodeURIComponent(formula)}}`;
+    return (
+      <span key={index} className="inline-flex items-center mx-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-200/50 hover:bg-white transition-colors duration-300">
+        <img 
+          src={mathUrl} 
+          alt={formula} 
+          className="inline-block max-h-4 h-auto align-middle" 
+          style={{ verticalAlign: 'middle', display: 'inline-block', margin: '0 2px' }}
+        />
+      </span>
+    );
+  });
+};
+
 interface ChatInterfaceProps {
   userId: string;
   moduleId?: number;
@@ -1617,7 +1674,12 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                               h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
                               h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
                               h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
-                              p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
+                              p: ({ children }) => {
+                                const processedChildren = Array.isArray(children)
+                                  ? children.map((child) => typeof child === 'string' ? renderTextWithMath(child) : child)
+                                  : (typeof children === 'string' ? renderTextWithMath(children) : children);
+                                return <p className="mb-2 leading-relaxed text-neutral-800">{processedChildren}</p>;
+                              },
                               ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
                               ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
                               li: ({ children }) => <li className="text-neutral-800">{children}</li>,
@@ -1662,7 +1724,12 @@ export default function ChatInterface({ userId, moduleId, onQuizStart }: ChatInt
                                 h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-neutral-800">{children}</h1>,
                                 h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-neutral-800">{children}</h2>,
                                 h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-neutral-800">{children}</h3>,
-                                p: ({ children }) => <p className="mb-2 leading-relaxed text-neutral-800">{children}</p>,
+                                p: ({ children }) => {
+                                  const processedChildren = Array.isArray(children)
+                                    ? children.map((child) => typeof child === 'string' ? renderTextWithMath(child) : child)
+                                    : (typeof children === 'string' ? renderTextWithMath(children) : children);
+                                  return <p className="mb-2 leading-relaxed text-neutral-800">{processedChildren}</p>;
+                                },
                                 ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-neutral-800">{children}</ul>,
                                 ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-neutral-800">{children}</ol>,
                                 li: ({ children }) => <li className="text-neutral-800">{children}</li>,

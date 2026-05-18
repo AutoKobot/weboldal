@@ -381,6 +381,12 @@ Minden modulhoz írj egy alapos, de lényegre törő szakmai kifejtést az aláb
 - Kerüld a pedagógiai sallangokat (pl. "A tanuló képes lesz...").
 - Ne legyen túl tömör, de ne is legyen feleslegesen bőbeszédű.
 
+── MATEMATIKAI KÉPLETEK FORMÁTUMA ──
+- Minden matematikai képletet és fizikai egyenletet KÖTELEZŐEN standard LaTeX formátumban írj!
+- Blokkszintű (külön sorba kerülő) képleteknél használd a dupla dollárjelet: $$ képlet $$ (pl. $$ U = I \times R $$).
+- Szövegközi (inline) képleteknél használd az egyetlen dollárjelet: $ képlet $ (pl. $ I = \frac{U}{R} $).
+- Szigorúan kerüld a zárójeles képlethelyettesítéseket, mint pl. "( ( V = I \cdot R )" vagy más nem szabványos megoldásokat!
+
 MODULOK:
 ${moduleList}
 
@@ -469,6 +475,12 @@ Gyakorlati nap címe: ${moduleTitle}
    - 7. Lépés: Minőségellenőrzés és mérés (dimenziók, tűréshatárok, működés ellenőrzése).
    - 8. Lépés: Rendrakás és szakmai adminisztráció (szerszámok elrakása, hulladékkezelés, munkalap vagy jegyzőkönyv kitöltése).
 3. Mindegyik feladat legyen cselekvés-orientált, felszólító módban megfogalmazva (pl. "Állítsa be...", "Végezze el...", "Mérje meg..."), kerülve a felesleges elméletet.
+
+── MATEMATIKAI KÉPLETEK FORMÁTUMA ──
+- Minden matematikai képletet és fizikai egyenletet KÖTELEZŐEN standard LaTeX formátumban írj!
+- Blokkszintű (külön sorba kerülő) képleteknél használd a dupla dollárjelet: $$ képlet $$ (pl. $$ U = I \times R $$).
+- Szövegközi (inline) képleteknél használd az egyetlen dollárjelet: $ képlet $ (pl. $ I = \frac{U}{R} $).
+- Szigorúan kerüld a zárójeles képlethelyettesítéseket, mint pl. "( ( V = I \cdot R )" vagy más nem szabványos megoldásokat!
 
 KIJELÖLT NAPI TEVÉKENYSÉGEK:
 ${activities.map((act, i) => `- ${act}`).join('\n')}
