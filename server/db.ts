@@ -1,7 +1,20 @@
+import dns from 'node:dns';
+import net from 'node:net';
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "../shared/schema";
+
+// Fix for Node.js v20+ Happy Eyeballs DNS resolution / connection timeout issues on Render/Neon
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+if (net.setDefaultAutoSelectFamily) {
+  net.setDefaultAutoSelectFamily(false);
+}
+if (net.setDefaultAutoSelectFamilyAttemptTimeout) {
+  net.setDefaultAutoSelectFamilyAttemptTimeout(10000); // 10 seconds timeout for family autoselection
+}
 
 // Configure Neon for serverless environments
 neonConfig.webSocketConstructor = ws;
