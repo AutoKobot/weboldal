@@ -238,13 +238,32 @@ router.post('/generate-hours/:professionId', combinedAuth, adminOnly, async (req
       return res.status(500).json({ message: 'Az AI nem tudott óraszámokat generálni.' });
     }
 
-    // Persist the hours to the modules
+    // Persist the hours to the modules and update the subjects' total hours
+    const subjectTotalHoursMap = new Map<number, number>();
+    const moduleToSubjectMap = new Map<number, number>();
+    for (const sub of subjectsWithModules) {
+      for (const mod of sub.modules) {
+        moduleToSubjectMap.set(mod.id, sub.id);
+      }
+    }
+
     let updatedCount = 0;
     for (const dist of hourDistributions) {
       if (dist.hours > 0) {
         await storage.updateModule(dist.moduleId, { suggestedHours: dist.hours.toString() });
         updatedCount++;
+        
+        const subjectId = moduleToSubjectMap.get(dist.moduleId);
+        if (subjectId !== undefined) {
+          const currentSum = subjectTotalHoursMap.get(subjectId) || 0;
+          subjectTotalHoursMap.set(subjectId, currentSum + dist.hours);
+        }
       }
+    }
+
+    // Update the hours field in the subjects table to reflect the AI distributed hours
+    for (const [subjectId, totalHours] of subjectTotalHoursMap.entries()) {
+      await storage.updateSubject(subjectId, { hours: Math.round(totalHours) });
     }
 
     res.json({
@@ -451,15 +470,16 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             activeImport.message = `${sub.name} - 1. lépés: Nyers műhelytevékenységek kigyűjtése...`;
             await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-            // Step 1: Extract raw workshop activities
+            // Step 1: Extract raw workshop activities from the isolated subject text
             const rawActivitiesRes = await withRetry(async () => {
               const openai = await getOpenAIClient();
+              const subjectPttText = ikkService.getSubjectPttText(sub.name, pttText);
               return openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 response_format: { type: "json_object" },
                 messages: [
                   { role: "system", content: "Szakoktató és PTT elemző vagy. Csak valid JSON-t adsz vissza." },
-                  { role: "user", content: ikkService.buildWorkshopActivityExtractionPrompt(pttText) }
+                  { role: "user", content: ikkService.buildWorkshopActivityExtractionPrompt(subjectPttText) }
                 ],
                 temperature: 0.1
               });

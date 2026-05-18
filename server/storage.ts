@@ -3615,9 +3615,20 @@ export class DatabaseStorage implements IStorage {
           // MIXED - SPLIT NEEDED
           console.log(`  - Splitting mixed subject: "${subject.name}" (ID: ${subject.id})`);
           
+          // Calculate proportional hours if subject.hours exists, otherwise fall back to module counts
+          let theoryHours = theoryModules.length;
+          let practicalHours = practicalModules.length;
+          
+          if (subject.hours) {
+            const totalModules = theoryModules.length + practicalModules.length;
+            const theoryRatio = theoryModules.length / totalModules;
+            theoryHours = Math.round(subject.hours * theoryRatio);
+            practicalHours = subject.hours - theoryHours;
+          }
+          
           // 1. Original becomes Theory
           await db.update(subjects)
-            .set({ type: 'theory', hours: theoryModules.length, updatedAt: new Date() })
+            .set({ type: 'theory', hours: theoryHours, updatedAt: new Date() })
             .where(eq(subjects.id, subject.id));
           
           // 2. Create New Practical Subject
@@ -3628,7 +3639,7 @@ export class DatabaseStorage implements IStorage {
             description: subject.description,
             type: 'practical',
             orderIndex: subject.orderIndex,
-            hours: practicalModules.length,
+            hours: practicalHours,
             schoolId: subject.schoolId,
             createdAt: new Date(),
             updatedAt: new Date()

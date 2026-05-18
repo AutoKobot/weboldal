@@ -236,9 +236,15 @@ VÁLASZ:
       const totalHours = subject.hours || (totalModules * 2);
 
       // Determine practical ratio
-      const aiEntry = aiRatios.find(
-        r => r.name?.toLowerCase().trim() === subject.name?.toLowerCase().trim()
-      );
+      const normalize = (n: string) => n.toLowerCase()
+        .replace(/tantárgy/g, '')
+        .replace(/gyakorlat/g, '')
+        .replace(/elmélet/g, '')
+        .replace(/[^a-z0-9áéíóöőuúüű]/g, '')
+        .trim();
+
+      const subjectNorm = normalize(subject.name);
+      const aiEntry = aiRatios.find(r => r.name && normalize(r.name) === subjectNorm);
       let practicalRatio: number;
       if (aiEntry !== undefined) {
         const pRatio = Math.max(0, Math.min(1, aiEntry.practicalRatio));
@@ -422,6 +428,45 @@ VÁLASZ (JSON):
   ]
 }
 `.trim();
+  }
+
+  getSubjectPttText(subName: string, fullText: string): string {
+    if (!fullText) return '';
+    
+    // Clean suffixes like 'gyakorlat' or 'elmélet' from name
+    const cleanName = subName
+      .replace(/\s*gyakorlat\s*$/i, '')
+      .replace(/\s*elmélet\s*$/i, '')
+      .trim();
+      
+    const nameLower = cleanName.toLowerCase();
+    let idx = fullText.toLowerCase().indexOf(nameLower);
+    
+    // If not found, try a shorter prefix (e.g. first 12 characters)
+    if (idx === -1 && cleanName.length > 12) {
+      idx = fullText.toLowerCase().indexOf(nameLower.substring(0, 12));
+    }
+    
+    if (idx === -1) {
+      console.warn(`[getSubjectPttText] Subject "${subName}" (cleaned: "${cleanName}") not found in PTT. Using first 15k chars.`);
+      return fullText.substring(0, 15000);
+    }
+    
+    // Find the next subject index or use a default window size
+    const searchRange = fullText.substring(idx + cleanName.length);
+    // Look for next heading of form X.Y.Z
+    const nextHeadingMatch = searchRange.match(/\n\s*\d+\.\d+\.\d+/);
+    
+    let endIdx = fullText.length;
+    if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
+      endIdx = idx + cleanName.length + nextHeadingMatch.index;
+    } else {
+      // Fallback safe window: 15,000 characters is more than enough for one subject's text
+      endIdx = Math.min(fullText.length, idx + 15000);
+    }
+    
+    const startIdx = Math.max(0, idx - 300); // include a bit of prefix context
+    return fullText.substring(startIdx, endIdx);
   }
 
   buildWorkshopActivityExtractionPrompt(chunk: string): string {
