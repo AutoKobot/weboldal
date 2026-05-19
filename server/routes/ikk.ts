@@ -465,6 +465,17 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               await runParallel(batches, 2, async (batch, batchIndex) => {
                 if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
 
+                // Check if all modules in this batch already exist to skip OpenAI call
+                const allExist = batch.every((bm: any) => existingModules.some(em => em.title === bm.title));
+                if (allExist) {
+                  processedModules += batch.length;
+                  const currentProgress = 40 + Math.round((processedModules / (totalModulesCount || 10)) * 55);
+                  if (currentProgress > activeImport.progress) {
+                     activeImport.progress = Math.min(95, currentProgress);
+                  }
+                  return;
+                }
+
                 if (batchIndex > 0) await new Promise(r => setTimeout(r, batchIndex * 500));
 
                 const res = await withRetry(async () => {

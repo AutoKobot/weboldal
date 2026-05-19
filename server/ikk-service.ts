@@ -391,7 +391,7 @@ Tantárgy: ${subjectName}
 Minden modulhoz írj egy alapos, de lényegre törő szakmai kifejtést az alábbi SZIGORÚ szabályok szerint:
 
 1. HA A MODUL [THEORY] (Elmélet):
-   - A "content" mezőbe írj 8-10 mondatos, részletes szakmai magyarázatot.
+   - A "content" mezőbe írj 5-6 mondatos, részletes szakmai magyarázatot.
    - Összpontosíts a fogalmakra, összefüggésekre, technikai adatokra és szabályokra.
    - Használj szakmailag pontos terminológiát.
    - A "practicalTasks" mező KÖTELEZŐEN ÜRES lista maradjon: [].
