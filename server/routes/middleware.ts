@@ -54,7 +54,7 @@ export const combinedAuth = async (req: any, res: any, next: any) => {
         // Throttling: Csak 5 percenként egyszer próbáljuk meg rögzíteni a jelenlétet
         if (!studentActivityTracker.has(studentId) || (now - studentActivityTracker.get(studentId)!) > 5 * 60 * 1000) {
           studentActivityTracker.set(studentId, now);
-          storage.recordLoginAttendance(studentId).catch(err => {
+          storage.recordLoginAttendance(studentId).catch((err: any) => {
             console.error('Error tracking student activity attendance:', err);
             studentActivityTracker.delete(studentId);
           });

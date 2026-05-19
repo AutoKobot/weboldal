@@ -33,7 +33,7 @@ export async function runSmartBackup() {
         let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
         if (!folderId) {
             const setting = await storage.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID");
-            folderId = setting?.value;
+            folderId = setting?.value ?? undefined;
         }
 
         if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {

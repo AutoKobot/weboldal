@@ -264,7 +264,7 @@ router.post('/generate-hours/:professionId', combinedAuth, adminOnly, async (req
     }
 
     // Update the hours field in the subjects table to reflect the AI distributed hours
-    for (const [subjectId, totalHours] of subjectTotalHoursMap.entries()) {
+    for (const [subjectId, totalHours] of Array.from(subjectTotalHoursMap.entries())) {
       await storage.updateSubject(subjectId, { hours: Math.round(totalHours) });
     }
 

@@ -9,7 +9,7 @@ import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
 import BottomNav from "@/components/bottom-nav";
 import DynamicBackground from "@/components/dynamic-background";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Menu, ArrowRight, GraduationCap, ArrowLeft, Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, Clock, Loader2, Settings, Wand2 } from "lucide-react";

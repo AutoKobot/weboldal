@@ -336,6 +336,9 @@ export interface IStorage {
 
   // Post-import processing
   reorganizeSubjects(professionId: number): Promise<void>;
+
+  // Automatikus jelenlét rögzítés
+  recordLoginAttendance(studentId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3672,6 +3675,34 @@ export class DatabaseStorage implements IStorage {
       console.error(`[REORGANIZE] Error during subject reorganization:`, error);
       throw error;
     }
+  }
+
+  async recordLoginAttendance(studentId: string): Promise<void> {
+    const student = await this.getUser(studentId);
+    if (!student) {
+      console.warn(`[Attendance Auto] Student not found: ${studentId}`);
+      return;
+    }
+    if (student.role !== 'student') {
+      return;
+    }
+    if (!student.classId) {
+      console.warn(`[Attendance Auto] Student ${studentId} has no assigned classId, skipping daily attendance recording.`);
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    await this.upsertDailyAttendance({
+      studentId,
+      classId: student.classId,
+      date: todayStr,
+      status: 'present',
+      actualStart: formattedTime,
+      recordedBy: 'auto'
+    });
   }
 }
 

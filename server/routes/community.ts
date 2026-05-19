@@ -104,7 +104,7 @@ router.get('/discussions', combinedAuth, async (req: any, res) => {
     if (rows.length === 0) return res.json([]);
 
     const discussionIds = rows.map(d => d.id);
-    const authorIds = [...new Set(rows.map(d => d.authorId))];
+    const authorIds = Array.from(new Set(rows.map(d => d.authorId)));
 
     // Batch fetch all needed data
     const [allAuthors, allReplies, allReactions] = await Promise.all([

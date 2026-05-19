@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 export function useAudioAnalyzer(audioRef: React.RefObject<HTMLAudioElement>) {
   const [volume, setVolume] = useState(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
   const animationFrameRef = useRef<number>();
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
@@ -61,7 +61,7 @@ export function useAudioAnalyzer(audioRef: React.RefObject<HTMLAudioElement>) {
     const updateVolume = () => {
       if (!analyserRef.current || !dataArrayRef.current) return;
 
-      analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+      analyserRef.current.getByteFrequencyData(dataArrayRef.current as any);
 
       let sum = 0;
       for (let i = 0; i < dataArrayRef.current.length; i++) {
