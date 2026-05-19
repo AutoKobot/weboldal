@@ -1,75 +1,64 @@
-# 🛠️ 1-Napos Gyakorlati Tananyag Méretezési és Kinyerési Logika (1-Day Practical Sizing Pipeline)
+# 🛠️ Kétfázisú IKK Import és Gyakorlati Tananyag Pipeline (Two-Phase IKK Import Pipeline)
 
-Ez a dokumentum részletezi a gyakorlati tantárgyak és modulok **1 műhelynap (kb. 6-8 óra gyakorlat) = 1 gyakorlati modul** elvű kinyerési és méretezési logikáját. 
-
-A gyakorlati oktatásban ez a logika garantálja, hogy a tanuló ne 1-órás elaprózott leckéket kapjon, hanem egy teljes napi összefüggő projektfeladatot, mérést vagy beállítást sajátítson el a műhelyben, szigorúan lekövetve a valós ipari műhelynapok ütemezését.
+Ez a dokumentum részletezi a programtantervek (PTT) kinyerésének új, **kétfázisú, tantárgy-izolált és napi műhelysztenderdekre méretezett** pipeline-ját.
 
 ---
 
-## 📐 A Gyakorlati Kinyerés Alapelvei
+## 📐 A Kétfázisú Pipeline Architektúrája
 
-A gyakorlati tananyagok kinyerése egy speciális, **3-lépcsős szűrőn és méretezési folyamaton** megy keresztül:
-
-1. **Nyers Műhelytevékenységek Kigyűjtése (Step 1):** Az AI először kizárólag a fizikai, kézzel fogható, műhelyben elvégezhető gyakorlati feladatokat és méréseket gyűjti ki a PTT leírásból, kiszűrve minden elméleti sallangot.
-2. **1 Műhelynapos Tanulási Egységekre Tervezés (Step 2):** A kigyűjtött elemeket az AI szekvenciálisan csoportosítja olyan méretű modulokba (napokba), amelyeket a tanuló **pontosan 1 műhelynap (6-8 óra gyakorlat)** alatt reálisan meg tud tanulni és el tud végezni. A modulok automatikusan a `"Nap X: [Cím]"` formátumot kapják.
-3. **Részletes Gyakorlati Útmutatók Generálása (Step 3):** Minden egyes napi egységhez az AI felépít egy precíz, cselekvés-orientált, felszólító módban írt 6-8 lépéses munkafolyamat leírást (Munkavédelem $\rightarrow$ Kalibrálás & Anyagelőkészítés $\rightarrow$ Főműveletek $\rightarrow$ Utóműveletek $\rightarrow$ Minőségellenőrzés $\rightarrow$ Rendrakás & Szakmai Adminisztráció).
-
----
-
-## 🔄 A Gyakorlati Kinyerési Pipeline Folyamata
+A korábbi egyfázisos (ahol a tantárgyak és leckék kinyerése egyszerre, karakteralapú darabolással történt) modellt felváltotta egy jóval robusztusabb, **kétfázisú feldolgozási struktúra**:
 
 ```mermaid
 graph TD
-    A[PTT PDF Dokumentum] --> B{Van gyakorlati óraszám?}
-    B -- Nincs / 0% --> C[Kilépés - Nem jön létre gyakorlati tantárgy]
-    B -- Van / > 0% --> D[1. Gyakorlati Tantárgy Létrehozása]
+    A[PTT PDF Dokumentum] --> B[Phase 1: Logikai Egységekre Bontás <br> Split 3.1, 3.2, 3.3 mentén]
+    B --> C[Tantárgyak és Óraszámok Kinyerése <br> Globális táblázat alapján]
+    C --> D[Tantárgyak azonnali létrehozása a DB-ben <br> Elmélet/Gyakorlat szétválasztással]
     
-    D --> E[Lépés 1: Nyers Műhelytevékenységek Kinyerése <br> Kiszűri az elméletet]
-    E --> F[Lépés 2: 1-Napos Sizing és Csoportosítás <br> Target: 6-8 órás napi modulok]
-    F --> G[Lépés 3: Részletes Útmutatók Generálása <br> Cselekvés-orientált munkafolyamat]
+    D --> E[Phase 2: Tantárgyankénti Izolált Generálás <br> Ciklus a DB tantárgyakon]
+    E --> F{Tantárgy Típusa?}
+    
+    F -- Elmélet theory --> G[Tantárgy tanmenet felosztása T darab 1-órás modulra]
+    G --> H[Elméleti leckék tartalomfejlesztése <br> 5-6 mondatos sűrű kifejtés]
+    
+    F -- Gyakorlat practical --> I[1. Lépés: Nyers tevékenység kinyerés <br> 2. Lépés: 6-8 órás műhelynap sizing <br> 3. Lépés: Cselekvés-orientált útmutatók]
 ```
 
 ---
 
-## 🛠️ Részletes Lépések és Algoritmus
+## 🔄 Részletes Fázisok és Algoritmus
 
-### Lépés 1: Nyers Műhelytevékenységek Kigyűjtése
-A rendszer kivonja a PTT szövegéből a gyakorlati megmunkálási, mérési vagy szerelési műveleteket. Az AI feladata, hogy letisztítsa és összegyűjtse az elvégzendő fizikai tevékenységeket.
-*   **Prompt**: `buildWorkshopActivityExtractionPrompt()`
-*   **Kimenet**: Nyers tevékenységek listája.
+### 1. FÁZIS: Struktúra Elemzés és Adatbázis Váz Felépítése
+Ebben a fázisban a rendszer a PTT szerkezetét térképezi fel és létrehozza a tantárgyakat az adatbázisban a modulok kifejtése előtt:
+1.  **Logikai darabolás (Logical Split):** A PTT szövegét nem karakterhossz szerint, hanem a fő szakmai fejezetek (`3.1`, `3.2`, `3.3`, stb.) mentén bontjuk szét.
+2.  **Szakma AI Elemzés:** Az AI elemzi a fejezeteket a PTT elején található globális óraszám-összesítő táblázattal együtt. Kigyűjti a tantárgyak nevét, kódját (pl. `3.1.1`), elméleti/gyakorlati óraszámait és százalékos arányait. Ebben a lépésben **nem generálunk modulokat**.
+3.  **Split Tantárgyak Létrehozása:** A kinyert adatok alapján a rendszer azonnal létrehozza a tantárgyakat a DB-ben:
+    *   Ha egy tantárgynak van elméleti óraszáma, létrejön egy `theory` típusú tantárgy (pl. *Gépészeti alapismeretek*).
+    *   Ha van gyakorlati óraszáma, létrejön egy külön `practical` típusú tantárgy is (pl. *Gépészeti alapismeretek gyakorlat*).
+4.  **Adminisztrációs mérföldkő:** A tantárgyi struktúra azonnal megjelenik az adatbázisban, és a háttérfolyamat kiszámítja a pontos teljes modul-célkitűzést a progress-barhoz.
 
-### Lépés 2: 1-Napos Tanulási Egységekre Tervezés (Sizing)
-A kigyűjtött nyers tevékenységeket az AI szekvenciálisan egymásra épülő napi csomagokká rendezi át. Minden modul pontosan 1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat) anyagát tartalmazza.
-*   **Prompt**: `buildWorkshopDaySizingPrompt()`
-*   **Modul formátuma**: `"Nap X: [Cím]"` (pl. *"1. nap: Kéziszerszámok biztonságos használata és fémfűrészelés alapjai"*).
+### 2. FÁZIS: Tantárgyankénti Izolált Generálás (Phase 2)
+A rendszer végigmegy a DB-ben létrehozott tantárgyakon egyesével. Mivel a tantárgyakat külön kezeljük, **kizárt a tantárgyak közötti modul-átfedés (cross-contamination)**:
 
-### Lépés 3: Részletes Gyakorlati Útmutatók Generálása
-Minden naphoz létrejön egy cselekvés-orientált útmutató, ami végigvezeti a diákot az ipari munkafolyamaton.
-*   **Prompt**: `buildPracticalDayContentPrompt()`
-*   **Struktúra**: 
-    1.  *Munkavédelem és biztonsági ellenőrzések*
-    2.  *Kalibrálás és anyagelőkészítés*
-    3.  *Főműveletek és megmunkálás*
-    4.  *Utóműveletek és tisztítás*
-    5.  *Minőségellenőrzés (mérés, vizuális ellenőrzés)*
-    6.  *Rendrakás és szakmai adminisztráció*
+#### A. Elméleti tantárgyak feldolgozása:
+1.  **Tanmenet felosztása:** Az AI felosztja a tantárgy PTT szövegét pontosan `T` darab 1-órás modulra/leckére (ahol `T` az elméleti óraszám).
+2.  **Granuláris tartalomfejlesztés:** A leckéket 4-es csoportokban elküldjük az AI-nak, ami legenerálja a sűrű, 5-6 mondatos elméleti kifejtést hozzájuk.
+
+#### B. Gyakorlati tantárgyak feldolgozása (3-Step Daily Pipeline):
+1.  **Nyers Műhelytevékenységek Kigyűjtése (Step 1):** Kivonjuk a PTT szövegéből a fizikai megmunkálási, mérési vagy szerelési műveleteket.
+2.  **1-Napos Sizing (Step 2):** A kigyűjtött nyers tevékenységeket szekvenciálisan egymásra épülő napi csomagokká rendezzük. Minden modul pontosan 1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat) anyagát tartalmazza, `"Nap X: [Cím]"` formátumban.
+3.  **Részletes Gyakorlati Útmutatók Generálása (Step 3):** Minden naphoz cselekvés-orientált, 6 lépéses útmutatót generálunk (Munkavédelem $\rightarrow$ Kalibrálás $\rightarrow$ Főműveletek $\rightarrow$ Utóműveletek $\rightarrow$ Minőségellenőrzés $\rightarrow$ Rendrakás).
 
 ---
 
-## 🤖 AI Prompt Gyakorlati Irányelvek
+## 🤖 AI Promptok és Szabályok
 
-Az [ikk-service.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/ikk-service.ts) fájl gyakorlati modul generálási promptjai szigorúan ezt a 3-lépcsős napi struktúrát kényszerítik ki.
-
-### Sizing Prompt Szabály (`buildWorkshopDaySizingPrompt`):
-```markdown
-1. Csoportosítsd és strukturáld ezeket a tevékenységeket egymásra épülő, szekvenciális egységekre (modulokra).
-2. KÖTELEZŐ 1 NAPOS MÉRETEZÉS: Minden egyes egység (modul) pontosan akkora méretű legyen, amit egy tanuló 1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat) alatt reálisan meg tud tanulni és el tud végezni a műhelyben!
-3. Adj minden napnak egy vonzó, szakmailag pontos "Nap [X]: [Cím]" formátumú nevet.
-```
+A generálási szabályok és prompt sablonok a [server/ikk-service.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/ikk-service.ts) fájlban érhetőek el, míg a fázisvezérlést a [server/routes/ikk.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/routes/ikk.ts) végzi.
 
 ---
 
 ## 💾 Rendszerszintű Előnyök
 
-*   **Valós Ütemezés:** A modulok tökéletesen lefedik a szakiskolai gyakorlati oktatási napokat, így a tanár közvetlenül a napi elvégzett feladatok szerint tud osztályozni és haladni.
-*   **Áttekinthető Projektek:** A diákok nem aprózódnak el 45 perces elméletinek tűnő gyakorlati leckékben; minden modul egy valós, kézzel fogható napi projektet vagy műhelymunkát takar.
+*   **Garantált Nulla Átfedés:** A tantárgyak izolációja miatt lehetetlen, hogy hegesztési feladatok kerüljenek egy nyelvtanfolyam moduljai közé.
+*   **Tökéletesen Kiszámítható Haladás:** A progress bar pontosan tudja az elméleti órák és becsült műhelynapok összegét, így zökkenőmentesen és valósághűen növekszik.
+*   **Rendkívül Alacsony Memóriaigény:** Mivel egyszerre mindig csak egyetlen tantárgy moduljait tartjuk a memóriában feldolgozás alatt, a szerver RAM-igénye stabilan 200 MB alatt marad (ideális a 512 MB-os ingyenes felhős korlátokhoz).
+*   **Hibamegkerülés és Resumability:** Ha az importálás megszakad, az ismételt indításkor a meglévő modulok másodpercek alatt átugrásra kerülnek, így a folyamat zökkenőmentesen folytatódik.

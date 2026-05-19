@@ -448,8 +448,8 @@ VÁLASZ (JSON):
     }
     
     if (idx === -1) {
-      console.warn(`[getSubjectPttText] Subject "${subName}" (cleaned: "${cleanName}") not found in PTT. Using first 15k chars.`);
-      return fullText.substring(0, 15000);
+      console.warn(`[getSubjectPttText] Subject "${subName}" (cleaned: "${cleanName}") not found in PTT. Returning empty string.`);
+      return '';
     }
     
     // Find the next subject index or use a default window size

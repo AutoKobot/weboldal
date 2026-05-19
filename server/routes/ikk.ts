@@ -337,25 +337,29 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
         const { kkkText, pttText } = await ikkService.getProfessionContent(profession);
         
-        const chunks = ikkService.splitPttIntoSections(pttText);
-        if (chunks.length === 0) throw new Error("Nem sikerült tantárgyakat találni a PTT-ben.");
+        // --- STEP 1: LOGICAL SPLIT BY MAJOR UNITS ---
+        activeImport.message = "Szakma szerkezetének elemzése (Phase 1)...";
+        activeImport.progress = 12;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-        // Extract table context (first 8000 characters containing the complete subject/topic hours table)
-        const tableContext = pttText.substring(0, 8000);
+        // Split PTT along major vocational units (e.g., 3.1, 3.2, 3.3)
+        const sections = pttText
+          .split(/(?=\n\s*\d+\.\d+\s+[A-ZÁÉÍÓÖŐUÚÜŰa-záéíóöőuúüű])/)
+          .filter(s => s.trim().length > 100);
 
+        const tableContext = pttText.substring(0, 12000);
         const mergedSubjectsMap: Map<string, any> = new Map();
-        let analysisProgress = 0;
-        await runParallel(chunks, 1, async (chunk, i) => {
+        let analysisProgress = 12;
+
+        await runParallel(sections, 2, async (section, idx) => {
           if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
 
-          activeImport.message = `Szerkezet elemzése (${i + 1}/${chunks.length})...`;
-          // Map analysis to 15-40% range
-          const currentAnalysisProgress = 15 + Math.round((i / chunks.length) * 25);
+          activeImport.message = `Szakma szerkezetének elemzése (${idx + 1}/${sections.length})...`;
+          const currentAnalysisProgress = 12 + Math.round((idx / sections.length) * 12);
           if (currentAnalysisProgress > analysisProgress) {
             analysisProgress = currentAnalysisProgress;
             activeImport.progress = analysisProgress;
           }
-          
           await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
           const response = await withRetry(async () => {
@@ -364,38 +368,71 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               model: "gpt-4o-mini",
               response_format: { type: "json_object" },
               messages: [
-                { role: "system", content: "Te egy precíz PTT elemző vagy. Csak valid JSON-t adsz vissza subjects listával." },
-                { role: "user", content: ikkService.buildExtractionPrompt(chunk, tableContext, type) }
+                { role: "system", content: "Te egy PTT (Programtanterv) szerkezet-elemző szakértő vagy. Csak valid JSON-t adsz vissza subjects listával, modulok nélkül!" },
+                { role: "user", content: `
+Elemezd az alábbi PTT egységet és a táblázat környezetet!
+Határozd meg a szekcióban található tantárgyakat, kódjukat (pl. 3.1.1), elméleti és gyakorlati óraszámaikat, valamint a gyakorlat százalékos arányát.
+
+TÁBLÁZAT KÖRNYEZET (Táblázatos óraszámok):
+${tableContext}
+
+DOKUMENTUM EGYSÉG SZÖVEGE:
+${section}
+
+SZABÁLYOK:
+1. Határozd meg az elméleti (theoryHours) és gyakorlati (practicalHours) órákat. A magyar PTT-ben mindig az ELMÉLET áll az első helyen és a GYAKORLAT a másodikon!
+2. A "practicalPercent" a gyakorlati arány százalékban (0-100). Ha nincs gyakorlat, ez 0.
+3. NE generálj modulokat vagy leckéket ebben a lépésben! Csak a tantárgyakat és azok összefoglaló adatait gyűjtsd ki!
+
+VÁLASZ FORMÁTUM (SZIGORÚ JSON):
+{
+  "subjects": [
+    {
+      "name": "Tantárgy neve (pl. Gépészeti alapismeretek)",
+      "code": "3.X.X",
+      "totalHours": 80,
+      "theoryHours": 40,
+      "practicalHours": 40,
+      "practicalPercent": 50,
+      "description": "Rövid szakmai leírás..."
+    }
+  ]
+}
+` }
               ],
-              temperature: 0,
+              temperature: 0
             });
           });
 
           const data = JSON.parse(response.choices[0].message.content || '{"subjects":[]}');
           if (data.subjects) {
             for (const sub of data.subjects) {
-              const key = sub.name?.toLowerCase().trim();
+              const key = (sub.code || '').trim() || sub.name?.toLowerCase().trim();
               if (!key || key.includes('példa')) continue;
-              if (!mergedSubjectsMap.has(key)) mergedSubjectsMap.set(key, { ...sub, modules: [] });
-              const existing = mergedSubjectsMap.get(key);
-              if (sub.modules) {
-                for (const mod of sub.modules) {
-                  if (!existing.modules.some((m: any) => m.title === mod.title)) existing.modules.push(mod);
-                }
+              
+              if (!mergedSubjectsMap.has(key)) {
+                mergedSubjectsMap.set(key, sub);
+              } else {
+                const existing = mergedSubjectsMap.get(key);
+                mergedSubjectsMap.set(key, {
+                  ...existing,
+                  ...sub,
+                  name: sub.name || existing.name,
+                  description: sub.description || existing.description
+                });
               }
             }
           }
         });
 
-        const finalSubjects = Array.from(mergedSubjectsMap.values());
-        if (finalSubjects.length === 0) throw new Error("Az AI nem talált feldolgozható tantárgyakat.");
+        const extractedSubjects = Array.from(mergedSubjectsMap.values());
+        if (extractedSubjects.length === 0) throw new Error("A struktúra elemzés során az AI nem talált feldolgozható tantárgyakat.");
 
         // Find or create profession
         const allProfs = await storage.getProfessions();
         let dbProfession = allProfs.find(p => p.name.trim() === profession.name.trim());
         
         if (!dbProfession) {
-          // Create new if not exists
           dbProfession = await storage.createProfession({
             name: profession.name,
             description: `Importálva az IKK-ról.`,
@@ -404,7 +441,6 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
           });
           isNewProfession = true;
         } else {
-          // Clean description from old update notes and add new one
           const cleanDescription = (dbProfession.description || "").split(" (Frissítve:")[0];
           await storage.updateProfession(dbProfession.id, {
             description: cleanDescription + ` (Frissítve: ${new Date().toLocaleDateString('hu-HU')} - ${type === 'both' ? 'Teljes' : type === 'theory' ? 'Elmélet' : 'Gyakorlat'})`
@@ -413,42 +449,135 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         
         createdProfessionId = dbProfession.id;
         const existingSubjects = await storage.getSubjects(dbProfession.id);
+        const dbSubjects = [];
 
-        let processedModules = 0;
-        let totalModulesCount = finalSubjects.reduce((acc, s) => acc + s.modules.length, 0);
-        
-        for (const sub of finalSubjects) {
-          if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
+        // Save subjects immediately to the database
+        activeImport.message = "Tantárgyak és óraszámok mentése az adatbázisba...";
+        activeImport.progress = 25;
+        await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-          // Let's determine if we need to process theory and/or practical
-          const processTheory = type === 'theory' || (type === 'both' && (sub.modules.some((m: any) => (m.type || 'theory') === 'theory') || sub.practicalPercent === undefined || sub.practicalPercent < 100));
-          const processPractical = type === 'practical' || (type === 'both' && (sub.modules.some((m: any) => m.type === 'practical') || (sub.practicalPercent !== undefined && sub.practicalPercent > 0)));
+        for (const sub of extractedSubjects) {
+          const theoryHoursParsed = typeof sub.theoryHours === 'number' ? sub.theoryHours : parseInt(sub.theoryHours || '0') || 0;
+          const practicalHoursParsed = typeof sub.practicalHours === 'number' ? sub.practicalHours : parseInt(sub.practicalHours || '0') || 0;
+          const totalHoursParsed = typeof sub.totalHours === 'number' ? sub.totalHours : parseInt(sub.totalHours || '0') || 0;
+          const practicalPercentParsed = typeof sub.practicalPercent === 'number' ? sub.practicalPercent : parseInt(sub.practicalPercent || '0') || 0;
 
-          // ── 1. PROCESS THEORY COMPONENT ──
+          const processTheory = type === 'theory' || (type === 'both' && theoryHoursParsed > 0);
+          const processPractical = type === 'practical' || (type === 'both' && practicalHoursParsed > 0 && practicalPercentParsed > 0);
+
           if (processTheory) {
-            const subjectType = 'theory';
             const subjectName = sub.name;
-            let subjectHours = sub.theoryHours !== undefined ? sub.theoryHours : (sub.totalHours || sub.hours || null);
-
-            let dbSubject = existingSubjects.find(s => s.name === subjectName && s.type === subjectType);
+            const subjectHours = theoryHoursParsed || totalHoursParsed || null;
+            let dbSubject = existingSubjects.find(s => s.name === subjectName && s.type === 'theory');
             
             if (!dbSubject) {
               dbSubject = await storage.createSubject({
                 professionId: dbProfession.id,
                 name: subjectName,
-                code: (sub.code || "").replace(/\.$/, ""), // Clean trailing dot for better sorting
+                code: (sub.code || "").replace(/\.$/, ""),
                 description: sub.description || "",
-                type: subjectType,
+                type: 'theory',
                 orderIndex: 0,
                 hours: subjectHours
               });
             } else {
-              // Update hours field to correct potential mismatches
               await storage.updateSubject(dbSubject.id, { hours: subjectHours });
             }
+            dbSubjects.push(dbSubject);
+          }
 
-            // Filter theory modules specifically
-            const theoryModules = sub.modules.filter((m: any) => (m.type || 'theory') === 'theory');
+          if (processPractical) {
+            let subjectName = sub.name;
+            if (!subjectName.toLowerCase().includes('gyakorlat')) {
+              subjectName = subjectName + ' gyakorlat';
+            }
+            const subjectHours = practicalHoursParsed || totalHoursParsed || null;
+            let dbSubject = existingSubjects.find(s => s.name === subjectName && s.type === 'practical');
+            
+            if (!dbSubject) {
+              dbSubject = await storage.createSubject({
+                professionId: dbProfession.id,
+                name: subjectName,
+                code: (sub.code || "").replace(/\.$/, ""),
+                description: sub.description || "",
+                type: 'practical',
+                orderIndex: 0,
+                hours: subjectHours
+              });
+            } else {
+              await storage.updateSubject(dbSubject.id, { hours: subjectHours });
+            }
+            dbSubjects.push(dbSubject);
+          }
+        }
+
+        // Calculate total target modules for progress mapping
+        let totalTargetModules = 0;
+        for (const dbSub of dbSubjects) {
+          if (dbSub.type === 'theory') {
+            totalTargetModules += (dbSub.hours || 10);
+          } else {
+            totalTargetModules += Math.max(1, Math.round((dbSub.hours || 30) / 7));
+          }
+        }
+        
+        let processedModules = 0;
+
+        // ── PHASE 2: INDIVIDUAL SUBJECT MODULAR BREAKDOWN ──
+        let subjectIndex = 0;
+        for (const dbSubject of dbSubjects) {
+          if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
+
+          subjectIndex++;
+          activeImport.message = `Tananyag generálása (${subjectIndex}/${dbSubjects.length}): ${dbSubject.name}...`;
+          activeImport.progress = 30 + Math.round((subjectIndex / dbSubjects.length) * 65);
+          await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
+
+          const subjectPttText = ikkService.getSubjectPttText(dbSubject.name, pttText);
+          if (!subjectPttText.trim()) {
+            console.log(`[IKK-IMPORT] ${dbSubject.name} tantárgynak nincs tanmenete a PTT-ben. Átugrás.`);
+            continue;
+          }
+
+          if (dbSubject.type === 'theory') {
+            // --- THEORY MODULAR BREAKDOWN ---
+            const totalHours = dbSubject.hours || 10;
+            
+            activeImport.message = `${dbSubject.name} - Tanmenet felosztása (${totalHours} óra)...`;
+            await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
+
+            const breakdownRes = await withRetry(async () => {
+              const openai = await getOpenAIClient();
+              return openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                response_format: { type: "json_object" },
+                messages: [
+                  { role: "system", content: "Te egy szigorú tanmenet-tervező és szakoktató vagy. Csak valid JSON-t adsz vissza." },
+                  { role: "user", content: `
+A feladatod a(z) "${dbSubject.name}" tantárgy tanmenetének lebontása pontosan ${totalHours} darab 1-órás modulra (leckére) az 1 TANÓRA = 1 MODUL elv alapján.
+
+TANTÁRGY LEÍRÁSA A PTT-BEN:
+${subjectPttText}
+
+SZABÁLYOK:
+1. Generálj PONTOSAN ${totalHours} darab leckét (modult). Nem lehet se több, se kevesebb!
+2. A leckék címei legyenek szakmailag sűrűek, és kövessék a PTT logikai sorrendjét.
+3. Minden leckéhez rendelj egy sectionCode-ot a tantárgy kódja alapján (pl. ha a tantárgy kódja "${dbSubject.code || '3.1.1'}", akkor a leckék kódjai: "${dbSubject.code || '3.1.1'}.1.a", "${dbSubject.code || '3.1.1'}.1.b", stb.).
+
+VÁLASZ FORMÁTUM (SZIGORÚ JSON):
+{
+  "modules": [
+    { "title": "Lecke címe", "sectionCode": "${dbSubject.code || '3.1.1'}.1.a" }
+  ]
+}
+` }
+                ],
+                temperature: 0.1
+              });
+            });
+
+            const breakdownData = JSON.parse(breakdownRes.choices[0].message.content || '{"modules":[]}');
+            const theoryModules = breakdownData.modules || [];
 
             if (theoryModules.length > 0) {
               const existingModules = await storage.getModules(dbSubject.id);
@@ -459,20 +588,14 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                 batches.push(theoryModules.slice(i, i + BATCH_SIZE));
               }
 
-              // Safety delay
-              await new Promise(r => setTimeout(r, 1000));
-
+              let theoryProcessed = 0;
               await runParallel(batches, 2, async (batch, batchIndex) => {
                 if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
 
-                // Check if all modules in this batch already exist to skip OpenAI call
                 const allExist = batch.every((bm: any) => existingModules.some(em => em.title === bm.title));
                 if (allExist) {
+                  theoryProcessed += batch.length;
                   processedModules += batch.length;
-                  const currentProgress = 40 + Math.round((processedModules / (totalModulesCount || 10)) * 55);
-                  if (currentProgress > activeImport.progress) {
-                     activeImport.progress = Math.min(95, currentProgress);
-                  }
                   return;
                 }
 
@@ -485,7 +608,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                     response_format: { type: "json_object" },
                     messages: [
                       { role: "system", content: "Tananyagfejlesztő vagy. Generálj szakmai tartalmat JSON-ben." },
-                      { role: "user", content: ikkService.buildContentPrompt(profession.name, sub.name, batch) }
+                      { role: "user", content: ikkService.buildContentPrompt(profession.name, dbSubject.name, batch) }
                     ],
                     temperature: 0.4
                   }, {
@@ -504,66 +627,35 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                       content: modData.content || "",
                       practicalTasks: modData.practicalTasks || [],
                       type: 'theory',
-                      moduleNumber: ++processedModules,
+                      moduleNumber: ++theoryProcessed,
                       sectionCode: original?.sectionCode || null,
                       isPublished: false
                     };
                   });
 
                 if (modulesToCreate.length > 0) await storage.bulkCreateModules(modulesToCreate);
-                else processedModules += batch.length;
+                else theoryProcessed += batch.length;
                 
-                const currentProgress = 40 + Math.round((processedModules / (totalModulesCount || 10)) * 55);
-                if (currentProgress > activeImport.progress) {
-                   activeImport.progress = Math.min(95, currentProgress);
-                }
-                activeImport.message = `${sub.name} (Elmélet) - Tartalom (${processedModules}/${totalModulesCount || 10})...`;
-                
+                processedModules += batch.length;
+                const currentProgress = 30 + Math.round((processedModules / (totalTargetModules || 10)) * 65);
+                activeImport.progress = Math.min(99, currentProgress);
+
+                activeImport.message = `${dbSubject.name} (Elmélet) - Tartalom (${theoryProcessed}/${theoryModules.length})...`;
                 await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-                // Clean up memory after each batch to prevent hitting 512MB RAM limit
                 if (global.gc) {
-                  try {
-                    global.gc();
-                  } catch (e) {}
+                  try { global.gc(); } catch (e) {}
                 }
               });
             }
-          }
 
-          // ── 2. PROCESS PRACTICAL COMPONENT ──
-          if (processPractical) {
-            const subjectType = 'practical';
-            let subjectName = sub.name;
-            if (!subjectName.toLowerCase().includes('gyakorlat')) {
-              subjectName = subjectName + ' gyakorlat';
-            }
-            let subjectHours = sub.practicalHours !== undefined ? sub.practicalHours : (sub.totalHours || sub.hours || null);
-
-            let dbSubject = existingSubjects.find(s => s.name === subjectName && s.type === subjectType);
-            
-            if (!dbSubject) {
-              dbSubject = await storage.createSubject({
-                professionId: dbProfession.id,
-                name: subjectName,
-                code: (sub.code || "").replace(/\.$/, ""), // Clean trailing dot for better sorting
-                description: sub.description || "",
-                type: subjectType,
-                orderIndex: 0,
-                hours: subjectHours
-              });
-            } else {
-              await storage.updateSubject(dbSubject.id, { hours: subjectHours });
-            }
-
-            // --- 3-STEP MULTI-STEP PRACTICAL IMPORT PIPELINE (Daily breakdown) ---
-            activeImport.message = `${sub.name} - 1. lépés: Nyers műhelytevékenységek kigyűjtése...`;
+          } else if (dbSubject.type === 'practical') {
+            // --- PRACTICAL DUAL-PIPELINE (Daily breakdown) ---
+            activeImport.message = `${dbSubject.name} - 1. lépés: Nyers műhelytevékenységek kigyűjtése...`;
             await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-            // Step 1: Extract raw workshop activities from the isolated subject text
             const rawActivitiesRes = await withRetry(async () => {
               const openai = await getOpenAIClient();
-              const subjectPttText = ikkService.getSubjectPttText(sub.name, pttText);
               return openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 response_format: { type: "json_object" },
@@ -579,10 +671,9 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
             const rawActivities = rawActivitiesData.rawActivities || [];
 
             if (rawActivities.length > 0) {
-              activeImport.message = `${sub.name} - 2. lépés: 1 napos tanulási egységekbe szervezés...`;
+              activeImport.message = `${dbSubject.name} - 2. lépés: 1 napos tanulási egységekbe szervezés...`;
               await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-              // Step 2: 1-day granularity sizing
               const sizedModulesRes = await withRetry(async () => {
                 const openai = await getOpenAIClient();
                 return openai.chat.completions.create({
@@ -590,7 +681,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                   response_format: { type: "json_object" },
                   messages: [
                     { role: "system", content: "Gyakorlati tanmenet-tervező vagy. Csak valid JSON-t adsz vissza." },
-                    { role: "user", content: ikkService.buildWorkshopDaySizingPrompt(sub.name, rawActivities) }
+                    { role: "user", content: ikkService.buildWorkshopDaySizingPrompt(dbSubject.name, rawActivities) }
                   ],
                   temperature: 0.2
                 });
@@ -599,21 +690,19 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
               const sizedModulesData = JSON.parse(sizedModulesRes.choices[0].message.content || '{"modules":[]}');
               const sizedModules = sizedModulesData.modules || [];
 
-              // Step 3: Expand and create day-sized modules in parallel/sequentially
               let practicalProcessed = 0;
               const existingModules = await storage.getModules(dbSubject.id);
 
               for (const sizedMod of sizedModules) {
                 if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
 
-                // Check if this module already exists by title to avoid duplicate generation
                 if (existingModules.some(em => em.title === sizedMod.title)) {
-                  processedModules++;
                   practicalProcessed++;
+                  processedModules++;
                   continue;
                 }
 
-                activeImport.message = `${sub.name} - 3. lépés: ${sizedMod.title} útmutató generálása...`;
+                activeImport.message = `${dbSubject.name} - 3. lépés: ${sizedMod.title} útmutató generálása...`;
                 await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
                 const expandedRes = await withRetry(async () => {
@@ -623,7 +712,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                     response_format: { type: "json_object" },
                     messages: [
                       { role: "system", content: "Gyakorlati tananyagfejlesztő vagy. Csak valid JSON-t adsz vissza." },
-                      { role: "user", content: ikkService.buildPracticalDayContentPrompt(profession.name, sub.name, sizedMod.title, sizedMod.activities || []) }
+                      { role: "user", content: ikkService.buildPracticalDayContentPrompt(profession.name, dbSubject.name, sizedMod.title, sizedMod.activities || []) }
                     ],
                     temperature: 0.3
                   });
@@ -637,28 +726,23 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
                   content: expandedData.content || "",
                   practicalTasks: expandedData.practicalTasks || [],
                   type: 'practical',
-                  moduleNumber: ++processedModules,
+                  moduleNumber: ++practicalProcessed,
                   sectionCode: sizedMod.sectionCode || null,
                   isPublished: false
                 });
 
-                practicalProcessed++;
-                const currentProgress = 40 + Math.round((processedModules / (totalModulesCount || 10)) * 55);
-                if (currentProgress > activeImport.progress) {
-                  activeImport.progress = Math.min(95, currentProgress);
-                }
+                processedModules++;
+                const currentProgress = 30 + Math.round((processedModules / (totalTargetModules || 10)) * 65);
+                activeImport.progress = Math.min(99, currentProgress);
               }
             }
           }
 
-          // Clean up memory after each subject is fully processed to stay within 512MB container limit
           if (global.gc) {
             try {
               global.gc();
-              console.log(`[GC] Sikeres memória tisztítás a(z) ${sub.name} tantárgy után.`);
-            } catch (gcErr) {
-              console.warn("[GC] Hiba a manuális szemétgyűjtés során:", gcErr);
-            }
+              console.log(`[GC] Sikeres memória tisztítás a(z) ${dbSubject.name} tantárgy után.`);
+            } catch (e) {}
           }
         }
 
@@ -671,30 +755,12 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         activeImport.progress = 100;
         activeImport.message = `Sikeres import: ${dbProfession.name} (ID: ${dbProfession.id})`;
         
-        // Post-import reorganization: split subjects into theory and practical
-        if (createdProfessionId) {
-          try {
-            await storage.reorganizeSubjects(createdProfessionId);
-          } catch (reorgErr) {
-            console.error("[IKK-IMPORT] Reorganization error:", reorgErr);
-          }
-        }
-        
         await (storage as any).updateBackgroundJob(jobId, { status: 'completed', progress: 100, message: activeImport.message });
 
       } catch (err: any) {
         console.error("[IKK-IMPORT] Hiba:", err);
         activeImport.status = 'error';
         activeImport.error = err.message;
-        
-        // Disabled automatic deletion to allow for partial imports and debugging
-        /*
-        if (createdProfessionId && isNewProfession) {
-          console.log(`[IKK-IMPORT] Takarítás: #${createdProfessionId}`);
-          await storage.deleteProfession(createdProfessionId);
-        }
-        */
-        
         await (storage as any).updateBackgroundJob(jobId, { status: 'error', error: err.message, message: `Hiba: ${err.message}` });
       }
     }, 500);
