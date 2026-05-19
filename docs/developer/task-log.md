@@ -172,6 +172,18 @@ This log tracks the major changes, fixes, and architectural decisions made by th
   - Updated [client/src/components/teacher-dashboard/AnnouncementsView.tsx](file:///e:/Antigravity_projektek/InteractiveLearning/client/src/components/teacher-dashboard/AnnouncementsView.tsx) to query and invalidate `/api/announcements/teacher` instead of `/api/announcements/my`.
 - **Result**: Sent announcements are managed beautifully without any repeating popups on the teacher's interface.
 
+## Current Session: 2026-05-19
+
+### 20. IKK Practical Import - Daily Breakdown Sizing Pipeline
+- **Problem**: Practical modules were being generated as 1-hour granular segments rather than day-sized chunks (6-8 hours), creating an excess of fragmented hourly modules that do not align with real-world workshop practice sessions.
+- **Solution**:
+  - Refactored the bulk importer loop in `server/routes/ikk.ts` to isolate theory and practical components for each subject and run them through separate pipelines.
+  - The theory component runs standard hourly batch expansion.
+  - The practical component strictly runs the advanced 3-step day-sized pipeline (Activity Extraction -> 1-day grouping of 6-8 hours -> Detail expansion and cselekvés-orientált workspace instructions).
+  - Added safety checks in the practical loop to avoid creating duplicate modules with identical titles.
+  - Rewrote and updated the documentation in `docs/developer/practical-extraction-logic.md` to establish the new 1-day workshop standard.
+- **Result**: Practical subjects are now successfully imported in a clean daily breakdown, matching professional vocational training school schedules perfectly.
+
 ## Pending Tasks / Roadmap
 
 - [x] Fix "Wrench is not defined" error in student view.
@@ -186,6 +198,7 @@ This log tracks the major changes, fixes, and architectural decisions made by th
 - [x] Fix repeating teacher popups & separate announcements endpoints.
 - [x] Auto-repair Mermaid parenthesis parser errors.
 - [x] Completely disable Wikipedia link generation.
+- [x] Implement IKK Practical Import daily breakdown sizing pipeline.
 - [ ] Clean up "Ghost Data" (old orphaned modules) after migration is confirmed.
 - [ ] Implement AI-driven Question generation for Practical modules.
 - [ ] Optimize IKK import performance (Parallel chunk processing).
