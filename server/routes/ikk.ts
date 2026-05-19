@@ -352,7 +352,7 @@ router.post('/import', combinedAuth, adminOnly, async (req: any, res) => {
         let analysisProgress = 12;
 
         await runParallel(sections, 2, async (section, idx) => {
-          if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
+          if ((activeImport.status as string) === 'error' || activeImport.error === 'Cancelled by user') return;
 
           activeImport.message = `Szakma szerkezetének elemzése (${idx + 1}/${sections.length})...`;
           const currentAnalysisProgress = 12 + Math.round((idx / sections.length) * 12);
@@ -515,7 +515,8 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
         let totalTargetModules = 0;
         for (const dbSub of dbSubjects) {
           if (dbSub.type === 'theory') {
-            totalTargetModules += (dbSub.hours || 10);
+            const subHours = dbSub.hours || 10;
+            totalTargetModules += subHours > 40 ? Math.ceil(subHours / 4) : subHours;
           } else {
             totalTargetModules += Math.max(1, Math.round((dbSub.hours || 30) / 7));
           }
@@ -526,7 +527,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
         // ── PHASE 2: INDIVIDUAL SUBJECT MODULAR BREAKDOWN ──
         let subjectIndex = 0;
         for (const dbSubject of dbSubjects) {
-          if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
+          if ((activeImport.status as string) === 'error' || activeImport.error === 'Cancelled by user') break;
 
           subjectIndex++;
           activeImport.message = `Tananyag generálása (${subjectIndex}/${dbSubjects.length}): ${dbSubject.name}...`;
@@ -542,6 +543,9 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
           if (dbSubject.type === 'theory') {
             // --- THEORY MODULAR BREAKDOWN ---
             const totalHours = dbSubject.hours || 10;
+            const useBlocks = totalHours > 40;
+            const blockSize = useBlocks ? 4 : 1;
+            const targetModuleCount = useBlocks ? Math.ceil(totalHours / 4) : totalHours;
             
             activeImport.message = `${dbSubject.name} - Tanmenet felosztása (${totalHours} óra)...`;
             await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
@@ -553,7 +557,24 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
                 response_format: { type: "json_object" },
                 messages: [
                   { role: "system", content: "Te egy szigorú tanmenet-tervező és szakoktató vagy. Csak valid JSON-t adsz vissza." },
-                  { role: "user", content: `
+                  { role: "user", content: useBlocks ? `
+A feladatod a(z) "${dbSubject.name}" tantárgy tanmenetének lebontása pontosan ${targetModuleCount} darab, egyenként 4-órás heti témakörre (modulra), mivel a tantárgy magas óraszámú (${totalHours} óra).
+
+TANTÁRGY LEÍRÁSA A PTT-BEN:
+${subjectPttText}
+
+SZABÁLYOK:
+1. Generálj PONTOSAN ${targetModuleCount} darab modult. Nem lehet se több, se kevesebb!
+2. Minden modul címe legyen szakmailag sűrű, tükrözze a 4-órás egység tartalmát, és kövessék a PTT logikai sorrendjét.
+3. Minden modulhoz rendelj egy sectionCode-ot a tantárgy kódja alapján (pl. ha a tantárgy kódja "${dbSubject.code || '3.1.1'}", akkor a modulok kódjai: "${dbSubject.code || '3.1.1'}.1.a", "${dbSubject.code || '3.1.1'}.1.b", stb.).
+
+VÁLASZ FORMÁTUM (SZIGORÚ JSON):
+{
+  "modules": [
+    { "title": "Modul címe", "sectionCode": "${dbSubject.code || '3.1.1'}.1.a" }
+  ]
+}
+` : `
 A feladatod a(z) "${dbSubject.name}" tantárgy tanmenetének lebontása pontosan ${totalHours} darab 1-órás modulra (leckére) az 1 TANÓRA = 1 MODUL elv alapján.
 
 TANTÁRGY LEÍRÁSA A PTT-BEN:
@@ -590,7 +611,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
 
               let theoryProcessed = 0;
               await runParallel(batches, 2, async (batch, batchIndex) => {
-                if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') return;
+                if ((activeImport.status as string) === 'error' || activeImport.error === 'Cancelled by user') return;
 
                 const allExist = batch.every((bm: any) => existingModules.some(em => em.title === bm.title));
                 if (allExist) {
@@ -629,7 +650,8 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
                       type: 'theory',
                       moduleNumber: ++theoryProcessed,
                       sectionCode: original?.sectionCode || null,
-                      isPublished: false
+                      isPublished: false,
+                      suggestedHours: blockSize.toString()
                     };
                   });
 
@@ -694,7 +716,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
               const existingModules = await storage.getModules(dbSubject.id);
 
               for (const sizedMod of sizedModules) {
-                if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') break;
+                if ((activeImport.status as string) === 'error' || activeImport.error === 'Cancelled by user') break;
 
                 if (existingModules.some(em => em.title === sizedMod.title)) {
                   practicalProcessed++;
@@ -746,7 +768,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
           }
         }
 
-        if (activeImport.status === 'error' || activeImport.error === 'Cancelled by user') {
+        if ((activeImport.status as string) === 'error' || activeImport.error === 'Cancelled by user') {
           if (createdProfessionId) await storage.deleteProfession(createdProfessionId);
           return;
         }
