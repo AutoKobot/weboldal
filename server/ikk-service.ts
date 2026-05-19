@@ -118,6 +118,7 @@ export class IKKService {
     subjects: {
       id: number;
       name: string;
+      code?: string | null;
       hours?: number | null;
       modules: { id: number; title: string; type: string }[];
     }[],
@@ -128,11 +129,11 @@ export class IKKService {
     const { getOpenAIClient } = await import('./openai');
     const openai = await getOpenAIClient();
 
-    // ── 1. Compact subject list for AI (only names + hours + module type counts) ──
+    // ── 1. Compact subject list for AI (only codes + names + hours + module type counts) ──
     const subjectSummary = subjects.map(s => {
       const theoryN = s.modules.filter(m => m.type === 'theory').length;
       const practicalN = s.modules.filter(m => m.type === 'practical').length;
-      return `- "${s.name}" | DB: ${s.hours ?? '?'} óra | Elm.modulok: ${theoryN} | Gyak.modulok: ${practicalN}`;
+      return `- Kód: "${s.code ?? '?'}" | Név: "${s.name}" | DB: ${s.hours ?? '?'} óra | Elm.modulok: ${theoryN} | Gyak.modulok: ${practicalN}`;
     }).join('\n');
 
     // ── 2. Extract PTT context: find relevant sections ──
@@ -198,12 +199,12 @@ ${pttContext || '(nem elérhető)'}
 VÁLASZ:
 {
   "subjects": [
-    { "name": "Tantárgy neve", "theoryRatio": 0.3, "practicalRatio": 0.7 }
+    { "code": "3.1.1", "name": "Tantárgy neve", "theoryRatio": 0.3, "practicalRatio": 0.7 }
   ]
 }
 `.trim();
 
-    let aiRatios: { name: string; theoryRatio: number; practicalRatio: number }[] = [];
+    let aiRatios: { code?: string; name: string; theoryRatio: number; practicalRatio: number }[] = [];
 
     try {
       const response = await openai.chat.completions.create({
@@ -244,7 +245,11 @@ VÁLASZ:
         .trim();
 
       const subjectNorm = normalize(subject.name);
-      const aiEntry = aiRatios.find(r => r.name && normalize(r.name) === subjectNorm);
+      const aiEntry = aiRatios.find(r => 
+        (r.code && subject.code && r.code.trim().replace(/\.$/, '') === subject.code.trim().replace(/\.$/, '')) ||
+        (r.name && normalize(r.name) === subjectNorm)
+      );
+
       let practicalRatio: number;
       if (aiEntry !== undefined) {
         const pRatio = Math.max(0, Math.min(1, aiEntry.practicalRatio));
@@ -430,7 +435,7 @@ VÁLASZ (JSON):
 `.trim();
   }
 
-  getSubjectPttText(subName: string, fullText: string): string {
+  getSubjectPttText(subName: string, fullText: string, code?: string | null): string {
     if (!fullText) return '';
     
     // Clean suffixes like 'gyakorlat' or 'elmélet' from name
@@ -454,12 +459,42 @@ VÁLASZ (JSON):
     
     // Find the next subject index or use a default window size
     const searchRange = fullText.substring(idx + cleanName.length);
-    // Look for next heading of form X.Y.Z
-    const nextHeadingMatch = searchRange.match(/\n\s*\d+\.\d+\.\d+/);
+    
+    // Clean the subject code to remove any trailing dots
+    const currentCode = code ? code.trim().replace(/\.$/, '') : '';
+    
+    // Find headings in searchRange
+    const headingRegex = /\n\s*(\d+(?:\.\d+)+)/g;
+    let nextHeadingIndex = -1;
+    let match;
+    
+    while ((match = headingRegex.exec(searchRange)) !== null) {
+      const matchCode = match[1].trim().replace(/\.$/, '');
+      
+      // If we have a current code, check if the matched code is a sub-heading (deeper level) of the current subject.
+      // e.g., if currentCode is '3.1.1', we ignore '3.1.1.1', '3.1.1.2', etc.
+      if (currentCode) {
+        const isSubheading = matchCode === currentCode || matchCode.startsWith(currentCode + '.');
+        if (isSubheading) {
+          continue; // It's a subheading inside this subject, keep searching
+        }
+      } else {
+        // Fallback if no code is provided: only stop if the heading is a 3-digit or shorter heading (X.Y.Z or X.Y)
+        // to avoid cutting off at X.Y.Z.W sub-headings.
+        const partsCount = matchCode.split('.').length;
+        if (partsCount > 3) {
+          continue; // Ignore deeper subheadings
+        }
+      }
+      
+      // Found a valid next subject or section heading!
+      nextHeadingIndex = match.index;
+      break;
+    }
     
     let endIdx = fullText.length;
-    if (nextHeadingMatch && nextHeadingMatch.index !== undefined) {
-      endIdx = idx + cleanName.length + nextHeadingMatch.index;
+    if (nextHeadingIndex !== -1) {
+      endIdx = idx + cleanName.length + nextHeadingIndex;
     } else {
       // Fallback safe window: 15,000 characters is more than enough for one subject's text
       endIdx = Math.min(fullText.length, idx + 15000);
@@ -472,18 +507,20 @@ VÁLASZ (JSON):
   buildWorkshopActivityExtractionPrompt(chunk: string): string {
     return `
 Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. 
-A feladatod, hogy kigyűjts MINDEN gyakorlati, műhelyben elvégezhető tevékenységet, feladatot és követelményt a megadott szövegből.
+A feladatod, hogy kigyűjts MINDEN gyakorlati, műhelyben elvégezhető tevékenységet a megadott szövegből, megtartva a PTT-beli eredeti témaköröket (témaköri egységeket/címeket).
 
 ── SZABÁLYOK ──
 1. Csak a VALÓDI, fizikai, kézzel fogható műhelygyakorlathoz kapcsolódó tevékenységeket gyűjtsd ki (pl. mérések, fűrészelés, hegesztés, vezetékezés, hibakeresés, beállítások, szerszámhasználat).
 2. Könyörtelenül szűrj ki minden pedagógiai sallangot (pl. "a tanuló ismeri...", "képes megérteni...") és elméleti leírást.
-3. A kigyűjtött elemeket egy tömör, világos listaként add vissza.
+3. Minden tevékenységhez határozd meg a PTT-beli eredeti TÉMAKÖR megnevezését (pl. "Reszelés és alapvető kézi megmunkálások" vagy "Hegesztési eljárások").
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
   "rawActivities": [
-    "Első kigyűjtött műhelytevékenység leírása...",
-    "Második kigyűjtött műhelytevékenység leírása..."
+    {
+      "topic": "PTT-beli Témakör megnevezése",
+      "activity": "Műhelytevékenység konkrét leírása..."
+    }
   ]
 }
 
@@ -492,35 +529,40 @@ ${chunk}
 `.trim();
   }
 
-  buildWorkshopDaySizingPrompt(subjectName: string, rawActivities: string[]): string {
+  buildWorkshopDaySizingPrompt(subjectName: string, rawActivities: { topic: string; activity: string }[]): string {
+    const formattedActivities = rawActivities.map((act: any, i: number) => 
+      `${i + 1}. [Témakör: ${act.topic || 'Általános'}] ${act.activity}`
+    ).join('\n');
+
     return `
 Te egy zseniális SZAKOKTATÓ és gyakorlati tanmenet-tervező vagy.
-Kaptál egy listát, ami egy adott tantárgyhoz kigyűjtött nyers műhelytevékenységeket tartalmazza.
+Kaptál egy listát, ami egy adott tantárgyhoz kigyűjtött nyers műhelytevékenységeket tartalmazza témakörök szerint csoportosítva.
 
 Tantárgy: ${subjectName}
 
 ── FELADAT ──
 1. Csoportosítsd és strukturáld ezeket a tevékenységeket egymásra épülő, szekvenciális egységekre (modulokra).
-2. **KÖTELEZŐ 1 NAPOS MÉRETEZÉS**: Minden egyes egység (modul) pontosan akkora méretű legyen, amit egy tanuló **1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat)** alatt reálisan meg tud tanulni és el tud végezni a műhelyben!
-3. Adj minden napnak egy vonzó, szakmailag pontos "Nap [X]: [Cím]" formátumú nevet (pl. "1. nap: Kéziszerszámok biztonságos használata és fémfűrészelés alapjai").
-4. A válaszként kapott modulok sora egy tökéletes, logikusan egymásra épülő napi tanmenetet alkosson.
+2. **PTT TÉMAKÖRÖK MEGŐRZÉSE (FONTOS)**: A modulok kialakításakor kövesd az eredeti témakörök logikai egymásutániságát. Ne keverj össze teljesen eltérő témaköröket egy napra, hacsak nem szorosan egymásra épülnek.
+3. **KÖTELEZŐ 1 NAPOS MÉRETEZÉS**: Minden egyes egység (modul) pontosan akkora méretű legyen, amit egy tanuló **1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat)** alatt reálisan meg tud tanulni és el tud végezni a műhelyben!
+4. Adj minden napnak egy vonzó, szakmailag pontos és a témakört is tükröző "Nap [X]: [Témakör] - [Cím]" formátumú nevet (pl. "1. nap: Kézi fém megmunkálás - Fűrészelés és biztonságtechnika").
+5. A válaszként kapott modulok sora egy tökéletes, logikusan egymásra épülő napi tanmenetet alkosson.
 
 VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 {
   "modules": [
     {
-      "title": "1. nap: Kéziszerszámok biztonságos használata és fémfűrészelés alapjai",
+      "title": "1. nap: [Témakör neve] - [Modul konkrét címe]",
       "type": "practical",
       "sectionCode": "nap-1",
       "activities": [
-        "Nyers műhelytevékenység leírása..."
+        "Műhelytevékenység konkrét leírása..."
       ]
     }
   ]
 }
 
 NYERS MŰHELYTEVÉKENYSÉGEK LISTÁJA:
-${rawActivities.map((act, i) => `${i + 1}. ${act}`).join('\n')}
+${formattedActivities}
 `.trim();
   }
 

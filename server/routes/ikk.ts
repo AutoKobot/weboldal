@@ -190,6 +190,7 @@ router.post('/generate-hours/:professionId', combinedAuth, adminOnly, async (req
     const subjectsWithModules: {
       id: number;
       name: string;
+      code?: string | null;
       hours?: number | null;
       modules: { id: number; title: string; type: string }[];
     }[] = [];
@@ -199,6 +200,7 @@ router.post('/generate-hours/:professionId', combinedAuth, adminOnly, async (req
       subjectsWithModules.push({
         id: sub.id,
         name: sub.name,
+        code: sub.code,
         hours: sub.hours,
         modules: mods.map(m => ({ id: m.id, title: m.title, type: m.type || 'theory' }))
       });
@@ -534,7 +536,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
           activeImport.progress = 30 + Math.round((subjectIndex / dbSubjects.length) * 65);
           await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
 
-          const subjectPttText = ikkService.getSubjectPttText(dbSubject.name, pttText);
+          const subjectPttText = ikkService.getSubjectPttText(dbSubject.name, pttText, dbSubject.code);
           if (!subjectPttText.trim()) {
             console.log(`[IKK-IMPORT] ${dbSubject.name} tantárgynak nincs tanmenete a PTT-ben. Átugrás.`);
             continue;
