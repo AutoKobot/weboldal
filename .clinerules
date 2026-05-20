@@ -1,0 +1,24 @@
+# Projekt Alapvető Törvényei (.clinerules)
+
+Ez a fájl tartalmazza a projekt fejlesztéséhez kapcsolódó legfontosabb szabályokat, konvenciókat és célokat.
+
+## 1. A projekt végső célja
+Egy interaktív oktatási és tananyag-kezelő felület kialakítása, amely lehetővé teszi a felhasználók (diákok, tanárok, adminisztrátorok) számára a tananyagok elérhetőségét, a tanulási folyamat nyomon követését és az interaktív tanulást.
+
+## 2. Kódolási konvenciók
+- **Szigorú TypeScript**: Minden fájlban használj TypeScript-et (`.ts`, `.tsx`), és törekedj a szigorú típusok használatára. Kerüld az `any` típust!
+- **React Komponensek**: Használj funkcionális React komponenseket és Hook-okat az UI megépítéséhez.
+- **Stílusozás**: A projekt Tailwind CSS-t használ a UI elemek stílusozásához.
+- **Kódolási stílus**: Tiszta, olvasható és moduláris kód írása. A meglévő fájlstruktúrát és konvenciókat követni kell.
+
+## 3. Adatbázis és Architektúra
+- **Adatbázis ORM**: A projekt Drizzle ORM-et használ (PostgreSQL dialektussal konfigurálva).
+- **Sémák helye**: A Drizzle adatbázis sémák és a típusdefiníciók a `shared/schema.ts` fájlban találhatóak. Minden adatbázis változtatást itt kell megkezdeni.
+- **Architektúra**: 
+  - `client/`: Vite alapú React frontend.
+  - `server/`: Express.js alapú backend (API végpontok, üzleti logika).
+  - `shared/`: Megosztott kód, típusok és adatbázis sémák a kliens és a szerver között.
+
+## 4. Általános fejlesztési irányelvek
+- Mindig ellenőrizd a környezeti változókat (pl. `.env` fájlban).
+- Új funkció írásakor először a modellt (`shared/schema.ts`), majd a backend útvonalakat (`server/routes/`), végül a frontendet (`client/`) érdemes implementálni.
