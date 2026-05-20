@@ -126,9 +126,6 @@
     "pdf-parse": "^1.1.1",
     "cheerio": "^1.0.0-rc.12"
   },
-  "optionalDependencies": {
-    "bufferutil": "^4.0.8"
-  },
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "drizzle-kit": "^0.31.9",
