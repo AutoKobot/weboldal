@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import dns from 'node:dns';
 import net from 'node:net';
 import { Pool, neonConfig } from '@neondatabase/serverless';
