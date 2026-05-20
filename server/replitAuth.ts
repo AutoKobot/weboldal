@@ -5,7 +5,6 @@ import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
-import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
 
@@ -37,23 +36,19 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+
+  // Use MemoryStore – connect-pg-simple's CREATE TABLE DDL fails on Supabase
+  // transaction-mode pooler (port 6543). MemoryStore is fine for Render
+  // (sessions reset on deploy, which is acceptable).
   return session({
-    secret: process.env.SESSION_SECRET!,
-    store: sessionStore,
+    secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Secure only in production
+      secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
-      sameSite: 'lax', // Allow cross-site requests
+      sameSite: 'lax',
     },
   });
 }
@@ -161,12 +156,20 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user.expires_at) {
+  // Not logged in at all
+  if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  const user = req.user as any;
+
+  // Local users (username/password auth) don't have Replit OIDC tokens.
+  // If there's no expires_at, this is a local user – allow through.
+  if (!user.expires_at) {
+    return next();
+  }
+
+  // Replit OIDC user: check token expiry
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
     return next();
