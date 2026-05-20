@@ -1,0 +1,31 @@
+{
+    "$schema": "https://railway.app/schemas/project.v1.json",
+    "name": "InteractiveLearning",
+    "settings": {
+        "region": "EUC",
+        "environment": {
+            "name": "dev",
+            "variables": [
+                {
+                    "name": "DATABASE_URL",
+                    "value": "postgresql://postgres.epbyruyoblszmbcgpfvh:TiszaloK123@aws-0-eu-west-1.pooler.supabase.com:6543/postgres"
+                }
+            ]
+        }
+    },
+    "services": [
+        {
+            "type": "postgres",
+            "name": "pg",
+            "database": "postgres"
+        },
+        {
+            "type": "static",
+            "name": "api",
+            "rootDirectory": "server",
+            "buildCommand": "echo 'No build needed'",
+            "startCommand": "npm start",
+            "region": "EUC"
+        }
+    ]
+}
