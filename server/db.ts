@@ -9,14 +9,22 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Parse DATABASE_URL manually to avoid Windows system env vars (PGUSER, PGPASSWORD, etc.)
+// overriding the correct Supabase credentials
+const dbUrl = new URL(process.env.DATABASE_URL);
+
 console.log('Initializing database pool with max 15 connections...');
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  host: dbUrl.hostname,
+  port: parseInt(dbUrl.port),
+  user: decodeURIComponent(dbUrl.username),
+  password: decodeURIComponent(dbUrl.password),
+  database: dbUrl.pathname.slice(1),
   max: 15,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 30000,
-  // Supabase requires SSL in production
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Supabase always requires SSL
+  ssl: { rejectUnauthorized: false },
 });
 
 // Add error handling for the pool to prevent crashes
