@@ -1,26 +1,7 @@
 import 'dotenv/config';
-import dns from 'node:dns';
-import net from 'node:net';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema";
-
-// Fix for Node.js v20+ Happy Eyeballs DNS resolution / connection timeout issues on Render/Neon
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
-}
-if (net.setDefaultAutoSelectFamily) {
-  net.setDefaultAutoSelectFamily(false);
-}
-if (net.setDefaultAutoSelectFamilyAttemptTimeout) {
-  net.setDefaultAutoSelectFamilyAttemptTimeout(10000); // 10 seconds timeout for family autoselection
-}
-
-// Configure Neon for serverless environments
-neonConfig.webSocketConstructor = ws;
-neonConfig.useSecureWebSocket = true;
-neonConfig.pipelineConnect = "password";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -31,11 +12,11 @@ if (!process.env.DATABASE_URL) {
 console.log('Initializing database pool with max 15 connections...');
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 15, // Reduced to avoid exceeding Neon connection limits
+  max: 15,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 30000,
-  maxUses: Infinity,
-  allowExitOnIdle: false,
+  // Supabase requires SSL in production
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 // Add error handling for the pool to prevent crashes
@@ -49,7 +30,6 @@ pool.on('connect', (client) => {
   console.log('Database client connected');
   client.on('error', (err) => {
     console.error('Database client error:', err);
-    // Handle individual client errors gracefully
   });
 });
 
@@ -59,10 +39,8 @@ process.on('uncaughtException', (error) => {
     error.message.includes('connection terminated') ||
     error.message.includes('Client has encountered a connection error')) {
     console.error('Database connection error handled gracefully:', error.message);
-    // Don't exit the process for database connection errors
     return;
   }
-  // For other uncaught exceptions, still exit
   console.error('Uncaught Exception:', error);
   process.exit(1);
 });
