@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { lazy, Suspense, useEffect } from "react";
 import CookieBanner from "@/components/cookie-banner";
 import ClassAnnouncementModal from "@/components/ClassAnnouncementModal";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages – minden oldal külön chunk lesz a bundle-ban
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -41,12 +42,12 @@ const MessagesPage = lazy(() => import("@/pages/messages"));
 // Heartbeat a jelenléthez
 function AttendanceHeartbeat() {
   const { user } = useAuth();
-  
+
   useEffect(() => {
     if (user?.role !== 'student') return;
 
     // Első ping azonnal (ha épp belépett)
-    fetch('/api/user/ping', { credentials: 'include' }).catch(() => {});
+    fetch('/api/user/ping', { credentials: 'include' }).catch(() => { });
 
     // Ping minden 5 percben
     const interval = setInterval(() => {
@@ -94,108 +95,108 @@ function Router() {
   return (
     <>
       <Switch>
-      {/* Always accessible routes */}
-      <Route path="/admin-login" component={AdminLogin} />
-      <Route path="/student-auth" component={StudentAuth} />
-      <Route path="/teacher-auth" component={TeacherAuth} />
-      <Route path="/school-admin-auth" component={SchoolAdminAuth} />
-      <Route path="/school-admin-dashboard" component={SchoolAdminDashboard} />
-      <Route path="/privacy-policy" component={PrivacyPolicy} />
-      <Route path="/privacy-requests" component={PrivacyRequests} />
+        {/* Always accessible routes */}
+        <Route path="/admin-login" component={AdminLogin} />
+        <Route path="/student-auth" component={StudentAuth} />
+        <Route path="/teacher-auth" component={TeacherAuth} />
+        <Route path="/school-admin-auth" component={SchoolAdminAuth} />
+        <Route path="/school-admin-dashboard" component={SchoolAdminDashboard} />
+        <Route path="/privacy-policy" component={PrivacyPolicy} />
+        <Route path="/privacy-requests" component={PrivacyRequests} />
 
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/:rest*" component={() => <Redirect to="/" />} />
-        </>
-      ) : (
-        <>
-          {/* Student routes */}
-          {user?.role === 'student' && (
-            <>
-              <Route path="/" component={HomePage} />
-              <Route path="/home" component={HomePage} />
-              <Route path="/chat" component={ChatPage} />
-              <Route path="/platform-info" component={PlatformInfo} />
-              <Route path="/profession-selection" component={ProfessionSelection} />
-              <Route path="/tananyagok" component={TananyagokPage} />
-              <Route path="/subjects" component={SubjectsPage} />
-              <Route path="/subjects/:subjectId/modules" component={ModulesPage} />
-              <Route path="/learning" component={Learning} />
-              <Route path="/modules" component={ModulesPage} />
-              <Route path="/module/:id" component={ModuleViewer} />
-              <Route path="/modules/:id" component={ModuleViewer} />
-              <Route path="/modules/:subjectId" component={ModulesPage} />
-              <Route path="/progress" component={ProgressPage} />
-              <Route path="/settings" component={SettingsPage} />
-              <Route path="/community" component={CommunityLearning} />
-              <Route path="/community-learning" component={CommunityLearning} />
-              <Route path="/messages" component={MessagesPage} />
-              <Route path="/mermaid-test" component={MermaidTest} />
-            </>
-          )}
+        {!isAuthenticated ? (
+          <>
+            <Route path="/" component={Landing} />
+            <Route path="/:rest*" component={() => <Redirect to="/" />} />
+          </>
+        ) : (
+          <>
+            {/* Student routes */}
+            {user?.role === 'student' && (
+              <>
+                <Route path="/" component={HomePage} />
+                <Route path="/home" component={HomePage} />
+                <Route path="/chat" component={ChatPage} />
+                <Route path="/platform-info" component={PlatformInfo} />
+                <Route path="/profession-selection" component={ProfessionSelection} />
+                <Route path="/tananyagok" component={TananyagokPage} />
+                <Route path="/subjects" component={SubjectsPage} />
+                <Route path="/subjects/:subjectId/modules" component={ModulesPage} />
+                <Route path="/learning" component={Learning} />
+                <Route path="/modules" component={ModulesPage} />
+                <Route path="/module/:id" component={ModuleViewer} />
+                <Route path="/modules/:id" component={ModuleViewer} />
+                <Route path="/modules/:subjectId" component={ModulesPage} />
+                <Route path="/progress" component={ProgressPage} />
+                <Route path="/settings" component={SettingsPage} />
+                <Route path="/community" component={CommunityLearning} />
+                <Route path="/community-learning" component={CommunityLearning} />
+                <Route path="/messages" component={MessagesPage} />
+                <Route path="/mermaid-test" component={MermaidTest} />
+              </>
+            )}
 
-          {/* Teacher routes */}
-          {user?.role === 'teacher' && (
-            <>
-              <Route path="/" component={HomePage} />
-              <Route path="/teacher" component={TeacherDashboard} />
-              <Route path="/home" component={HomePage} />
-              <Route path="/chat" component={ChatPage} />
-              <Route path="/platform-info" component={PlatformInfo} />
-              <Route path="/profession-selection" component={ProfessionSelection} />
-              <Route path="/tananyagok" component={TananyagokPage} />
-              <Route path="/subjects" component={SubjectsPage} />
-              <Route path="/subjects/:subjectId/modules" component={ModulesPage} />
-              <Route path="/learning" component={Learning} />
-              <Route path="/modules" component={ModulesPage} />
-              <Route path="/module/:id" component={ModuleViewer} />
-              <Route path="/modules/:id" component={ModuleViewer} />
-              <Route path="/modules/:subjectId" component={ModulesPage} />
-              <Route path="/tanulóim" component={TeacherDashboard} />
-              <Route path="/teacher-dashboard" component={TeacherDashboard} />
-              <Route path="/teacher/content" component={TeacherContentGuard} />
-              <Route path="/settings" component={SettingsPage} />
-              <Route path="/community" component={CommunityLearning} />
-              <Route path="/community-learning" component={CommunityLearning} />
-              <Route path="/messages" component={MessagesPage} />
-              <Route path="/mermaid-test" component={MermaidTest} />
-            </>
-          )}
+            {/* Teacher routes */}
+            {user?.role === 'teacher' && (
+              <>
+                <Route path="/" component={HomePage} />
+                <Route path="/teacher" component={TeacherDashboard} />
+                <Route path="/home" component={HomePage} />
+                <Route path="/chat" component={ChatPage} />
+                <Route path="/platform-info" component={PlatformInfo} />
+                <Route path="/profession-selection" component={ProfessionSelection} />
+                <Route path="/tananyagok" component={TananyagokPage} />
+                <Route path="/subjects" component={SubjectsPage} />
+                <Route path="/subjects/:subjectId/modules" component={ModulesPage} />
+                <Route path="/learning" component={Learning} />
+                <Route path="/modules" component={ModulesPage} />
+                <Route path="/module/:id" component={ModuleViewer} />
+                <Route path="/modules/:id" component={ModuleViewer} />
+                <Route path="/modules/:subjectId" component={ModulesPage} />
+                <Route path="/tanulóim" component={TeacherDashboard} />
+                <Route path="/teacher-dashboard" component={TeacherDashboard} />
+                <Route path="/teacher/content" component={TeacherContentGuard} />
+                <Route path="/settings" component={SettingsPage} />
+                <Route path="/community" component={CommunityLearning} />
+                <Route path="/community-learning" component={CommunityLearning} />
+                <Route path="/messages" component={MessagesPage} />
+                <Route path="/mermaid-test" component={MermaidTest} />
+              </>
+            )}
 
-          {/* Admin routes */}
-          {user?.role === 'admin' && (
-            <>
-              <Route path="/" component={AdminDashboard} />
-              <Route path="/admin" component={AdminDashboard} />
-              <Route path="/admin-dashboard" component={AdminDashboard} />
-              <Route path="/chat" component={ChatPage} />
-              <Route path="/mermaid-test" component={MermaidTest} />
-              <Route path="/module/:id" component={ModuleViewer} />
-              <Route path="/modules/:id" component={ModuleViewer} />
-              <Route path="/tananyagok" component={TananyagokPage} />
-              <Route path="/subjects" component={SubjectsPage} />
-              <Route path="/subjects/:subjectId/modules" component={ModulesPage} />
-              <Route path="/modules" component={ModulesPage} />
-              <Route path="/modules/:subjectId" component={ModulesPage} />
-            </>
-          )}
+            {/* Admin routes */}
+            {user?.role === 'admin' && (
+              <>
+                <Route path="/" component={AdminDashboard} />
+                <Route path="/admin" component={AdminDashboard} />
+                <Route path="/admin-dashboard" component={AdminDashboard} />
+                <Route path="/chat" component={ChatPage} />
+                <Route path="/mermaid-test" component={MermaidTest} />
+                <Route path="/module/:id" component={ModuleViewer} />
+                <Route path="/modules/:id" component={ModuleViewer} />
+                <Route path="/tananyagok" component={TananyagokPage} />
+                <Route path="/subjects" component={SubjectsPage} />
+                <Route path="/subjects/:subjectId/modules" component={ModulesPage} />
+                <Route path="/modules" component={ModulesPage} />
+                <Route path="/modules/:subjectId" component={ModulesPage} />
+              </>
+            )}
 
-          {/* School Admin routes */}
-          {user?.role === 'school_admin' && (
-            <>
-              <Route path="/" component={SchoolAdminDashboard} />
-              <Route path="/home" component={SchoolAdminDashboard} />
-              <Route path="/school-admin-dashboard" component={SchoolAdminDashboard} />
-              <Route path="/settings" component={SettingsPage} />
-              <Route path="/chat" component={ChatPage} />
-            </>
-          )}
-        </>
-      )}
+            {/* School Admin routes */}
+            {user?.role === 'school_admin' && (
+              <>
+                <Route path="/" component={SchoolAdminDashboard} />
+                <Route path="/home" component={SchoolAdminDashboard} />
+                <Route path="/school-admin-dashboard" component={SchoolAdminDashboard} />
+                <Route path="/settings" component={SettingsPage} />
+                <Route path="/chat" component={ChatPage} />
+              </>
+            )}
+          </>
+        )}
 
-      {/* Fallback routes */}
-      <Route path="/:rest*" component={NotFound} />
+        {/* Fallback routes */}
+        <Route path="/:rest*" component={NotFound} />
       </Switch>
       <ClassAnnouncementModal />
     </>
@@ -208,9 +209,11 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="global-learning-system-theme">
         <TooltipProvider>
           <Toaster />
-          <Suspense fallback={<PageLoader />}>
-            <Router />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <Router />
+            </Suspense>
+          </ErrorBoundary>
           <AttendanceHeartbeat />
           <CookieBanner />
         </TooltipProvider>

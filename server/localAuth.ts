@@ -15,9 +15,22 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
-  const [hashed, salt] = stored.split(".");
+  if (!stored || !stored.includes(".")) {
+    console.error("comparePasswords: invalid stored password format (missing dot separator)");
+    return false;
+  }
+  const dotIndex = stored.lastIndexOf(".");
+  const hashed = stored.substring(0, dotIndex);
+  const salt = stored.substring(dotIndex + 1);
+  if (!hashed || !salt) {
+    console.error("comparePasswords: empty hash or salt");
+    return false;
+  }
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  if (hashedBuf.length !== suppliedBuf.length) {
+    return false;
+  }
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
@@ -128,7 +141,6 @@ export function setupLocalAuth(app: Express) {
 
           if (!universalUser) {
             console.error('Universal user BorgaI74 not found in DB, attempting recovery...');
-            const { hashPassword } = await import('./localAuth');
             const hashedPassword = await hashPassword("diák");
             // Create with EXACT casing
             universalUser = await storage.createLocalUser({
@@ -188,11 +200,20 @@ export function setupLocalAuth(app: Express) {
         res.json(user);
       });
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Login error details:', {
+        name: error?.name,
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack?.split('\n').slice(0, 5).join(' | ')
+      });
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Hibás adatok", errors: error.errors });
       }
-      res.status(500).json({ message: "Bejelentkezési hiba történt" });
+      const isDev = process.env.NODE_ENV !== 'production';
+      res.status(500).json({
+        message: "Bejelentkezési hiba történt",
+        ...(isDev && { detail: error?.message, code: error?.code })
+      });
     }
   });
 
@@ -256,7 +277,6 @@ export function setupLocalAuth(app: Express) {
       }
 
       if (!user) {
-        const { hashPassword } = await import('./localAuth');
         const hashedPassword = await hashPassword("demo123");
         user = await storage.createLocalUser({
           id: "demo-universal-user",

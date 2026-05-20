@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
@@ -14,17 +14,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { type ClassAnnouncement } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function ClassAnnouncementModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentAnnouncement, setCurrentAnnouncement] = useState<ClassAnnouncement | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+
+  // Csak bejelentkezett diákoknak kérdezzük le a bejelentéseket
+  const isStudent = isAuthenticated && user?.role === 'student';
 
   // Fetch unacknowledged announcements
   const { data: pendingAnnouncements = [] } = useQuery<ClassAnnouncement[]>({
     queryKey: ["/api/announcements/my"],
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: isStudent ? 30000 : false, // Check every 30 seconds only when logged in
+    enabled: isStudent, // Csak akkor fut, ha be van jelentkezve diákként
   });
 
   useEffect(() => {
@@ -49,7 +55,7 @@ export default function ClassAnnouncementModal() {
         setCurrentAnnouncement(null);
         queryClient.invalidateQueries({ queryKey: ["/api/announcements/my"] });
       }, 300);
-      
+
       toast({
         title: "Visszaigazolva",
         description: "Az üzenetet sikeresen leigazoltad.",
