@@ -231,6 +231,10 @@ export interface IStorage {
   deletePracticalGrade(id: number): Promise<void>;
   reorganizeSubjects(professionId: number): Promise<void>;
   recordLoginAttendance(studentId: string): Promise<void>;
+  getLatestBackgroundJob(type: string): Promise<any>;
+  getBackgroundJobs(): Promise<any[]>;
+  createBackgroundJob(type: string, message: string, data?: any): Promise<any>;
+  updateBackgroundJob(id: number, updateData: { status?: string; progress?: number; message?: string; error?: string }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1315,6 +1319,103 @@ export class DatabaseStorage implements IStorage {
       actualStart: formattedTime,
       recordedBy: 'auto'
     });
+  }
+
+  async getLatestBackgroundJob(type: string): Promise<any> {
+    const result = await db.execute(sql`
+      SELECT * FROM background_jobs 
+      WHERE type = ${type} 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0] as any;
+    
+    let parsedData = row.data;
+    if (typeof parsedData === 'string') {
+      try {
+        parsedData = JSON.parse(parsedData);
+      } catch (e) {
+        // ignore
+      }
+    }
+    
+    return {
+      ...row,
+      data: parsedData,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  async getBackgroundJobs(): Promise<any[]> {
+    const result = await db.execute(sql`
+      SELECT * FROM background_jobs 
+      ORDER BY created_at DESC
+    `);
+    return result.rows.map((row: any) => {
+      let parsedData = row.data;
+      if (typeof parsedData === 'string') {
+        try {
+          parsedData = JSON.parse(parsedData);
+        } catch (e) {
+          // ignore
+        }
+      }
+      return {
+        ...row,
+        data: parsedData,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  async createBackgroundJob(type: string, message: string, data?: any): Promise<any> {
+    const dataParam = data ? JSON.stringify(data) : null;
+    const now = new Date();
+    const result = await db.execute(sql`
+      INSERT INTO background_jobs (type, message, data, status, progress, created_at, updated_at)
+      VALUES (${type}, ${message}, ${dataParam}, 'processing', 0, ${now}, ${now})
+      RETURNING *
+    `);
+    if (result.rows.length === 0) {
+      throw new Error("Failed to create background job");
+    }
+    const row = result.rows[0] as any;
+    let parsedData = row.data;
+    if (typeof parsedData === 'string') {
+      try {
+        parsedData = JSON.parse(parsedData);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return {
+      ...row,
+      data: parsedData,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  async updateBackgroundJob(id: number, updateData: { status?: string; progress?: number; message?: string; error?: string }): Promise<void> {
+    const now = new Date();
+    const statusVal = updateData.status !== undefined ? updateData.status : null;
+    const progressVal = updateData.progress !== undefined ? updateData.progress : null;
+    const messageVal = updateData.message !== undefined ? updateData.message : null;
+    const errorVal = updateData.error !== undefined ? updateData.error : null;
+
+    await db.execute(sql`
+      UPDATE background_jobs
+      SET
+        status = COALESCE(${statusVal}, status),
+        progress = COALESCE(${progressVal}, progress),
+        message = COALESCE(${messageVal}, message),
+        error = COALESCE(${errorVal}, error),
+        updated_at = ${now}
+      WHERE id = ${id}
+    `);
   }
 }
 
