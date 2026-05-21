@@ -959,182 +959,182 @@ export class DatabaseStorage implements IStorage {
 
   // ── System settings operations ─────────────────────────────────────────────
   async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
-  const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
-  return setting || undefined;
-}
+    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return setting || undefined;
+  }
 
-  async setSystemSetting(key: string, value: string, updatedBy: string): Promise < SystemSetting > {
-  const [setting] = await db
-    .insert(systemSettings)
-    .values({
-      key,
-      value,
-      updatedBy,
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: systemSettings.key,
-      set: {
+  async setSystemSetting(key: string, value: string, updatedBy: string): Promise<SystemSetting> {
+    const [setting] = await db
+      .insert(systemSettings)
+      .values({
+        key,
         value,
         updatedBy,
         updatedAt: new Date(),
-      },
-    })
-    .returning();
-  return setting;
-}
-
-  public async initializeDefaultPrompts(): Promise < void> {
-  console.log("🔍 Alapértelmezett AI promptok ellenőrzése és inicializálása...");
-  const defaultPrompts: { [key: string]: string } = {
-  ai_system_message: "You are a helpful AI assistant providing clear and concise information related to educational topics.",
-    ai_module_update_message: "As an AI assistant, your task is to update or generate content for a specific educational module based on the provided instructions. Focus on delivering accurate, comprehensive, and engaging material. Ensure the content is well-structured, easy to understand, and adheres to the specified tone and format. Pay close attention to any constraints or specific requirements given, such as length, keywords, or target audience. If asked to generate a mind map, provide it in Mermaid.js flowchart syntax.",
-      ai_youtube_prompt: "Keresd meg a legrelevánsabb és legnépszerűbb YouTube videót a következő témában, különös tekintettel a magyar nyelvű videókra. Add meg a videó címét és URL-jét:",
-        ai_wikipedia_prompt: "Keresd meg a legrelevánsabb Wikipedia oldalt a következő témában, előnyben részesítve a magyar nyelvű oldalakat. Add meg az oldal címét és URL-jét:",
-          ai_internet_content_prompt: "Keress releváns tartalmat az interneten a következő témával kapcsolatban. Adjon meg 3-5 rövid összefoglalót a forrás megjelölésével (cím, URL):",
-            "concise-content-prompt": "Fogalmazd meg tömören a következő tartalmat, maximum 100 szóban. A válasz csak az összefoglalást tartalmazza:",
-              "audio-explanation-prompt": "Készíts egy rövid, érthető hangos magyarázatot a következő szöveghez. Koncentrálj a legfontosabb információkra és a könnyen emészthető formátumra:",
-                "text-explanation-prompt": "Adj részletes, könnyen érthető magyarázatot a következő fogalomról/szövegről:",
-                  "ai_quiz_prompt": "Generálj egy kvízt a következő témában, amely 5 feleletválasztós kérdést tartalmaz. Minden kérdéshez 4 válaszlehetőséget adj meg, és jelöld a helyes választ. A válasz JSON formátumban legyen, a következő struktúrával: { \"quizTitle\": \"[Kvíz címe]\", \"questions\": [ { \"question\": \"[Kérdés szövege]\", \"options\": [\"[Válasz 1]\", \"[Válasz 2]\", \"[Válasz 3]\", \"[Válasz 4]\"], \"correctAnswer\": \"[Helyes válasz]\" } ] }"
-};
-
-for (const key in defaultPrompts) {
-  if (defaultPrompts.hasOwnProperty(key)) {
-    const existingSetting = await this.getSystemSetting(key);
-    if (!existingSetting || existingSetting.value === null || existingSetting.value === ">") {
-      // Only set if not already present or is an empty placeholder
-      await this.setSystemSetting(key, defaultPrompts[key], "system_initializer");
-      console.log(`  ✅ Inicializált prompt: ${key}`);
-    } else {
-      console.log(`  ➡️ Prompt már létezik: ${key}`);
-    }
+      })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: {
+          value,
+          updatedBy,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return setting;
   }
-}
-console.log("✅ AI prompt inicializálás kész.");
+
+  public async initializeDefaultPrompts(): Promise<void> {
+    console.log("🔍 Alapértelmezett AI promptok ellenőrzése és inicializálása...");
+    const defaultPrompts: { [key: string]: string } = {
+      ai_system_message: "You are a helpful AI assistant providing clear and concise information related to educational topics.",
+      ai_module_update_message: "As an AI assistant, your task is to update or generate content for a specific educational module based on the provided instructions. Focus on delivering accurate, comprehensive, and engaging material. Ensure the content is well-structured, easy to understand, and adheres to the specified tone and format. Pay close attention to any constraints or specific requirements given, such as length, keywords, or target audience. If asked to generate a mind map, provide it in Mermaid.js flowchart syntax.",
+      ai_youtube_prompt: "Keresd meg a legrelevánsabb és legnépszerűbb YouTube videót a következő témában, különös tekintettel a magyar nyelvű videókra. Add meg a videó címét és URL-jét:",
+      ai_wikipedia_prompt: "Keresd meg a legrelevánsabb Wikipedia oldalt a következő témában, előnyben részesítve a magyar nyelvű oldalakat. Add meg az oldal címét és URL-jét:",
+      ai_internet_content_prompt: "Keress releváns tartalmat az interneten a következő témával kapcsolatban. Adjon meg 3-5 rövid összefoglalót a forrás megjelölésével (cím, URL):",
+      "concise-content-prompt": "Fogalmazd meg tömören a következő tartalmat, maximum 100 szóban. A válasz csak az összefoglalást tartalmazza:",
+      "audio-explanation-prompt": "Készíts egy rövid, érthető hangos magyarázatot a következő szöveghez. Koncentrálj a legfontosabb információkra és a könnyen emészthető formátumra:",
+      "text-explanation-prompt": "Adj részletes, könnyen érthető magyarázatot a következő fogalomról/szövegről:",
+      "ai_quiz_prompt": "Generálj egy kvízt a következő témában, amely 5 feleletválasztós kérdést tartalmaz. Minden kérdéshez 4 válaszlehetőséget adj meg, és jelöld a helyes választ. A válasz JSON formátumban legyen, a következő struktúrával: { \"quizTitle\": \"[Kvíz címe]\", \"questions\": [ { \"question\": \"[Kérdés szövege]\", \"options\": [\"[Válasz 1]\", \"[Válasz 2]\", \"[Válasz 3]\", \"[Válasz 4]\"], \"correctAnswer\": \"[Helyes válasz]\" } ] }"
+    };
+
+    for (const key in defaultPrompts) {
+      if (defaultPrompts.hasOwnProperty(key)) {
+        const existingSetting = await this.getSystemSetting(key);
+        if (!existingSetting || existingSetting.value === null || existingSetting.value === ">") {
+          // Only set if not already present or is an empty placeholder
+          await this.setSystemSetting(key, defaultPrompts[key], "system_initializer");
+          console.log(`  ✅ Inicializált prompt: ${key}`);
+        } else {
+          console.log(`  ➡️ Prompt már létezik: ${key}`);
+        }
+      }
+    }
+    console.log("✅ AI prompt inicializálás kész.");
   }
 
 
 
   // AI settings operations
-  async getAISettings(): Promise < AISetting | undefined > {
-  try {
-    // 1. Megpróbáljuk betölteni a táblából
-    let dbSettings: any = null;
+  async getAISettings(): Promise<AISetting | undefined> {
     try {
-      const [row] = await db.select().from(aiSettings).limit(1);
-      dbSettings = row;
-    } catch(e) {
-      console.log("aiSettings table table access failed, skipping...");
-    }
+      // 1. Megpróbáljuk betölteni a táblából
+      let dbSettings: any = null;
+      try {
+        const [row] = await db.select().from(aiSettings).limit(1);
+        dbSettings = row;
+      } catch (e) {
+        console.log("aiSettings table table access failed, skipping...");
+      }
 
       // 2. Betöltjük a manuális/fallback beállításokat a system_settingsből
       const fallbackProvider = (await this.getSystemSetting("fallback_ai_image_provider"))?.value;
-    const fallbackModel = (await this.getSystemSetting("fallback_ai_image_model"))?.value;
-    const fallbackGptModel = (await this.getSystemSetting("fallback_ai_model"))?.value;
+      const fallbackModel = (await this.getSystemSetting("fallback_ai_image_model"))?.value;
+      const fallbackGptModel = (await this.getSystemSetting("fallback_ai_model"))?.value;
 
-    // Ha nincs semmi az adatbázisban és a fallbackben se, adjunk alapértelmezettet
-    if(!dbSettings && !fallbackProvider && !fallbackModel && !fallbackGptModel) {
-  return undefined;
-}
+      // Ha nincs semmi az adatbázisban és a fallbackben se, adjunk alapértelmezettet
+      if (!dbSettings && !fallbackProvider && !fallbackModel && !fallbackGptModel) {
+        return undefined;
+      }
 
-// 3. Összefésülés (A fallback/system_settings erősebb, ha létezik)
-return {
-  id: dbSettings?.id || 0,
-  maxTokens: dbSettings?.maxTokens || 2000,
-  temperature: dbSettings?.temperature || "0.7",
-  model: fallbackGptModel || dbSettings?.model || "gpt-4o-mini",
-  imageProvider: fallbackProvider || dbSettings?.imageProvider || "openai",
-  imageModel: fallbackModel || dbSettings?.imageModel || "dall-e-3",
-  googleDriveFolderId: (await this.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID"))?.value || dbSettings?.googleDriveFolderId,
-  updatedAt: dbSettings?.updatedAt || new Date(),
-  updatedBy: dbSettings?.updatedBy || "system"
-} as AISetting;
+      // 3. Összefésülés (A fallback/system_settings erősebb, ha létezik)
+      return {
+        id: dbSettings?.id || 0,
+        maxTokens: dbSettings?.maxTokens || 2000,
+        temperature: dbSettings?.temperature || "0.7",
+        model: fallbackGptModel || dbSettings?.model || "gpt-4o-mini",
+        imageProvider: fallbackProvider || dbSettings?.imageProvider || "openai",
+        imageModel: fallbackModel || dbSettings?.imageModel || "dall-e-3",
+        googleDriveFolderId: (await this.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID"))?.value || dbSettings?.googleDriveFolderId,
+        updatedAt: dbSettings?.updatedAt || new Date(),
+        updatedBy: dbSettings?.updatedBy || "system"
+      } as AISetting;
     } catch (error) {
-  return undefined;
-}
+      return undefined;
+    }
   }
 
-  async updateAISettings(data: any, updatedBy: string): Promise < AISetting > {
-  // 1. Ellenőrizzük a jelenlegi állapotot
-  const current = await this.getAISettings();
+  async updateAISettings(data: any, updatedBy: string): Promise<AISetting> {
+    // 1. Ellenőrizzük a jelenlegi állapotot
+    const current = await this.getAISettings();
 
-  // 2. Összefésüljük a meglévő beállításokat az újakkal (hogy ne vesszen el a választott modell)
-  const merged = {
-    maxTokens: 2000,
-    temperature: "0.7",
-    model: "gpt-4o-mini",
-    imageProvider: "openai",
-    imageModel: "dall-e-3",
-    ...current,
-    ...data,
-    updatedBy,
-    updatedAt: new Date()
-  };
+    // 2. Összefésüljük a meglévő beállításokat az újakkal (hogy ne vesszen el a választott modell)
+    const merged = {
+      maxTokens: 2000,
+      temperature: "0.7",
+      model: "gpt-4o-mini",
+      imageProvider: "openai",
+      imageModel: "dall-e-3",
+      ...current,
+      ...data,
+      updatedBy,
+      updatedAt: new Date()
+    };
 
-  // 3. Mentés a fallback táblába (mindig biztosra megyünk)
-  if(merged.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", merged.imageProvider, updatedBy);
-  if(merged.imageModel) await this.setSystemSetting("fallback_ai_image_model", merged.imageModel, updatedBy);
-  if(merged.model) await this.setSystemSetting("fallback_ai_model", merged.model, updatedBy);
+    // 3. Mentés a fallback táblába (mindig biztosra megyünk)
+    if (merged.imageProvider) await this.setSystemSetting("fallback_ai_image_provider", merged.imageProvider, updatedBy);
+    if (merged.imageModel) await this.setSystemSetting("fallback_ai_image_model", merged.imageModel, updatedBy);
+    if (merged.model) await this.setSystemSetting("fallback_ai_model", merged.model, updatedBy);
 
-  // Szinkronizálás a system_settings táblába a redundancia és a Render-biztos perzisztencia miatt
-  if(merged.supabaseUrl) await this.setSystemSetting("SUPABASE_URL", merged.supabaseUrl, updatedBy);
-  if(merged.supabaseAnonKey) await this.setSystemSetting("SUPABASE_ANON_KEY", merged.supabaseAnonKey, updatedBy);
-  if(merged.googleDriveFolderId) await this.setSystemSetting("GOOGLE_DRIVE_FOLDER_ID", merged.googleDriveFolderId, updatedBy);
+    // Szinkronizálás a system_settings táblába a redundancia és a Render-biztos perzisztencia miatt
+    if (merged.supabaseUrl) await this.setSystemSetting("SUPABASE_URL", merged.supabaseUrl, updatedBy);
+    if (merged.supabaseAnonKey) await this.setSystemSetting("SUPABASE_ANON_KEY", merged.supabaseAnonKey, updatedBy);
+    if (merged.googleDriveFolderId) await this.setSystemSetting("GOOGLE_DRIVE_FOLDER_ID", merged.googleDriveFolderId, updatedBy);
 
 
-  try {
-    if(current && current.id !== 0) {
-  const [updated] = await db
-    .update(aiSettings)
-    .set(merged)
-    .where(eq(aiSettings.id, current.id))
-    .returning();
-  return updated;
-} else {
-  const [inserted] = await db
-    .insert(aiSettings)
-    .values(merged)
-    .returning();
-  return inserted;
-}
+    try {
+      if (current && current.id !== 0) {
+        const [updated] = await db
+          .update(aiSettings)
+          .set(merged)
+          .where(eq(aiSettings.id, current.id))
+          .returning();
+        return updated;
+      } else {
+        const [inserted] = await db
+          .insert(aiSettings)
+          .values(merged)
+          .returning();
+        return inserted;
+      }
     } catch (error) {
-  console.warn("Could not save to aiSettings table, but saved to fallback.");
-  return { ...merged, id: 0 } as any;
-}
+      console.warn("Could not save to aiSettings table, but saved to fallback.");
+      return { ...merged, id: 0 } as any;
+    }
   }
 
   // Private messages implementation
-  async createPrivateMessage(message: InsertPrivateMessage): Promise < PrivateMessage > {
-  const [newMessage] = await db.insert(privateMessages).values(message).returning();
-  return newMessage;
-}
+  async createPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage> {
+    const [newMessage] = await db.insert(privateMessages).values(message).returning();
+    return newMessage;
+  }
 
-  async getPrivateMessages(userId: string): Promise < PrivateMessage[] > {
-  return await db.select().from(privateMessages)
-    .where(or(eq(privateMessages.senderId, userId), eq(privateMessages.receiverId, userId)))
-    .orderBy(asc(privateMessages.createdAt));
-}
+  async getPrivateMessages(userId: string): Promise<PrivateMessage[]> {
+    return await db.select().from(privateMessages)
+      .where(or(eq(privateMessages.senderId, userId), eq(privateMessages.receiverId, userId)))
+      .orderBy(asc(privateMessages.createdAt));
+  }
 
-  async getUnreadPrivateMessageCount(userId: string): Promise < number > {
-  const [result] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(privateMessages)
-    .where(and(eq(privateMessages.receiverId, userId), eq(privateMessages.isRead, false)));
-  return Number(result?.count) || 0;
-}
+  async getUnreadPrivateMessageCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(privateMessages)
+      .where(and(eq(privateMessages.receiverId, userId), eq(privateMessages.isRead, false)));
+    return Number(result?.count) || 0;
+  }
 
-  async markPrivateMessagesRead(userId: string, senderId: string): Promise < void> {
-  await db.update(privateMessages)
-    .set({ isRead: true })
-    .where(and(
-      eq(privateMessages.receiverId, userId),
-      eq(privateMessages.senderId, senderId),
-      eq(privateMessages.isRead, false)
-    ));
-}
+  async markPrivateMessagesRead(userId: string, senderId: string): Promise<void> {
+    await db.update(privateMessages)
+      .set({ isRead: true })
+      .where(and(
+        eq(privateMessages.receiverId, userId),
+        eq(privateMessages.senderId, senderId),
+        eq(privateMessages.isRead, false)
+      ));
+  }
 
-  async getConversationPartners(userId: string): Promise < User[] > {
-  const rows = await db.execute(sql`
+  async getConversationPartners(userId: string): Promise<User[]> {
+    const rows = await db.execute(sql`
       SELECT DISTINCT u.*
       FROM users u
       WHERE u.id IN (
@@ -1143,178 +1143,178 @@ return {
         SELECT sender_id FROM private_messages WHERE receiver_id = ${userId}
       )
     `);
-  return rows.rows as User[];
-}
+    return rows.rows as User[];
+  }
 
   // --- Practical Grades Implementations ---
-  async getPracticalGradesByStudent(studentId: string): Promise < PracticalGrade[] > {
-  return await db.select().from(practicalGrades)
-    .where(eq(practicalGrades.studentId, studentId))
-    .orderBy(desc(practicalGrades.createdAt));
-}
-
-  async getPracticalGradesByModule(moduleId: number): Promise < PracticalGrade[] > {
-  return await db.select().from(practicalGrades)
-    .where(eq(practicalGrades.moduleId, moduleId));
-}
-
-  async getPracticalGradesByTeacher(teacherId: string): Promise < PracticalGrade[] > {
-  return await db.select().from(practicalGrades)
-    .where(eq(practicalGrades.teacherId, teacherId))
-    .orderBy(desc(practicalGrades.createdAt));
-}
-
-  async getPracticalGradeForModule(studentId: string, moduleId: number): Promise < PracticalGrade | undefined > {
-  const [result] = await db.select().from(practicalGrades)
-    .where(and(
-      eq(practicalGrades.studentId, studentId),
-      eq(practicalGrades.moduleId, moduleId)
-    ))
-    .orderBy(desc(practicalGrades.createdAt))
-    .limit(1);
-  return result;
-}
-
-  async createPracticalGrade(grade: InsertPracticalGrade): Promise < PracticalGrade > {
-  // Enrich with metadata for durability
-  let enrichedData = { ...grade };
-  if(grade.moduleId) {
-  try {
-    const [moduleData] = await db.select({
-      title: modules.title,
-      number: modules.moduleNumber,
-      subjectName: subjects.name
-    }).from(modules)
-      .innerJoin(subjects, eq(modules.subjectId, subjects.id))
-      .where(eq(modules.id, grade.moduleId));
-
-    if (moduleData) {
-      enrichedData.moduleTitle = moduleData.title;
-      enrichedData.moduleNumber = moduleData.number;
-      enrichedData.subjectName = moduleData.subjectName;
-    }
-  } catch (e) {
-    console.error("Failed to enrich practical grade metadata:", e);
-  }
-}
-
-const [newGrade] = await db.insert(practicalGrades).values(enrichedData).returning();
-return newGrade;
+  async getPracticalGradesByStudent(studentId: string): Promise<PracticalGrade[]> {
+    return await db.select().from(practicalGrades)
+      .where(eq(practicalGrades.studentId, studentId))
+      .orderBy(desc(practicalGrades.createdAt));
   }
 
-  async updatePracticalGrade(id: number, data: Partial<InsertPracticalGrade>): Promise < PracticalGrade > {
-  const [updated] = await db.update(practicalGrades)
-    .set(data)
-    .where(eq(practicalGrades.id, id))
-    .returning();
-  if(!updated) throw new Error("Practical grade not found");
-  return updated;
-}
+  async getPracticalGradesByModule(moduleId: number): Promise<PracticalGrade[]> {
+    return await db.select().from(practicalGrades)
+      .where(eq(practicalGrades.moduleId, moduleId));
+  }
 
-  async deletePracticalGrade(id: number): Promise < void> {
-  await db.delete(practicalGrades).where(eq(practicalGrades.id, id));
-}
+  async getPracticalGradesByTeacher(teacherId: string): Promise<PracticalGrade[]> {
+    return await db.select().from(practicalGrades)
+      .where(eq(practicalGrades.teacherId, teacherId))
+      .orderBy(desc(practicalGrades.createdAt));
+  }
 
-  async reorganizeSubjects(professionId: number): Promise < void> {
-  console.log(`[REORGANIZE] Starting subject reorganization for profession: ${professionId}`);
-  try {
-    const subjectsList = await db.select().from(subjects).where(eq(subjects.professionId, professionId));
+  async getPracticalGradeForModule(studentId: string, moduleId: number): Promise<PracticalGrade | undefined> {
+    const [result] = await db.select().from(practicalGrades)
+      .where(and(
+        eq(practicalGrades.studentId, studentId),
+        eq(practicalGrades.moduleId, moduleId)
+      ))
+      .orderBy(desc(practicalGrades.createdAt))
+      .limit(1);
+    return result;
+  }
 
-    for(const subject of subjectsList) {
-      const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, subject.id));
+  async createPracticalGrade(grade: InsertPracticalGrade): Promise<PracticalGrade> {
+    // Enrich with metadata for durability
+    let enrichedData = { ...grade };
+    if (grade.moduleId) {
+      try {
+        const [moduleData] = await db.select({
+          title: modules.title,
+          number: modules.moduleNumber,
+          subjectName: subjects.name
+        }).from(modules)
+          .innerJoin(subjects, eq(modules.subjectId, subjects.id))
+          .where(eq(modules.id, grade.moduleId));
 
-      const theoryModules = subjectModules.filter(m => m.type === 'theory');
-      const practicalModules = subjectModules.filter(m => m.type === 'practical');
-
-      if (theoryModules.length > 0 && practicalModules.length > 0) {
-        // MIXED - SPLIT NEEDED
-        console.log(`  - Splitting mixed subject: "${subject.name}" (ID: ${subject.id})`);
-
-        // Calculate proportional hours if subject.hours exists, otherwise fall back to module counts
-        let theoryHours = theoryModules.length;
-        let practicalHours = practicalModules.length;
-
-        if (subject.hours) {
-          const totalModules = theoryModules.length + practicalModules.length;
-          const theoryRatio = theoryModules.length / totalModules;
-          theoryHours = Math.round(subject.hours * theoryRatio);
-          practicalHours = subject.hours - theoryHours;
+        if (moduleData) {
+          enrichedData.moduleTitle = moduleData.title;
+          enrichedData.moduleNumber = moduleData.number;
+          enrichedData.subjectName = moduleData.subjectName;
         }
-
-        // 1. Original becomes Theory
-        await db.update(subjects)
-          .set({ type: 'theory', hours: theoryHours, updatedAt: new Date() })
-          .where(eq(subjects.id, subject.id));
-
-        // 2. Create New Practical Subject
-        const [newPracticalSubject] = await db.insert(subjects).values({
-          professionId: subject.professionId,
-          name: subject.name,
-          code: subject.code,
-          description: subject.description,
-          type: 'practical',
-          orderIndex: subject.orderIndex,
-          hours: practicalHours,
-          schoolId: subject.schoolId,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }).returning();
-
-        // 3. Move practical modules to the new subject
-        for (const mod of practicalModules) {
-          await db.update(modules)
-            .set({ subjectId: newPracticalSubject.id, updatedAt: new Date() })
-            .where(eq(modules.id, mod.id));
-        }
-
-        console.log(`    ✅ Split into Theory (ID: ${subject.id}) and Practical (ID: ${newPracticalSubject.id})`);
-      } else if (theoryModules.length > 0 && subject.type !== 'theory') {
-        // ONLY Theory, but subject marked as something else
-        console.log(`  - Fixing type for theory subject: "${subject.name}"`);
-        await db.update(subjects)
-          .set({ type: 'theory', updatedAt: new Date() })
-          .where(eq(subjects.id, subject.id));
-      } else if (practicalModules.length > 0 && subject.type !== 'practical') {
-        // ONLY Practical, but subject marked as something else
-        console.log(`  - Fixing type for practical subject: "${subject.name}"`);
-        await db.update(subjects)
-          .set({ type: 'practical', updatedAt: new Date() })
-          .where(eq(subjects.id, subject.id));
+      } catch (e) {
+        console.error("Failed to enrich practical grade metadata:", e);
       }
     }
+
+    const [newGrade] = await db.insert(practicalGrades).values(enrichedData).returning();
+    return newGrade;
+  }
+
+  async updatePracticalGrade(id: number, data: Partial<InsertPracticalGrade>): Promise<PracticalGrade> {
+    const [updated] = await db.update(practicalGrades)
+      .set(data)
+      .where(eq(practicalGrades.id, id))
+      .returning();
+    if (!updated) throw new Error("Practical grade not found");
+    return updated;
+  }
+
+  async deletePracticalGrade(id: number): Promise<void> {
+    await db.delete(practicalGrades).where(eq(practicalGrades.id, id));
+  }
+
+  async reorganizeSubjects(professionId: number): Promise<void> {
+    console.log(`[REORGANIZE] Starting subject reorganization for profession: ${professionId}`);
+    try {
+      const subjectsList = await db.select().from(subjects).where(eq(subjects.professionId, professionId));
+
+      for (const subject of subjectsList) {
+        const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, subject.id));
+
+        const theoryModules = subjectModules.filter(m => m.type === 'theory');
+        const practicalModules = subjectModules.filter(m => m.type === 'practical');
+
+        if (theoryModules.length > 0 && practicalModules.length > 0) {
+          // MIXED - SPLIT NEEDED
+          console.log(`  - Splitting mixed subject: "${subject.name}" (ID: ${subject.id})`);
+
+          // Calculate proportional hours if subject.hours exists, otherwise fall back to module counts
+          let theoryHours = theoryModules.length;
+          let practicalHours = practicalModules.length;
+
+          if (subject.hours) {
+            const totalModules = theoryModules.length + practicalModules.length;
+            const theoryRatio = theoryModules.length / totalModules;
+            theoryHours = Math.round(subject.hours * theoryRatio);
+            practicalHours = subject.hours - theoryHours;
+          }
+
+          // 1. Original becomes Theory
+          await db.update(subjects)
+            .set({ type: 'theory', hours: theoryHours, updatedAt: new Date() })
+            .where(eq(subjects.id, subject.id));
+
+          // 2. Create New Practical Subject
+          const [newPracticalSubject] = await db.insert(subjects).values({
+            professionId: subject.professionId,
+            name: subject.name,
+            code: subject.code,
+            description: subject.description,
+            type: 'practical',
+            orderIndex: subject.orderIndex,
+            hours: practicalHours,
+            schoolId: subject.schoolId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }).returning();
+
+          // 3. Move practical modules to the new subject
+          for (const mod of practicalModules) {
+            await db.update(modules)
+              .set({ subjectId: newPracticalSubject.id, updatedAt: new Date() })
+              .where(eq(modules.id, mod.id));
+          }
+
+          console.log(`    ✅ Split into Theory (ID: ${subject.id}) and Practical (ID: ${newPracticalSubject.id})`);
+        } else if (theoryModules.length > 0 && subject.type !== 'theory') {
+          // ONLY Theory, but subject marked as something else
+          console.log(`  - Fixing type for theory subject: "${subject.name}"`);
+          await db.update(subjects)
+            .set({ type: 'theory', updatedAt: new Date() })
+            .where(eq(subjects.id, subject.id));
+        } else if (practicalModules.length > 0 && subject.type !== 'practical') {
+          // ONLY Practical, but subject marked as something else
+          console.log(`  - Fixing type for practical subject: "${subject.name}"`);
+          await db.update(subjects)
+            .set({ type: 'practical', updatedAt: new Date() })
+            .where(eq(subjects.id, subject.id));
+        }
+      }
       console.log(`[REORGANIZE] Finished subject reorganization.`);
-  } catch(error) {
-    console.error(`[REORGANIZE] Error during subject reorganization:`, error);
-    throw error;
+    } catch (error) {
+      console.error(`[REORGANIZE] Error during subject reorganization:`, error);
+      throw error;
+    }
   }
-}
 
-  async recordLoginAttendance(studentId: string): Promise < void> {
-  const student = await this.getUser(studentId);
-  if(!student) {
-    console.warn(`[Attendance Auto] Student not found: ${studentId}`);
-    return;
-  }
-    if(student.role !== 'student') {
-  return;
-}
-if (!student.classId) {
-  console.warn(`[Attendance Auto] Student ${studentId} has no assigned classId, skipping daily attendance recording.`);
-  return;
-}
+  async recordLoginAttendance(studentId: string): Promise<void> {
+    const student = await this.getUser(studentId);
+    if (!student) {
+      console.warn(`[Attendance Auto] Student not found: ${studentId}`);
+      return;
+    }
+    if (student.role !== 'student') {
+      return;
+    }
+    if (!student.classId) {
+      console.warn(`[Attendance Auto] Student ${studentId} has no assigned classId, skipping daily attendance recording.`);
+      return;
+    }
 
-const todayStr = new Date().toISOString().split('T')[0];
-const now = new Date();
-const formattedTime = now.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-await this.upsertDailyAttendance({
-  studentId,
-  classId: student.classId,
-  date: todayStr,
-  status: 'present',
-  actualStart: formattedTime,
-  recordedBy: 'auto'
-});
+    await this.upsertDailyAttendance({
+      studentId,
+      classId: student.classId,
+      date: todayStr,
+      status: 'present',
+      actualStart: formattedTime,
+      recordedBy: 'auto'
+    });
   }
 }
 
