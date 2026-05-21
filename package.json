@@ -51,6 +51,8 @@
     "@react-three/fiber": "^8.18.0",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0",
     "@rive-app/react-canvas": "^4.27.3",
     "@supabase/supabase-js": "^2.101.1",
     "@tailwindcss/typography": "^0.5.15",
