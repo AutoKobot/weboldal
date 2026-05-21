@@ -126,11 +126,13 @@
     "vaul": "^1.1.2",
     "vite": "^5.4.14",
     "wouter": "^3.3.5",
+    "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
+    "@types/ws": "^8.5.10",
     "drizzle-kit": "^0.31.9",
     "knip": "^5.85.0",
     "terser": "^5.46.0",
