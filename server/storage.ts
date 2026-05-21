@@ -1015,6 +1015,33 @@ export class DatabaseStorage implements IStorage {
       }
     }
     console.log("✅ AI prompt inicializálás kész.");
+
+    // Sync environment variables to DB settings on startup so they show up as "Csatlakoztatva" in Admin Settings UI
+    const envKeysToSync: { [key: string]: string | undefined } = {
+      openai_api_key: process.env.OPENAI_API_KEY,
+      gemini_api_key: process.env.GEMINI_API_KEY,
+      youtube_api_key: process.env.YOUTUBE_API_KEY,
+      together_api_key: process.env.TOGETHER_API_KEY,
+      deepinfra_api_key: process.env.DEEPINFRA_API_KEY,
+      elevenlabs_api_key: process.env.ELEVENLABS_API_KEY,
+      dataforseo_login: process.env.DATAFORSEO_LOGIN,
+      dataforseo_password: process.env.DATAFORSEO_PASSWORD,
+    };
+
+    console.log("🔍 Környezeti változókból származó API kulcsok szinkronizálása az adatbázisba...");
+    for (const key in envKeysToSync) {
+      if (envKeysToSync.hasOwnProperty(key)) {
+        const val = envKeysToSync[key];
+        if (val) {
+          const existingSetting = await this.getSystemSetting(key);
+          if (!existingSetting || !existingSetting.value || existingSetting.value === ">") {
+            await this.setSystemSetting(key, val, "system_env_sync");
+            console.log(`  🔑 Szinkronizált API kulcs a környezeti változókból: ${key}`);
+          }
+        }
+      }
+    }
+    console.log("✅ API kulcsok szinkronizálása kész.");
   }
 
 

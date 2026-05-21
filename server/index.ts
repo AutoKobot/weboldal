@@ -73,7 +73,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   // A DatabaseStorage konstruktora automatikusan hívja az ensureSchemaUpToDate()-t,
   // ezért itt nem kell duplikálni – csak logoljuk hogy a storage kész.
   try {
-    await import("./storage");
+    const { storage } = await import("./storage");
+    await storage.initializeDefaultPrompts();
     log("🚀 Adatbázis séma ellenőrizve és készen áll.");
   } catch (err) {
     log(`❌ Kritikus hiba az adatbázis inicializálásakor: ${err}`);
