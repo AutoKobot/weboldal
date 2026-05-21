@@ -23,6 +23,8 @@ export interface ApiStatus {
   dataForSeo: boolean;
   youtube: boolean;
   elevenLabs: boolean;
+  together?: boolean;
+  deepinfra?: boolean;
 }
 
 export interface AISettings {

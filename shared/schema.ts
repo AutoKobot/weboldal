@@ -568,12 +568,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 // Schema for local user registration
-export const localUserRegisterSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  firstName: true,
-  lastName: true,
-}).extend({
+export const localUserRegisterSchema = z.object({
+  username: z.string().min(3, "A felhasználónévnek legalább 3 karakterből kell állnia"),
+  password: z.string().min(6, "A jelszónak legalább 6 karakterből kell állnia"),
+  firstName: z.string().optional().nullable(),
+  lastName: z.string().optional().nullable(),
   email: z.string().email("Érvényes email címet adj meg"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {

@@ -214,6 +214,9 @@ export function SchoolManagement() {
               <FormField control={schoolAdminForm.control} name="schoolName" render={({field}) => (
                 <FormItem><FormLabel>Iskola neve</FormLabel><FormControl><Input {...field}/></FormControl></FormItem>
               )}/>
+              <FormField control={schoolAdminForm.control} name="email" render={({field}) => (
+                <FormItem><FormLabel>Email cím</FormLabel><FormControl><Input type="email" {...field}/></FormControl></FormItem>
+              )}/>
               <DialogFooter>
                 <Button type="submit">Létrehozás</Button>
               </DialogFooter>

@@ -53,6 +53,8 @@ router.get('/api-status', combinedAuth, async (req: any, res) => {
       gemini: !!process.env.GEMINI_API_KEY || !!(await storage.getSystemSetting('gemini_api_key'))?.value,
       youtube: !!process.env.YOUTUBE_API_KEY || !!(await storage.getSystemSetting('youtube_api_key'))?.value,
       elevenLabs: !!process.env.ELEVENLABS_API_KEY || !!(await storage.getSystemSetting('elevenlabs_api_key'))?.value,
+      together: !!process.env.TOGETHER_API_KEY || !!(await storage.getSystemSetting('together_api_key'))?.value,
+      deepinfra: !!process.env.DEEPINFRA_API_KEY || !!(await storage.getSystemSetting('deepinfra_api_key'))?.value,
       dataForSeo: (!!process.env.DATAFORSEO_LOGIN && !!process.env.DATAFORSEO_PASSWORD) || 
                   (!!(await storage.getSystemSetting('dataforseo_login'))?.value && !!(await storage.getSystemSetting('dataforseo_password'))?.value)
     };

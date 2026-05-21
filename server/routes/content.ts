@@ -197,7 +197,7 @@ router.patch('/subjects/:id', combinedAuth, checkContentEditor, async (req: any,
     
     // If hours were modified, redistribute to modules
     if (data.hours !== undefined && data.hours !== null) {
-      await storage.redistributeSubjectHours(id, data.hours);
+      await storage.redistributeSubjectHours(id, Number(data.hours));
     }
     
     res.json(subject);

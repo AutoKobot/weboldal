@@ -16,7 +16,7 @@ router.get('/avatar', combinedAuth, async (req: any, res) => {
 router.post('/avatar/feed', combinedAuth, async (req: any, res) => {
   try {
     const { xpCost } = req.body;
-    const updated = await storage.feedStudentAvatar(req.user.id, xpCost);
+    const updated = await storage.feedStudentAvatar(req.user.id, Number(xpCost));
     if (!updated) return res.status(400).json({ message: "Nem elegendő XP" });
     res.json(updated);
   } catch (error) {

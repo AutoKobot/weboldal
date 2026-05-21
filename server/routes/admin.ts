@@ -5,6 +5,8 @@ import { combinedAuth } from "./middleware";
 import { insertProfessionSchema, modules, subjects, practicalGrades, testResults, users } from "@shared/schema";
 import { db } from "../db";
 import { eq, sql, and } from "drizzle-orm";
+import { hashPassword } from "../localAuth";
+
 
 const router = Router();
 
@@ -509,6 +511,34 @@ router.get('/db-stats', combinedAuth, adminOnly, async (req: any, res) => {
   } catch (error) {
     console.error("Stats error:", error);
     res.status(500).json({ message: "Failed to fetch stats" });
+  }
+});
+
+// Create school admin endpoint
+router.post('/create-school-admin', combinedAuth, adminOnly, async (req: any, res) => {
+  try {
+    const { username, password, firstName, lastName, schoolName, email } = req.body;
+    if (!username || !password || !firstName || !lastName || !schoolName || !email) {
+      return res.status(400).json({ message: "Minden mező kitöltése kötelező" });
+    }
+    const existingUser = await storage.getUserByUsername(username);
+    if (existingUser) return res.status(400).json({ message: "Ez a felhasználónév már foglalt" });
+    const existingEmail = await storage.getUserByEmail(email);
+    if (existingEmail) return res.status(400).json({ message: "Ez az email cím már használatban van" });
+
+    let school = (await storage.getSchools()).find(s => s.name.toLowerCase() === schoolName.trim().toLowerCase());
+    if (!school) {
+      school = await storage.createSchool({ name: schoolName.trim(), address: "", email });
+    }
+    const hashedPassword = await hashPassword(password);
+    const newUser = await storage.createUser({
+      username, password: hashedPassword, firstName, lastName, email,
+      role: 'school_admin', schoolId: school.id, schoolName: school.name
+    });
+    res.status(201).json(newUser);
+  } catch (error: any) {
+    console.error("Error creating school admin:", error);
+    res.status(500).json({ message: "Sikertelen iskolai admin létrehozás", error: error.message });
   }
 });
 

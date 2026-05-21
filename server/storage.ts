@@ -187,7 +187,7 @@ export interface IStorage {
 
   // Module operations
   getModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]>;
-  getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]>;
+  getPublishedModules(subjectId?: number, schoolAdminId?: string | null, professionId?: number): Promise<Module[]>;
   getModule(id: number): Promise<Module | undefined>;
   createModule(module: InsertModule): Promise<Module>;
   bulkCreateModules(modulesList: InsertModule[]): Promise<Module[]>;
@@ -235,6 +235,60 @@ export interface IStorage {
   getBackgroundJobs(): Promise<any[]>;
   createBackgroundJob(type: string, message: string, data?: any): Promise<any>;
   updateBackgroundJob(id: number, updateData: { status?: string; progress?: number; message?: string; error?: string }): Promise<void>;
+
+  // Teacher / Lesson operations
+  getClassesByTeacher(teacherId: string): Promise<Class[]>;
+  getTestResultsByClass(classId: number, startDate?: string, endDate?: string, studentId?: string): Promise<any[]>;
+  getAttendanceByClassRange(classId: number, startDate: string, endDate: string): Promise<Attendance[]>;
+  getAttendanceByClass(classId: number, date: string): Promise<Attendance[]>;
+  updateAttendanceStatus(id: number, status: string, teacherId: string): Promise<Attendance>;
+  getDailyAttendanceByClass(classId: number, date?: string, startDate?: string, endDate?: string): Promise<DailyAttendance[]>;
+  upsertDailyAttendance(data: InsertDailyAttendance): Promise<DailyAttendance>;
+  upsertAttendance(data: InsertAttendance): Promise<Attendance>;
+  getLessonSchedules(schoolAdminId: string, scheduleGroup: string, classId?: number): Promise<LessonSchedule[]>;
+  upsertLessonSchedules(schedulesList: InsertLessonSchedule[]): Promise<LessonSchedule[]>;
+  getClassDailyNotes(classId: number, date: string): Promise<StudentDailyNote[]>;
+  upsertStudentDailyNote(data: InsertStudentDailyNote): Promise<StudentDailyNote>;
+  getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]>;
+  redistributeSubjectHours(subjectId: number, hours: number): Promise<void>;
+  
+  // Community operations
+  getCommunityLeaderboard(): Promise<any[]>;
+  getCommunityGroups(professionId?: number): Promise<CommunityGroup[]>;
+  getGroupMembers(groupId: number): Promise<GroupMember[]>;
+  getCommunityGroup(groupId: number): Promise<CommunityGroup | undefined>;
+  createCommunityGroup(group: InsertCommunityGroup): Promise<CommunityGroup>;
+  joinCommunityGroup(groupId: number, userId: string): Promise<void>;
+  leaveCommunityGroup(groupId: number, userId: string): Promise<void>;
+  getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]>;
+  getReactionsForDiscussions(discussionIds: number[]): Promise<any[]>;
+  createDiscussion(discussion: InsertDiscussion): Promise<Discussion>;
+  toggleReaction(discussionId: number, userId: string, emoji: string): Promise<any>;
+  getNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  getUnreadCount(userId: string): Promise<number>;
+  markNotificationRead(notificationId: number, userId: string): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
+  createNotification(notif: InsertNotification): Promise<Notification>;
+  deleteNotification(notificationId: number, userId: string): Promise<void>;
+
+  // Announcement operations
+  createAnnouncement(announcement: InsertClassAnnouncement): Promise<ClassAnnouncement>;
+  getAnnouncementsByClass(classId: number): Promise<ClassAnnouncement[]>;
+  getUnacknowledgedAnnouncements(studentId: string, classId: number): Promise<ClassAnnouncement[]>;
+  acknowledgeAnnouncement(ack: InsertAnnouncementAcknowledgement): Promise<AnnouncementAcknowledgement>;
+  getAnnouncementStats(announcementId: number): Promise<any>;
+  deleteAnnouncement(id: number): Promise<void>;
+
+  // Cost tracking operations
+  ensureCurrentMonthCostEntry(): Promise<void>;
+  getMonthlyCostById(id: number): Promise<MonthlyCost | undefined>;
+  updateMonthlyCost(id: number, data: Partial<InsertMonthlyCost>): Promise<MonthlyCost>;
+
+  // Gamification & GDPR
+  feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | undefined>;
+  reviveStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | undefined>;
+  saveUserConsent(data: InsertUserConsent): Promise<UserConsent>;
+  exportUserData(userId: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -579,10 +633,20 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(modules).orderBy(asc(modules.moduleNumber));
   }
 
-  async getPublishedModules(subjectId?: number, schoolAdminId?: string | null): Promise<Module[]> {
+  async getPublishedModules(subjectId?: number, schoolAdminId?: string | null, professionId?: number): Promise<Module[]> {
     const conditions: any[] = [eq(modules.isPublished, true)];
     if (subjectId) conditions.push(eq(modules.subjectId, subjectId));
     if (schoolAdminId) conditions.push(eq(modules.schoolAdminId, schoolAdminId));
+
+    if (professionId) {
+      const subjectIdsResult = await db.select({ id: subjects.id }).from(subjects).where(eq(subjects.professionId, professionId));
+      const subjectIds = subjectIdsResult.map(s => s.id);
+      if (subjectIds.length === 0) {
+        return [];
+      }
+      conditions.push(inArray(modules.subjectId, subjectIds));
+    }
+
     return await db.select().from(modules).where(and(...conditions)).orderBy(asc(modules.moduleNumber));
   }
 
@@ -679,38 +743,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Notifications ──────────────────────────────────────────────────────────
-  async getNotifications(userId: string): Promise<Notification[]> {
-    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
-  }
-
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db.insert(notifications).values(notification).returning();
-    return newNotification;
-  }
-
-  async markNotificationRead(id: number): Promise<void> {
-    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
-  }
-
   async markAllNotificationsRead(userId: string): Promise<void> {
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
   }
 
   // ── Community groups ───────────────────────────────────────────────────────
-  async getCommunityGroups(): Promise<CommunityGroup[]> {
-    return await db.select().from(communityGroups).orderBy(desc(communityGroups.createdAt));
-  }
-
-  async getCommunityGroup(id: number): Promise<CommunityGroup | undefined> {
-    const [group] = await db.select().from(communityGroups).where(eq(communityGroups.id, id));
-    return group || undefined;
-  }
-
-  async createCommunityGroup(group: InsertCommunityGroup): Promise<CommunityGroup> {
-    const [newGroup] = await db.insert(communityGroups).values(group).returning();
-    return newGroup;
-  }
-
   async updateCommunityGroup(id: number, data: Partial<InsertCommunityGroup>): Promise<CommunityGroup> {
     const [updated] = await db.update(communityGroups).set({ ...data, updatedAt: new Date() }).where(eq(communityGroups.id, id)).returning();
     return updated;
@@ -718,10 +755,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCommunityGroup(id: number): Promise<void> {
     await db.delete(communityGroups).where(eq(communityGroups.id, id));
-  }
-
-  async getGroupMembers(groupId: number): Promise<GroupMember[]> {
-    return await db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
   }
 
   async addGroupMember(groupId: number, userId: string, role?: string): Promise<GroupMember> {
@@ -761,21 +794,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Discussions ────────────────────────────────────────────────────────────
-  async getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]> {
-    const conditions: any[] = [];
-    if (groupId) conditions.push(eq(discussions.groupId, groupId));
-    if (projectId) conditions.push(eq(discussions.projectId, projectId));
-    if (conditions.length > 0) {
-      return await db.select().from(discussions).where(and(...conditions)).orderBy(desc(discussions.createdAt));
-    }
-    return await db.select().from(discussions).orderBy(desc(discussions.createdAt));
-  }
-
-  async createDiscussion(discussion: InsertDiscussion): Promise<Discussion> {
-    const [newDiscussion] = await db.insert(discussions).values(discussion).returning();
-    return newDiscussion;
-  }
-
   async updateDiscussion(id: number, data: Partial<InsertDiscussion>): Promise<Discussion> {
     const [updated] = await db.update(discussions).set({ ...data, updatedAt: new Date() }).where(eq(discussions.id, id)).returning();
     return updated;
@@ -803,14 +821,6 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(attendance).where(eq(attendance.classId, classId));
   }
 
-  async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
-    const [record] = await db.insert(attendance).values(data).onConflictDoUpdate({
-      target: [attendance.studentId, attendance.classId, attendance.date, attendance.periodNumber],
-      set: { ...data, updatedAt: new Date() },
-    }).returning();
-    return record;
-  }
-
   async getDailyAttendance(classId: number, date?: string): Promise<DailyAttendance[]> {
     if (date) {
       return await db.select().from(dailyAttendance).where(and(eq(dailyAttendance.classId, classId), eq(dailyAttendance.date, date)));
@@ -818,25 +828,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(dailyAttendance).where(eq(dailyAttendance.classId, classId));
   }
 
-  async upsertDailyAttendance(data: InsertDailyAttendance): Promise<DailyAttendance> {
-    const [record] = await db.insert(dailyAttendance).values(data).onConflictDoUpdate({
-      target: [dailyAttendance.studentId, dailyAttendance.date],
-      set: { ...data, updatedAt: new Date() },
-    }).returning();
-    return record;
-  }
-
   // ── Lesson schedules ───────────────────────────────────────────────────────
-  async getLessonSchedules(schoolId?: number, classId?: number): Promise<LessonSchedule[]> {
-    const conditions: any[] = [];
-    if (schoolId) conditions.push(eq(lessonSchedules.schoolId, schoolId));
-    if (classId) conditions.push(eq(lessonSchedules.classId, classId));
-    if (conditions.length > 0) {
-      return await db.select().from(lessonSchedules).where(and(...conditions)).orderBy(asc(lessonSchedules.periodNumber));
-    }
-    return await db.select().from(lessonSchedules).orderBy(asc(lessonSchedules.periodNumber));
-  }
-
   async upsertLessonSchedule(data: InsertLessonSchedule): Promise<LessonSchedule> {
     const [schedule] = await db.insert(lessonSchedules).values(data).onConflictDoUpdate({
       target: [lessonSchedules.schoolId, lessonSchedules.periodNumber, lessonSchedules.scheduleGroup, lessonSchedules.classId],
@@ -892,14 +884,6 @@ export class DatabaseStorage implements IStorage {
     await db.delete(classAnnouncements).where(eq(classAnnouncements.id, id));
   }
 
-  async acknowledgeAnnouncement(announcementId: number, studentId: string, response?: string): Promise<AnnouncementAcknowledgement> {
-    const [ack] = await db.insert(announcementAcknowledgements).values({ announcementId, studentId, response }).onConflictDoUpdate({
-      target: [announcementAcknowledgements.announcementId, announcementAcknowledgements.studentId],
-      set: { response, acknowledgedAt: new Date() },
-    }).returning();
-    return ack;
-  }
-
   async getAnnouncementAcknowledgements(announcementId: number): Promise<AnnouncementAcknowledgement[]> {
     return await db.select().from(announcementAcknowledgements).where(eq(announcementAcknowledgements.announcementId, announcementId));
   }
@@ -910,11 +894,6 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(studentDailyNotes).where(and(eq(studentDailyNotes.studentId, studentId), eq(studentDailyNotes.date, date))).orderBy(desc(studentDailyNotes.createdAt));
     }
     return await db.select().from(studentDailyNotes).where(eq(studentDailyNotes.studentId, studentId)).orderBy(desc(studentDailyNotes.createdAt));
-  }
-
-  async upsertStudentDailyNote(data: InsertStudentDailyNote): Promise<StudentDailyNote> {
-    const [note] = await db.insert(studentDailyNotes).values(data).returning();
-    return note;
   }
 
   // ── Privacy / GDPR ─────────────────────────────────────────────────────────
@@ -1443,6 +1422,564 @@ export class DatabaseStorage implements IStorage {
         updated_at = ${now}
       WHERE id = ${id}
     `);
+  }
+
+  // ── Teacher / Lesson operations ───────────────────────────────────────────
+  async getClassesByTeacher(teacherId: string): Promise<Class[]> {
+    return await db.select().from(classes).where(eq(classes.assignedTeacherId, teacherId));
+  }
+
+  async getTestResultsByClass(classId: number, startDate?: string, endDate?: string, studentId?: string): Promise<any[]> {
+    let conditions = [eq(users.classId, classId)];
+    if (studentId) {
+      conditions.push(eq(users.id, studentId));
+    }
+    if (startDate) {
+      conditions.push(gte(testResults.createdAt, new Date(startDate)));
+    }
+    if (endDate) {
+      conditions.push(lte(testResults.createdAt, new Date(endDate)));
+    }
+    
+    const rows = await db.select({
+      id: testResults.id,
+      userId: testResults.userId,
+      moduleId: testResults.moduleId,
+      score: testResults.score,
+      passed: testResults.passed,
+      createdAt: testResults.createdAt,
+      studentId: users.id,
+      moduleTitle: modules.title,
+    })
+    .from(testResults)
+    .innerJoin(users, eq(users.id, testResults.userId))
+    .innerJoin(modules, eq(modules.id, testResults.moduleId))
+    .where(and(...conditions))
+    .orderBy(desc(testResults.createdAt));
+    
+    return rows;
+  }
+
+  async getAttendanceByClassRange(classId: number, startDate: string, endDate: string): Promise<Attendance[]> {
+    return await db.select().from(attendance).where(and(
+      eq(attendance.classId, classId),
+      gte(attendance.date, startDate),
+      lte(attendance.date, endDate)
+    )).orderBy(asc(attendance.date), asc(attendance.periodNumber));
+  }
+
+  async getAttendanceByClass(classId: number, date: string): Promise<Attendance[]> {
+    return await db.select().from(attendance).where(and(
+      eq(attendance.classId, classId),
+      eq(attendance.date, date)
+    )).orderBy(asc(attendance.periodNumber));
+  }
+
+  async updateAttendanceStatus(id: number, status: string, teacherId: string): Promise<Attendance> {
+    const [row] = await db.update(attendance)
+      .set({ status, recordedBy: teacherId, updatedAt: new Date() })
+      .where(eq(attendance.id, id))
+      .returning();
+    return row;
+  }
+
+  async getDailyAttendanceByClass(classId: number, date?: string, startDate?: string, endDate?: string): Promise<DailyAttendance[]> {
+    let conditions = [eq(dailyAttendance.classId, classId)];
+    if (date) conditions.push(eq(dailyAttendance.date, date));
+    if (startDate) conditions.push(gte(dailyAttendance.date, startDate));
+    if (endDate) conditions.push(lte(dailyAttendance.date, endDate));
+    
+    return await db.select().from(dailyAttendance)
+      .where(and(...conditions))
+      .orderBy(asc(dailyAttendance.date));
+  }
+
+  async upsertDailyAttendance(data: InsertDailyAttendance): Promise<DailyAttendance> {
+    const student = await this.getUser(data.studentId);
+    const cls = await this.getClassById(data.classId);
+    const enriched = {
+      ...data,
+      studentName: student ? `${student.lastName} ${student.firstName}`.trim() : null,
+      className: cls ? cls.name : null,
+    };
+    
+    const [row] = await db.insert(dailyAttendance).values(enriched).onConflictDoUpdate({
+      target: [dailyAttendance.studentId, dailyAttendance.date],
+      set: {
+        status: enriched.status,
+        actualStart: enriched.actualStart,
+        actualEnd: enriched.actualEnd,
+        notes: enriched.notes,
+        recordedBy: enriched.recordedBy,
+        studentName: enriched.studentName,
+        className: enriched.className,
+        updatedAt: new Date(),
+      }
+    }).returning();
+    return row;
+  }
+
+  async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
+    const student = await this.getUser(data.studentId);
+    const cls = await this.getClassById(data.classId);
+    const enriched = {
+      ...data,
+      studentName: student ? `${student.lastName} ${student.firstName}`.trim() : null,
+      className: cls ? cls.name : null,
+    };
+    
+    const [row] = await db.insert(attendance).values(enriched).onConflictDoUpdate({
+      target: [attendance.studentId, attendance.classId, attendance.date, attendance.periodNumber],
+      set: {
+        status: enriched.status,
+        actualStart: enriched.actualStart,
+        actualEnd: enriched.actualEnd,
+        recordedBy: enriched.recordedBy,
+        studentName: enriched.studentName,
+        className: enriched.className,
+        updatedAt: new Date(),
+      }
+    }).returning();
+    return row;
+  }
+
+  async getLessonSchedules(schoolAdminId: string, scheduleGroup: string, classId?: number): Promise<LessonSchedule[]> {
+    let conditions = [eq(lessonSchedules.scheduleGroup, scheduleGroup)];
+    if (classId) {
+      conditions.push(eq(lessonSchedules.classId, classId));
+    }
+    const user = await this.getUser(schoolAdminId);
+    if (user?.schoolId) {
+      conditions.push(eq(lessonSchedules.schoolId, user.schoolId));
+    }
+    
+    return await db.select().from(lessonSchedules)
+      .where(and(...conditions))
+      .orderBy(asc(lessonSchedules.periodNumber));
+  }
+
+  async upsertLessonSchedules(schedulesList: InsertLessonSchedule[]): Promise<LessonSchedule[]> {
+    const results: LessonSchedule[] = [];
+    for (const s of schedulesList) {
+      const [row] = await db.insert(lessonSchedules).values(s).onConflictDoUpdate({
+        target: [lessonSchedules.schoolId, lessonSchedules.periodNumber, lessonSchedules.scheduleGroup, lessonSchedules.classId],
+        set: {
+          startHour: s.startHour,
+          startMinute: s.startMinute,
+          endHour: s.endHour,
+          endMinute: s.endMinute,
+          label: s.label,
+          isActive: s.isActive ?? true,
+          updatedAt: new Date()
+        }
+      }).returning();
+      results.push(row);
+    }
+    return results;
+  }
+
+  async getClassDailyNotes(classId: number, date: string): Promise<StudentDailyNote[]> {
+    return await db.select().from(studentDailyNotes).where(and(
+      eq(studentDailyNotes.classId, classId),
+      eq(studentDailyNotes.date, date)
+    ));
+  }
+
+  async upsertStudentDailyNote(data: InsertStudentDailyNote): Promise<StudentDailyNote> {
+    const [existing] = await db.select().from(studentDailyNotes).where(and(
+      eq(studentDailyNotes.studentId, data.studentId),
+      eq(studentDailyNotes.teacherId, data.teacherId),
+      eq(studentDailyNotes.date, data.date)
+    ));
+    
+    if (existing) {
+      const [updated] = await db.update(studentDailyNotes)
+        .set({ note: data.note, updatedAt: new Date() })
+        .where(eq(studentDailyNotes.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await db.insert(studentDailyNotes).values(data).returning();
+      return inserted;
+    }
+  }
+
+  async getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]> {
+    const rows = await db.select({
+      last_name: users.lastName,
+      first_name: users.firstName,
+      username: users.username,
+      date: attendance.date,
+      period_number: attendance.periodNumber,
+      status: attendance.status,
+      login_at: attendance.loginAt,
+      daily_note: dailyAttendance.notes
+    })
+    .from(attendance)
+    .innerJoin(users, eq(users.id, attendance.studentId))
+    .leftJoin(dailyAttendance, and(
+      eq(dailyAttendance.studentId, attendance.studentId),
+      eq(dailyAttendance.date, attendance.date)
+    ))
+    .where(and(
+      eq(attendance.classId, classId),
+      gte(attendance.date, startDate),
+      lte(attendance.date, endDate)
+    ))
+    .orderBy(asc(attendance.date), asc(users.lastName), asc(attendance.periodNumber));
+    
+    return rows;
+  }
+  
+  // ── Community operations ───────────────────────────────────────────────────
+  async getCommunityLeaderboard(): Promise<any[]> {
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      xp: users.xp,
+      profileImageUrl: users.profileImageUrl
+    })
+    .from(users)
+    .where(eq(users.role, 'student'))
+    .orderBy(desc(users.xp))
+    .limit(10);
+  }
+
+  async getCommunityGroups(professionId?: number): Promise<CommunityGroup[]> {
+    let query = db.select().from(communityGroups);
+    if (professionId) {
+      return await query.where(eq(communityGroups.professionId, professionId)).orderBy(desc(communityGroups.createdAt));
+    }
+    return await query.orderBy(desc(communityGroups.createdAt));
+  }
+
+  async getGroupMembers(groupId: number): Promise<GroupMember[]> {
+    return await db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
+  }
+
+  async getCommunityGroup(groupId: number): Promise<CommunityGroup | undefined> {
+    const [g] = await db.select().from(communityGroups).where(eq(communityGroups.id, groupId));
+    return g || undefined;
+  }
+
+  async createCommunityGroup(group: InsertCommunityGroup): Promise<CommunityGroup> {
+    const [g] = await db.insert(communityGroups).values(group).returning();
+    return g;
+  }
+
+  async joinCommunityGroup(groupId: number, userId: string): Promise<void> {
+    const [existing] = await db.select().from(groupMembers).where(and(
+      eq(groupMembers.groupId, groupId),
+      eq(groupMembers.userId, userId)
+    ));
+    if (!existing) {
+      await db.insert(groupMembers).values({ groupId, userId, role: 'member' });
+    }
+  }
+
+  async leaveCommunityGroup(groupId: number, userId: string): Promise<void> {
+    await db.delete(groupMembers).where(and(
+      eq(groupMembers.groupId, groupId),
+      eq(groupMembers.userId, userId)
+    ));
+  }
+
+  async getDiscussions(groupId?: number, projectId?: number): Promise<Discussion[]> {
+    let conditions = [isNull(discussions.parentId)];
+    if (groupId) conditions.push(eq(discussions.groupId, groupId));
+    if (projectId) conditions.push(eq(discussions.projectId, projectId));
+    
+    return await db.select().from(discussions)
+      .where(and(...conditions))
+      .orderBy(desc(discussions.isPinned), desc(discussions.createdAt));
+  }
+
+  async getReactionsForDiscussions(discussionIds: number[]): Promise<any[]> {
+    if (discussionIds.length === 0) return [];
+    return await db.select().from(discussionReactions).where(inArray(discussionReactions.discussionId, discussionIds));
+  }
+
+  async createDiscussion(discussion: InsertDiscussion): Promise<Discussion> {
+    const [d] = await db.insert(discussions).values(discussion).returning();
+    return d;
+  }
+
+  async toggleReaction(discussionId: number, userId: string, emoji: string): Promise<any> {
+    const [existing] = await db.select().from(discussionReactions).where(and(
+      eq(discussionReactions.discussionId, discussionId),
+      eq(discussionReactions.userId, userId),
+      eq(discussionReactions.emoji, emoji)
+    ));
+    
+    if (existing) {
+      await db.delete(discussionReactions).where(eq(discussionReactions.id, existing.id));
+      return { added: false, emoji };
+    } else {
+      await db.insert(discussionReactions).values({ discussionId, userId, emoji });
+      return { added: true, emoji };
+    }
+  }
+
+  async getNotifications(userId: string, limit?: number): Promise<Notification[]> {
+    let query = db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+    if (limit !== undefined) {
+      return await query.limit(limit);
+    }
+    return await query;
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const [row] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ));
+    return row?.count || 0;
+  }
+
+  async markNotificationRead(notificationId: number, userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId)
+      ));
+  }
+
+  async createNotification(notif: InsertNotification): Promise<Notification> {
+    const [n] = await db.insert(notifications).values(notif).returning();
+    return n;
+  }
+
+  // ── Announcement operations ────────────────────────────────────────────────
+  async createAnnouncement(announcement: InsertClassAnnouncement): Promise<ClassAnnouncement> {
+    const [a] = await db.insert(classAnnouncements).values(announcement).returning();
+    return a;
+  }
+
+  async getAnnouncementsByClass(classId: number): Promise<ClassAnnouncement[]> {
+    return await db.select().from(classAnnouncements)
+      .where(eq(classAnnouncements.classId, classId))
+      .orderBy(desc(classAnnouncements.createdAt));
+  }
+
+  async getUnacknowledgedAnnouncements(studentId: string, classId: number): Promise<ClassAnnouncement[]> {
+    return await db.select()
+      .from(classAnnouncements)
+      .where(and(
+        eq(classAnnouncements.classId, classId),
+        eq(classAnnouncements.isActive, true),
+        notExists(
+          db.select().from(announcementAcknowledgements).where(and(
+            eq(announcementAcknowledgements.announcementId, classAnnouncements.id),
+            eq(announcementAcknowledgements.studentId, studentId)
+          ))
+        )
+      ))
+      .orderBy(desc(classAnnouncements.createdAt));
+  }
+
+  async acknowledgeAnnouncement(ack: InsertAnnouncementAcknowledgement): Promise<AnnouncementAcknowledgement> {
+    const [row] = await db.insert(announcementAcknowledgements).values(ack).onConflictDoUpdate({
+      target: [announcementAcknowledgements.announcementId, announcementAcknowledgements.studentId],
+      set: {
+        response: ack.response,
+        acknowledgedAt: new Date()
+      }
+    }).returning();
+    return row;
+  }
+
+  async getAnnouncementStats(announcementId: number): Promise<any> {
+    const [announcement] = await db.select().from(classAnnouncements).where(eq(classAnnouncements.id, announcementId));
+    if (!announcement) return null;
+
+    const classStudents = await db.select().from(users).where(eq(users.classId, announcement.classId));
+    const totalStudents = classStudents.length;
+
+    const acks = await db.select({
+      studentId: announcementAcknowledgements.studentId,
+      studentName: sql<string>`concat(${users.lastName}, ' ', ${users.firstName})`,
+      response: announcementAcknowledgements.response,
+      acknowledgedAt: announcementAcknowledgements.acknowledgedAt
+    })
+    .from(announcementAcknowledgements)
+    .innerJoin(users, eq(users.id, announcementAcknowledgements.studentId))
+    .where(eq(announcementAcknowledgements.announcementId, announcementId));
+
+    const acknowledgedCount = acks.length;
+    const pendingCount = Math.max(0, totalStudents - acknowledgedCount);
+
+    return {
+      announcement,
+      totalStudents,
+      acknowledgedCount,
+      pendingCount,
+      acknowledgements: acks
+    };
+  }
+
+  async deleteAnnouncement(id: number): Promise<void> {
+    await db.delete(classAnnouncements).where(eq(classAnnouncements.id, id));
+  }
+
+  // ── Missing implementations ────────────────────────────────────────────────
+  async redistributeSubjectHours(subjectId: number, totalHours: number): Promise<void> {
+    const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, subjectId));
+    if (subjectModules.length === 0) return;
+    const share = (totalHours / subjectModules.length).toFixed(2);
+    for (const m of subjectModules) {
+      await db.update(modules).set({ suggestedHours: share }).where(eq(modules.id, m.id));
+    }
+  }
+
+  async ensureCurrentMonthCostEntry(): Promise<void> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const [existing] = await db.select().from(monthlyCosts).where(and(eq(monthlyCosts.year, year), eq(monthlyCosts.month, month)));
+    if (!existing) {
+      const apiCosts = await this.calculateMonthlyApiCosts(year, month);
+      await db.insert(monthlyCosts).values({
+        year,
+        month,
+        apiCosts: apiCosts.toFixed(2),
+        developmentCosts: "0.00",
+        infrastructureCosts: "0.00",
+        otherCosts: "0.00",
+        totalCosts: apiCosts.toFixed(2),
+      });
+    }
+  }
+
+  async getMonthlyCostById(id: number): Promise<MonthlyCost | undefined> {
+    const [row] = await db.select().from(monthlyCosts).where(eq(monthlyCosts.id, id));
+    return row || undefined;
+  }
+
+  async updateMonthlyCost(id: number, data: Partial<InsertMonthlyCost>): Promise<MonthlyCost> {
+    const [updated] = await db.update(monthlyCosts).set({ ...data, updatedAt: new Date() }).where(eq(monthlyCosts.id, id)).returning();
+    return updated;
+  }
+
+  async feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | undefined> {
+    const user = await this.getUser(userId);
+    if (!user || (user.xp || 0) < xpCost) return undefined;
+    
+    await db.update(users).set({ xp: (user.xp || 0) - xpCost }).where(eq(users.id, userId));
+    
+    const existing = await this.getStudentAvatar(userId);
+    if (!existing) {
+      const [avatar] = await db.insert(studentAvatars).values({
+        userId,
+        avatarType: 'default',
+        xpInvested: xpCost,
+        hunger: 100,
+        happiness: 100,
+        isAlive: true,
+      }).returning();
+      return avatar;
+    }
+    
+    const newXpInvested = existing.xpInvested + xpCost;
+    let newLevel = existing.level;
+    if (newXpInvested >= 5000) newLevel = 7;
+    else if (newXpInvested >= 3500) newLevel = 6;
+    else if (newXpInvested >= 2000) newLevel = 5;
+    else if (newXpInvested >= 1000) newLevel = 4;
+    else if (newXpInvested >= 500) newLevel = 3;
+    else if (newXpInvested >= 200) newLevel = 2;
+    
+    const [updated] = await db.update(studentAvatars).set({
+      hunger: Math.min(100, existing.hunger + Math.floor(xpCost / 5)),
+      happiness: Math.min(100, existing.happiness + Math.floor(xpCost / 10)),
+      xpInvested: newXpInvested,
+      level: newLevel,
+      lastFedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(studentAvatars.id, existing.id)).returning();
+    
+    return updated;
+  }
+
+  async reviveStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | undefined> {
+    const user = await this.getUser(userId);
+    if (!user || (user.xp || 0) < xpCost) return undefined;
+    
+    await db.update(users).set({ xp: (user.xp || 0) - xpCost }).where(eq(users.id, userId));
+    
+    const existing = await this.getStudentAvatar(userId);
+    if (!existing) {
+      const [avatar] = await db.insert(studentAvatars).values({
+        userId,
+        avatarType: 'default',
+        xpInvested: xpCost,
+        hunger: 100,
+        happiness: 100,
+        isAlive: true,
+      }).returning();
+      return avatar;
+    }
+    
+    const [updated] = await db.update(studentAvatars).set({
+      isAlive: true,
+      hunger: 100,
+      happiness: 100,
+      xpInvested: existing.xpInvested + xpCost,
+      updatedAt: new Date(),
+    }).where(eq(studentAvatars.id, existing.id)).returning();
+    
+    return updated;
+  }
+
+  async deleteNotification(notificationId: number, userId: string): Promise<void> {
+    await db.delete(notifications).where(and(
+      eq(notifications.id, notificationId),
+      eq(notifications.userId, userId)
+    ));
+  }
+
+  async saveUserConsent(data: InsertUserConsent): Promise<UserConsent> {
+    const [consent] = await db.insert(userConsents).values(data).returning();
+    return consent;
+  }
+
+  async exportUserData(userId: string): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) return null;
+    
+    const consents = await db.select().from(userConsents).where(eq(userConsents.userId, userId));
+    const testResultsList = await db.select().from(testResults).where(eq(testResults.userId, userId));
+    const avatar = await this.getStudentAvatar(userId);
+    const messages = await db.select().from(privateMessages).where(or(
+      eq(privateMessages.senderId, userId),
+      eq(privateMessages.receiverId, userId)
+    ));
+    const attendanceRecords = await db.select().from(attendance).where(eq(attendance.studentId, userId));
+    
+    return {
+      profile: {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        xp: user.xp,
+        createdAt: user.createdAt,
+      },
+      consents,
+      testResults: testResultsList,
+      avatar,
+      privateMessages: messages,
+      attendance: attendanceRecords,
+    };
   }
 }
 

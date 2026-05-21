@@ -36,15 +36,17 @@ router.get('/stats', combinedAuth, adminOnly, async (req: any, res) => {
 router.post('/monthly', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const { year, month, developmentCosts, infrastructureCosts, otherCosts, notes } = req.body;
-    const apiCosts = await storage.calculateMonthlyApiCosts(year, month);
+    const yearNum = Number(year);
+    const monthNum = Number(month);
+    const apiCosts = await storage.calculateMonthlyApiCosts(yearNum, monthNum);
     const totalCosts = parseFloat(apiCosts.toString()) +
       parseFloat(developmentCosts || 0) +
       parseFloat(infrastructureCosts || 0) +
       parseFloat(otherCosts || 0);
 
     const costData = await storage.upsertMonthlyCost({
-      year,
-      month,
+      year: yearNum,
+      month: monthNum,
       apiCosts: apiCosts.toFixed(2),
       developmentCosts: developmentCosts || '0.00',
       infrastructureCosts: infrastructureCosts || '0.00',

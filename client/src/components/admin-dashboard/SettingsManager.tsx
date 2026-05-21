@@ -265,12 +265,15 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                     type={showOpenaiKey ? "text" : "password"} 
                     value={openaiKey} 
                     onChange={(e) => setOpenaiKey(e.target.value)} 
-                    placeholder="sk-..."
+                    placeholder={apiStatus.openai ? "•••••••••••••••• (Mentve)" : "sk-..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowOpenaiKey(!showOpenaiKey)}>
                     {showOpenaiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() })} disabled={!openaiKey}>Mentés</Button>
+                  <Button size="sm" onClick={() => {
+                    updateApiKeyMutation.mutate({ provider: 'openai', key: openaiKey.trim() });
+                    setOpenaiKey("");
+                  }} disabled={!openaiKey}>Mentés</Button>
                 </div>
               </div>
 
@@ -287,12 +290,15 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                     type={showGeminiKey ? "text" : "password"} 
                     value={geminiKey} 
                     onChange={(e) => setGeminiKey(e.target.value)} 
-                    placeholder="AIza..."
+                    placeholder={apiStatus.gemini ? "•••••••••••••••• (Mentve)" : "AIza..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowGeminiKey(!showGeminiKey)}>
                     {showGeminiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'gemini', key: geminiKey.trim() })} disabled={!geminiKey}>Mentés</Button>
+                  <Button size="sm" onClick={() => {
+                    updateApiKeyMutation.mutate({ provider: 'gemini', key: geminiKey.trim() });
+                    setGeminiKey("");
+                  }} disabled={!geminiKey}>Mentés</Button>
                 </div>
               </div>
 
@@ -300,18 +306,24 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
               <div className="space-y-3 p-4 border rounded-lg bg-background/50">
                 <div className="flex justify-between items-center">
                   <Label className="font-semibold">Together AI</Label>
-                  <Badge variant="outline">Konfigurálva</Badge>
+                  <Badge variant={apiStatus.together ? "outline" : "destructive"}>
+                    {apiStatus.together ? "Csatlakoztatva" : "Hiányzik"}
+                  </Badge>
                 </div>
                 <div className="flex gap-2">
                   <Input 
                     type={showTogetherKey ? "text" : "password"} 
                     value={togetherKey} 
                     onChange={(e) => setTogetherKey(e.target.value)} 
+                    placeholder={apiStatus.together ? "•••••••••••••••• (Mentve)" : "key_..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowTogetherKey(!showTogetherKey)}>
                     {showTogetherKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'together', key: togetherKey.trim() })} disabled={!togetherKey}>Mentés</Button>
+                  <Button size="sm" onClick={() => {
+                    updateApiKeyMutation.mutate({ provider: 'together', key: togetherKey.trim() });
+                    setTogetherKey("");
+                  }} disabled={!togetherKey}>Mentés</Button>
                 </div>
               </div>
 
@@ -319,18 +331,24 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
               <div className="space-y-3 p-4 border rounded-lg bg-background/50">
                 <div className="flex justify-between items-center">
                   <Label className="font-semibold">DeepInfra</Label>
-                  <Badge variant="outline">Aktív</Badge>
+                  <Badge variant={apiStatus.deepinfra ? "outline" : "destructive"}>
+                    {apiStatus.deepinfra ? "Csatlakoztatva" : "Hiányzik"}
+                  </Badge>
                 </div>
                 <div className="flex gap-2">
                   <Input 
                     type={showDeepinfraKey ? "text" : "password"} 
                     value={deepinfraKey} 
                     onChange={(e) => setDeepinfraKey(e.target.value)} 
+                    placeholder={apiStatus.deepinfra ? "•••••••••••••••• (Mentve)" : "hVE1..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowDeepinfraKey(!showDeepinfraKey)}>
                     {showDeepinfraKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'deepinfra', key: deepinfraKey.trim() })} disabled={!deepinfraKey}>Mentés</Button>
+                  <Button size="sm" onClick={() => {
+                    updateApiKeyMutation.mutate({ provider: 'deepinfra', key: deepinfraKey.trim() });
+                    setDeepinfraKey("");
+                  }} disabled={!deepinfraKey}>Mentés</Button>
                 </div>
               </div>
               
@@ -347,12 +365,15 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                     type={showElevenLabsKey ? "text" : "password"} 
                     value={elevenLabsKey} 
                     onChange={(e) => setElevenLabsKey(e.target.value)} 
-                    placeholder="sk_..."
+                    placeholder={apiStatus.elevenLabs ? "•••••••••••••••• (Mentve)" : "sk_..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}>
                     {showElevenLabsKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'elevenlabs', key: elevenLabsKey.trim() })} disabled={!elevenLabsKey}>Mentés</Button>
+                  <Button size="sm" onClick={() => {
+                    updateApiKeyMutation.mutate({ provider: 'elevenlabs', key: elevenLabsKey.trim() });
+                    setElevenLabsKey("");
+                  }} disabled={!elevenLabsKey}>Mentés</Button>
                 </div>
               </div>
 
@@ -366,20 +387,32 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                 </div>
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <Input type={showDataForSeoLogin ? "text" : "password"} value={dataForSeoLogin} onChange={(e) => setDataForSeoLogin(e.target.value)} placeholder="Login" />
+                    <Input 
+                      type={showDataForSeoLogin ? "text" : "password"} 
+                      value={dataForSeoLogin} 
+                      onChange={(e) => setDataForSeoLogin(e.target.value)} 
+                      placeholder={apiStatus.dataForSeo ? "•••••••••••••••• (Mentve)" : "Login"} 
+                    />
                     <Button size="icon" variant="outline" onClick={() => setShowDataForSeoLogin(!showDataForSeoLogin)}>
                       {showDataForSeoLogin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Input type={showDataForSeoPassword ? "text" : "password"} value={dataForSeoPassword} onChange={(e) => setDataForSeoPassword(e.target.value)} placeholder="Password" />
+                    <Input 
+                      type={showDataForSeoPassword ? "text" : "password"} 
+                      value={dataForSeoPassword} 
+                      onChange={(e) => setDataForSeoPassword(e.target.value)} 
+                      placeholder={apiStatus.dataForSeo ? "•••••••••••••••• (Mentve)" : "Password"} 
+                    />
                     <Button size="icon" variant="outline" onClick={() => setShowDataForSeoPassword(!showDataForSeoPassword)}>
                       {showDataForSeoPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                     <Button size="sm" onClick={() => {
-                      updateApiKeyMutation.mutate({ provider: 'dataforseo-login', key: dataForSeoLogin.trim() });
-                      updateApiKeyMutation.mutate({ provider: 'dataforseo-password', key: dataForSeoPassword.trim() });
-                    }}>Mentés</Button>
+                      if (dataForSeoLogin) updateApiKeyMutation.mutate({ provider: 'dataforseo-login', key: dataForSeoLogin.trim() });
+                      if (dataForSeoPassword) updateApiKeyMutation.mutate({ provider: 'dataforseo-password', key: dataForSeoPassword.trim() });
+                      setDataForSeoLogin("");
+                      setDataForSeoPassword("");
+                    }} disabled={!dataForSeoLogin && !dataForSeoPassword}>Mentés</Button>
                   </div>
                 </div>
               </div>
@@ -393,11 +426,19 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input type={showYoutubeKey ? "text" : "password"} value={youtubeApiKey} onChange={(e) => setYoutubeApiKey(e.target.value)} />
+                  <Input 
+                    type={showYoutubeKey ? "text" : "password"} 
+                    value={youtubeApiKey} 
+                    onChange={(e) => setYoutubeApiKey(e.target.value)} 
+                    placeholder={apiStatus.youtube ? "•••••••••••••••• (Mentve)" : "AIza..."}
+                  />
                   <Button size="icon" variant="outline" onClick={() => setShowYoutubeKey(!showYoutubeKey)}>
                     {showYoutubeKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-                  <Button size="sm" onClick={() => updateApiKeyMutation.mutate({ provider: 'youtube', key: youtubeApiKey.trim() })} disabled={!youtubeApiKey}>Mentés</Button>
+                  <Button size="sm" onClick={() => {
+                    updateApiKeyMutation.mutate({ provider: 'youtube', key: youtubeApiKey.trim() });
+                    setYoutubeApiKey("");
+                  }} disabled={!youtubeApiKey}>Mentés</Button>
                 </div>
               </div>
             </div>
@@ -498,9 +539,20 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                       try {
                         const res = await apiRequest("POST", "/api/admin/backup");
                         const data = await res.json();
+                        const status = data.details?.status;
+                        let desc = `A mentés sikeresen elkészült. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
+                        
+                        if (status === 'drive') {
+                          desc = `A mentési fájl feltöltve a Google Drive-ra. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
+                        } else if (status === 'local_only') {
+                          desc = `Google Drive kulcs hiányzik. A mentés biztonságban elmentve helyben a szerverre. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
+                        } else if (status === 'local_fallback') {
+                          desc = `Google Drive feltöltési hiba, de a mentés sikeresen elmentve helyben a szerverre. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
+                        }
+                        
                         toast({ 
                           title: "Mentés sikeres", 
-                          description: `A fájl feltöltve a Drive-ra. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}` 
+                          description: desc
                         });
                       } catch (err: any) {
                         toast({ 

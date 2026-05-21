@@ -2,7 +2,7 @@ import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
-import session from "express-session";
+import session, { Store } from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import { storage } from "./storage";
@@ -38,7 +38,7 @@ const getOidcConfig = memoize(
 );
 
 // Custom, pooler-safe production ready session store backed by our Drizzle sessions table
-class DrizzleSessionStore extends session.Store {
+class DrizzleSessionStore extends Store {
   constructor() {
     super();
     // Periodically clean up expired sessions once a day

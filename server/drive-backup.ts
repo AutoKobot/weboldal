@@ -8,10 +8,39 @@ import crypto from 'crypto';
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 const BACKUP_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID; // A megosztott mappa ID-ja
 
-async function getDriveService() {
-    // A kulcsot a .env-ben tárolt elérési útról olvassuk be
+function getGoogleCredentials() {
+    const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (!credsEnv) return null;
+
+    // 1. Ha közvetlenül egy JSON string (pl. Railway config var)
+    if (credsEnv.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(credsEnv);
+            return { credentials: parsed };
+        } catch (e) {
+            console.error('[Backup] GOOGLE_APPLICATION_CREDENTIALS JSON parszolása sikertelen:', e);
+            return null;
+        }
+    }
+
+    // 2. Ha fájl elérési út
+    try {
+        if (fs.existsSync(credsEnv)) {
+            const fileContent = fs.readFileSync(credsEnv, 'utf8');
+            JSON.parse(fileContent); // Validáljuk, hogy érvényes JSON-e
+            return { keyFile: credsEnv };
+        }
+    } catch (e) {
+        console.error('[Backup] GOOGLE_APPLICATION_CREDENTIALS fájl olvasása/parszolása sikertelen:', e);
+        return null;
+    }
+
+    return null;
+}
+
+async function getDriveService(config: { credentials?: any; keyFile?: string }) {
     const auth = new google.auth.GoogleAuth({
-        keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        ...config,
         scopes: SCOPES,
     });
     return google.drive({ version: 'v3', auth });
@@ -29,24 +58,9 @@ export async function runSmartBackup() {
     console.log('[Backup] Okos mentés indítása...');
 
     try {
-        // Dinamikus mappa ID lekérése (.env vagy adatbázis)
-        let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-        if (!folderId) {
-            const setting = await storage.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID");
-            folderId = setting?.value ?? undefined;
-        }
-
-        if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-            throw new Error('Google Drive hitelesítési fájl nincs megadva (GOOGLE_APPLICATION_CREDENTIALS .env változó hiányzik)');
-        }
-        if (!folderId) {
-            throw new Error('Google Drive célmappa azonosító nincs megadva (GOOGLE_DRIVE_FOLDER_ID hiányzik)');
-        }
-
-        const drive = await getDriveService();
         const currentHash = await generateDatabaseHash();
 
-        // 2. Adatok összegyűjtése – csak metaadatok, nehéz tartalom (content, presentationData stb.) nélkül
+        // 1. Adatok összegyűjtése – csak metaadatok, nehéz tartalom (content, presentationData stb.) nélkül
         const professions = await storage.getProfessions();
         const subjects = await storage.getSubjects();
         // Moduloknál csak strukturális mezők – a content/media mezők rengeteg RAM-ot foglalnának
@@ -86,47 +100,88 @@ export async function runSmartBackup() {
         const fileName = `${envPrefix}_autokobot_backup_${new Date().toISOString().split('T')[0]}.json`;
         const tempPath = path.join(process.cwd(), 'backups', fileName);
 
-
         if (!fs.existsSync(path.join(process.cwd(), 'backups'))) {
             fs.mkdirSync(path.join(process.cwd(), 'backups'));
         }
 
         fs.writeFileSync(tempPath, JSON.stringify(backupData, null, 2));
+        console.log(`[Backup] Helyi mentés sikeresen elmentve ide: ${tempPath}`);
 
-        // 3. Feltöltés a Drive-ra
-        const fileMetadata = {
-            name: fileName,
-            parents: [folderId],
-        };
-        const media = {
-            mimeType: 'application/json',
-            body: fs.createReadStream(tempPath),
-        };
+        // Google Drive konfiguráció ellenőrzése
+        const googleConfig = getGoogleCredentials();
+        
+        let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!folderId) {
+            const setting = await storage.getSystemSetting("GOOGLE_DRIVE_FOLDER_ID");
+            folderId = setting?.value ?? undefined;
+        }
 
-        const response = await drive.files.create({
-            requestBody: fileMetadata,
-            media: media,
-            fields: 'id',
-        });
+        if (!googleConfig || !folderId) {
+            console.log('[Backup] Google Drive nincs konfigurálva vagy a hitelesítés érvénytelen. Csak helyi mentést készítünk.');
+            return {
+                success: true,
+                status: 'local_only',
+                message: 'Google Drive hitelesítés hiányzik vagy érvénytelen. Helyi mentés sikeresen elkészítve.',
+                fileName: fileName,
+                hash: currentHash
+            };
+        }
 
-        console.log(`[Backup] Sikeres feltöltés! Drive File ID: ${response.data.id}`);
+        // Ha van Google kulcs és mappa ID, megkíséreljük a feltöltést
+        try {
+            console.log('[Backup] Google Drive feltöltés megkísérlése...');
+            const drive = await getDriveService(googleConfig);
+            
+            const fileMetadata = {
+                name: fileName,
+                parents: [folderId],
+            };
+            const media = {
+                mimeType: 'application/json',
+                body: fs.createReadStream(tempPath),
+            };
 
-        // 4. Takarítás (opcionális: töröljük a 30 napnál régebbi mentéseket a Drive-ról)
-        await cleanupOldBackups(drive);
+            const response = await drive.files.create({
+                requestBody: fileMetadata,
+                media: media,
+                fields: 'id',
+            });
 
-        // Ideiglenes fájl törlése
-        fs.unlinkSync(tempPath);
+            console.log(`[Backup] Sikeres Google Drive feltöltés! Drive File ID: ${response.data.id}`);
 
-        return {
-            success: true,
-            fileId: response.data.id,
-            fileName: fileName,
-            hash: currentHash
-        };
+            // Takarítás (opcionális: töröljük a 30 napnál régebbi mentéseket a Drive-ról)
+            await cleanupOldBackups(drive);
+
+            // Ha sikeres volt a Drive feltöltés, akkor töröljük a helyi ideiglenes fájlt,
+            // hogy ne foglalja a helyet a szerveren (ha a Drive a fő tároló)
+            fs.unlinkSync(tempPath);
+
+            return {
+                success: true,
+                status: 'drive',
+                fileId: response.data.id,
+                fileName: fileName,
+                hash: currentHash
+            };
+        } catch (driveError: any) {
+            console.error('[Backup] Hiba a Google Drive feltöltés során, de a helyi mentés megmaradt:', driveError);
+            return {
+                success: true,
+                status: 'local_fallback',
+                warning: 'Google Drive feltöltési hiba, de a helyi mentés megmaradt.',
+                error: driveError.message,
+                fileName: fileName,
+                hash: currentHash
+            };
+        }
 
     } catch (error: any) {
-        console.error('[Backup] Hiba a mentés során:', error);
-        throw error;
+        console.error('[Backup] Kritikus hiba a mentés során:', error);
+        return {
+            success: false,
+            status: 'failed',
+            error: error.message || String(error)
+        };
     }
 }
 
