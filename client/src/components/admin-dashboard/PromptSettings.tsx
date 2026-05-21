@@ -15,7 +15,7 @@ export function PromptSettings() {
     systemMessage: "",
     internetContentPrompt: "",
     conciseContentPrompt: "",
-    wikipediaPrompt: "",
+    fluxSchnellPrompt: "",
     youtubePrompt: "",
     audioExplanationPrompt: "",
     textExplanationPrompt: "",
@@ -24,7 +24,7 @@ export function PromptSettings() {
   const { data: systemMessageData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_system_message"] });
   const { data: internetContentPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_internet_content_prompt"] });
   const { data: conciseContentPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/concise-content-prompt"] });
-  const { data: wikipediaPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_wikipedia_prompt"] });
+  const { data: fluxSchnellPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_flux_schnell_prompt"] });
   const { data: youtubePromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/ai_youtube_prompt"] });
   const { data: audioExplanationPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/audio-explanation-prompt"] });
   const { data: textExplanationPromptData } = useQuery<{ message: string }>({ queryKey: ["/api/admin/settings/prompts/text-explanation-prompt"] });
@@ -42,8 +42,8 @@ export function PromptSettings() {
   }, [conciseContentPromptData]);
 
   useEffect(() => {
-    if (wikipediaPromptData) setPrompts(p => ({ ...p, wikipediaPrompt: wikipediaPromptData.message }));
-  }, [wikipediaPromptData]);
+    if (fluxSchnellPromptData) setPrompts(p => ({ ...p, fluxSchnellPrompt: fluxSchnellPromptData.message }));
+  }, [fluxSchnellPromptData]);
 
   useEffect(() => {
     if (youtubePromptData) setPrompts(p => ({ ...p, youtubePrompt: youtubePromptData.message }));
@@ -61,7 +61,7 @@ export function PromptSettings() {
     mutationFn: async ({ key, message }: { key: string, message: string }) => {
       // Map to backend keys
       let backendKey = key;
-      if (['system-message', 'internet-content-prompt', 'wikipedia-prompt', 'youtube-prompt'].includes(key)) {
+      if (['system-message', 'internet-content-prompt', 'flux-schnell-prompt', 'youtube-prompt'].includes(key)) {
         backendKey = `ai_${key.replace(/-/g, '_')}`;
       }
       await apiRequest("POST", `/api/admin/settings/prompts/${backendKey}`, { message });
@@ -70,7 +70,7 @@ export function PromptSettings() {
       toast({ title: "Siker", description: "Prompt mentve" });
       let key = variables.key;
       let backendKey = key;
-      if (['system-message', 'internet-content-prompt', 'wikipedia-prompt', 'youtube-prompt'].includes(key)) {
+      if (['system-message', 'internet-content-prompt', 'flux-schnell-prompt', 'youtube-prompt'].includes(key)) {
         backendKey = `ai_${key.replace(/-/g, '_')}`;
       }
       queryClient.invalidateQueries({ queryKey: [`/api/admin/settings/prompts/${backendKey}`] });
@@ -121,6 +121,24 @@ export function PromptSettings() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-indigo-500">
+            <Wand2 className="h-5 w-5 text-indigo-500" />
+            AI Képgenerálás (Flux Schnell / DALL-E 3) Prompt
+          </CardTitle>
+          <CardDescription>A prezentációkhoz és diákhoz generált oktatási illusztrációk stílusát meghatározó sablon.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <PromptField 
+            label="Illusztráció Prompt Sablon" 
+            valueKey="fluxSchnellPrompt" 
+            description="Használja a {prompt} kifejezést a diák tartalmának beillesztéséhez. Pl.: 'Blueprint style diagram of {prompt}'"
+            rows={5}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
             Szekvenciális Tartalomgenerálás Promptok
@@ -133,16 +151,13 @@ export function PromptSettings() {
             <PromptField label="2. Tömör verzió készítése" valueKey="conciseContentPrompt" description="Létrehozza a lényegre törő változatot." />
           </div>
           <div className="border-t pt-6">
-            <PromptField label="3. Wikipedia kulcsszavak" valueKey="wikipediaPrompt" description="Azonosítja a fontos szakmai kifejezéseket." />
+            <PromptField label="3. YouTube keresés" valueKey="youtubePrompt" description="Generálja a keresési kifejezéseket a videókhoz." />
           </div>
           <div className="border-t pt-6">
-            <PromptField label="4. YouTube keresés" valueKey="youtubePrompt" description="Generálja a keresési kifejezéseket a videókhoz." />
+            <PromptField label="4. Hangos magyarázat" valueKey="audioExplanationPrompt" description="Szöveg a beszéd szintézishez." />
           </div>
           <div className="border-t pt-6">
-            <PromptField label="5. Hangos magyarázat" valueKey="audioExplanationPrompt" description="Szöveg a beszéd szintézishez." />
-          </div>
-          <div className="border-t pt-6">
-            <PromptField label="6. Szöveges magyarázat" valueKey="textExplanationPrompt" description="Részletes válaszok a tanulói kérdésekre." />
+            <PromptField label="5. Szöveges magyarázat" valueKey="textExplanationPrompt" description="Részletes válaszok a tanulói kérdésekre." />
           </div>
         </CardContent>
       </Card>

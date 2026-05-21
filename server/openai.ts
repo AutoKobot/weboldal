@@ -1050,8 +1050,20 @@ export async function generatePresentationImage(prompt: string): Promise<string>
     const provider = settings?.imageProvider || 'openai';
     const modelKey = settings?.imageModel || 'dall-e-3';
     
+    // Fetch dynamic Flux Schnell / DALL-E 3 image generation prompt from database settings
+    const promptSetting = await storage.getSystemSetting('ai_flux_schnell_prompt');
+    const defaultTemplate = "Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: {prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.";
+    const template = promptSetting?.value || defaultTemplate;
+    
+    // Replace {prompt} placeholder with the actual prompt or append it if the placeholder is missing
+    const finalPrompt = template.includes("{prompt}") 
+      ? template.replace("{prompt}", prompt)
+      : `${template} ${prompt}`;
+
     // LOGGING TO CONSOLE FOR DEBUGGING (Visible in Render Logs)
     console.log(`[IMAGE GENERATION DEBUG] Selected Provider: ${provider}, Model Key: ${modelKey}`);
+    console.log(`[IMAGE GENERATION DEBUG] Using dynamic image prompt template: ${template.substring(0, 80)}...`);
+    console.log(`[IMAGE GENERATION DEBUG] Final prompt: ${finalPrompt}`);
     
     let imageUrl = "";
     let providerName = provider;
@@ -1065,7 +1077,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
 
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: ${prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.`,
+        prompt: finalPrompt,
         n: 1,
         size: "1024x1024",
         quality: "standard",
@@ -1100,7 +1112,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: ${prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.`,
+          prompt: finalPrompt,
           model: modelName,
           n: 1,
           size: "1024x1024"
@@ -1138,7 +1150,7 @@ export async function generatePresentationImage(prompt: string): Promise<string>
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          prompt: `Clean, precise technical illustration, engineering drawing style, blueprint or clear vector-style educational diagram, NO TEXT: ${prompt}. Completely text-free, white or clean background, precise lines, technical aesthetic.`,
+          prompt: finalPrompt,
           model: modelName,
           n: 1,
           size: "1024x1024"

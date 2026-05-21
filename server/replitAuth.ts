@@ -6,6 +6,9 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import { storage } from "./storage";
+import { db } from "./db";
+import { sessions } from "@shared/schema";
+import { eq, lte } from "drizzle-orm";
 
 
 // Removed top-level check to allow running on non-Replit environments
@@ -34,13 +37,68 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
+// Custom, pooler-safe production ready session store backed by our Drizzle sessions table
+class DrizzleSessionStore extends session.Store {
+  constructor() {
+    super();
+    // Periodically clean up expired sessions once a day
+    setInterval(() => {
+      this.cleanupExpired().catch((err) => console.error("DrizzleSessionStore: Error cleaning up expired sessions:", err));
+    }, 24 * 60 * 60 * 1000);
+  }
+
+  async cleanupExpired() {
+    await db.delete(sessions).where(lte(sessions.expire, new Date()));
+  }
+
+  get = (sid: string, callback: (err: any, session?: session.SessionData | null) => void) => {
+    db.select().from(sessions).where(eq(sessions.sid, sid))
+      .then(([row]) => {
+        if (!row) {
+          return callback(null, null);
+        }
+        if (row.expire < new Date()) {
+          this.destroy(sid, () => {});
+          return callback(null, null);
+        }
+        callback(null, row.sess as session.SessionData);
+      })
+      .catch((err) => callback(err));
+  };
+
+  set = (sid: string, sess: session.SessionData, callback: (err?: any) => void) => {
+    const expire = sess.cookie.expires ? new Date(sess.cookie.expires) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    db.insert(sessions).values({
+      sid,
+      sess,
+      expire,
+    }).onConflictDoUpdate({
+      target: sessions.sid,
+      set: { sess, expire },
+    })
+      .then(() => callback(null))
+      .catch((err) => callback(err));
+  };
+
+  destroy = (sid: string, callback: (err?: any) => void) => {
+    db.delete(sessions).where(eq(sessions.sid, sid))
+      .then(() => callback(null))
+      .catch((err) => callback(err));
+  };
+
+  touch = (sid: string, sess: session.SessionData, callback: (err?: any) => void) => {
+    const expire = sess.cookie.expires ? new Date(sess.cookie.expires) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    db.update(sessions).set({ expire }).where(eq(sessions.sid, sid))
+      .then(() => callback(null))
+      .catch((err) => callback(err));
+  };
+}
+
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 
-  // Use MemoryStore – connect-pg-simple's CREATE TABLE DDL fails on Supabase
-  // transaction-mode pooler (port 6543). MemoryStore is fine for Render
-  // (sessions reset on deploy, which is acceptable).
   return session({
+    store: new DrizzleSessionStore(),
     secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
     resave: false,
     saveUninitialized: false,

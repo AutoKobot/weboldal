@@ -49,10 +49,12 @@ router.get('/api-status', combinedAuth, async (req: any, res) => {
   try {
     if (req.user.role !== 'admin') return res.status(403).end();
     const status = {
-      openai: !!(await storage.getSystemSetting('openai_api_key'))?.value,
-      gemini: !!(await storage.getSystemSetting('gemini_api_key'))?.value,
-      youtube: !!(await storage.getSystemSetting('youtube_api_key'))?.value,
-      elevenLabs: !!(await storage.getSystemSetting('elevenlabs_api_key'))?.value
+      openai: !!process.env.OPENAI_API_KEY || !!(await storage.getSystemSetting('openai_api_key'))?.value,
+      gemini: !!process.env.GEMINI_API_KEY || !!(await storage.getSystemSetting('gemini_api_key'))?.value,
+      youtube: !!process.env.YOUTUBE_API_KEY || !!(await storage.getSystemSetting('youtube_api_key'))?.value,
+      elevenLabs: !!process.env.ELEVENLABS_API_KEY || !!(await storage.getSystemSetting('elevenlabs_api_key'))?.value,
+      dataForSeo: (!!process.env.DATAFORSEO_LOGIN && !!process.env.DATAFORSEO_PASSWORD) || 
+                  (!!(await storage.getSystemSetting('dataforseo_login'))?.value && !!(await storage.getSystemSetting('dataforseo_password'))?.value)
     };
     res.json(status);
   } catch (error) {

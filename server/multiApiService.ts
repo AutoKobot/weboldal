@@ -91,7 +91,7 @@ export class MultiApiService {
 
   // YouTube video search using YouTube Data API
   async searchYoutube(query: string): Promise<any> {
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = process.env.YOUTUBE_API_KEY || await this.getApiKey('youtube_api_key');
     if (!apiKey) {
       throw new Error('YouTube API key not configured');
     }
@@ -124,7 +124,7 @@ export class MultiApiService {
 
   // Text-to-speech using ElevenLabs
   async generateSpeech(text: string, voice: string = 'Bella'): Promise<Buffer> {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const apiKey = process.env.ELEVENLABS_API_KEY || await this.getApiKey('elevenlabs_api_key');
     if (!apiKey) {
       console.log('ElevenLabs API key not available, TTS service unavailable');
       throw new Error('ElevenLabs API key not configured');

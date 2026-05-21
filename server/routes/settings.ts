@@ -89,7 +89,7 @@ router.post('/test-supabase', combinedAuth, adminOnly, async (req: any, res) => 
 // Prompt management
 const promptKeys = [
   'ai_system_message', 'ai_module_update_message', 'ai_youtube_prompt',
-  'ai_wikipedia_prompt', 'ai_internet_content_prompt', 'concise-content-prompt',
+  'ai_flux_schnell_prompt', 'ai_internet_content_prompt', 'concise-content-prompt',
   'audio-explanation-prompt', 'text-explanation-prompt'
 ];
 
