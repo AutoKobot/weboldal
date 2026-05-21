@@ -973,10 +973,8 @@ Válasz csak JSON array formátumban, pontosan 1 kifejezéssel:
   async generateMultipleQuizSets(title: string, content: string): Promise<any[]> {
     try {
       console.log('📝 Generating 20 high-quality quiz questions (no image/icon questions)...');
-      const apiKey = process.env.OPENAI_API_KEY || (await storage.getSystemSetting('openai_api_key'))?.value;
-      if (!apiKey) { console.error('❌ No OpenAI API key'); return []; }
-
-      const openai = new OpenAI({ apiKey });
+      const { getOpenAIClient } = await import('./openai');
+      const openai = await getOpenAIClient();
       const snippet = content.substring(0, 4000);
 
       const resp = await openai.chat.completions.create({

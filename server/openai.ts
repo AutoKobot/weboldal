@@ -143,8 +143,62 @@ export async function getOpenAIClient(): Promise<OpenAI> {
     throw new Error('OpenAI API key not configured. Please set it in admin settings or .env file.');
   }
 
-  // Create new client and cache it
-  cachedOpenAIClient = new OpenAI({ apiKey: currentApiKey });
+  const isOpenRouter = currentApiKey.startsWith('sk-or-v1');
+  const baseClient = new OpenAI({
+    apiKey: currentApiKey,
+    ...(isOpenRouter ? { baseURL: 'https://openrouter.ai/api/v1' } : {})
+  });
+
+  if (isOpenRouter) {
+    // Wrap with Proxy to intercept chat.completions.create and rewrite model names
+    cachedOpenAIClient = new Proxy(baseClient, {
+      get(target, prop, receiver) {
+        if (prop === 'chat') {
+          const chat = Reflect.get(target, prop, receiver);
+          return new Proxy(chat, {
+            get(chatTarget, chatProp, chatReceiver) {
+              if (chatProp === 'completions') {
+                const completions = Reflect.get(chatTarget, chatProp, chatReceiver);
+                return new Proxy(completions, {
+                  get(compTarget, compProp, compReceiver) {
+                    if (compProp === 'create') {
+                      const createFn = Reflect.get(compTarget, compProp, compReceiver);
+                      return async function(params: any, options: any) {
+                        const newParams = { ...params };
+                        if (newParams.model === 'gpt-4o-mini') {
+                          newParams.model = 'openai/gpt-4o-mini';
+                        } else if (newParams.model === 'gpt-4o') {
+                          newParams.model = 'openai/gpt-4o';
+                        } else if (newParams.model === 'gpt-3.5-turbo') {
+                          newParams.model = 'openai/gpt-3.5-turbo';
+                        }
+                        
+                        // OpenRouter compliance headers
+                        const newOptions = { ...options };
+                        if (!newOptions.headers) {
+                          newOptions.headers = {};
+                        }
+                        newOptions.headers['HTTP-Referer'] = 'https://autokobot.hu';
+                        newOptions.headers['X-Title'] = 'InteractiveLearning';
+                        
+                        return createFn.call(compTarget, newParams, newOptions);
+                      };
+                    }
+                    return Reflect.get(compTarget, compProp, compReceiver);
+                  }
+                });
+              }
+              return Reflect.get(chatTarget, chatProp, chatReceiver);
+            }
+          });
+        }
+        return Reflect.get(target, prop, receiver);
+      }
+    });
+  } else {
+    cachedOpenAIClient = baseClient;
+  }
+
   cachedOpenAIApiKey = currentApiKey;
   cacheTimestamp = now;
 
