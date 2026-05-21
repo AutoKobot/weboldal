@@ -34,6 +34,97 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
     return withRetry(fn, retries - 1, delay * 1.5);
   }
 }
+// Helper for repairing potentially truncated JSON from LLM responses
+function tryRepairJson(jsonStr: string): string {
+  let cleaned = jsonStr.trim();
+  try { JSON.parse(cleaned); return cleaned; } catch (e) {}
+  
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  }
+  try { JSON.parse(cleaned); return cleaned; } catch (e) {}
+
+  const firstBrace = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
+  let startIndex = -1;
+  if (firstBrace !== -1 && firstBracket !== -1) {
+    startIndex = Math.min(firstBrace, firstBracket);
+  } else if (firstBrace !== -1) {
+    startIndex = firstBrace;
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+  }
+
+  if (startIndex > 0) {
+    cleaned = cleaned.substring(startIndex).trim();
+  }
+  try { JSON.parse(cleaned); return cleaned; } catch (e) {}
+
+  // Attempt recovery by stripping characters from the end and trying to balance brackets
+  let temp = cleaned;
+  while (temp.length > 0) {
+    let candidate = temp.trim();
+    if (candidate.endsWith(',')) {
+      candidate = candidate.slice(0, -1).trim();
+    }
+
+    const stack: ('{' | '[')[] = [];
+    let inString = false;
+    let escape = false;
+
+    for (let i = 0; i < candidate.length; i++) {
+      const char = candidate[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (char === '\\') {
+        escape = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString) {
+        if (char === '{') {
+          stack.push('{');
+        } else if (char === '[') {
+          stack.push('[');
+        } else if (char === '}') {
+          if (stack[stack.length - 1] === '{') {
+            stack.pop();
+          }
+        } else if (char === ']') {
+          if (stack[stack.length - 1] === '[') {
+            stack.pop();
+          }
+        }
+      }
+    }
+
+    let balanced = candidate;
+    if (inString) {
+      balanced += '"';
+    }
+    
+    const localStack = [...stack];
+    while (localStack.length > 0) {
+      const open = localStack.pop();
+      if (open === '{') balanced += '}';
+      else if (open === '[') balanced += ']';
+    }
+
+    try {
+      JSON.parse(balanced);
+      return balanced;
+    } catch (e) {
+      temp = temp.slice(0, -1);
+    }
+  }
+
+  return jsonStr;
+}
 
 const router = Router();
 
@@ -406,7 +497,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
             });
           });
 
-          const data = JSON.parse(response.choices[0].message.content || '{"subjects":[]}');
+          const data = JSON.parse(tryRepairJson(response.choices[0].message.content || '{"subjects":[]}'));
           if (data.subjects) {
             for (const sub of data.subjects) {
               const key = (sub.code || '').trim() || sub.name?.toLowerCase().trim();
@@ -518,7 +609,14 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
         for (const dbSub of dbSubjects) {
           if (dbSub.type === 'theory') {
             const subHours = dbSub.hours || 10;
-            totalTargetModules += subHours > 40 ? Math.ceil(subHours / 4) : subHours;
+            let subBlockSize = 1;
+            if (subHours > 24) {
+              if (subHours <= 48) subBlockSize = 2;
+              else if (subHours <= 96) subBlockSize = 4;
+              else if (subHours <= 180) subBlockSize = 8;
+              else subBlockSize = 12;
+            }
+            totalTargetModules += Math.ceil(subHours / subBlockSize);
           } else {
             totalTargetModules += Math.max(1, Math.round((dbSub.hours || 30) / 7));
           }
@@ -545,9 +643,15 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
           if (dbSubject.type === 'theory') {
             // --- THEORY MODULAR BREAKDOWN ---
             const totalHours = dbSubject.hours || 10;
-            const useBlocks = totalHours > 40;
-            const blockSize = useBlocks ? 4 : 1;
-            const targetModuleCount = useBlocks ? Math.ceil(totalHours / 4) : totalHours;
+            let blockSize = 1;
+            if (totalHours > 24) {
+              if (totalHours <= 48) blockSize = 2;
+              else if (totalHours <= 96) blockSize = 4;
+              else if (totalHours <= 180) blockSize = 8;
+              else blockSize = 12;
+            }
+            const useBlocks = blockSize > 1;
+            const targetModuleCount = Math.ceil(totalHours / blockSize);
             
             activeImport.message = `${dbSubject.name} - Tanmenet felosztása (${totalHours} óra)...`;
             await (storage as any).updateBackgroundJob(jobId, { message: activeImport.message, progress: activeImport.progress });
@@ -560,14 +664,14 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
                 messages: [
                   { role: "system", content: "Te egy szigorú tanmenet-tervező és szakoktató vagy. Csak valid JSON-t adsz vissza." },
                   { role: "user", content: useBlocks ? `
-A feladatod a(z) "${dbSubject.name}" tantárgy tanmenetének lebontása pontosan ${targetModuleCount} darab, egyenként 4-órás heti témakörre (modulra), mivel a tantárgy magas óraszámú (${totalHours} óra).
+A feladatod a(z) "${dbSubject.name}" tantárgy tanmenetének lebontása pontosan ${targetModuleCount} darab, egyenként ${blockSize}-órás heti témakörre (modulra), mivel a tantárgy magas óraszámú (${totalHours} óra).
 
 TANTÁRGY LEÍRÁSA A PTT-BEN:
 ${subjectPttText}
 
 SZABÁLYOK:
 1. Generálj PONTOSAN ${targetModuleCount} darab modult. Nem lehet se több, se kevesebb!
-2. Minden modul címe legyen szakmailag sűrű, tükrözze a 4-órás egység tartalmát, és kövessék a PTT logikai sorrendjét.
+2. Minden modul címe legyen szakmailag sűrű, tükrözze a ${blockSize}-órás egység tartalmát, és kövessék a PTT logikai sorrendjét.
 3. Minden modulhoz rendelj egy sectionCode-ot a tantárgy kódja alapján (pl. ha a tantárgy kódja "${dbSubject.code || '3.1.1'}", akkor a modulok kódjai: "${dbSubject.code || '3.1.1'}.1.a", "${dbSubject.code || '3.1.1'}.1.b", stb.).
 
 VÁLASZ FORMÁTUM (SZIGORÚ JSON):
@@ -599,7 +703,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
               });
             });
 
-            const breakdownData = JSON.parse(breakdownRes.choices[0].message.content || '{"modules":[]}');
+            const breakdownData = JSON.parse(tryRepairJson(breakdownRes.choices[0].message.content || '{"modules":[]}'));
             const theoryModules = breakdownData.modules || [];
 
             if (theoryModules.length > 0) {
@@ -639,7 +743,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
                   });
                 });
 
-                const contentData = JSON.parse(res.choices[0].message.content || '{"modules":[]}');
+                const contentData = JSON.parse(tryRepairJson(res.choices[0].message.content || '{"modules":[]}'));
                 const modulesToCreate = (contentData.modules || [])
                   .filter((modData: any) => !existingModules.some(em => em.title === modData.title))
                   .map((modData: any) => {
@@ -691,7 +795,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
               });
             });
 
-            const rawActivitiesData = JSON.parse(rawActivitiesRes.choices[0].message.content || '{"rawActivities":[]}');
+            const rawActivitiesData = JSON.parse(tryRepairJson(rawActivitiesRes.choices[0].message.content || '{"rawActivities":[]}'));
             const rawActivities = rawActivitiesData.rawActivities || [];
 
             if (rawActivities.length > 0) {
@@ -711,7 +815,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
                 });
               });
 
-              const sizedModulesData = JSON.parse(sizedModulesRes.choices[0].message.content || '{"modules":[]}');
+              const sizedModulesData = JSON.parse(tryRepairJson(sizedModulesRes.choices[0].message.content || '{"modules":[]}'));
               const sizedModules = sizedModulesData.modules || [];
 
               let practicalProcessed = 0;
@@ -742,7 +846,7 @@ VÁLASZ FORMÁTUM (SZIGORÚ JSON):
                   });
                 });
 
-                const expandedData = JSON.parse(expandedRes.choices[0].message.content || '{}');
+                const expandedData = JSON.parse(tryRepairJson(expandedRes.choices[0].message.content || '{}'));
 
                 await storage.createModule({
                   subjectId: dbSubject.id,

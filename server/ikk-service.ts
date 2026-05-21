@@ -83,17 +83,17 @@ export class IKKService {
 
     let kkkTextRaw = '';
     if (kkkAttachment?.media_id) {
-      try { kkkTextRaw = await this.getPdfText(kkkAttachment.media_id); } catch (e) {}
+      try { kkkTextRaw = await this.getPdfText(kkkAttachment.media_id); } catch (e) { }
     }
 
     let pttTextRaw = '';
     if (pttAttachment?.media_id) {
-      try { pttTextRaw = await this.getPdfText(pttAttachment.media_id); } catch (e) {}
+      try { pttTextRaw = await this.getPdfText(pttAttachment.media_id); } catch (e) { }
     }
 
-    return { 
-      kkkText: this.preprocessText(kkkTextRaw || ''), 
-      pttText: this.preprocessText(pttTextRaw || '') 
+    return {
+      kkkText: this.preprocessText(kkkTextRaw || ''),
+      pttText: this.preprocessText(pttTextRaw || '')
     };
   }
 
@@ -140,10 +140,10 @@ export class IKKService {
     let pttContext = '';
     if (pttText) {
       const contextParts: string[] = [];
-      
+
       // Include the beginning of the PTT (first 4000 chars) as it usually contains the main summary table
       contextParts.push(`[PTT ÖSSZESÍTŐ TÁBLÁZAT ÉS FEJLÉC]:\n${pttText.substring(0, 4000)}`);
-      
+
       for (const subject of subjects) {
         const idx = pttText.toLowerCase().indexOf(subject.name.toLowerCase().substring(0, 20));
         if (idx !== -1) {
@@ -154,52 +154,55 @@ export class IKKService {
         }
       }
       // Use more context, but keep it within reasonable token limits for gpt-4o-mini
-      pttContext = contextParts.slice(0, 15).join('\n---\n'); 
+      pttContext = contextParts.slice(0, 15).join('\n---\n');
     }
 
-    const prompt = `
-Te egy PTT (Programtanterv) elemző szakértő vagy. 
-Szakma: ${professionName}
-Választott képzési forma: ${trainingFormat === '3year' ? '3 ÉVES (nappali tagozat)' : '2 ÉVES (felnőttképzés/rövidített)'}
+    const prompt = `Te egy magyar szakképzési PTT (Programtanterv) és KKK dokumentum-elemző szakértő és rendszermérnök vagy. A feladatod, hogy meghatározd a tantárgyak elméleti (theoryRatio) és gyakorlati (practicalRatio) óraarányait 0.0 és 1.0 között.
 
-DOKUMENTUM FELÉPÍTÉSE (FONTOS):
-1. A PTT elején van egy táblázat, ahol több oszlopban is szerepelnek óraszámok. 
-   - HA "3year": HASZNÁLD AZ ELSŐ "ÖSSZES ÓRASZÁM" OSZLOPOT (általában a 3. v. 4. numerikus oszlop).
-   - HA "2year": HASZNÁLD AZ UTOLSÓ "ÖSSZES ÓRASZÁM" OSZLOPOT (a táblázat jobb szélén).
-2. A tantárgyak leírásánál az óraszámok gyakran "X/Y" formátumban vannak (pl. 190/217). 
-   - HA "3year": MINDIG AZ ELSŐ ÉRTÉKET VEDD FIGYELEMBE (X).
-   - HA "2year": MINDIG A MÁSODIK ÉRTÉKET VEDD FIGYELEMBE (Y).
-3. A tantárgyaknál az "X.X.X.4" pontban (pl. 3.3.1.4) szerepel a gyakorlati arány (pl. "legalább 50%-át gyakorlati helyszínen...").
+KÖRNYEZETI PARAMÉTEREK:
+- Szakma neve: ${professionName}
+- Választott képzési forma: ${trainingFormat} // Értékei: '3year' (3 éves nappali tagozat) VAGY '2year' (2 éves felnőttképzés/rövidített)
 
-FELADAT:
-Minden tantárgyhoz állapítsd meg az ELMÉLETI (theoryRatio) és GYAKORLATI (practicalRatio) óraszám-ARÁNYT (0.0 – 1.0 között) a választott képzési forma (${trainingFormat}) alapján.
-- theoryRatio: az elméleti oktatás aránya (0.0 - 1.0)
-- practicalRatio: a gyakorlati oktatás aránya (0.0 - 1.0)
+MÓDSZERTANI ÉS PRIORITÁSI SZABÁLYOK (MINDENKOR KÖTELEZŐ):
 
-FONTOS RENDKÍVÜLI UTASÍTÁS A FELCSERÉLŐDÉS ELKERÜLÉSÉRE:
-A magyar programtantervben (PTT) az Elméleti oktatás aránya/óraszáma mindig az ELSŐ helyen szerepel, a Gyakorlati oktatás pedig a MÁSODIKON!
-Például:
-- Ha a szöveg azt írja: "Elmélet: 30%, Gyakorlat: 70%" -> "theoryRatio": 0.3, "practicalRatio": 0.7
-- Ha a szöveg azt írja: "Gyakorlat: legalább 60%" -> "theoryRatio": 0.4, "practicalRatio": 0.6
-- Ha az óraszámok eloszlása pl. "120 óra elmélet és 280 óra gyakorlat" -> "theoryRatio": 0.3, "practicalRatio": 0.7
-MINDIG ellenőrizd le kétszer is, hogy nem cserélted-e fel az elméleti (theoryRatio) és gyakorlati (practicalRatio) arányokat!
+1. TÁBLÁZAT OSZLOP-MEGFELELTETÉS:
+   A magyar PTT-k elején található óraszám-összesítő táblázat két fő blokkra oszlik (bal oldal: nappali, jobb oldal: felnőttképzés).
+   - HA '3year': A bal oldali blokkot használd (Évfolyamok: 1/9, 2/10, 3/11). Keresd meg a tantárgy sorában az első "A képzés összes óraszáma" oszlopot!
+   - HA '2year': A jobb oldali blokkot használd (Évfolyamok: 1. évf, 2. évf). Keresd meg a tantárgy sorában az utolsó, jobb szélső "A képzés összes óraszáma" oszlopot!
 
-SZABÁLYOK:
-1. Elsősorban a tantárgy részletes leírásában (X.X.X.4 pont) keresd a "%-os" arányt!
-2. Ha ott nincs adat, nézd a PTT eleji összefoglaló táblázat megfelelő oszlopát (${trainingFormat}).
-3. Ha végképp nincs adat, nézd az elméleti és gyakorlati modulok arányát a DB adatokban.
-4. Válaszolj CSAK valid JSON-nel.
+2. AZ ARÁNYOK MEGHATÁROZÁSÁNAK SZIGORÚ PRIORITÁSI SORRENDJE:
+   - 1. Prioritás: Keresd meg a tantárgy részletes leírásában az "X.X.X.4" alpontot (pl. 3.3.1.4 "A képzés órakeretének legalább... %-át gyakorlati helyszínen..."). Ha itt fix százalék szerepel (pl. legalább 70%), akkor:
+     * practicalRatio = 0.70
+     * theoryRatio = 0.30 (1.0 - 0.70)
+   - 2. Prioritás: Ha az X.X.X.4 pont 0%-ot ír, de a tantárgy leírásában az óraszámok "X/Y" formátumban vannak (pl. 190/217):
+     * HA '3year': Az első érték (X) a mérvadó összóraszám.
+     * HA '2year': A második érték (Y) a mérvadó összóraszám.
+     Ellenőrizd a témakörök (X.X.X.6) belső eloszlását, hogy az adott óraszámon belül van-e nevesített gyakorlati modul.
+   - 3. Prioritás: Ha a bemeneti adatokban a modulok jellege egyértelműen meghatározható, számítsd ki az elméleti/gyakorlati modulok darabszámának arányát.
 
-TANTÁRGYAK (DB adatok):
+3. REPTÉK ÉS CSAPMÁK ELLENI VÉDELEM (KOCKÁZAT):
+   A magyar szakképzésben a sorrend és a jelölés MINDIG: [ELMÉLET] / [GYAKORLAT]. Az elmélet áll az első helyen, a gyakorlat a másodikon!
+   - "Elmélet: 40%, Gyakorlat: 60%" -> "theoryRatio": 0.4, "practicalRatio": 0.6
+   - "Gyakorlat: legalább 100%" -> "theoryRatio": 0.0, "practicalRatio": 1.0
+   - Ha a tantárgy tisztán elméleti (pl. Munkavállalói ismeretek) -> "theoryRatio": 1.0, "practicalRatio": 0.0
+
+KIMENET: Kizárólag érvényes, tiszta JSON objektum, mindenféle markdown (\` \`\`\`json \`) vagy felvezető szöveg nélkül.
+
+TANTÁRGYAK (ADATBÁZIS ADATOK):
 ${subjectSummary}
 
-PTT SZÖVEG (releváns részletek):
+PTT FORRÁSSZÖVEG (KONTEXTUS):
 ${pttContext || '(nem elérhető)'}
 
-VÁLASZ:
+JSON SCHEMA:
 {
   "subjects": [
-    { "code": "3.1.1", "name": "Tantárgy neve", "theoryRatio": 0.3, "practicalRatio": 0.7 }
+    {
+      "code": "A tantárgy pontos kódja, pl. 3.3.1",
+      "name": "A tantárgy pontos neve",
+      "theoryRatio": 0.0,
+      "practicalRatio": 0.0
+    }
   ]
 }
 `.trim();
@@ -330,33 +333,33 @@ VÁLASZ:
     const typeFocus = importType === 'theory' ? 'CSAK AZ ELMÉLETI' : importType === 'practical' ? 'CSAK A GYAKORLATI' : 'AZ ÖSSZES';
     
     return `
-Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE/FELBONTÁSA az 1 TANÓRA = 1 MODUL elv alapján.
+Te egy PTT(Programtanterv) dokumentum - elemző szakértő és SZAKOKTATÓ vagy.A feladatod a szakmai tartalom kinyerése és SZAKMAI BŐVÍTÉSE / FELBONTÁSA az 1 TANÓRA = 1 MODUL elv alapján.
 Most kifejezetten ${typeFocus} tananyagrészekre kell fókuszálnod.
 
-── KÉTOLDALÚ KINYERÉSI STRATÉGIA (KÖTELEZŐ) ──
+── KÉTOLDALÚ KINYERÉSI STRATÉGIA(KÖTELEZŐ) ──
 A kinyerés során össze KELL hangolnod a PTT összesítő táblázatát a részletes szöveges leírással:
-1. TÁBLÁZAT KÖRNYEZET (Témakörök és Óraszámok): Olvasd el a kapott TÁBLÁZAT KÖRNYEZETET, és keresd meg a chunk-ban lévő tantárgyhoz tartozó témakörök óraszámait (N).
-2. SZÖVEGES RÉSZ (Kulcsszavak és Részletek): Keresd meg a tantárgy témaköreit (pl. 3.1.1.6 A tantárgy témakörei).
-3. 1-ÓRÁS GRANULÁRIS FELBONTÁS:
-   - Minden egyes témakörhöz (pl. 3.1.1.6.1 Álláskeresés, melynek óraszáma a táblázatban N = 5 óra) PONTOSAN N darab önálló, 1-órás almodult kell generálnod!
-   - Csoportosítsd és oszd el a témakör alatti kulcsszavakat, felsorolásokat pontosan N darab egyenletes és szakmailag koherens leckére.
-   - Ha a forrásszöveg rövid, de az óraszám magas (pl. 3 óra), akkor se vonj össze modulokat! Ehelyett bontsd fel a meglévő témákat mélyebb elméleti vagy gyakorlati szempontok szerint (pl. alapfogalmak, részletes ipari szabályok, esettanulmányok).
+    1. TÁBLÁZAT KÖRNYEZET(Témakörök és Óraszámok): Olvasd el a kapott TÁBLÁZAT KÖRNYEZETET, és keresd meg a chunk - ban lévő tantárgyhoz tartozó témakörök óraszámait(N).
+2. SZÖVEGES RÉSZ(Kulcsszavak és Részletek): Keresd meg a tantárgy témaköreit(pl. 3.1.1.6 A tantárgy témakörei).
+3. 1 - ÓRÁS GRANULÁRIS FELBONTÁS:
+    - Minden egyes témakörhöz(pl. 3.1.1.6.1 Álláskeresés, melynek óraszáma a táblázatban N = 5 óra) PONTOSAN N darab önálló, 1 - órás almodult kell generálnod!
+      - Csoportosítsd és oszd el a témakör alatti kulcsszavakat, felsorolásokat pontosan N darab egyenletes és szakmailag koherens leckére.
+   - Ha a forrásszöveg rövid, de az óraszám magas(pl. 3 óra), akkor se vonj össze modulokat! Ehelyett bontsd fel a meglévő témákat mélyebb elméleti vagy gyakorlati szempontok szerint(pl.alapfogalmak, részletes ipari szabályok, esettanulmányok).
 
 ── ELMÉLET ÉS GYAKORLAT TÍPUSÚ SZÉTVÁLASZTÁS ──
-- Keresd meg a tantárgy alatti ".4"-es pontot (pl. 3.1.1.4).
-- Ha a gyakorlati százalék 0% (pl. "legalább 0%-át gyakorlati helyszínen..."), akkor a tantárgy 100% ELMÉLET (theory). Minden modulja "theory" típusú legyen!
-- Ha a gyakorlati százalék nagyobb mint 0% (pl. 50%), akkor a tantárgy elméleti és gyakorlati moduljai külön válnak (lásd a typeFocus szűrést).
+    - Keresd meg a tantárgy alatti ".4" - es pontot(pl. 3.1.1.4).
+- Ha a gyakorlati százalék 0 % (pl. "legalább 0%-át gyakorlati helyszínen..."), akkor a tantárgy 100 % ELMÉLET(theory).Minden modulja "theory" típusú legyen!
+      - Ha a gyakorlati százalék nagyobb mint 0 % (pl. 50 %), akkor a tantárgy elméleti és gyakorlati moduljai külön válnak(lásd a typeFocus szűrést).
 
 ── FONTOS: ÓRASZÁMOK PONTOS MEGHATÁROZÁSA ÉS A FELCSERÉLÉS ELKERÜLÉSE ──
-A magyar programtantervben (PTT) az Elméleti oktatás óraszáma/aránya mindig az ELSŐ helyen szerepel, a Gyakorlati oktatás pedig a MÁSODIKON!
-Például:
-- Ha a táblázatban pl. '90 / 210' van, vagy két oszlopban '90' és '210' szerepel -> "theoryHours": 90, "practicalHours": 210
-- Ha a szöveg azt írja: "Elmélet: 30 óra, Gyakorlat: 70 óra" -> "theoryHours": 30, "practicalHours": 70
-MINDIG ellenőrizd le kétszer is, hogy nem cserélted-e fel az elméleti (theoryHours) és gyakorlati (practicalHours) óraszámokat!
+A magyar programtantervben(PTT) az Elméleti oktatás óraszáma / aránya mindig az ELSŐ helyen szerepel, a Gyakorlati oktatás pedig a MÁSODIKON!
+    Például:
+    - Ha a táblázatban pl. '90 / 210' van, vagy két oszlopban '90' és '210' szerepel -> "theoryHours": 90, "practicalHours": 210
+      - Ha a szöveg azt írja: "Elmélet: 30 óra, Gyakorlat: 70 óra" -> "theoryHours": 30, "practicalHours": 70
+MINDIG ellenőrizd le kétszer is, hogy nem cserélted - e fel az elméleti(theoryHours) és gyakorlati(practicalHours) óraszámokat!
 
 ── KÓDOLÁS ÉS CÍMEK ──
-- A "sectionCode" végére fűzz ABC sorrendben betűket a felosztott 1-órás moduloknál: 3.1.1.6.1.a, 3.1.1.6.1.b, 3.1.1.6.1.c, stb.
-- A modulok címe legyen pontos, szakmai és diák-központú (pl. "Álláskeresés - 1. rész: Karriertervezés").
+    - A "sectionCode" végére fűzz ABC sorrendben betűket a felosztott 1 - órás moduloknál: 3.1.1.6.1.a, 3.1.1.6.1.b, 3.1.1.6.1.c, stb.
+- A modulok címe legyen pontos, szakmai és diák - központú(pl. "Álláskeresés - 1. rész: Karriertervezés").
 
 TÁBLÁZAT KÖRNYEZET (Témakörök óraszámaival):
 ${tableContext}
@@ -364,19 +367,73 @@ ${tableContext}
 ELEMEZENDŐ SZÖVEG:
 ${chunk}
 
-VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
-{
-  "subjects": [
+VÁLASZ FORMÁTUMA(SZIGORÚ JSON):
     {
-      "name": "Tantárgy neve",
-      "code": "3.X.X",
-      "totalHours": 100,
-      "theoryHours": 30,
-      "practicalHours": 70,
-      "practicalPercent": 70,
-      "modules": [
-        { "title": "Álláskeresés - 1. rész: Karriertervezés", "type": "theory", "sectionCode": "3.1.1.6.1.a" },
-        { "title": "Álláskeresés - 2. rész: Munkaerőpiac", "type": "theory", "sectionCode": "3.1.1.6.1.b" }
+      "subjects": [
+        {
+          "name": "Tantárgy neve",
+          "code": "3.X.X",
+          "totalHours": 100,
+          "theoryHours": 30,
+          "practicalHours": 70,
+          "practicalPercent": 70,
+          "modules": [
+            { "title": "Álláskeresés - 1. rész: Karriertervezés", "type": "theory", "sectionCode": "3.1.1.6.1.a" },
+            { "title": "Álláskeresés - 2. rész: Munkaerőpiac", "type": "theory", "sectionCode": "3.1.1.6.1.b" }
+          ]
+        }
+      ]
+    }
+    `.trim();
+  }
+
+  buildContentPrompt(professionName: string, subjectName: string, modules: RawModule[]): string {
+    const moduleList = modules.map((m, i) => `${i + 1}. [${(m.type || 'theory').toUpperCase()}] ${m.title}`).join('\n');
+    return `Te egy mesteroktató és professzionális tananyagfejlesztő szakember vagy. A feladatod az, hogy a megadott 1-órás modulokhoz generálj mikrotananyagot tanulók számára.
+
+Szakma: ${professionName}
+Tantárgy: ${subjectName}
+
+SZIGORÚ RECEPTÚRA A TARTALOM GENERÁLÁSÁHOZ (MODULONKÉNT):
+
+1. HA A MODUL TÍPUSA: [THEORY] (Elmélet)
+   - A "content" mezőbe generálj egy PONTOSAN 5-6 mondatból álló, rendkívül tömör és információ-sűrű szakmai magyarázatot.
+   - Összpontosíts a tiszta definíciókra, fizikai/kémiai/szerkezeti összefüggésekre, számszerű technikai adatokra, ipari szabványokra és hatályos szabályokra. Használj professzionális terminológiát.
+   - A "practicalTasks" mező kötelezően egy ÜRES lista maradjon: [].
+
+2. HA A MODUL TÍPUSA: [PRACTICAL] (Gyakorlat)
+   - A "content" mezőbe írj egy rövid, maximum 3 mondatos szakmai bevezetőt a feladat konkrét ipari céljáról és az elsajátítandó kritikus szakmai fogásokról.
+   - A "practicalTasks" mezőbe generálj **PONTOSAN 6-8 konkrét, egymásra szigorúan épülő**, lépcsőzetes gyakorlati feladatot (instrukciót), amelyek egy valós ipari munkafolyamatot (workflow) modelleznek le:
+     * 1. Lépés: Előkészítés és specifikus munkavédelem (egyéni védőeszközök kiválasztása, munkaterület, gépek biztonsági ellenőrzése).
+     * 2. Lépés: Mérési, előrajzolási, kalibrálási vagy gépbeállítási paraméterek meghatározása (alapbeállítások beállítása technológiai utasítás/WPS/műszaki leírás alapján).
+     * 3-5. Lépés: Technológiai főműveletek végrehajtása (cselekvés-orientált, precíz lépések, pl. fogáshatár, vágási vonal, ívvezetés, tűzési pontok, anyagösszeállítás konkrét leírása).
+     * 6. Lépés: Utóműveletek (pl. sorjázás, tisztítás, revétlenítés, vasalás, rögzítés, felületkezelés).
+     * 7. Lépés: Minőségellenőrzés és mérés (dimenziók, tűréshatárok, szerkezeti vagy vizuális hibák ellenőrzése mérőeszközökkel vagy sablonnal).
+     * 8. Lépés: Műhelyrend és szakmai adminisztráció (szerszámok tisztítása és elrakása, hulladékkezelés, munkalap vagy jegyzőkönyv kitöltése).
+   - Minden egyes feladatot **felszólító módban, egyes szám harmadik személyben** fogalmazz meg (pl. "Állítsa be a...", "Mérje meg a...", "Végezze el a..."). Kerüld a felesleges elméletet!
+
+3. MATEMATIKAI ÉS FIZIKAI KÉPLETEK FORMÁTUMA (LaTeX - KÖTELEZŐ):
+   Minden képletet standard LaTeX formátumban kell megadnod.
+   - Blokkszintű (külön soros) képleteknél használd a dupla dollárjelet: $$ képlet $$ (pl. $$ U = I \times R $$).
+   - Szövegközi (inline) képleteknél használd az egyetlen dollárjelet: $ képlet $ (pl. $ I = \frac{U}{R} $).
+   - Szigorúan kerüld a sima szöveges, zárójeles vagy nem szabványos karakteres képletmegadásokat! Simple egységeket (pl. 230V, 10%) ne tegyél LaTeX-be.
+
+4. PEDAGÓGIAI SALLANGOK TILALMA:
+   Könyörtelenül hagyd el az olyan kifejezéseket, mint "A tanuló képes lesz...", "A modul célja bemutatni...". A tartalom közvetlenül a szakmai valóságot közvetítse.
+
+GENERÁLANDÓ MODULOK:
+${moduleList}
+
+VÁLASZ FORMÁTUMA (SZIGORÚ RAW JSON, markdown blokk nélkül):
+{
+  "modules": [
+    {
+      "title": "A modul pontos címe",
+      "content": "Szakmai tartalom kifejtése...",
+      "practicalTasks": [
+        "1. Lépés: Ellenőrizze a...",
+        "2. Lépés: Határozza meg a...",
+        "3. Lépés: Végezze el a..."
       ]
     }
   ]
@@ -384,56 +441,6 @@ VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
 `.trim();
   }
 
-  buildContentPrompt(professionName: string, subjectName: string, modules: RawModule[]): string {
-    const moduleList = modules.map((m, i) => `${i + 1}. [${(m.type || 'theory').toUpperCase()}] ${m.title}`).join('\n');
-    return `
-Te egy profi szakoktató és tananyagfejlesztő vagy. Generálj szakmai tananyagot TANULÓK számára.
-
-Szakma: ${professionName}
-Tantárgy: ${subjectName}
-
-── FELADAT ──
-Minden modulhoz írj egy alapos, de lényegre törő szakmai kifejtést az alábbi SZIGORÚ szabályok szerint:
-
-1. HA A MODUL [THEORY] (Elmélet):
-   - A "content" mezőbe írj 5-6 mondatos, részletes szakmai magyarázatot.
-   - Összpontosíts a fogalmakra, összefüggésekre, technikai adatokra és szabályokra.
-   - Használj szakmailag pontos terminológiát.
-   - A "practicalTasks" mező KÖTELEZŐEN ÜRES lista maradjon: [].
-
-2. HA A MODUL [PRACTICAL] (Gyakorlat):
-   - A "content" mezőbe írj egy rövid (max 3 mondat) szakmai bevezetőt a feladat konkrét céljáról és az elsajátítandó szakmai fogásokról.
-   - A "practicalTasks" mezőbe generálj pontosan 6-8 konkrét, szakmailag szigorúan egymásra épülő, lépcsőzetesen felépülő gyakorlati feladatot (instrukciót), amelyek egy valós ipari munkafolyamatot (workflow) követnek:
-     * 1. Lépés: Előkészítés és munkavédelem (egyéni védőeszközök kiválasztása, munkaterület, szerszámok és anyagok ellenőrzése).
-     * 2. Lépés: Mérési, előrajzolási, kalibrálási vagy gépbeállítási paraméterek meghatározása (pl. anyagelőkészítés).
-     * 3-5. Lépés: Technológiai főműveletek végrehajtása (cselekvés-orientált, szakmailag precíz lépések, pl. megmunkálás, hegesztés, vezetékezés, programozás, hibakeresés).
-     * 6. Lépés: Utóműveletek (pl. sorjázás, tisztítás, rögzítés, felületkezelés, összeszerelés).
-     * 7. Lépés: Minőségellenőrzés és mérés (dimenziók, tűréshatárok, tömítettség vagy működés ellenőrzése és mérése).
-     * 8. Lépés: Rendrakás és szakmai adminisztráció (szerszámok elrakása, hulladékkezelés, munkalap vagy jegyzőkönyv kitöltése).
-   - Mindegyik feladat legyen cselekvés-orientált, felszólító módban megfogalmazva (pl. "Állítsa be a nyomást...", "Végezze el a...", "Mérje meg a..."), kerülve a felesleges elméletet vagy elnagyolt instrukciókat. Just return the array of these tasks.
-
-── SZIGORÚ TILALOM ──
-- NE keverd az elméleti magyarázatot a gyakorlati feladatokkal!
-- Kerüld a pedagógiai sallangokat (pl. "A tanuló képes lesz...").
-- Ne legyen túl tömör, de ne is legyen feleslegesen bőbeszédű.
-
-── MATEMATIKAI KÉPLETEK FORMÁTUMA ──
-- Minden matematikai képletet és fizikai egyenletet KÖTELEZŐEN standard LaTeX formátumban írj!
-- Blokkszintű (külön sorba kerülő) képleteknél használd a dupla dollárjelet: $$ képlet $$ (pl. $$ U = I \times R $$).
-- Szövegközi (inline) képleteknél használd az egyetlen dollárjelet: $ képlet $ (pl. $ I = \frac{U}{R} $).
-- Szigorúan kerüld a zárójeles képlethelyettesítéseket, mint pl. "( ( V = I \cdot R )" vagy más nem szabványos megoldásokat!
-
-MODULOK:
-${moduleList}
-
-VÁLASZ (JSON):
-{
-  "modules": [
-    { "title": "Pontos modul cím", "content": "Szakmai tartalom...", "practicalTasks": ["1. feladat", "2. feladat"] }
-  ]
-}
-`.trim();
-  }
 
   getSubjectPttText(subName: string, fullText: string, code?: string | null): string {
     if (!fullText) return '';
@@ -506,15 +513,15 @@ VÁLASZ (JSON):
 
   buildWorkshopActivityExtractionPrompt(chunk: string): string {
     return `
-Te egy PTT (Programtanterv) dokumentum-elemző szakértő és SZAKOKTATÓ vagy. 
-A feladatod, hogy kigyűjts MINDEN gyakorlati, műhelyben elvégezhető tevékenységet a megadott szövegből, megtartva a PTT-beli eredeti témaköröket (témaköri egységeket/címeket).
+Te egy PTT(Programtanterv) dokumentum - elemző szakértő és SZAKOKTATÓ vagy. 
+A feladatod, hogy kigyűjts MINDEN gyakorlati, műhelyben elvégezhető tevékenységet a megadott szövegből, megtartva a PTT - beli eredeti témaköröket(témaköri egységeket / címeket).
 
 ── SZABÁLYOK ──
-1. Csak a VALÓDI, fizikai, kézzel fogható műhelygyakorlathoz kapcsolódó tevékenységeket gyűjtsd ki (pl. mérések, fűrészelés, hegesztés, vezetékezés, hibakeresés, beállítások, szerszámhasználat).
-2. Könyörtelenül szűrj ki minden pedagógiai sallangot (pl. "a tanuló ismeri...", "képes megérteni...") és elméleti leírást.
-3. Minden tevékenységhez határozd meg a PTT-beli eredeti TÉMAKÖR megnevezését (pl. "Reszelés és alapvető kézi megmunkálások" vagy "Hegesztési eljárások").
+1. Csak a VALÓDI, fizikai, kézzel fogható műhelygyakorlathoz kapcsolódó tevékenységeket gyűjtsd ki(pl.mérések, fűrészelés, hegesztés, vezetékezés, hibakeresés, beállítások, szerszámhasználat).
+2. Könyörtelenül szűrj ki minden pedagógiai sallangot(pl. "a tanuló ismeri...", "képes megérteni...") és elméleti leírást.
+3. Minden tevékenységhez határozd meg a PTT - beli eredeti TÉMAKÖR megnevezését(pl. "Reszelés és alapvető kézi megmunkálások" vagy "Hegesztési eljárások").
 
-VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
+VÁLASZ FORMÁTUMA(SZIGORÚ JSON):
 {
   "rawActivities": [
     {
@@ -530,24 +537,24 @@ ${chunk}
   }
 
   buildWorkshopDaySizingPrompt(subjectName: string, rawActivities: { topic: string; activity: string }[]): string {
-    const formattedActivities = rawActivities.map((act: any, i: number) => 
+    const formattedActivities = rawActivities.map((act: any, i: number) =>
       `${i + 1}. [Témakör: ${act.topic || 'Általános'}] ${act.activity}`
     ).join('\n');
 
     return `
-Te egy zseniális SZAKOKTATÓ és gyakorlati tanmenet-tervező vagy.
+Te egy zseniális SZAKOKTATÓ és gyakorlati tanmenet - tervező vagy.
 Kaptál egy listát, ami egy adott tantárgyhoz kigyűjtött nyers műhelytevékenységeket tartalmazza témakörök szerint csoportosítva.
 
 Tantárgy: ${subjectName}
 
 ── FELADAT ──
-1. Csoportosítsd és strukturáld ezeket a tevékenységeket egymásra épülő, szekvenciális egységekre (modulokra).
-2. **PTT TÉMAKÖRÖK MEGŐRZÉSE (FONTOS)**: A modulok kialakításakor kövesd az eredeti témakörök logikai egymásutániságát. Ne keverj össze teljesen eltérő témaköröket egy napra, hacsak nem szorosan egymásra épülnek.
-3. **KÖTELEZŐ 1 NAPOS MÉRETEZÉS**: Minden egyes egység (modul) pontosan akkora méretű legyen, amit egy tanuló **1 műhelygyakorlati nap (kb. 6-8 óra gyakorlat)** alatt reálisan meg tud tanulni és el tud végezni a műhelyben!
-4. Adj minden napnak egy vonzó, szakmailag pontos és a témakört is tükröző "Nap [X]: [Témakör] - [Cím]" formátumú nevet (pl. "1. nap: Kézi fém megmunkálás - Fűrészelés és biztonságtechnika").
+1. Csoportosítsd és strukturáld ezeket a tevékenységeket egymásra épülő, szekvenciális egységekre(modulokra).
+2. ** PTT TÉMAKÖRÖK MEGŐRZÉSE(FONTOS) **: A modulok kialakításakor kövesd az eredeti témakörök logikai egymásutániságát.Ne keverj össze teljesen eltérő témaköröket egy napra, hacsak nem szorosan egymásra épülnek.
+3. ** KÖTELEZŐ 1 NAPOS MÉRETEZÉS **: Minden egyes egység(modul) pontosan akkora méretű legyen, amit egy tanuló ** 1 műhelygyakorlati nap(kb. 6 - 8 óra gyakorlat) ** alatt reálisan meg tud tanulni és el tud végezni a műhelyben!
+4. Adj minden napnak egy vonzó, szakmailag pontos és a témakört is tükröző "Nap [X]: [Témakör] - [Cím]" formátumú nevet(pl. "1. nap: Kézi fém megmunkálás - Fűrészelés és biztonságtechnika").
 5. A válaszként kapott modulok sora egy tökéletes, logikusan egymásra épülő napi tanmenetet alkosson.
 
-VÁLASZ FORMÁTUMA (SZIGORÚ JSON):
+VÁLASZ FORMÁTUMA(SZIGORÚ JSON):
 {
   "modules": [
     {
@@ -568,7 +575,7 @@ ${formattedActivities}
 
   buildPracticalDayContentPrompt(professionName: string, subjectName: string, moduleTitle: string, activities: string[]): string {
     return `
-Te egy profi szakoktató és gyakorlati tananyagfejlesztő vagy. 
+Te egy profi szakoktató és gyakorlati tananyagfejlesztő vagy.
 Generálj részletes gyakorlati útmutatót tanulók számára egy adott gyakorlati naphoz (műhelynaphoz).
 
 Szakma: ${professionName}
@@ -595,7 +602,7 @@ Gyakorlati nap címe: ${moduleTitle}
 - Szigorúan kerüld a zárójeles képlethelyettesítéseket, mint pl. "( ( V = I \cdot R )" vagy más nem szabványos megoldásokat!
 
 KIJELÖLT NAPI TEVÉKENYSÉGEK:
-${activities.map((act, i) => `- ${act}`).join('\n')}
+${activities.map((act) => `- ${act}`).join('\n')}
 
 VÁLASZ (JSON):
 {
@@ -613,6 +620,7 @@ VÁLASZ (JSON):
 }
 `.trim();
   }
+
 
   async structureCurriculum(_professionName: string, _kkkText: string, chunk: string, importType?: 'theory' | 'practical' | 'both'): Promise<string> {
     return this.buildExtractionPrompt(chunk, '', importType);
