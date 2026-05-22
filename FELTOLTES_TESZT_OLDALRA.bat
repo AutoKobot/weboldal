@@ -5,5 +5,5 @@ git commit -m "Mentes: %date% %time%"
 echo [+] Kenyszeritett feltoltes a dev agra...
 git push origin HEAD:dev --force
 echo.
-echo [OK] A Teszt oldal frissitese elindult a Renderen!
+echo [OK] A Teszt oldal frissitese elindult a Railway-en!
 timeout /t 5

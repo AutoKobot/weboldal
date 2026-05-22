@@ -5,12 +5,9 @@ echo.
 set /p choice="Biztosan frissited az ELES oldalt? (i/n): "
 if /i "%choice%" neq "i" exit
 
-echo [+] Valtoztatasok atmasolasa az eles agra...
-git checkout main
-git merge dev
-git push origin main
-git checkout dev
+echo [+] Valtoztatasok bekuldese az eles (main) agra...
+git push origin dev:main --force
 
 echo.
-echo [OK] Az ELES oldal frissitese elindult!
+echo [OK] Az ELES oldal frissitese elindult a Railway-en!
 timeout /t 5
