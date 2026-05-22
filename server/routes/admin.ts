@@ -5,7 +5,7 @@ import { combinedAuth } from "./middleware";
 import { insertProfessionSchema, modules, subjects, practicalGrades, testResults, users } from "@shared/schema";
 import { db } from "../db";
 import { eq, sql, and } from "drizzle-orm";
-import { hashPassword } from "../localAuth";
+import { hashPassword, comparePasswords } from "../localAuth";
 
 
 const router = Router();
@@ -357,7 +357,11 @@ router.delete('/professions/:id', combinedAuth, adminOnly, async (req: any, res)
       return res.status(400).json({ message: "Jelszó szükséges a törlés megerősítéséhez." });
     }
     const adminUser = await storage.getUser(req.user.id);
-    if (!adminUser || adminUser.password !== password) {
+    if (!adminUser) {
+      return res.status(403).json({ message: "Admin felhasználó nem található." });
+    }
+    const isPasswordValid = await comparePasswords(password, adminUser.password || '');
+    if (!isPasswordValid) {
       return res.status(403).json({ message: "Helytelen jelszó. A törlés megszakítva." });
     }
 
