@@ -11,12 +11,14 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **Feladat Napló**: `docs/developer/task-log.md` (A legutóbbi 2026-05-03-as nagy frissítések részletei)
 - **AI Optimalizációs Jelentések**: `ai-optimization-report.md` és `youtube-optimization-report.md`
 - **Oktatóanyagok**: `attendance_walkthrough.md` és `replit.md`
+- **IKK Import Logika**: `ikk import logika.pdf` (A 3 fázisú import folyamat promptjai és specifikációja)
 
 ## 🛠️ Segédeszközök
 
 - **`scripts/map-codebase.ts`**: Indexeli a függvényeket és osztályokat a gyors navigációhoz.
 - **`scripts/code-map.json`**: A térkép szkript kimenete.
 - **`scripts/data-integrity-check.ts`**: Diagnosztikai eszköz az adatbázis konzisztencia ellenőrzéséhez.
+- **`ptt/test_new_ikk_logic.ts`**: Tesztszkript az IKK import 3 fázisának kipróbálásához lokális PTT szöveggel.
 
 ## 🗄️ Adatbázis & Tárhely
 
@@ -36,10 +38,6 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 - **AI Folyamatjelző és Interaktív HTML**:
   - Globális AI állapotjelző került a fejlécekbe, amely mutatja, ha háttérfolyamat (bulk fejlesztés) fut.
   - Az interaktív prezentációk mostantól megállnak a kérdéseknél, a narráció nem szalad tovább a válaszadás előtt.
-- **IKK Import Optimalizálás**:
-  - Granuláris modulbontás: A nagy fejezeteket az AI automatikusan szétbontja logikai almodulokra (a, b, c).
-  - Megnövelt tartalom: 8-10 mondatos szakmai leírások és 5-8 konkrét gyakorlati feladat minden modulhoz.
-  - Stabilitás: Kisebb batch méret (4) és 120s timeout a biztosabb generálásért.
 - **Sorrendezés és Láthatóság**:
   - A tantárgyak (pl. 3.1, 3.1.1) és modulok természetes numerikus sorrendben jelennek meg minden felületen.
   - Intézményi láthatóság (School-Aware): Az iskola adminok látják az összes hozzájuk tartozó tanárt és diákot, függetlenül attól, ki hozta létre őket.
@@ -90,6 +88,32 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
   - Pótolva a hiányzó `Wand2` és egyéb ikon importok.
   - Javítottuk a hiányzó `MessageSquare` ikon import miatti összeomlást a tanár-dashboard és tanuló-listázó oldalakon.
   - Az IKK import hiba esetén nem törli a már létrehozott szakmát, segítve a hibakeresést.
+- **IKK Import Optimalizáció & Robusztusság és Finomított Promptek (2026-05-21)**:
+  - **JSON Csonkolási/Túlfolyási Hiba Elleni Védelem (`tryRepairJson`)**: Megvalósítottuk a `tryRepairJson` univerzális segédfüggvényt a [routes/ikk.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/routes/ikk.ts) fájlban, ami képes automatikusan lezárni a csonkolt JSON sztringeket (például a lezáró kapcsos zárójelek és szögletes zárójelek pótlásával), így megelőzi a 401-es és egyéb parser összeomlásokat ha az AI válasz eléri a token-limitet.
+  - **Dinamikus Blokk-Méretezés (Dynamic Block Sizing)**: Logikát építettünk be a [routes/ikk.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/routes/ikk.ts) fájlba, amely a tantárgyak óraszáma alapján dinamikusan skálázza a generálási blokkok méretét, elkerülve a token túlcsordulási és API leállási hibákat.
+  - **Továbbfejlesztett és Finomított IKK Promptek**:
+    - **1. Óraarányok meghatározása (`generateHoursFromPtt`)**: Új módszertani és prioritási szabályokkal láttuk el, különösképp az óraszám-összesítő táblázat két fő blokkjának (3-éves nappali vs. 2-éves felnőttképzés) pontos kezelésére, a magyar szakképzés szigorú `[ELMÉLET]/[GYAKORLAT]` sorrendjének betartására, valamint a tiszta JSON kimenet kényszerítésére (\` \`\`\`json \` markdown mentesítésével).
+    - **2. Granuláris Modul-bontás (`buildExtractionPrompt`)**: Új matematikai óra-kényszer és szakmai tartalom-bővítési stratégia került beépítésre, amely garantálja, hogy pontosan N darab (1 tanóra = 1 önálló modul) elem jöjjön létre logikai és szakmai-módszertani evolúció mentén, és ábécé sorrendes alszámokkal (a, b, c) egészüljön ki.
+    - **3. Szakmai tananyag generálása modulonként (`buildContentPrompt`)**: Bevezettük a "Mesteroktató" és professzionális tananyagfejlesztő szerepkört, külön szétbontott `[THEORY]` (5-6 mondatos tömör leírás, üres gyakorlati feladatok) és `[PRACTICAL]` (rövid bevezetés + 6-8 lépéses valós ipari munkafolyamat útmutató WPS/technológiai utasítás alapon, felszólító módban) szabályozással, LaTeX matematikai és fizikai képlet-kényszerítéssel, valamint pedagógiai sallangok tilalmával.
+  - **Kódbázis és Szintaxis Tisztítás**: Kijavítottuk a template literálok hibás formázásait az [ikk-service.ts](file:///e:/Antigravity_projektek/InteractiveLearning/server/ikk-service.ts) fájlban, és eltávolítottuk az orphaned/duplikált prompt-maradványokat, visszaállítva a fájl tökéletes szintaxisát.
+
+- **IKK Import Teljes Újrastrukturálás - 3 Fázisú Logika (2026-05-22)**:
+  - A monolitikus import helyett a folyamatot 3 tiszta, jól elkülönített fázisra bontottuk a [ikk import logika.pdf](file:///e:/Antigravity_projektek/InteractiveLearning/ikk%20import%20logika.pdf) dokumentum alapján.
+  - **Fázisok**:
+    1. **`extractSubjectHours`** (Phase 1): Kizárólag tantárgyak + elméleti/gyakorlati óraszámok kinyerése a PTT-ből. Az AI a `X.X.X.4` pontot keresi (pl. "3.3.1.4 A képzés órakeretének legalább 50%-át gyakorlati helyszínen kell lebonyolítani") és ennek alapján számolja az elmélet/gyakorlat arányt. **NINCS modul generálás ebben a lépésben.**
+    2. **`generateModulesForSubject`** (Phase 2): Modulok bontása tantárgyanként, szekvenciálisan. Elmélet: 1 óra = 1 modul. Gyakorlat: 7 óra = 1 modul (műhelynap). A `X.X.X.6` "A tantárgy témakörei" pont alapján bontja fel az AI.
+    3. **`buildContentPrompt`** (Phase 3): 2-es batch-ekben történő tartalom generálás. Elmélet: **pontosan 4-5 mondatos** szakmai kifejtés. Gyakorlat: **6-8 lépéses** ipari munkafolyamat (Munkavédelem → Kalibrálás → Főműveletek → Utóműveletek → Minőségellenőrzés → Adminisztráció).
+  - **Fontos prompt szabályok**:
+    - Az óraszámoknál a sorrend MINDIG: [ELMÉLET] / [GYAKORLAT] (magyar szakképzési konvenció)
+    - A `3.X.X.4` pont a tantárgy RÉSZLETES LEÍRÁSÁBAN található (nem az összesítő táblázatban)
+    - A kódok a PTT-ben 3 számjegyesek (3.3.1), míg a DB-ben 2 számjegyesek (3.1) lehetnek - a tantárgy NEVE alapján kell párosítani
+  - **Stabilitási javítások**: Phase 1 párhuzamosság 1-re csökkentve, batch méret 2-re csökkentve, minden AI hívás 120s timeout-tal védve, `tryRepairJson` a csonkolt JSON-ok javítására
+  - **Típusonkénti szűrés**:
+    - `theory` import: csak theory subject-ek jönnek létre, csak theory modulok generálódnak
+    - `practical` import: nem jönnek létre theory subject-ek, csak practical modulok
+    - `both` import: mindkét típus
+  - **Érintett fájlok**: `server/ikk-service.ts` (új metódusok: `extractSubjectHours`, `generateModulesForSubject`, frissített `buildContentPrompt`), `server/routes/ikk.ts` (teljesen átírt import flow), `.clinerules` (módosítva)
+  - **Dokumentáció**: `ikk import logika.pdf` (6 prompt specifikációja)
 
 ## 📌 Szabályok és Irányelvek az AI számára
 
@@ -99,3 +123,5 @@ Ez a fájl tartalmazza a legfontosabb tudnivalókat a projektről, az aktuális 
 4. **Nincs redundáns komponens**: Új UI elem előtt ellenőrizd a `docs/developer/component-catalog.md` fájlt.
 5. **FIGYELEM**: A Google Translate-et ki KELL kapcsolni az admin felületen, mert összeomlást okoz a React DOM kezelésében.
 6. **Aesthetics is King**: A webes felületeknek modernnek, prémiumnak és dinamikusnak kell lenniük. Használj harmonikus színeket, animációkat és minőségi tipográfiát.
+7. **IKK Import 3 Fázis**: Új IKK import logika bevezetésekor mindig kövesd a `ikk import logika.pdf` dokumentumban leírt prompt specifikációkat. A 3 fázis szigorúan elkülönítve fut: (1) tantárgyak+óraszámok, (2) modul bontás, (3) tartalom generálás.
+8. **`.clinerules` fájl**: A projekt alapvető törvényeit tartalmazza. Módosítása csak indokolt esetben, a projekt konvencióinak megfelelően történjen.

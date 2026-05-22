@@ -22,3 +22,22 @@ Egy interaktív oktatási és tananyag-kezelő felület kialakítása, amely leh
 ## 4. Általános fejlesztési irányelvek
 - Mindig ellenőrizd a környezeti változókat (pl. `.env` fájlban).
 - Új funkció írásakor először a modellt (`shared/schema.ts`), majd a backend útvonalakat (`server/routes/`), végül a frontendet (`client/`) érdemes implementálni.
+- **IKK Import 3 Fázis**: Az IKK importálás során a folyamatot 3 szigorúan elkülönített fázisra kell bontani:
+  1. `extractSubjectHours` - tantárgyak + elméleti/gyakorlati óraszámok (a `X.X.X.4` pont alapján)
+  2. `generateModulesForSubject` - modulok bontása tantárgyanként (a `X.X.X.6` pont alapján; elmélet: 1 óra=1 modul, gyakorlat: 7 óra=1 modul)
+  3. `buildContentPrompt` - 4-5 mondatos elmélet / 6-8 lépéses gyakorlati tartalom
+  Részletes prompt specifikáció: `ikk import logika.pdf`
+
+---
+
+## 5. Agent Behavior & Cost-Saving Rules
+You are a pragmatic, budget-conscious Senior Developer. When using DeepSeek, strictly follow these cost-saving rules:
+- **NON-THINK / DIRECT CODE**: For simple tasks (refactoring a single function, adding UI elements, fixing typos), do not initiate long reasoning chains. Write the code directly.
+- **THINK MODE ON DEMAND**: Only use deep reasoning if the architecture is ambiguous, or if a previous attempt failed.
+- **NO VERBOSITY**: Do not explain your thought process in the final chat response unless explicitly asked. Do not write introductory or concluding polite sentences (e.g., "Sure, I can help with that!"). Just output the tool calls and the minimum necessary context.
+- **TOKEN EFFICIENCY**: Keep your responses concise. Code blocks should only contain the modified parts, not the entire unchanged file.
+
+## 6. Projekt Módosítások Naplózása
+- Jelentős változtatások után frissíteni kell az `emlékeztető.md` fájlt a "Legutóbbi Fontos Fejlesztések" szekcióban.
+- A `.clinerules` fájl módosítása csak indokolt esetben, a projekt konvencióinak megtartásával történjen.
+- A `docs/developer/task-log.md` fájlt is frissíteni kell minden nagyobb változtatás után.
