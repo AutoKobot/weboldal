@@ -190,20 +190,20 @@ router.post('/users/:id/unlock-all-modules', combinedAuth, adminOnly, async (req
 router.post('/users/restore-all-progress', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     console.log(`[RESTORE] Module restore triggered by admin: ${req.user.username}`);
-    
+
     // 1. Get all published modules
     const allPublishedModules = await db.select().from(modules);
     const totalModuleCount = allPublishedModules.length;
 
     // 2. Fetch all student users
     const students = await db.select().from(users).where(eq(users.role, "student"));
-    
+
     let updatedCount = 0;
     const reports = [];
 
     for (const student of students) {
       const currentCompleted = student.completedModules || [];
-      
+
       // Fetch passed tests
       const passedTests = await db.select().from(testResults).where(
         and(
@@ -229,12 +229,12 @@ router.post('/users/restore-all-progress', combinedAuth, adminOnly, async (req: 
 
       if (currentCompleted.length !== actualCompletedModuleIds.length) {
         await db.update(users)
-          .set({ 
+          .set({
             completedModules: actualCompletedModuleIds,
             updatedAt: new Date()
           })
           .where(eq(users.id, student.id));
-          
+
         updatedCount++;
         reports.push({
           username: student.username,
@@ -334,12 +334,12 @@ router.put('/professions/:id', combinedAuth, adminOnly, async (req: any, res) =>
     const id = parseInt(req.params.id);
     const professionData = insertProfessionSchema.partial().parse(req.body);
     const updatedProfession = await storage.updateProfession(id, professionData);
-    
+
     // If totalHours were modified, redistribute to subjects
     if (professionData.totalHours !== undefined && professionData.totalHours !== null) {
       await storage.redistributeProfessionHours(id, professionData.totalHours);
     }
-    
+
     res.json(updatedProfession);
   } catch (error) {
     console.error("Error updating profession:", error);
@@ -350,24 +350,19 @@ router.put('/professions/:id', combinedAuth, adminOnly, async (req: any, res) =>
 router.delete('/professions/:id', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
-    
-    // Check if the profession has active references to prevent constraint violation
-    const usage = await storage.getProfessionUsage(id);
-    if (usage.subjectsCount > 0 || usage.classesCount > 0 || usage.usersCount > 0 || usage.communityGroupsCount > 0) {
-      const details = [];
-      if (usage.subjectsCount > 0) details.push(`${usage.subjectsCount} tantárgy`);
-      if (usage.classesCount > 0) details.push(`${usage.classesCount} osztály`);
-      if (usage.usersCount > 0) details.push(`${usage.usersCount} diák/tanár`);
-      if (usage.communityGroupsCount > 0) details.push(`${usage.communityGroupsCount} közösségi csoport`);
-      
-      return res.status(400).json({
-        message: `Nem törölhető a szakma, mert még aktív hivatkozások léteznek rá: ${details.join(', ')}.`,
-        details: usage
-      });
+
+    // Password confirmation for destructive action
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(400).json({ message: "Jelszó szükséges a törlés megerősítéséhez." });
+    }
+    const adminUser = await storage.getUser(req.user.id);
+    if (!adminUser || adminUser.password !== password) {
+      return res.status(403).json({ message: "Helytelen jelszó. A törlés megszakítva." });
     }
 
     await storage.deleteProfession(id);
-    res.status(204).send();
+    res.json({ message: "Szakma és minden kapcsolódó adat (tantárgyak, modulok, tesztek, jegyek) sikeresen törölve." });
   } catch (error) {
     console.error("Error deleting profession:", error);
     res.status(500).json({ message: "Nem sikerült törölni a szakmát" });
@@ -483,7 +478,7 @@ router.post('/migrate-grades', combinedAuth, adminOnly, async (req: any, res) =>
           migratedTheoretical++;
         }
       }
-      
+
       reports.push({
         subjectId,
         moduleNumber,
@@ -494,11 +489,11 @@ router.post('/migrate-grades', combinedAuth, adminOnly, async (req: any, res) =>
       });
     }
 
-    res.json({ 
-      success: true, 
-      migratedPractical, 
+    res.json({
+      success: true,
+      migratedPractical,
       migratedTheoretical,
-      details: reports 
+      details: reports
     });
   } catch (error) {
     console.error("Migration error:", error);

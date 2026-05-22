@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,26 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger, 
-  DialogDescription, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { 
+import { AlertTriangle, Lock } from "lucide-react";
+import {
   Plus, Edit, Trash2, BookOpen, Globe, Calendar, Download, Loader2, Clock,
   Wrench, HardHat, Cpu, Hammer, Zap, Car, Briefcase, Heart, Utensils, Building, GraduationCap, Wand2, MonitorPlay, Timer
 } from "lucide-react";
@@ -107,30 +108,30 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/admin/professions/${id}`);
+    mutationFn: async ({ id, password }: { id: number, password: string }) => {
+      const res = await apiRequest("DELETE", `/api/admin/professions/${id}`, { password });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Törlési hiba");
+      }
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/public/professions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/professions"] });
-      toast({ title: "Siker", description: "Szakma törölve" });
+      setDeleteDialogOpen(false);
+      setDeleteTargetId(null);
+      setDeletePassword("");
+      setDeleteError("");
+      toast({ title: "Siker", description: "Szakma és összes kapcsolódó adat törölve." });
     },
     onError: (error: Error) => {
-      let displayMessage = error.message;
-      try {
-        const jsonPart = error.message.substring(error.message.indexOf('{'));
-        const parsed = JSON.parse(jsonPart);
-        if (parsed.message) {
-          displayMessage = parsed.message;
-        }
-      } catch (e) {
-        // Fallback if parsing fails or there is no JSON
-      }
-      toast({ 
-        title: "Hiba a szakma törlésekor", 
-        description: displayMessage, 
-        variant: "destructive" 
+      setDeleteError(error.message);
+      toast({
+        title: "Hiba a szakma törlésekor",
+        description: error.message,
+        variant: "destructive"
       });
     }
   });
@@ -159,6 +160,10 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
   const [isGeneratingHours, setIsGeneratingHours] = useState<number | null>(null);
   const [isFormatDialogOpen, setIsFormatDialogOpen] = useState(false);
   const [formatTargetId, setFormatTargetId] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const generateHoursMutation = useMutation({
     mutationFn: async ({ professionId, trainingFormat }: { professionId: number, trainingFormat: string }) => {
@@ -220,8 +225,8 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         {prof.code}
                       </Badge>
                     )}
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={`text-[10px] h-5 flex items-center gap-1 cursor-pointer hover:ring-1 hover:ring-blue-400 transition-all ${prof.totalHours ? 'border-blue-100 bg-blue-50/30 text-blue-700' : 'border-blue-100 bg-blue-50/10 text-blue-600 italic'}`}
                       onClick={(e) => { e.stopPropagation(); handleEdit(prof); }}
                       title="Szerkesztés"
@@ -246,23 +251,29 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-100" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-transparent hover:border-blue-100"
                     onClick={(e) => { e.stopPropagation(); handleEdit(prof); }}
                     title="Szerkesztés"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-50" onClick={(e) => { e.stopPropagation(); if(confirm('Törli a szakmát minden adatával?')) deleteMutation.mutate(prof.id); }}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-50" onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTargetId(prof.id);
+                    setDeletePassword("");
+                    setDeleteError("");
+                    setDeleteDialogOpen(true);
+                  }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 pb-4">
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-4 h-8">{prof.description}</p>
-                
+
                 <div className="space-y-3 mt-auto">
                   <div className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -276,7 +287,7 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                       <span>{(prof.updatedAt || prof.createdAt) ? new Date((prof.updatedAt || prof.createdAt)!).toLocaleDateString('hu-HU') : 'Ismeretlen'}</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
                     <div className="flex gap-1.5 flex-wrap">
                       {(() => {
@@ -314,30 +325,30 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                     )}
 
                     <div className="grid grid-cols-2 gap-1.5 mt-1">
-                      <Button 
+                      <Button
                         size="sm"
                         variant="ghost"
-                        className="text-[9px] h-7 bg-blue-50/30 hover:bg-blue-50 text-blue-700 border border-blue-100" 
+                        className="text-[9px] h-7 bg-blue-50/30 hover:bg-blue-50 text-blue-700 border border-blue-100"
                         onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'theory' }); }}
                         disabled={isImporting !== null || isGeneratingHours !== null}
                       >
                         {isImporting === prof.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <GraduationCap className="h-3 w-3 mr-1" />}
                         Elmélet Frissítés
                       </Button>
-                      <Button 
+                      <Button
                         size="sm"
                         variant="ghost"
-                        className="text-[9px] h-7 bg-orange-50/30 hover:bg-orange-50 text-orange-700 border border-orange-100" 
+                        className="text-[9px] h-7 bg-orange-50/30 hover:bg-orange-50 text-orange-700 border border-orange-100"
                         onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'practical' }); }}
                         disabled={isImporting !== null || isGeneratingHours !== null}
                       >
                         {isImporting === prof.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wrench className="h-3 w-3 mr-1" />}
                         Gyakorlat Frissítés
                       </Button>
-                      <Button 
+                      <Button
                         size="sm"
                         variant="secondary"
-                        className="col-span-2 text-[9px] h-7 font-bold" 
+                        className="col-span-2 text-[9px] h-7 font-bold"
                         onClick={(e) => { e.stopPropagation(); importMutation.mutate({ profession: prof, importType: 'both' }); }}
                         disabled={isImporting !== null || isGeneratingHours !== null}
                       >
@@ -348,8 +359,8 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                         size="sm"
                         variant="outline"
                         className="col-span-2 text-[9px] h-7 font-bold border-amber-300 bg-amber-50/40 text-amber-800 hover:bg-amber-100"
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setFormatTargetId(prof.id);
                           setIsFormatDialogOpen(true);
                         }}
@@ -405,10 +416,10 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
                     <FormLabel className="flex justify-between items-center">
                       <span>Összesített óraszám</span>
                       {editingProfession && (
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
                           className="h-6 text-[10px] gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           onClick={() => {
                             const subjectTotal = calculateProfessionHours(editingProfession.id);
@@ -478,8 +489,8 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="flex flex-col h-24 gap-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
               onClick={() => {
                 if (formatTargetId) {
@@ -492,8 +503,8 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
               <div className="text-sm font-bold">3 éves képzés</div>
               <div className="text-[10px] text-muted-foreground uppercase font-bold">Nappali tagozat</div>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="flex flex-col h-24 gap-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50"
               onClick={() => {
                 if (formatTargetId) {
@@ -510,6 +521,69 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
           <DialogFooter className="sm:justify-start">
             <Button type="button" variant="ghost" onClick={() => setIsFormatDialogOpen(false)}>
               Mégse
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Törlési megerősítő dialógus jelszóval */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Végleges törlés
+            </DialogTitle>
+            <DialogDescription>
+              Ez a művelet <strong>véglegesen törli</strong> a szakmát és <strong>minden kapcsolódó adatot</strong> (tantárgyak, modulok, teszteredmények, gyakorlati jegyek). A törlés nem visszavonható!
+              <br /><br />
+              A törlés megerősítéséhez add meg az admin jelszavadat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+              <p className="text-sm text-red-800">
+                Minden tantárgy, modul, kvíz eredmény, gyakorlati jegy, flashcard és chat üzenet törlődik ehhez a szakmához kapcsolódóan.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="delete-password" className="flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Admin jelszó
+              </Label>
+              <Input
+                id="delete-password"
+                type="password"
+                value={deletePassword}
+                onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(""); }}
+                placeholder="Add meg a jelszavad..."
+                className="mt-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && deletePassword && deleteTargetId) {
+                    deleteMutation.mutate({ id: deleteTargetId, password: deletePassword });
+                  }
+                }}
+              />
+              {deleteError && (
+                <p className="text-sm text-destructive mt-1">{deleteError}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeletePassword(""); setDeleteError(""); }}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!deletePassword || deleteMutation.isPending}
+              onClick={() => {
+                if (deleteTargetId) {
+                  deleteMutation.mutate({ id: deleteTargetId, password: deletePassword });
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Törlés folyamatban..." : "Végleges törlés"}
             </Button>
           </DialogFooter>
         </DialogContent>

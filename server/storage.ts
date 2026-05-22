@@ -635,11 +635,21 @@ export class DatabaseStorage implements IStorage {
         await db.delete(testResults).where(eq(testResults.moduleId, mod.id));
         await db.delete(flashcards).where(eq(flashcards.moduleId, mod.id));
         await db.delete(practicalGrades).where(eq(practicalGrades.moduleId, mod.id));
+        await db.delete(communityProjects).where(eq(communityProjects.moduleId, mod.id));
+        await db.delete(moduleSubjectAssignments).where(eq(moduleSubjectAssignments.moduleId, mod.id));
+        await db.delete(chatMessages).where(eq(chatMessages.relatedModuleId, mod.id));
       }
       await db.delete(modules).where(eq(modules.subjectId, subject.id));
       await db.delete(subjects).where(eq(subjects.id, subject.id));
     }
-    // 5. Finally delete the profession
+    // 5. Remove all moduleSubjectAssignments for this profession's subjects (extra safety)
+    await db.delete(moduleSubjectAssignments)
+      .where(
+        inArray(moduleSubjectAssignments.subjectId,
+          db.select({ id: subjects.id }).from(subjects).where(eq(subjects.professionId, id))
+        )
+      );
+    // 6. Finally delete the profession
     await db.delete(professions).where(eq(professions.id, id));
   }
 
