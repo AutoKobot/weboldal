@@ -1,21 +1,22 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog";
-import { 
-  Search, 
-  Users, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Search,
+  Users,
+  ChevronDown,
+  ChevronUp,
   FileText,
   MessageSquare
 } from "lucide-react";
@@ -27,9 +28,11 @@ interface Props {
   teacherClasses: Class[];
   modules: Module[];
   professions: Profession[];
+  subjects: Subject[];
 }
 
-export function StudentListView({ students, teacherClasses, modules, professions, subjects }: Props & { subjects: Subject[] }) {
+export function StudentListView({ students, teacherClasses, modules, professions, subjects }: Props) {
+  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [collapsedClasses, setCollapsedClasses] = useState<Set<string>>(new Set());
 
@@ -43,22 +46,22 @@ export function StudentListView({ students, teacherClasses, modules, professions
 
   const getStudentProgress = (student: Student) => {
     if (!modules.length || !subjects.length) return 0;
-    
+
     // 1. Identify which subjects belong to the student's profession
     const professionSubjectIds = subjects
       .filter(s => s.professionId === student.selectedProfessionId)
       .map(s => s.id);
-    
+
     // 2. Filter modules to only include those in the student's profession
     const professionModules = modules.filter(m => professionSubjectIds.includes(m.subjectId));
-    
+
     if (professionModules.length === 0) return 0;
-    
+
     // 3. Count how many of THESE modules are completed
-    const completedInProfessionCount = student.completedModules?.filter(id => 
+    const completedInProfessionCount = student.completedModules?.filter(id =>
       professionModules.some(m => m.id === id)
     ).length || 0;
-    
+
     return Math.round((completedInProfessionCount / professionModules.length) * 100);
   };
 
@@ -163,11 +166,11 @@ export function StudentListView({ students, teacherClasses, modules, professions
                                   <p className="text-xs text-gray-400">@{student.username}</p>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="h-8 w-8 text-gray-400 hover:text-blue-600"
-                                    onClick={() => window.location.href = `/messages?partnerId=${student.id}`}
+                                    onClick={() => setLocation(`/messages?partnerId=${student.id}`)}
                                     title="Üzenet küldése"
                                   >
                                     <MessageSquare className="h-4 w-4" />

@@ -226,7 +226,7 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
       submitQuizResultMutation.mutate({
         score: finalScore,
         maxScore: 100,
-        passed: finalScore >= 60,
+        passed: finalScore >= 45,
         details: { questions, evaluations }
       });
     }
@@ -241,17 +241,17 @@ export default function QuizInterface({ moduleId, moduleTitle, onModuleComplete 
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-700';   // 5
-    if (score >= 80) return 'text-blue-600';    // 4
-    if (score >= 70) return 'text-yellow-600';  // 3
-    if (score >= 60) return 'text-orange-500';  // 2
+    if (score >= 65) return 'text-blue-600';    // 4
+    if (score >= 55) return 'text-yellow-600';  // 3
+    if (score >= 45) return 'text-orange-500';  // 2
     return 'text-red-600';                      // 1 - megbukott
   };
 
   const scoreToGrade = (score: number): { grade: number; label: string; bg: string; text: string; border: string } => {
     if (score >= 90) return { grade: 5, label: 'Jeles',     bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-300' };
-    if (score >= 80) return { grade: 4, label: 'Jó',        bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-300'  };
-    if (score >= 70) return { grade: 3, label: 'Közepes',   bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-300'};
-    if (score >= 60) return { grade: 2, label: 'Elégséges', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-300'};
+    if (score >= 65) return { grade: 4, label: 'Jó',        bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-300'  };
+    if (score >= 55) return { grade: 3, label: 'Közepes',   bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-300'};
+    if (score >= 45) return { grade: 2, label: 'Elégséges', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-300'};
     return              { grade: 1, label: 'Elégtelen',  bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-300'   };
   };
 

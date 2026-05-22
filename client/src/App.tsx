@@ -13,7 +13,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 // Lazy-loaded pages – minden oldal külön chunk lesz a bundle-ban
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Landing = lazy(() => import("@/pages/landing-futuristic-fixed"));
-const StudentDashboard = lazy(() => import("@/pages/student-dashboard"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const ModuleViewer = lazy(() => import("@/pages/module-viewer"));
 const ProfessionSelection = lazy(() => import("@/pages/profession-selection"));

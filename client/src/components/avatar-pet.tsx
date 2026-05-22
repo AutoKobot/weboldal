@@ -179,27 +179,7 @@ interface AvatarPetProps {
 }
 
 export default function AvatarPet({ user }: AvatarPetProps) {
-    const BETA_USERNAME = "BorgaI74";
-    const isBetaUser = user.username === BETA_USERNAME;
-
-    // ── "Hamarosan jön" nézet mindenki másnak ─────────────────────────────────
-    if (!isBetaUser) {
-        return (
-            <Card className="overflow-hidden border-0 ring-1 ring-purple-100 bg-gradient-to-br from-purple-50 to-indigo-50">
-                <CardContent className="p-5 flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-2xl shadow-md flex-shrink-0">
-                        🥚
-                    </div>
-                    <div>
-                        <p className="font-semibold text-purple-800">Hamarosan érkezik az avatárod!</p>
-                        <p className="text-sm text-purple-600 mt-0.5">Egy egyedi, fejleszthető kísérőállatod készül...</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    // ── Avatar (csak BorgaI74-nek) ────────────────────────────────────────────
+    // ── Avatar minden regisztrált diák számára ────────────────────────────────
     return <AvatarPetFull user={user} />;
 }
 

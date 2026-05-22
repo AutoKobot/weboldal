@@ -7,12 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Pencil, 
-  Save, 
-  X as XIcon, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  Pencil,
+  Save,
+  X as XIcon,
+  Loader2,
+  CheckCircle2,
   CalendarDays,
   UserCheck,
   Clock,
@@ -67,8 +67,8 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
   // Mutations
   const updateDailyMutation = useMutation({
     mutationFn: async (record: any) => {
-      await apiRequest("POST", `/api/teacher/classes/${attendanceClassId}/daily-attendance`, { 
-        records: [record] 
+      await apiRequest("POST", `/api/teacher/classes/${attendanceClassId}/daily-attendance`, {
+        records: [record]
       });
     },
     onSuccess: () => {
@@ -85,7 +85,7 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
         actualStart: defaultTimes.start,
         actualEnd: defaultTimes.end
       }));
-      
+
       await apiRequest("POST", `/api/teacher/classes/${attendanceClassId}/daily-attendance`, { records });
     },
     onSuccess: () => {
@@ -136,11 +136,11 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
             {currentClass?.scheduleGroup === 'afternoon' ? 'Délutános' : 'Délelőttös'}
           </Badge>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <Button 
-            variant="default" 
-            size="sm" 
+          <Button
+            variant="default"
+            size="sm"
             className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
             onClick={() => bulkPresentMutation.mutate()}
             disabled={bulkPresentMutation.isPending}
@@ -167,7 +167,7 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
             {dailyData.map(row => {
               const status = row.status || 'absent';
               const isAbsent = status === 'absent' || status === 'excused';
-              
+
               return (
                 <tr key={row.student_id} className={`border-b hover:bg-gray-50/50 transition-colors ${isAbsent ? 'bg-gray-50/30' : ''}`}>
                   <td className="p-4 font-medium border-r">
@@ -176,10 +176,10 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
                       <span className="text-[10px] text-gray-400">@{row.username}</span>
                     </div>
                   </td>
-                  
+
                   <td className="p-4 border-r text-center">
-                    <Select 
-                      value={status} 
+                    <Select
+                      value={status}
                       onValueChange={(s) => updateDailyMutation.mutate({
                         studentId: row.student_id,
                         date: attendanceDate,
@@ -203,11 +203,11 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
                   <td className="p-4 border-r text-center">
                     <div className="flex items-center justify-center gap-2">
                       <Clock className={`h-4 w-4 ${isAbsent ? 'text-gray-300' : 'text-blue-500'}`} />
-                      <Input 
-                        type="time" 
+                      <Input
+                        type="time"
                         value={row.actual_start || (isAbsent ? "" : defaultTimes.start)}
                         disabled={isAbsent}
-                        onChange={(e) => updateDailyMutation.mutate({
+                        onBlur={(e) => updateDailyMutation.mutate({
                           studentId: row.student_id,
                           date: attendanceDate,
                           status: status === 'absent' || status === 'excused' ? 'present' : status,
@@ -222,11 +222,11 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
                   <td className="p-4 border-r text-center">
                     <div className="flex items-center justify-center gap-2">
                       <ArrowRight className={`h-4 w-4 ${isAbsent ? 'text-gray-300' : 'text-orange-500'}`} />
-                      <Input 
-                        type="time" 
+                      <Input
+                        type="time"
                         value={row.actual_end || (isAbsent ? "" : defaultTimes.end)}
                         disabled={isAbsent}
-                        onChange={(e) => updateDailyMutation.mutate({
+                        onBlur={(e) => updateDailyMutation.mutate({
                           studentId: row.student_id,
                           date: attendanceDate,
                           status: status === 'absent' || status === 'excused' ? 'present' : status,
@@ -245,8 +245,8 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
                           {row.notes}
                         </Badge>
                       )}
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => {
                           setEditingNote(row.student_id);
@@ -281,7 +281,7 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
           <Card className="w-full max-w-md shadow-2xl">
             <div className="p-6 space-y-4">
               <h3 className="text-lg font-bold">Megjegyzés hozzáadása</h3>
-              <Textarea 
+              <Textarea
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Pl. igazolást hozott, orvosnál volt..."
@@ -290,7 +290,7 @@ export function AttendanceView({ attendanceClassId, attendanceDate }: Props) {
               />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditingNote(null)}>Mégse</Button>
-                <Button 
+                <Button
                   onClick={async () => {
                     setSavingNote(true);
                     try {

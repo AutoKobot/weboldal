@@ -59,7 +59,7 @@ router.get('/home-stats', combinedAuth, checkTeacher, async (req: any, res) => {
     let studentsWithResults: any[] = [];
     if (allStudents.length > 0) {
       const allStudentIds = allStudents.map((s: any) => s.id);
-      
+
       // Batch fetch all test results for all students in one query
       const allResults = await db.select({
         id: testResultsTable.id,
@@ -69,9 +69,9 @@ router.get('/home-stats', combinedAuth, checkTeacher, async (req: any, res) => {
         passed: testResultsTable.passed,
         createdAt: testResultsTable.createdAt,
       })
-      .from(testResultsTable)
-      .where(inArray(testResultsTable.userId, allStudentIds))
-      .orderBy(testResultsTable.createdAt);
+        .from(testResultsTable)
+        .where(inArray(testResultsTable.userId, allStudentIds))
+        .orderBy(testResultsTable.createdAt);
 
       // Group results by userId
       const resultsByUser: Record<string, any[]> = {};
@@ -119,11 +119,12 @@ router.get('/classes/:id/grades', combinedAuth, checkTeacher, async (req: any, r
       typeof studentId === 'string' ? studentId : undefined
     );
 
+    const thresholds = classData.gradeThresholds || { grade5: 90, grade4: 65, grade3: 55, grade2: 45 };
     const toGrade = (score: number) => {
-      if (score >= 90) return 5;
-      if (score >= 65) return 4;
-      if (score >= 55) return 3;
-      if (score >= 45) return 2;
+      if (score >= thresholds.grade5) return 5;
+      if (score >= thresholds.grade4) return 4;
+      if (score >= thresholds.grade3) return 3;
+      if (score >= thresholds.grade2) return 2;
       return 1;
     };
 
@@ -155,11 +156,13 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
       undefined
     );
 
+    // Use thresholds from class settings, default values if not set
+    const thresholds = classData.gradeThresholds || { grade5: 90, grade4: 65, grade3: 55, grade2: 45 };
     const toGrade = (score: number) => {
-      if (score >= 90) return 5;
-      if (score >= 65) return 4;
-      if (score >= 55) return 3;
-      if (score >= 45) return 2;
+      if (score >= thresholds.grade5) return 5;
+      if (score >= thresholds.grade4) return 4;
+      if (score >= thresholds.grade3) return 3;
+      if (score >= thresholds.grade2) return 2;
       return 1;
     };
 
@@ -168,6 +171,39 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
       const key = (r as any).studentId || (r as any).userId;
       if (!byStudent[key]) byStudent[key] = [];
       byStudent[key].push(r);
+    }
+
+    // Get ACTUAL attendance count for each student
+    const { db } = await import('../db');
+    const { attendance: attendanceTable } = await import('@shared/schema');
+    const { and, eq, gte, lte, inArray } = await import('drizzle-orm');
+
+    const studentIds = allStudents.map((s: any) => s.id);
+    const attendanceCounts: Record<string, number> = {};
+
+    if (studentIds.length > 0) {
+      const conditions = [
+        eq(attendanceTable.classId, classId),
+        inArray(attendanceTable.studentId, studentIds),
+        inArray(attendanceTable.status, ['present', 'late'])
+      ];
+
+      if (typeof startDate === 'string' && startDate) {
+        conditions.push(gte(attendanceTable.date, startDate));
+      }
+      if (typeof endDate === 'string' && endDate) {
+        conditions.push(lte(attendanceTable.date, endDate));
+      }
+
+      const attendanceRecords = await db.select({
+        studentId: attendanceTable.studentId,
+      })
+        .from(attendanceTable)
+        .where(and(...conditions));
+
+      for (const record of attendanceRecords) {
+        attendanceCounts[record.studentId] = (attendanceCounts[record.studentId] || 0) + 1;
+      }
     }
 
     // Map all students, merge with results
@@ -186,7 +222,7 @@ router.get('/classes/:id/roster', combinedAuth, checkTeacher, async (req: any, r
         avgGrade,
         testCount: grades.length,
         stats: {
-          attendanceCount: 0,
+          attendanceCount: attendanceCounts[s.id] || 0,
           completedCount: grades.filter((g: any) => g.passed).length,
         },
         testResults: grades.map((g: any) => ({
@@ -264,12 +300,39 @@ router.get('/classes/:id/daily-attendance', combinedAuth, checkTeacher, async (r
   try {
     const classId = parseInt(req.params.id);
     const { date, startDate, endDate } = req.query;
-    const rows = await storage.getDailyAttendanceByClass(
-      classId, 
-      date as string, 
-      startDate as string, 
-      endDate as string
-    );
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+    if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+      return res.status(403).json({ message: "You are not assigned to this class" });
+    }
+    const { db } = await import('../db');
+    const { dailyAttendance: dailyAttendanceTable, users: usersTable } = await import('@shared/schema');
+    const { and, eq, gte, lte, asc } = await import('drizzle-orm');
+
+    let conditions = [eq(dailyAttendanceTable.classId, classId)];
+    if (date) conditions.push(eq(dailyAttendanceTable.date, date as string));
+    if (startDate) conditions.push(gte(dailyAttendanceTable.date, startDate as string));
+    if (endDate) conditions.push(lte(dailyAttendanceTable.date, endDate as string));
+
+    const rows = await db.select({
+      id: dailyAttendanceTable.id,
+      student_id: dailyAttendanceTable.studentId,
+      class_id: dailyAttendanceTable.classId,
+      date: dailyAttendanceTable.date,
+      status: dailyAttendanceTable.status,
+      actual_start: dailyAttendanceTable.actualStart,
+      actual_end: dailyAttendanceTable.actualEnd,
+      notes: dailyAttendanceTable.notes,
+      student_name: dailyAttendanceTable.studentName,
+      last_name: usersTable.lastName,
+      first_name: usersTable.firstName,
+      username: usersTable.username,
+    })
+      .from(dailyAttendanceTable)
+      .leftJoin(usersTable, eq(usersTable.id, dailyAttendanceTable.studentId))
+      .where(and(...conditions))
+      .orderBy(asc(dailyAttendanceTable.date));
+
     res.json(rows);
   } catch (error) {
     console.error("Error fetching daily attendance:", error);
@@ -280,6 +343,11 @@ router.get('/classes/:id/daily-attendance', combinedAuth, checkTeacher, async (r
 router.post('/classes/:id/daily-attendance', combinedAuth, checkTeacher, async (req: any, res) => {
   try {
     const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+    if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+      return res.status(403).json({ message: "You are not assigned to this class" });
+    }
     const { records } = req.body; // Array of { studentId, date, status, actualStart, actualEnd, notes }
     const results = [];
     for (const rec of records) {
@@ -301,6 +369,11 @@ router.post('/classes/:id/attendance', combinedAuth, checkTeacher, async (req: a
   try {
     const { studentId, date, periodNumber, status } = req.body;
     const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+    if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+      return res.status(403).json({ message: "You are not assigned to this class" });
+    }
     const row = await storage.upsertAttendance({
       studentId, classId, teacherId: req.user.id, date, periodNumber: parseInt(periodNumber), status, recordedBy: req.user.id
     });
@@ -315,8 +388,13 @@ router.post('/classes/:id/attendance/bulk', combinedAuth, checkTeacher, async (r
   try {
     const { records } = req.body; // Array of { studentId, date, periodNumber, status }
     const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+    if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+      return res.status(403).json({ message: "You are not assigned to this class" });
+    }
     const teacherId = req.user.id;
-    
+
     const results = [];
     for (const rec of records) {
       const row = await storage.upsertAttendance({
@@ -375,9 +453,48 @@ router.post('/classes/:id/schedules', combinedAuth, checkTeacher, async (req: an
   }
 });
 
+router.get('/classes/:id/grade-thresholds', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+    res.json(classData.gradeThresholds || { grade5: 90, grade4: 65, grade3: 55, grade2: 45 });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch grade thresholds" });
+  }
+});
+
+router.put('/classes/:id/grade-thresholds', combinedAuth, checkTeacher, async (req: any, res) => {
+  try {
+    const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+
+    const { grade5, grade4, grade3, grade2 } = req.body;
+    if (typeof grade5 !== 'number' || typeof grade4 !== 'number' || typeof grade3 !== 'number' || typeof grade2 !== 'number') {
+      return res.status(400).json({ message: "All thresholds must be numbers" });
+    }
+
+    const { db } = await import('../db');
+    const { classes: classesTable } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+
+    const thresholds = { grade5, grade4, grade3, grade2 };
+    await db.update(classesTable).set({ gradeThresholds: thresholds as any }).where(eq(classesTable.id, classId));
+    res.json(thresholds);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update grade thresholds" });
+  }
+});
+
 router.get('/classes/:id/notes', combinedAuth, checkTeacher, async (req: any, res) => {
   try {
     const classId = parseInt(req.params.id);
+    const classData = await storage.getClassById(classId);
+    if (!classData) return res.status(404).json({ message: "Class not found" });
+    if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+      return res.status(403).json({ message: "You are not assigned to this class" });
+    }
     const targetDate = (req.query.date as string) || new Date().toISOString().split('T')[0];
     const notes = await storage.getClassDailyNotes(classId, targetDate);
     res.json(notes);
@@ -408,6 +525,9 @@ router.get('/classes/:id/attendance/export', combinedAuth, checkTeacher, async (
     const { startDate, endDate, format } = req.query;
     const classData = await storage.getClassById(classId);
     if (!classData) return res.status(404).json({ message: "Class not found" });
+    if (req.user.role === 'teacher' && classData.assignedTeacherId !== req.user.id) {
+      return res.status(403).json({ message: "You are not assigned to this class" });
+    }
 
     const sd = (startDate as string) || new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
     const ed = (endDate as string) || new Date().toISOString().split('T')[0];

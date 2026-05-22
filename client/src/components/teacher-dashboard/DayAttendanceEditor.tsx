@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,7 +68,7 @@ export function DayAttendanceEditor({ studentId, date, classId, onClose }: Props
   });
 
   // Sync with loaded data
-  useMemo(() => {
+  useEffect(() => {
     if (studentRecord) {
       setFormData({
         status: studentRecord.status,
@@ -87,10 +87,10 @@ export function DayAttendanceEditor({ studentId, date, classId, onClose }: Props
       <div className="space-y-4">
         <div>
           <label className="text-xs font-bold text-gray-500 mb-1.5 block">Jelenlét Státusza</label>
-          <Select 
-            value={formData.status} 
-            onValueChange={(s) => setFormData(prev => ({ 
-              ...prev, 
+          <Select
+            value={formData.status}
+            onValueChange={(s) => setFormData(prev => ({
+              ...prev,
               status: s,
               actualStart: s === 'absent' || s === 'excused' ? null : (prev.actualStart || defaultTimes.start),
               actualEnd: s === 'absent' || s === 'excused' ? null : (prev.actualEnd || defaultTimes.end)
@@ -113,9 +113,9 @@ export function DayAttendanceEditor({ studentId, date, classId, onClose }: Props
             <label className="text-xs font-bold text-gray-500 mb-1.5 block flex items-center gap-1">
               <Clock className="h-3 w-3" /> Érkezés
             </label>
-            <Input 
-              type="time" 
-              value={formData.actualStart || ""} 
+            <Input
+              type="time"
+              value={formData.actualStart || ""}
               disabled={isAbsent}
               onChange={(e) => setFormData(prev => ({ ...prev, actualStart: e.target.value }))}
               className="font-mono text-center"
@@ -125,9 +125,9 @@ export function DayAttendanceEditor({ studentId, date, classId, onClose }: Props
             <label className="text-xs font-bold text-gray-500 mb-1.5 block flex items-center gap-1">
               <ArrowRight className="h-3 w-3" /> Távozás
             </label>
-            <Input 
-              type="time" 
-              value={formData.actualEnd || ""} 
+            <Input
+              type="time"
+              value={formData.actualEnd || ""}
               disabled={isAbsent}
               onChange={(e) => setFormData(prev => ({ ...prev, actualEnd: e.target.value }))}
               className="font-mono text-center"
@@ -137,8 +137,8 @@ export function DayAttendanceEditor({ studentId, date, classId, onClose }: Props
       </div>
 
       <div className="pt-4 flex flex-col gap-2">
-        <Button 
-          className="w-full bg-blue-600 hover:bg-blue-700" 
+        <Button
+          className="w-full bg-blue-600 hover:bg-blue-700"
           onClick={() => updateMutation.mutate(formData)}
           disabled={updateMutation.isPending}
         >

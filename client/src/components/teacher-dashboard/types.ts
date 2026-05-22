@@ -49,6 +49,11 @@ export interface ClassData {
   id: number;
   name: string;
   description: string;
+  professionId?: number;
+  scheduleGroup?: string;
+  schoolId?: string;
+  schoolAdminId?: string;
+  assignedTeacherId?: string;
 }
 
 export interface GradeResult extends TestResult {

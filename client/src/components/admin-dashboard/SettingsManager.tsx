@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { 
   Settings, Brain, Key, Eye, EyeOff, 
-  Database, CheckCircle, XCircle, AlertTriangle, Bot
+  Database, CheckCircle, XCircle, AlertTriangle, Bot, RefreshCw
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DashboardStats, ApiStatus, AISettings } from "./types";
@@ -45,6 +45,26 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
     onSuccess: () => {
       toast({ title: "Siker", description: "AI Tanár állapota frissítve" });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/ai-chat-enabled"] });
+    }
+  });
+
+  // Database status query
+  const { data: dbStatusData, refetch: refetchDbStatus, isFetching: isFetchingDbStatus } = useQuery({
+    queryKey: ['/api/admin/db-status'],
+  });
+  const dbStatus = dbStatusData as any;
+
+  const switchDbMutation = useMutation({
+    mutationFn: async (source: 'primary' | 'backup') => {
+      const res = await apiRequest("POST", "/api/admin/db-switch", { source });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Siker", description: data.message || "Adatbázis sikeresen átváltva." });
+      refetchDbStatus();
+    },
+    onError: (err: any) => {
+      toast({ title: "Hiba az átváltás során", description: err.message, variant: "destructive" });
     }
   });
   
@@ -499,6 +519,121 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </div>
                 ))}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Database Redundancy & Failover System */}
+        <Card className="md:col-span-2 border-indigo-200 bg-indigo-50/10">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-indigo-700">
+                <Database className="h-5 w-5" />
+                Adatbázis Redundancia és Failover Rendszer
+              </span>
+              <Badge variant={dbStatus?.backupConfigured ? "default" : "secondary"} className={dbStatus?.backupConfigured ? "bg-indigo-600 hover:bg-indigo-600" : ""}>
+                {dbStatus?.backupConfigured ? "DUPLA ADATBÁZIS AKTÍV" : "EGYEDÜLI ADATBÁZIS MÓD"}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              A rendszer automatikus failover és valós idejű dual-write szinkronizációval védi az adatokat. Ha az elsődleges adatbázis kiesik, a rendszer automatikusan és észrevétlenül átvált a másodlagos adatbázisra.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Primary Database Status */}
+              <div className={`p-4 border rounded-lg bg-white shadow-sm flex items-center justify-between ${dbStatus?.activeSource === 'primary' ? 'border-green-500 ring-1 ring-green-500/20' : 'border-slate-200'}`}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">Elsődleges Adatbázis</span>
+                    {dbStatus?.activeSource === 'primary' && (
+                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 animate-pulse font-normal">AKTÍV FORRÁS</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono truncate max-w-[250px]">
+                    DATABASE_URL
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {dbStatus?.primaryOnline ? (
+                    <Badge className="bg-green-600 hover:bg-green-600 flex items-center gap-1 font-normal">
+                      <CheckCircle className="h-3 w-3" /> Online
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="flex items-center gap-1 font-normal">
+                      <XCircle className="h-3 w-3" /> Offline
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Backup Database Status */}
+              <div className={`p-4 border rounded-lg bg-white shadow-sm flex items-center justify-between ${dbStatus?.activeSource === 'backup' ? 'border-green-500 ring-1 ring-green-500/20' : 'border-slate-200'}`}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">Másodlagos Adatbázis</span>
+                    {dbStatus?.activeSource === 'backup' && (
+                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 animate-pulse font-normal">AKTÍV FORRÁS</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono truncate max-w-[250px]">
+                    {dbStatus?.backupConfigured ? "DATABASE_URL_BACKUP" : "Nincs beállítva"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!dbStatus?.backupConfigured ? (
+                    <Badge variant="secondary" className="flex items-center gap-1 font-normal">
+                      <AlertTriangle className="h-3 w-3 text-amber-500" /> Nincs konfigurálva
+                    </Badge>
+                  ) : dbStatus?.backupOnline ? (
+                    <Badge className="bg-green-600 hover:bg-green-600 flex items-center gap-1 font-normal">
+                      <CheckCircle className="h-3 w-3" /> Online
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="flex items-center gap-1 font-normal">
+                      <XCircle className="h-3 w-3" /> Offline
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {dbStatus?.backupConfigured && (
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                <div>
+                  <span className="font-semibold">Figyelem:</span> Az írási műveletek valós időben replikálódnak mindkét adatbázisba. Manuális váltás esetén az aktív lekérdezések a kiválasztott adatbázisból fognak olvasni. Kérjük, győződj meg arról, hogy mindkét adatbázis online és szerkezetileg megegyezik.
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refetchDbStatus()} 
+                disabled={isFetchingDbStatus}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetchingDbStatus ? 'animate-spin' : ''}`} />
+                Kapcsolatok frissítése
+              </Button>
+
+              {dbStatus?.backupConfigured && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                  onClick={() => {
+                    const target = dbStatus.activeSource === 'primary' ? 'backup' : 'primary';
+                    switchDbMutation.mutate(target);
+                  }}
+                  disabled={switchDbMutation.isPending}
+                >
+                  Váltás {dbStatus.activeSource === 'primary' ? 'Másodlagosra' : 'Elsődlegesre'}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

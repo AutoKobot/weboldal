@@ -2,6 +2,7 @@ import { Router } from "express";
 import { multiApiService } from "../multiApiService";
 import { combinedAuth } from "./middleware";
 import { storage } from "../storage";
+import { pool } from "../db";
 
 const router = Router();
 
@@ -61,6 +62,47 @@ router.get('/api-status', combinedAuth, async (req: any, res) => {
     res.json(status);
   } catch (error) {
     res.status(500).json({ message: "Error" });
+  }
+});
+
+router.get('/db-status', combinedAuth, async (req: any, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).end();
+    if (typeof (pool as any).getStatus === 'function') {
+      res.json((pool as any).getStatus());
+    } else {
+      res.json({
+        primaryOnline: true,
+        backupOnline: null,
+        backupConfigured: false,
+        activeSource: 'primary'
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/db-switch', combinedAuth, async (req: any, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).end();
+    const { source } = req.body;
+    if (source !== 'primary' && source !== 'backup') {
+      return res.status(400).json({ message: "Invalid source parameter" });
+    }
+    
+    if (typeof (pool as any).switchSource === 'function') {
+      const success = (pool as any).switchSource(source);
+      if (success) {
+        res.json({ success: true, message: `Successfully switched to ${source}` });
+      } else {
+        res.status(400).json({ success: false, message: `Failed to switch to ${source}. Is it configured?` });
+      }
+    } else {
+      res.status(400).json({ success: false, message: "Redundancy pool not initialized" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 });
 

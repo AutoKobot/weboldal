@@ -251,7 +251,7 @@ export interface IStorage {
   upsertStudentDailyNote(data: InsertStudentDailyNote): Promise<StudentDailyNote>;
   getAttendanceExportData(classId: number, startDate: string, endDate: string): Promise<any[]>;
   redistributeSubjectHours(subjectId: number, hours: number): Promise<void>;
-  
+
   // Community operations
   getCommunityLeaderboard(): Promise<any[]>;
   getCommunityGroups(professionId?: number): Promise<CommunityGroup[]>;
@@ -404,6 +404,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudentsBySchoolAdmin(schoolAdminId: string): Promise<User[]> {
+    // Try schoolId first for better isolation, fallback to schoolAdminId
+    const adminUser = await this.getUser(schoolAdminId);
+    if (adminUser?.schoolId) {
+      return await db.select().from(users).where(and(eq(users.role, 'student'), eq(users.schoolId, adminUser.schoolId))).orderBy(asc(users.lastName));
+    }
     return await db.select().from(users).where(and(eq(users.role, 'student'), eq(users.schoolAdminId, schoolAdminId))).orderBy(asc(users.lastName));
   }
 
@@ -516,6 +521,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeachersBySchoolAdmin(schoolAdminId: string): Promise<User[]> {
+    // Try schoolId first for better isolation, fallback to schoolAdminId
+    const adminUser = await this.getUser(schoolAdminId);
+    if (adminUser?.schoolId) {
+      return await db.select().from(users).where(and(eq(users.role, 'teacher'), eq(users.schoolId, adminUser.schoolId))).orderBy(asc(users.lastName));
+    }
     return await db.select().from(users).where(and(eq(users.role, 'teacher'), eq(users.schoolAdminId, schoolAdminId))).orderBy(asc(users.lastName));
   }
 
@@ -1336,7 +1346,7 @@ export class DatabaseStorage implements IStorage {
     `);
     if (result.rows.length === 0) return null;
     const row = result.rows[0] as any;
-    
+
     let parsedData = row.data;
     if (typeof parsedData === 'string') {
       try {
@@ -1345,7 +1355,7 @@ export class DatabaseStorage implements IStorage {
         // ignore
       }
     }
-    
+
     return {
       ...row,
       data: parsedData,
@@ -1440,7 +1450,7 @@ export class DatabaseStorage implements IStorage {
     if (endDate) {
       conditions.push(lte(testResults.createdAt, new Date(endDate)));
     }
-    
+
     const rows = await db.select({
       id: testResults.id,
       userId: testResults.userId,
@@ -1451,12 +1461,12 @@ export class DatabaseStorage implements IStorage {
       studentId: users.id,
       moduleTitle: modules.title,
     })
-    .from(testResults)
-    .innerJoin(users, eq(users.id, testResults.userId))
-    .innerJoin(modules, eq(modules.id, testResults.moduleId))
-    .where(and(...conditions))
-    .orderBy(desc(testResults.createdAt));
-    
+      .from(testResults)
+      .innerJoin(users, eq(users.id, testResults.userId))
+      .innerJoin(modules, eq(modules.id, testResults.moduleId))
+      .where(and(...conditions))
+      .orderBy(desc(testResults.createdAt));
+
     return rows;
   }
 
@@ -1488,7 +1498,7 @@ export class DatabaseStorage implements IStorage {
     if (date) conditions.push(eq(dailyAttendance.date, date));
     if (startDate) conditions.push(gte(dailyAttendance.date, startDate));
     if (endDate) conditions.push(lte(dailyAttendance.date, endDate));
-    
+
     return await db.select().from(dailyAttendance)
       .where(and(...conditions))
       .orderBy(asc(dailyAttendance.date));
@@ -1502,7 +1512,7 @@ export class DatabaseStorage implements IStorage {
       studentName: student ? `${student.lastName} ${student.firstName}`.trim() : null,
       className: cls ? cls.name : null,
     };
-    
+
     const [row] = await db.insert(dailyAttendance).values(enriched).onConflictDoUpdate({
       target: [dailyAttendance.studentId, dailyAttendance.date],
       set: {
@@ -1527,7 +1537,7 @@ export class DatabaseStorage implements IStorage {
       studentName: student ? `${student.lastName} ${student.firstName}`.trim() : null,
       className: cls ? cls.name : null,
     };
-    
+
     const [row] = await db.insert(attendance).values(enriched).onConflictDoUpdate({
       target: [attendance.studentId, attendance.classId, attendance.date, attendance.periodNumber],
       set: {
@@ -1552,7 +1562,7 @@ export class DatabaseStorage implements IStorage {
     if (user?.schoolId) {
       conditions.push(eq(lessonSchedules.schoolId, user.schoolId));
     }
-    
+
     return await db.select().from(lessonSchedules)
       .where(and(...conditions))
       .orderBy(asc(lessonSchedules.periodNumber));
@@ -1591,7 +1601,7 @@ export class DatabaseStorage implements IStorage {
       eq(studentDailyNotes.teacherId, data.teacherId),
       eq(studentDailyNotes.date, data.date)
     ));
-    
+
     if (existing) {
       const [updated] = await db.update(studentDailyNotes)
         .set({ note: data.note, updatedAt: new Date() })
@@ -1615,22 +1625,22 @@ export class DatabaseStorage implements IStorage {
       login_at: attendance.loginAt,
       daily_note: dailyAttendance.notes
     })
-    .from(attendance)
-    .innerJoin(users, eq(users.id, attendance.studentId))
-    .leftJoin(dailyAttendance, and(
-      eq(dailyAttendance.studentId, attendance.studentId),
-      eq(dailyAttendance.date, attendance.date)
-    ))
-    .where(and(
-      eq(attendance.classId, classId),
-      gte(attendance.date, startDate),
-      lte(attendance.date, endDate)
-    ))
-    .orderBy(asc(attendance.date), asc(users.lastName), asc(attendance.periodNumber));
-    
+      .from(attendance)
+      .innerJoin(users, eq(users.id, attendance.studentId))
+      .leftJoin(dailyAttendance, and(
+        eq(dailyAttendance.studentId, attendance.studentId),
+        eq(dailyAttendance.date, attendance.date)
+      ))
+      .where(and(
+        eq(attendance.classId, classId),
+        gte(attendance.date, startDate),
+        lte(attendance.date, endDate)
+      ))
+      .orderBy(asc(attendance.date), asc(users.lastName), asc(attendance.periodNumber));
+
     return rows;
   }
-  
+
   // ── Community operations ───────────────────────────────────────────────────
   async getCommunityLeaderboard(): Promise<any[]> {
     return await db.select({
@@ -1641,10 +1651,10 @@ export class DatabaseStorage implements IStorage {
       xp: users.xp,
       profileImageUrl: users.profileImageUrl
     })
-    .from(users)
-    .where(eq(users.role, 'student'))
-    .orderBy(desc(users.xp))
-    .limit(10);
+      .from(users)
+      .where(eq(users.role, 'student'))
+      .orderBy(desc(users.xp))
+      .limit(10);
   }
 
   async getCommunityGroups(professionId?: number): Promise<CommunityGroup[]> {
@@ -1690,7 +1700,7 @@ export class DatabaseStorage implements IStorage {
     let conditions = [isNull(discussions.parentId)];
     if (groupId) conditions.push(eq(discussions.groupId, groupId));
     if (projectId) conditions.push(eq(discussions.projectId, projectId));
-    
+
     return await db.select().from(discussions)
       .where(and(...conditions))
       .orderBy(desc(discussions.isPinned), desc(discussions.createdAt));
@@ -1712,7 +1722,7 @@ export class DatabaseStorage implements IStorage {
       eq(discussionReactions.userId, userId),
       eq(discussionReactions.emoji, emoji)
     ));
-    
+
     if (existing) {
       await db.delete(discussionReactions).where(eq(discussionReactions.id, existing.id));
       return { added: false, emoji };
@@ -1808,9 +1818,9 @@ export class DatabaseStorage implements IStorage {
       response: announcementAcknowledgements.response,
       acknowledgedAt: announcementAcknowledgements.acknowledgedAt
     })
-    .from(announcementAcknowledgements)
-    .innerJoin(users, eq(users.id, announcementAcknowledgements.studentId))
-    .where(eq(announcementAcknowledgements.announcementId, announcementId));
+      .from(announcementAcknowledgements)
+      .innerJoin(users, eq(users.id, announcementAcknowledgements.studentId))
+      .where(eq(announcementAcknowledgements.announcementId, announcementId));
 
     const acknowledgedCount = acks.length;
     const pendingCount = Math.max(0, totalStudents - acknowledgedCount);
@@ -1870,9 +1880,9 @@ export class DatabaseStorage implements IStorage {
   async feedStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | undefined> {
     const user = await this.getUser(userId);
     if (!user || (user.xp || 0) < xpCost) return undefined;
-    
+
     await db.update(users).set({ xp: (user.xp || 0) - xpCost }).where(eq(users.id, userId));
-    
+
     const existing = await this.getStudentAvatar(userId);
     if (!existing) {
       const [avatar] = await db.insert(studentAvatars).values({
@@ -1885,7 +1895,7 @@ export class DatabaseStorage implements IStorage {
       }).returning();
       return avatar;
     }
-    
+
     const newXpInvested = existing.xpInvested + xpCost;
     let newLevel = existing.level;
     if (newXpInvested >= 5000) newLevel = 7;
@@ -1894,7 +1904,7 @@ export class DatabaseStorage implements IStorage {
     else if (newXpInvested >= 1000) newLevel = 4;
     else if (newXpInvested >= 500) newLevel = 3;
     else if (newXpInvested >= 200) newLevel = 2;
-    
+
     const [updated] = await db.update(studentAvatars).set({
       hunger: Math.min(100, existing.hunger + Math.floor(xpCost / 5)),
       happiness: Math.min(100, existing.happiness + Math.floor(xpCost / 10)),
@@ -1903,16 +1913,16 @@ export class DatabaseStorage implements IStorage {
       lastFedAt: new Date(),
       updatedAt: new Date(),
     }).where(eq(studentAvatars.id, existing.id)).returning();
-    
+
     return updated;
   }
 
   async reviveStudentAvatar(userId: string, xpCost: number): Promise<StudentAvatar | undefined> {
     const user = await this.getUser(userId);
     if (!user || (user.xp || 0) < xpCost) return undefined;
-    
+
     await db.update(users).set({ xp: (user.xp || 0) - xpCost }).where(eq(users.id, userId));
-    
+
     const existing = await this.getStudentAvatar(userId);
     if (!existing) {
       const [avatar] = await db.insert(studentAvatars).values({
@@ -1925,7 +1935,7 @@ export class DatabaseStorage implements IStorage {
       }).returning();
       return avatar;
     }
-    
+
     const [updated] = await db.update(studentAvatars).set({
       isAlive: true,
       hunger: 100,
@@ -1933,7 +1943,7 @@ export class DatabaseStorage implements IStorage {
       xpInvested: existing.xpInvested + xpCost,
       updatedAt: new Date(),
     }).where(eq(studentAvatars.id, existing.id)).returning();
-    
+
     return updated;
   }
 
@@ -1952,7 +1962,7 @@ export class DatabaseStorage implements IStorage {
   async exportUserData(userId: string): Promise<any> {
     const user = await this.getUser(userId);
     if (!user) return null;
-    
+
     const consents = await db.select().from(userConsents).where(eq(userConsents.userId, userId));
     const testResultsList = await db.select().from(testResults).where(eq(testResults.userId, userId));
     const avatar = await this.getStudentAvatar(userId);
@@ -1961,7 +1971,7 @@ export class DatabaseStorage implements IStorage {
       eq(privateMessages.receiverId, userId)
     ));
     const attendanceRecords = await db.select().from(attendance).where(eq(attendance.studentId, userId));
-    
+
     return {
       profile: {
         id: user.id,

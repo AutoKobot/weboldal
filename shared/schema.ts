@@ -416,13 +416,14 @@ export const privateMessages = pgTable("private_messages", {
 // Classes table for school admin organization
 export const classes = pgTable("classes", {
   id: serial("id").primaryKey(),
-  name: varchar("name").notNull(), // pl. "9.A", "Hegesztő 2024"
-  description: text("description"), // Osztály leírása
-  schoolId: integer("school_id").references(() => schools.id), // Melyik iskolához tartozik
-  schoolAdminId: varchar("school_admin_id").references(() => users.id), // Legacy / Melyik admin hozta létre
-  assignedTeacherId: varchar("assigned_teacher_id").references(() => users.id), // Osztályfőnök
-  professionId: integer("profession_id").references(() => professions.id), // Osztályhoz rendelt szakma
-  scheduleGroup: varchar("schedule_group").notNull().default("morning"), // pl. "morning", "afternoon"
+  name: varchar("name").notNull(),
+  description: text("description"),
+  schoolId: integer("school_id").references(() => schools.id),
+  schoolAdminId: varchar("school_admin_id").references(() => users.id),
+  assignedTeacherId: varchar("assigned_teacher_id").references(() => users.id),
+  professionId: integer("profession_id").references(() => professions.id),
+  scheduleGroup: varchar("schedule_group").notNull().default("morning"),
+  gradeThresholds: jsonb("grade_thresholds").$type<{ grade5: number; grade4: number; grade3: number; grade2: number }>().default({ grade5: 90, grade4: 65, grade3: 55, grade2: 45 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Users, 
-  BarChart3, 
-  ClipboardList, 
-  Printer, 
-  Bell, 
+import {
+  Users,
+  BarChart3,
+  ClipboardList,
+  Printer,
+  Bell,
   Wrench,
   BookOpen,
   Calendar,
@@ -22,12 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
@@ -39,6 +39,7 @@ import { AnnouncementsView } from "@/components/teacher-dashboard/AnnouncementsV
 import { PracticalGradesView } from "@/components/practical-grades-view";
 import { ClassStatsView } from "@/components/teacher-dashboard/ClassStatsView";
 import { RosterView } from "@/components/teacher-dashboard/RosterView";
+import { GradeThresholdEditor } from "@/components/teacher-dashboard/GradeThresholdEditor";
 
 import { Student, Module, Subject, Profession, ClassData } from "@/components/teacher-dashboard/types";
 
@@ -108,15 +109,15 @@ export default function TeacherDashboard() {
 
     const params = new URLSearchParams();
     if (rosterPeriod === 'week') {
-      const start = new Date(); start.setDate(start.getDate() - 7); start.setHours(0,0,0,0);
+      const start = new Date(); start.setDate(start.getDate() - 7); start.setHours(0, 0, 0, 0);
       params.set('startDate', toDate(start));
       params.set('endDate', toDate(today));
     } else if (rosterPeriod === 'month') {
-      const start = new Date(); start.setMonth(start.getMonth() - 1); start.setHours(0,0,0,0);
+      const start = new Date(); start.setMonth(start.getMonth() - 1); start.setHours(0, 0, 0, 0);
       params.set('startDate', toDate(start));
       params.set('endDate', toDate(today));
     } else if (rosterPeriod === '4weeks') {
-      const start = new Date(); start.setDate(start.getDate() - 28); start.setHours(0,0,0,0);
+      const start = new Date(); start.setDate(start.getDate() - 28); start.setHours(0, 0, 0, 0);
       params.set('startDate', toDate(start));
       params.set('endDate', toDate(today));
     } else if (rosterPeriod === 'custom' && rosterCustomStart) {
@@ -169,9 +170,9 @@ export default function TeacherDashboard() {
               >
                 <Menu size={20} />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setLocation('/')}
                 className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mr-2"
               >
@@ -192,195 +193,198 @@ export default function TeacherDashboard() {
           </div>
         </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white border p-1 no-print overflow-x-auto flex-nowrap w-full justify-start md:justify-center">
-            <TabsTrigger value="students" className="flex items-center gap-2 shrink-0">
-              <Users className="h-4 w-4" /> Tanulók listája
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2 text-blue-700 bg-blue-50/50 shrink-0">
-              <BookOpen className="h-4 w-4" /> Elméleti Statisztika
-            </TabsTrigger>
-            <TabsTrigger value="practical" className="flex items-center gap-2 text-orange-700 bg-orange-50/50 shrink-0">
-              <Wrench className="h-4 w-4" /> Gyakorlati Értékelés
-            </TabsTrigger>
-            <TabsTrigger value="attendance" className="flex items-center gap-2 shrink-0">
-              <ClipboardList className="h-4 w-4" /> Jelenlét
-            </TabsTrigger>
-            <TabsTrigger value="roster" className="flex items-center gap-2 shrink-0">
-              <Printer className="h-4 w-4" /> Névsor & Nyomtatás
-            </TabsTrigger>
-            <TabsTrigger value="announcements" className="flex items-center gap-2 shrink-0">
-              <Bell className="h-4 w-4" /> Üzenetek
-            </TabsTrigger>
-          </TabsList>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-white border p-1 no-print overflow-x-auto flex-nowrap w-full justify-start md:justify-center">
+              <TabsTrigger value="students" className="flex items-center gap-2 shrink-0">
+                <Users className="h-4 w-4" /> Tanulók listája
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="flex items-center gap-2 text-blue-700 bg-blue-50/50 shrink-0">
+                <BookOpen className="h-4 w-4" /> Elméleti Statisztika
+              </TabsTrigger>
+              <TabsTrigger value="practical" className="flex items-center gap-2 text-orange-700 bg-orange-50/50 shrink-0">
+                <Wrench className="h-4 w-4" /> Gyakorlati Értékelés
+              </TabsTrigger>
+              <TabsTrigger value="attendance" className="flex items-center gap-2 shrink-0">
+                <ClipboardList className="h-4 w-4" /> Jelenlét
+              </TabsTrigger>
+              <TabsTrigger value="roster" className="flex items-center gap-2 shrink-0">
+                <Printer className="h-4 w-4" /> Névsor & Nyomtatás
+              </TabsTrigger>
+              <TabsTrigger value="announcements" className="flex items-center gap-2 shrink-0">
+                <Bell className="h-4 w-4" /> Üzenetek
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="students">
-            <StudentListView 
-              students={students} 
-              teacherClasses={teacherClasses as any} 
-              modules={modules} 
-              professions={professions} 
-              subjects={subjects}
-            />
-          </TabsContent>
+            <TabsContent value="students">
+              <StudentListView
+                students={students}
+                teacherClasses={teacherClasses as any}
+                modules={modules}
+                professions={professions}
+                subjects={subjects}
+              />
+            </TabsContent>
 
-          <TabsContent value="attendance">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-4 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium mb-2 block">Osztály kiválasztása</label>
-                    <Select value={attendanceClassId} onValueChange={setAttendanceClassId}>
-                      <SelectTrigger className="bg-white"><SelectValue placeholder="Válasszon osztályt..." /></SelectTrigger>
-                      <SelectContent>
-                        {teacherClasses.map(cls => (
-                          <SelectItem key={cls.id} value={cls.id.toString()}>{cls.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <label className="text-sm font-medium mb-2 block">Nézet típusa</label>
-                    <div className="flex p-1 bg-white border rounded-lg">
-                      <button 
-                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${attendanceViewMode === 'daily' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
-                        onClick={() => setAttendanceViewMode('daily')}
-                      >
-                        <Calendar className="h-4 w-4" /> Napi
-                      </button>
-                      <button 
-                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${attendanceViewMode === 'monthly' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
-                        onClick={() => setAttendanceViewMode('monthly')}
-                      >
-                        <BookOpen className="h-4 w-4" /> Havi
-                      </button>
+            <TabsContent value="attendance">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row gap-4 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">Osztály kiválasztása</label>
+                      <Select value={attendanceClassId} onValueChange={setAttendanceClassId}>
+                        <SelectTrigger className="bg-white"><SelectValue placeholder="Válasszon osztályt..." /></SelectTrigger>
+                        <SelectContent>
+                          {teacherClasses.map(cls => (
+                            <SelectItem key={cls.id} value={cls.id.toString()}>{cls.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">Nézet típusa</label>
+                      <div className="flex p-1 bg-white border rounded-lg">
+                        <button
+                          className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${attendanceViewMode === 'daily' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                          onClick={() => setAttendanceViewMode('daily')}
+                        >
+                          <Calendar className="h-4 w-4" /> Napi
+                        </button>
+                        <button
+                          className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${attendanceViewMode === 'monthly' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+                          onClick={() => setAttendanceViewMode('monthly')}
+                        >
+                          <BookOpen className="h-4 w-4" /> Havi
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <label className="text-sm font-medium mb-2 block">
+                        {attendanceViewMode === 'daily' ? 'Dátum' : 'Hónap'}
+                      </label>
+                      <Input
+                        type={attendanceViewMode === 'daily' ? 'date' : 'month'}
+                        value={attendanceViewMode === 'daily' ? attendanceDate : attendanceMonth}
+                        onChange={(e) => attendanceViewMode === 'daily' ? setAttendanceDate(e.target.value) : setAttendanceMonth(e.target.value)}
+                        className="bg-white"
+                      />
                     </div>
                   </div>
 
-                  <div className="flex-1">
-                    <label className="text-sm font-medium mb-2 block">
-                      {attendanceViewMode === 'daily' ? 'Dátum' : 'Hónap'}
-                    </label>
-                    <Input 
-                      type={attendanceViewMode === 'daily' ? 'date' : 'month'} 
-                      value={attendanceViewMode === 'daily' ? attendanceDate : attendanceMonth}
-                      onChange={(e) => attendanceViewMode === 'daily' ? setAttendanceDate(e.target.value) : setAttendanceMonth(e.target.value)}
-                      className="bg-white"
-                    />
-                  </div>
+                  {attendanceClassId === "all" ? (
+                    <div className="text-center py-20 bg-gray-50 border-2 border-dashed rounded-xl">
+                      <ClipboardList className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500 font-medium text-lg">Kérjük, válasszon egy osztályt a jelenléti ív megtekintéséhez.</p>
+                    </div>
+                  ) : attendanceViewMode === 'daily' ? (
+                    <AttendanceView attendanceClassId={attendanceClassId} attendanceDate={attendanceDate} />
+                  ) : (
+                    <MonthlyAttendanceView classId={attendanceClassId} month={attendanceMonth} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="stats">
+              <div className="mb-4">
+                <Badge className="bg-blue-600 mb-2">ELMÉLETI NÉZET</Badge>
+                <h3 className="text-lg font-semibold">Tesztek és Elméleti Haladás</h3>
+              </div>
+              <div className="mb-4">
+                <GradeThresholdEditor selectedClassId={selectedClassId} teacherClasses={teacherClasses as any} />
+              </div>
+              <ClassStatsView
+                teacherClasses={teacherClasses as any}
+                students={students as any}
+                selectedClassId={selectedClassId}
+                setSelectedClassId={setSelectedClassId}
+                selectedStudentId={selectedStudentId}
+                setSelectedStudentId={setSelectedStudentId}
+                timeFilter={timeFilter}
+                setTimeFilter={setTimeFilter}
+              />
+            </TabsContent>
+
+            <TabsContent value="practical">
+              <div className="mb-4">
+                <Badge className="bg-orange-600 mb-2">GYAKORLATI NÉZET</Badge>
+                <h3 className="text-lg font-semibold">Gyakorlati Értékelés és Jegyek</h3>
+              </div>
+              <PracticalGradesView
+                teacherClasses={teacherClasses as any}
+                students={students as any}
+                subjects={subjects as any}
+                modules={modules as any}
+              />
+            </TabsContent>
+
+            <TabsContent value="roster">
+              <RosterView
+                teacherClasses={teacherClasses as any}
+                rosterClassId={rosterClassId}
+                setRosterClassId={setRosterClassId}
+                rosterPeriod={rosterPeriod}
+                setRosterPeriod={setRosterPeriod}
+                rosterPrintDetails={rosterPrintDetails}
+                setRosterPrintDetails={setRosterPrintDetails}
+                rosterCustomStart={rosterCustomStart}
+                setRosterCustomStart={setRosterCustomStart}
+                rosterCustomEnd={rosterCustomEnd}
+                setRosterCustomEnd={setRosterCustomEnd}
+                rosterData={rosterData}
+                rosterExpandedStudents={rosterExpandedStudents}
+                setRosterExpandedStudents={setRosterExpandedStudents}
+              />
+            </TabsContent>
+
+            <TabsContent value="announcements">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <AnnouncementsView
+                    teacherClasses={teacherClasses as any}
+                    students={students as any}
+                  />
                 </div>
+                <div className="space-y-6">
+                  <Card className="bg-blue-600 text-white border-none shadow-lg overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform">
+                      <MessageSquare size={120} />
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" />
+                        Privát Üzenetek
+                      </CardTitle>
+                      <CardDescription className="text-blue-100">
+                        Csevegjen közvetlenül a tanulókkal egyénileg.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        className="w-full bg-white text-blue-600 hover:bg-blue-50 font-bold"
+                        onClick={() => setLocation('/messages')}
+                      >
+                        Csevegés megnyitása
+                      </Button>
+                    </CardContent>
+                  </Card>
 
-                {attendanceClassId === "all" ? (
-                  <div className="text-center py-20 bg-gray-50 border-2 border-dashed rounded-xl">
-                    <ClipboardList className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500 font-medium text-lg">Kérjük, válasszon egy osztályt a jelenléti ív megtekintéséhez.</p>
-                  </div>
-                ) : attendanceViewMode === 'daily' ? (
-                  <AttendanceView attendanceClassId={attendanceClassId} attendanceDate={attendanceDate} />
-                ) : (
-                  <MonthlyAttendanceView classId={attendanceClassId} month={attendanceMonth} />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="stats">
-            <div className="mb-4">
-              <Badge className="bg-blue-600 mb-2">ELMÉLETI NÉZET</Badge>
-              <h3 className="text-lg font-semibold">Tesztek és Elméleti Haladás</h3>
-            </div>
-            <ClassStatsView 
-              teacherClasses={teacherClasses as any} 
-              students={students as any} 
-              selectedClassId={selectedClassId} 
-              setSelectedClassId={setSelectedClassId} 
-              selectedStudentId={selectedStudentId} 
-              setSelectedStudentId={setSelectedStudentId} 
-              timeFilter={timeFilter} 
-              setTimeFilter={setTimeFilter} 
-            />
-          </TabsContent>
-
-          <TabsContent value="practical">
-            <div className="mb-4">
-              <Badge className="bg-orange-600 mb-2">GYAKORLATI NÉZET</Badge>
-              <h3 className="text-lg font-semibold">Gyakorlati Értékelés és Jegyek</h3>
-            </div>
-            <PracticalGradesView 
-              teacherClasses={teacherClasses as any} 
-              students={students as any} 
-              subjects={subjects as any} 
-              modules={modules as any} 
-            />
-          </TabsContent>
-
-          <TabsContent value="roster">
-            <RosterView 
-              teacherClasses={teacherClasses as any}
-              rosterClassId={rosterClassId}
-              setRosterClassId={setRosterClassId}
-              rosterPeriod={rosterPeriod}
-              setRosterPeriod={setRosterPeriod}
-              rosterPrintDetails={rosterPrintDetails}
-              setRosterPrintDetails={setRosterPrintDetails}
-              rosterCustomStart={rosterCustomStart}
-              setRosterCustomStart={setRosterCustomStart}
-              rosterCustomEnd={rosterCustomEnd}
-              setRosterCustomEnd={setRosterCustomEnd}
-              rosterData={rosterData}
-              rosterExpandedStudents={rosterExpandedStudents}
-              setRosterExpandedStudents={setRosterExpandedStudents}
-            />
-          </TabsContent>
-
-          <TabsContent value="announcements">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <AnnouncementsView 
-                  teacherClasses={teacherClasses as any} 
-                  students={students as any} 
-                />
+                  <Card className="border-dashed">
+                    <CardHeader>
+                      <CardTitle className="text-sm">Gyors segítség</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-xs text-gray-500 space-y-2">
+                      <p>• A <strong>Bejelentések</strong> minden diáknak megjelennek az osztályban.</p>
+                      <p>• A <strong>Privát Üzenetek</strong> csak az adott diáknak szólnak.</p>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-              <div className="space-y-6">
-                <Card className="bg-blue-600 text-white border-none shadow-lg overflow-hidden relative group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform">
-                    <MessageSquare size={120} />
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5" />
-                      Privát Üzenetek
-                    </CardTitle>
-                    <CardDescription className="text-blue-100">
-                      Csevegjen közvetlenül a tanulókkal egyénileg.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button 
-                      className="w-full bg-white text-blue-600 hover:bg-blue-50 font-bold"
-                      onClick={() => setLocation('/messages')}
-                    >
-                      Csevegés megnyitása
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-dashed">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Gyors segítség</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-xs text-gray-500 space-y-2">
-                    <p>• A <strong>Bejelentések</strong> minden diáknak megjelennek az osztályban.</p>
-                    <p>• A <strong>Privát Üzenetek</strong> csak az adott diáknak szólnak.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+            </TabsContent>
+          </Tabs>
+        </main>
       </div>
     </div>
   );

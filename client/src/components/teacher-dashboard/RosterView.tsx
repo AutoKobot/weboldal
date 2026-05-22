@@ -43,7 +43,7 @@ export function RosterView({
   rosterExpandedStudents,
   setRosterExpandedStudents
 }: Props) {
-  
+
   const toggleStudent = (id: string) => {
     const next = new Set(rosterExpandedStudents);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -109,63 +109,63 @@ export function RosterView({
       {rosterData ? (
         <div className="bg-white p-6 rounded-lg border shadow-sm print:shadow-none print:border-none print:p-0">
           <div className="flex items-center justify-between mb-6">
-             <div>
-                <h2 className="text-2xl font-bold text-gray-900">{rosterData.className}</h2>
-                <p className="text-gray-500">Időszak: {new Date(rosterData.startDate).toLocaleDateString()} - {new Date(rosterData.endDate).toLocaleDateString()}</p>
-             </div>
-             <Badge className="bg-blue-100 text-blue-700">{rosterData.students.length} tanuló</Badge>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{rosterData.className}</h2>
+              <p className="text-gray-500">Időszak: {rosterData.startDate ? new Date(rosterData.startDate).toLocaleDateString() : 'Mindenkori'}{rosterData.endDate ? ` - ${new Date(rosterData.endDate).toLocaleDateString()}` : ''}</p>
+            </div>
+            <Badge className="bg-blue-100 text-blue-700">{rosterData.students.length} tanuló</Badge>
           </div>
 
           <Table>
-             <TableHeader>
-                <TableRow>
-                   <TableHead>Név</TableHead>
-                   <TableHead>Jelenlét (óra)</TableHead>
-                   <TableHead>Modulok</TableHead>
-                   <TableHead className="no-print">Művelet</TableHead>
-                </TableRow>
-             </TableHeader>
-              <TableBody>
-                {rosterData.students.map((s: any) => (
-                   <React.Fragment key={s.id}>
-                      <TableRow>
-                         <TableCell className="font-medium">{s.lastName} {s.firstName}</TableCell>
-                         <TableCell>{s.stats?.attendanceCount || 0} óra</TableCell>
-                         <TableCell>{s.stats?.completedCount || 0} db</TableCell>
-                         <TableCell className="no-print">
-                            <Button variant="ghost" size="sm" onClick={() => toggleStudent(s.id)}>
-                               {rosterExpandedStudents.has(s.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                            </Button>
-                         </TableCell>
-                      </TableRow>
-                      {(rosterExpandedStudents.has(s.id) || rosterPrintDetails) && (
-                         <TableRow key={`exp-${s.id}`} className={rosterPrintDetails ? 'print-only' : ''}>
-                            <TableCell colSpan={4} className="bg-gray-50 p-4">
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                     <h4 className="text-xs font-bold uppercase text-gray-400 mb-2">Tesztek</h4>
-                                     <div className="space-y-1">
-                                        {(s.testResults || []).map((tr: any) => (
-                                           <div key={tr.id} className="text-xs flex justify-between">
-                                              <span>{tr.moduleTitle || `Modul #${tr.moduleId}`}</span>
-                                              <span className="font-bold">{tr.score}% ({tr.grade})</span>
-                                           </div>
-                                        ))}
-                                     </div>
-                                  </div>
-                               </div>
-                            </TableCell>
-                         </TableRow>
-                      )}
-                   </React.Fragment>
-                ))}
-              </TableBody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Név</TableHead>
+                <TableHead>Jelenlét (óra)</TableHead>
+                <TableHead>Modulok</TableHead>
+                <TableHead className="no-print">Művelet</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rosterData.students.map((s: any) => (
+                <React.Fragment key={s.id}>
+                  <TableRow>
+                    <TableCell className="font-medium">{s.studentName || `${s.lastName || ''} ${s.firstName || ''}`.trim() || s.username || 'N/A'}</TableCell>
+                    <TableCell>{s.stats?.attendanceCount || 0} óra</TableCell>
+                    <TableCell>{s.stats?.completedCount || 0} db</TableCell>
+                    <TableCell className="no-print">
+                      <Button variant="ghost" size="sm" onClick={() => toggleStudent(s.id)}>
+                        {rosterExpandedStudents.has(s.id) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  {(rosterExpandedStudents.has(s.id) || rosterPrintDetails) && (
+                    <TableRow key={`exp-${s.id}`} className={rosterPrintDetails ? 'print-only' : ''}>
+                      <TableCell colSpan={4} className="bg-gray-50 p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-xs font-bold uppercase text-gray-400 mb-2">Tesztek</h4>
+                            <div className="space-y-1">
+                              {(s.testResults || []).map((tr: any) => (
+                                <div key={tr.id} className="text-xs flex justify-between">
+                                  <span>{tr.moduleTitle || `Modul #${tr.moduleId}`}</span>
+                                  <span className="font-bold">{tr.score}% ({tr.grade})</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              ))}
+            </TableBody>
           </Table>
         </div>
       ) : (
         <Card className="no-print border-dashed text-center py-20">
-           <AlertTriangle className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-           <p className="text-gray-500">Válasszon osztályt a névsor megtekintéséhez.</p>
+          <AlertTriangle className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-500">Válasszon osztályt a névsor megtekintéséhez.</p>
         </Card>
       )}
     </div>
