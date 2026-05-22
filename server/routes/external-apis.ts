@@ -56,8 +56,8 @@ router.get('/api-status', combinedAuth, async (req: any, res) => {
       elevenLabs: !!process.env.ELEVENLABS_API_KEY || !!(await storage.getSystemSetting('elevenlabs_api_key'))?.value,
       together: !!process.env.TOGETHER_API_KEY || !!(await storage.getSystemSetting('together_api_key'))?.value,
       deepinfra: !!process.env.DEEPINFRA_API_KEY || !!(await storage.getSystemSetting('deepinfra_api_key'))?.value,
-      dataForSeo: (!!process.env.DATAFORSEO_LOGIN && !!process.env.DATAFORSEO_PASSWORD) || 
-                  (!!(await storage.getSystemSetting('dataforseo_login'))?.value && !!(await storage.getSystemSetting('dataforseo_password'))?.value)
+      dataForSeo: (!!process.env.DATAFORSEO_LOGIN && !!process.env.DATAFORSEO_PASSWORD) ||
+        (!!(await storage.getSystemSetting('dataforseo_login'))?.value && !!(await storage.getSystemSetting('dataforseo_password'))?.value)
     };
     res.json(status);
   } catch (error) {
@@ -83,6 +83,29 @@ router.get('/db-status', combinedAuth, async (req: any, res) => {
   }
 });
 
+router.get('/db-backup-url', combinedAuth, async (req: any, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).end();
+    const setting = await storage.getSystemSetting('database_url_backup');
+    res.json({ url: setting?.value || process.env.DATABASE_URL_BACKUP || '' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/db-backup-url', combinedAuth, async (req: any, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).end();
+    const { url } = req.body;
+    if (url) {
+      await storage.setSystemSetting('database_url_backup', url, req.user.id);
+    }
+    res.json({ success: true, message: 'Másodlagos adatbázis URL mentve. Az élesítéshez indítsd újra a szervert.' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.post('/db-switch', combinedAuth, async (req: any, res) => {
   try {
     if (req.user.role !== 'admin') return res.status(403).end();
@@ -90,7 +113,7 @@ router.post('/db-switch', combinedAuth, async (req: any, res) => {
     if (source !== 'primary' && source !== 'backup') {
       return res.status(400).json({ message: "Invalid source parameter" });
     }
-    
+
     if (typeof (pool as any).switchSource === 'function') {
       const success = (pool as any).switchSource(source);
       if (success) {

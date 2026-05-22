@@ -115,6 +115,23 @@ export function ProfessionManager({ professions, subjects = [], modules = [], on
       queryClient.invalidateQueries({ queryKey: ["/api/admin/professions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ikk/professions"] });
       toast({ title: "Siker", description: "Szakma törölve" });
+    },
+    onError: (error: Error) => {
+      let displayMessage = error.message;
+      try {
+        const jsonPart = error.message.substring(error.message.indexOf('{'));
+        const parsed = JSON.parse(jsonPart);
+        if (parsed.message) {
+          displayMessage = parsed.message;
+        }
+      } catch (e) {
+        // Fallback if parsing fails or there is no JSON
+      }
+      toast({ 
+        title: "Hiba a szakma törlésekor", 
+        description: displayMessage, 
+        variant: "destructive" 
+      });
     }
   });
 

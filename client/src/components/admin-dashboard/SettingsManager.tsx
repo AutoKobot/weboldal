@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Settings, Brain, Key, Eye, EyeOff, 
+import {
+  Settings, Brain, Key, Eye, EyeOff,
   Database, CheckCircle, XCircle, AlertTriangle, Bot, RefreshCw
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -67,7 +67,7 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
       toast({ title: "Hiba az átváltás során", description: err.message, variant: "destructive" });
     }
   });
-  
+
   // API Keys state
   const [openaiKey, setOpenaiKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
@@ -77,7 +77,7 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
   const [dataForSeoLogin, setDataForSeoLogin] = useState("");
   const [dataForSeoPassword, setDataForSeoPassword] = useState("");
   const [youtubeApiKey, setYoutubeApiKey] = useState("");
-  
+
   // Visibility state
   const [showOpenaiKey, setShowOpenaiKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
@@ -93,6 +93,38 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
   const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
   const [supabaseStatus, setSupabaseStatus] = useState<any>(null);
   const [checkingSupabase, setCheckingSupabase] = useState(false);
+
+  // Backup DB URL state
+  const [backupDbUrl, setBackupDbUrl] = useState("");
+
+  const { data: backupDbUrlData } = useQuery({
+    queryKey: ['/api/db-backup-url'],
+    enabled: false, // we'll refetch manually
+  });
+
+  useEffect(() => {
+    // Load backup DB URL on mount
+    fetch('/api/db-backup-url', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.url) setBackupDbUrl(data.url);
+      })
+      .catch(() => { });
+  }, []);
+
+  const saveBackupDbUrlMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const res = await apiRequest("POST", "/api/db-backup-url", { url });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Siker", description: data.message || "Másodlagos adatbázis URL mentve." });
+      refetchDbStatus();
+    },
+    onError: (err: any) => {
+      toast({ title: "Hiba", description: err.message, variant: "destructive" });
+    }
+  });
 
   useEffect(() => {
     if (aiSettings?.supabaseUrl) setSupabaseUrl(aiSettings.supabaseUrl);
@@ -162,7 +194,7 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
             <div className="flex items-center justify-between p-4 rounded-lg bg-white border border-orange-100 shadow-sm">
               <div className="space-y-0.5">
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  AI Tanár Chat Funkció 
+                  AI Tanár Chat Funkció
                   <Badge variant={aiChatEnabled ? "default" : "secondary"} className={aiChatEnabled ? "bg-green-600" : ""}>
                     {aiChatEnabled ? "AKTÍV" : "KIKAPCSOLVA"}
                   </Badge>
@@ -171,9 +203,9 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   Engedélyezi a diákok számára az AI Tanárral való beszélgetést és a hangos magyarázatokat a modulok mellett. Kikapcsolás esetén ez a fül nem jelenik meg a diákoknak.
                 </p>
               </div>
-              <Switch 
-                checked={aiChatEnabled} 
-                onCheckedChange={(checked) => toggleAiChatMutation.mutate(checked)} 
+              <Switch
+                checked={aiChatEnabled}
+                onCheckedChange={(checked) => toggleAiChatMutation.mutate(checked)}
                 className="data-[state=checked]:bg-orange-600"
               />
             </div>
@@ -281,10 +313,10 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input 
-                    type={showOpenaiKey ? "text" : "password"} 
-                    value={openaiKey} 
-                    onChange={(e) => setOpenaiKey(e.target.value)} 
+                  <Input
+                    type={showOpenaiKey ? "text" : "password"}
+                    value={openaiKey}
+                    onChange={(e) => setOpenaiKey(e.target.value)}
                     placeholder={apiStatus.openai ? "•••••••••••••••• (Mentve)" : "sk-..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowOpenaiKey(!showOpenaiKey)}>
@@ -306,10 +338,10 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input 
-                    type={showGeminiKey ? "text" : "password"} 
-                    value={geminiKey} 
-                    onChange={(e) => setGeminiKey(e.target.value)} 
+                  <Input
+                    type={showGeminiKey ? "text" : "password"}
+                    value={geminiKey}
+                    onChange={(e) => setGeminiKey(e.target.value)}
                     placeholder={apiStatus.gemini ? "•••••••••••••••• (Mentve)" : "AIza..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowGeminiKey(!showGeminiKey)}>
@@ -331,10 +363,10 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input 
-                    type={showTogetherKey ? "text" : "password"} 
-                    value={togetherKey} 
-                    onChange={(e) => setTogetherKey(e.target.value)} 
+                  <Input
+                    type={showTogetherKey ? "text" : "password"}
+                    value={togetherKey}
+                    onChange={(e) => setTogetherKey(e.target.value)}
                     placeholder={apiStatus.together ? "•••••••••••••••• (Mentve)" : "key_..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowTogetherKey(!showTogetherKey)}>
@@ -356,10 +388,10 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input 
-                    type={showDeepinfraKey ? "text" : "password"} 
-                    value={deepinfraKey} 
-                    onChange={(e) => setDeepinfraKey(e.target.value)} 
+                  <Input
+                    type={showDeepinfraKey ? "text" : "password"}
+                    value={deepinfraKey}
+                    onChange={(e) => setDeepinfraKey(e.target.value)}
                     placeholder={apiStatus.deepinfra ? "•••••••••••••••• (Mentve)" : "hVE1..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowDeepinfraKey(!showDeepinfraKey)}>
@@ -371,7 +403,7 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   }} disabled={!deepinfraKey}>Mentés</Button>
                 </div>
               </div>
-              
+
               {/* ElevenLabs */}
               <div className="space-y-3 p-4 border rounded-lg bg-background/50">
                 <div className="flex justify-between items-center">
@@ -381,10 +413,10 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input 
-                    type={showElevenLabsKey ? "text" : "password"} 
-                    value={elevenLabsKey} 
-                    onChange={(e) => setElevenLabsKey(e.target.value)} 
+                  <Input
+                    type={showElevenLabsKey ? "text" : "password"}
+                    value={elevenLabsKey}
+                    onChange={(e) => setElevenLabsKey(e.target.value)}
                     placeholder={apiStatus.elevenLabs ? "•••••••••••••••• (Mentve)" : "sk_..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}>
@@ -407,22 +439,22 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                 </div>
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <Input 
-                      type={showDataForSeoLogin ? "text" : "password"} 
-                      value={dataForSeoLogin} 
-                      onChange={(e) => setDataForSeoLogin(e.target.value)} 
-                      placeholder={apiStatus.dataForSeo ? "•••••••••••••••• (Mentve)" : "Login"} 
+                    <Input
+                      type={showDataForSeoLogin ? "text" : "password"}
+                      value={dataForSeoLogin}
+                      onChange={(e) => setDataForSeoLogin(e.target.value)}
+                      placeholder={apiStatus.dataForSeo ? "•••••••••••••••• (Mentve)" : "Login"}
                     />
                     <Button size="icon" variant="outline" onClick={() => setShowDataForSeoLogin(!showDataForSeoLogin)}>
                       {showDataForSeoLogin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <Input 
-                      type={showDataForSeoPassword ? "text" : "password"} 
-                      value={dataForSeoPassword} 
-                      onChange={(e) => setDataForSeoPassword(e.target.value)} 
-                      placeholder={apiStatus.dataForSeo ? "•••••••••••••••• (Mentve)" : "Password"} 
+                    <Input
+                      type={showDataForSeoPassword ? "text" : "password"}
+                      value={dataForSeoPassword}
+                      onChange={(e) => setDataForSeoPassword(e.target.value)}
+                      placeholder={apiStatus.dataForSeo ? "•••••••••••••••• (Mentve)" : "Password"}
                     />
                     <Button size="icon" variant="outline" onClick={() => setShowDataForSeoPassword(!showDataForSeoPassword)}>
                       {showDataForSeoPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -446,10 +478,10 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input 
-                    type={showYoutubeKey ? "text" : "password"} 
-                    value={youtubeApiKey} 
-                    onChange={(e) => setYoutubeApiKey(e.target.value)} 
+                  <Input
+                    type={showYoutubeKey ? "text" : "password"}
+                    value={youtubeApiKey}
+                    onChange={(e) => setYoutubeApiKey(e.target.value)}
                     placeholder={apiStatus.youtube ? "•••••••••••••••• (Mentve)" : "AIza..."}
                   />
                   <Button size="icon" variant="outline" onClick={() => setShowYoutubeKey(!showYoutubeKey)}>
@@ -608,11 +640,38 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
               </div>
             )}
 
+            {/* Másodlagos Adatbázis URL beállítás */}
+            <div className="p-4 border border-indigo-100 rounded-lg bg-white/50">
+              <Label className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <Database className="h-4 w-4 text-indigo-500" />
+                Másodlagos Adatbázis Kapcsolati URL (DATABASE_URL_BACKUP)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  value={backupDbUrl}
+                  onChange={(e) => setBackupDbUrl(e.target.value)}
+                  placeholder={dbStatus?.backupConfigured ? "•••••••••••••••• (Mentve)" : "postgresql://..."}
+                  className="font-mono text-xs"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => saveBackupDbUrlMutation.mutate(backupDbUrl.trim())}
+                  disabled={saveBackupDbUrlMutation.isPending || !backupDbUrl}
+                >
+                  Mentés
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 italic">
+                A változtatás mentésre kerül, de élesítéshez indítsd újra a szervert, hogy a FailoverPool betöltse az új URL-t.
+              </p>
+            </div>
+
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => refetchDbStatus()} 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchDbStatus()}
                 disabled={isFetchingDbStatus}
                 className="flex items-center gap-1"
               >
@@ -651,8 +710,8 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
               <div className="space-y-3">
                 <Label>Drive Mappa ID</Label>
                 <div className="flex gap-2">
-                  <Input 
-                    value={aiSettings?.googleDriveFolderId || ""} 
+                  <Input
+                    value={aiSettings?.googleDriveFolderId || ""}
                     onChange={(e) => updateAISettingsMutation.mutate({ googleDriveFolderId: e.target.value })}
                     placeholder="1-4YLrha..."
                     className="font-mono text-xs"
@@ -667,8 +726,8 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
               <div className="space-y-3 border-l pl-6 border-amber-100">
                 <Label>Manuális Mentés Indítása</Label>
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    variant="default" 
+                  <Button
+                    variant="default"
                     className="bg-amber-600 hover:bg-amber-700"
                     onClick={async () => {
                       try {
@@ -676,7 +735,7 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                         const data = await res.json();
                         const status = data.details?.status;
                         let desc = `A mentés sikeresen elkészült. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
-                        
+
                         if (status === 'drive') {
                           desc = `A mentési fájl feltöltve a Google Drive-ra. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
                         } else if (status === 'local_only') {
@@ -684,16 +743,16 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
                         } else if (status === 'local_fallback') {
                           desc = `Google Drive feltöltési hiba, de a mentés sikeresen elmentve helyben a szerverre. Hash: ${data.details?.hash?.substring(0, 8) || "N/A"}`;
                         }
-                        
-                        toast({ 
-                          title: "Mentés sikeres", 
+
+                        toast({
+                          title: "Mentés sikeres",
                           description: desc
                         });
                       } catch (err: any) {
-                        toast({ 
-                          title: "Mentési hiba", 
-                          description: err.message, 
-                          variant: "destructive" 
+                        toast({
+                          title: "Mentési hiba",
+                          description: err.message,
+                          variant: "destructive"
                         });
                       }
                     }}

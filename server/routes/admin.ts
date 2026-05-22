@@ -350,11 +350,27 @@ router.put('/professions/:id', combinedAuth, adminOnly, async (req: any, res) =>
 router.delete('/professions/:id', combinedAuth, adminOnly, async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
+    
+    // Check if the profession has active references to prevent constraint violation
+    const usage = await storage.getProfessionUsage(id);
+    if (usage.subjectsCount > 0 || usage.classesCount > 0 || usage.usersCount > 0 || usage.communityGroupsCount > 0) {
+      const details = [];
+      if (usage.subjectsCount > 0) details.push(`${usage.subjectsCount} tantárgy`);
+      if (usage.classesCount > 0) details.push(`${usage.classesCount} osztály`);
+      if (usage.usersCount > 0) details.push(`${usage.usersCount} diák/tanár`);
+      if (usage.communityGroupsCount > 0) details.push(`${usage.communityGroupsCount} közösségi csoport`);
+      
+      return res.status(400).json({
+        message: `Nem törölhető a szakma, mert még aktív hivatkozások léteznek rá: ${details.join(', ')}.`,
+        details: usage
+      });
+    }
+
     await storage.deleteProfession(id);
     res.status(204).send();
   } catch (error) {
     console.error("Error deleting profession:", error);
-    res.status(500).json({ message: "Failed to delete profession" });
+    res.status(500).json({ message: "Nem sikerült törölni a szakmát" });
   }
 });
 

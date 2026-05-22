@@ -177,6 +177,12 @@ export interface IStorage {
   createProfession(profession: InsertProfession): Promise<Profession>;
   updateProfession(id: number, profession: Partial<InsertProfession>): Promise<Profession>;
   deleteProfession(id: number): Promise<void>;
+  getProfessionUsage(id: number): Promise<{
+    subjectsCount: number;
+    classesCount: number;
+    usersCount: number;
+    communityGroupsCount: number;
+  }>;
 
   // Subject operations
   getSubjects(professionId?: number, schoolAdminId?: string | null): Promise<Subject[]>;
@@ -589,7 +595,51 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async getProfessionUsage(id: number): Promise<{
+    subjectsCount: number;
+    classesCount: number;
+    usersCount: number;
+    communityGroupsCount: number;
+  }> {
+    // 1. Subjects count
+    const [subRes] = await db.select({ count: sql<number>`count(*)::int` }).from(subjects).where(eq(subjects.professionId, id));
+    // 2. Classes count
+    const [classRes] = await db.select({ count: sql<number>`count(*)::int` }).from(classes).where(eq(classes.professionId, id));
+    // 3. Users count
+    const [userRes] = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.selectedProfessionId, id));
+    // 4. Community groups count
+    const [groupRes] = await db.select({ count: sql<number>`count(*)::int` }).from(communityGroups).where(eq(communityGroups.professionId, id));
+
+    return {
+      subjectsCount: subRes?.count || 0,
+      classesCount: classRes?.count || 0,
+      usersCount: userRes?.count || 0,
+      communityGroupsCount: groupRes?.count || 0,
+    };
+  }
+
   async deleteProfession(id: number): Promise<void> {
+    // First, remove all references to this profession
+    // 1. Classes referencing this profession
+    await db.update(classes).set({ professionId: null }).where(eq(classes.professionId, id));
+    // 2. Users with selectedProfessionId
+    await db.update(users).set({ selectedProfessionId: null }).where(eq(users.selectedProfessionId, id));
+    // 3. Community groups
+    await db.update(communityGroups).set({ professionId: null }).where(eq(communityGroups.professionId, id));
+    // 4. Delete all subjects belonging to this profession (cascade to modules, flashcards, testResults, etc.)
+    const professionSubjects = await db.select({ id: subjects.id }).from(subjects).where(eq(subjects.professionId, id));
+    for (const subject of professionSubjects) {
+      // Delete modules belonging to this subject
+      const subjectModules = await db.select({ id: modules.id }).from(modules).where(eq(modules.subjectId, subject.id));
+      for (const mod of subjectModules) {
+        await db.delete(testResults).where(eq(testResults.moduleId, mod.id));
+        await db.delete(flashcards).where(eq(flashcards.moduleId, mod.id));
+        await db.delete(practicalGrades).where(eq(practicalGrades.moduleId, mod.id));
+      }
+      await db.delete(modules).where(eq(modules.subjectId, subject.id));
+      await db.delete(subjects).where(eq(subjects.id, subject.id));
+    }
+    // 5. Finally delete the profession
     await db.delete(professions).where(eq(professions.id, id));
   }
 
