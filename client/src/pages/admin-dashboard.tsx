@@ -4,9 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   LogOut, Wand2, BarChart3, ArrowLeft, Loader2,
-  Settings as SettingsIcon, BookOpen, GraduationCap, Users, School, Sparkles, MessageSquare, Globe 
+  Settings as SettingsIcon, BookOpen, GraduationCap, Users, School, Sparkles, MessageSquare, Globe
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { toast } = useToast();
-  
+
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProfessionId, setSelectedProfessionId] = useState<number | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   });
 
   const { data: aiSettings } = useQuery<any>({
-    queryKey: ["/api/admin/settings/ai"],
+    queryKey: ["/api/settings/ai"],
     enabled: isAdmin,
   });
 
@@ -109,7 +109,7 @@ export default function AdminDashboard() {
             {queueStatus && (queueStatus.processingItems?.length > 0 || queueStatus.queuedItems?.length > 0) && (
               <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 animate-pulse flex items-center gap-2 py-1.5 px-3">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="font-bold">AI FEJLESZTÉS:</span> 
+                <span className="font-bold">AI FEJLESZTÉS:</span>
                 <span>{queueStatus.processingItems?.length + queueStatus.queuedItems?.length} folyamatban</span>
               </Badge>
             )}
@@ -140,84 +140,84 @@ export default function AdminDashboard() {
           <div className="mt-6">
             <ErrorBoundary>
 
-            <TabsContent value="overview">
-              <DashboardOverview stats={stats} queueStatus={queueStatus} />
-            </TabsContent>
+              <TabsContent value="overview">
+                <DashboardOverview stats={stats} queueStatus={queueStatus} />
+              </TabsContent>
 
-            <TabsContent value="professions">
-              <ProfessionManager 
-                professions={professions} 
-                subjects={subjects}
-                modules={modules}
-                onSelect={(id: number) => { setSelectedProfessionId(id); setActiveTab("subjects"); }} 
-              />
-            </TabsContent>
- 
-            <TabsContent value="subjects">
-              <SubjectManager 
-                subjects={subjects} 
-                professions={professions}
-                modules={modules}
-                selectedProfessionId={selectedProfessionId}
-                selectedType={selectedSubjectType}
-                setSelectedType={setSelectedSubjectType}
-                onBack={() => setActiveTab("professions")}
-                onSelect={(id: number) => { setSelectedSubjectId(id); setActiveTab("modules"); }}
-              />
-            </TabsContent>
-
-            <TabsContent value="modules">
-              <ModuleManager 
-                modules={modules}
-                subjects={subjects}
-                selectedSubjectId={selectedSubjectId}
-                onBack={() => setActiveTab("subjects")}
-                isAdmin={isAdmin}
-              />
-            </TabsContent>
-
-            <TabsContent value="ai-modules">
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">AI Tartalomgenerálás</h2>
-                </div>
-                <EnhancedModuleForm 
+              <TabsContent value="professions">
+                <ProfessionManager
+                  professions={professions}
                   subjects={subjects}
-                  onModuleCreated={() => queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] })}
+                  modules={modules}
+                  onSelect={(id: number) => { setSelectedProfessionId(id); setActiveTab("subjects"); }}
                 />
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            {isAdmin && (
-              <>
-                <TabsContent value="users">
-                  <UserManagement users={users} professions={professions} isLoading={usersLoading} />
-                </TabsContent>
+              <TabsContent value="subjects">
+                <SubjectManager
+                  subjects={subjects}
+                  professions={professions}
+                  modules={modules}
+                  selectedProfessionId={selectedProfessionId}
+                  selectedType={selectedSubjectType}
+                  setSelectedType={setSelectedSubjectType}
+                  onBack={() => setActiveTab("professions")}
+                  onSelect={(id: number) => { setSelectedSubjectId(id); setActiveTab("modules"); }}
+                />
+              </TabsContent>
 
-                <TabsContent value="schools">
-                  <SchoolManagement />
-                </TabsContent>
+              <TabsContent value="modules">
+                <ModuleManager
+                  modules={modules}
+                  subjects={subjects}
+                  selectedSubjectId={selectedSubjectId}
+                  onBack={() => setActiveTab("subjects")}
+                  isAdmin={isAdmin}
+                />
+              </TabsContent>
 
-                <TabsContent value="costs">
-                  <CostsManager />
-                </TabsContent>
-
-                <TabsContent value="settings" className="space-y-8">
-                  <SettingsManager 
-                    stats={stats} 
-                    apiStatus={apiStatus || {}} 
-                    aiSettings={aiSettings || {}} 
-                    currentAiProvider={aiSettings?.aiProvider || "openai"}
-                  />
-                  <div className="border-t pt-8">
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5" /> Prompt Finomhangolás
-                    </h3>
-                    <PromptSettings />
+              <TabsContent value="ai-modules">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold">AI Tartalomgenerálás</h2>
                   </div>
-                </TabsContent>
-              </>
-            )}
+                  <EnhancedModuleForm
+                    subjects={subjects}
+                    onModuleCreated={() => queryClient.invalidateQueries({ queryKey: ["/api/public/modules"] })}
+                  />
+                </div>
+              </TabsContent>
+
+              {isAdmin && (
+                <>
+                  <TabsContent value="users">
+                    <UserManagement users={users} professions={professions} isLoading={usersLoading} />
+                  </TabsContent>
+
+                  <TabsContent value="schools">
+                    <SchoolManagement />
+                  </TabsContent>
+
+                  <TabsContent value="costs">
+                    <CostsManager />
+                  </TabsContent>
+
+                  <TabsContent value="settings" className="space-y-8">
+                    <SettingsManager
+                      stats={stats}
+                      apiStatus={apiStatus || {}}
+                      aiSettings={aiSettings || {}}
+                      currentAiProvider={aiSettings?.aiProvider || "openai"}
+                    />
+                    <div className="border-t pt-8">
+                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" /> Prompt Finomhangolás
+                      </h3>
+                      <PromptSettings />
+                    </div>
+                  </TabsContent>
+                </>
+              )}
             </ErrorBoundary>
           </div>
         </Tabs>
@@ -228,8 +228,8 @@ export default function AdminDashboard() {
 
 function TabTrigger({ value, label, icon, color = "" }: { value: string, label: string, icon: React.ReactNode, color?: string }) {
   return (
-    <TabsTrigger 
-      value={value} 
+    <TabsTrigger
+      value={value}
       className={`px-1 py-4 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none h-auto gap-2 ${color}`}
     >
       {icon}

@@ -133,27 +133,27 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
 
   const updateAIProviderMutation = useMutation({
     mutationFn: async (provider: string) => {
-      await apiRequest("POST", "/api/admin/ai-provider", { provider });
+      await apiRequest("POST", "/api/settings/ai-provider", { provider });
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "AI szolgáltató frissítve" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/ai"] });
     }
   });
 
   const updateAISettingsMutation = useMutation({
     mutationFn: async (settings: Partial<AISettings>) => {
-      await apiRequest("PATCH", "/api/admin/ai-settings", settings);
+      await apiRequest("PATCH", "/api/settings/ai", settings);
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "Beállítások mentve" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/ai"] });
     }
   });
 
   const updateApiKeyMutation = useMutation({
     mutationFn: async ({ provider, key }: { provider: string, key: string }) => {
-      await apiRequest("POST", `/api/admin/api-keys/${provider}`, { key });
+      await apiRequest("POST", `/api/settings/api-keys/${provider}`, { key });
     },
     onSuccess: () => {
       toast({ title: "Siker", description: "API kulcs mentve" });
@@ -164,7 +164,7 @@ export function SettingsManager({ stats, apiStatus, aiSettings, currentAiProvide
   const checkSupabaseStatus = async () => {
     setCheckingSupabase(true);
     try {
-      const res = await apiRequest("POST", "/api/admin/test-supabase", {
+      const res = await apiRequest("POST", "/api/settings/test-supabase", {
         supabaseUrl: supabaseUrl.trim(),
         supabaseAnonKey: supabaseAnonKey.trim()
       });

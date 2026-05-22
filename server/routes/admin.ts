@@ -356,7 +356,8 @@ router.delete('/professions/:id', combinedAuth, adminOnly, async (req: any, res)
     if (!password) {
       return res.status(400).json({ message: "Jelszó szükséges a törlés megerősítéséhez." });
     }
-    const adminUser = await storage.getUser(req.user.id);
+    const currentUserId = req.user.id || req.user.claims?.sub;
+    const adminUser = await storage.getUser(currentUserId);
     if (!adminUser) {
       return res.status(403).json({ message: "Admin felhasználó nem található." });
     }
