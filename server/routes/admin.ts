@@ -353,15 +353,30 @@ router.delete('/professions/:id', combinedAuth, adminOnly, async (req: any, res)
 
     // Password confirmation for destructive action
     const { password } = req.body || {};
+    console.log('[DELETE PROFESSION] Request body:', { hasPassword: !!password, passwordLength: password?.length });
+
     if (!password) {
       return res.status(400).json({ message: "Jelszó szükséges a törlés megerősítéséhez." });
     }
+
     const currentUserId = req.user.id || req.user.claims?.sub;
+    console.log('[DELETE PROFESSION] Current user ID:', currentUserId);
+
     const adminUser = await storage.getUser(currentUserId);
+    console.log('[DELETE PROFESSION] Admin user found:', {
+      found: !!adminUser,
+      username: adminUser?.username,
+      hasPassword: !!adminUser?.password,
+      passwordFormat: adminUser?.password?.includes('.') ? 'hashed' : 'plain or invalid'
+    });
+
     if (!adminUser) {
       return res.status(403).json({ message: "Admin felhasználó nem található." });
     }
+
     const isPasswordValid = await comparePasswords(password, adminUser.password || '');
+    console.log('[DELETE PROFESSION] Password validation result:', isPasswordValid);
+
     if (!isPasswordValid) {
       return res.status(403).json({ message: "Helytelen jelszó. A törlés megszakítva." });
     }
