@@ -1,13 +1,36 @@
 @echo off
-echo [!] FIGYELEM: EZ AZ ELES (PROD) OLDALAT FOGJA FRISSITENI!
-echo Csak akkor folytasd, ha a teszt oldalon mindent rendben talaltal.
+echo ============================================================
+echo   [!] FIGYELEM: EZ AZ ELES (PROD) OLDALAT FOGJA FRISSITENI!
+echo   A szamitogepeden levo jelenlegi fajlokat fogja feltolteni.
+echo ============================================================
 echo.
-set /p choice="Biztosan frissited az ELES oldalt? (i/n): "
+set /p choice="Biztosan frissited az ELES oldalt a helyi fajlokkal? (i/n): "
 if /i "%choice%" neq "i" exit
 
-echo [+] Valtoztatasok bekuldese az eles (main) agra...
-git push origin dev:main --force
+echo.
+echo [+] 1. Valtozasok hozzaadasa (git add .)...
+git add .
 
 echo.
-echo [OK] Az ELES oldal frissitese elindult a Railway-en!
-timeout /t 5
+set /p commit_msg="Add meg a commit uzenetet (vagy hagyd uresen a menteshez): "
+if "%commit_msg%"=="" set commit_msg="Mentes elesre: %date% %time%"
+
+echo.
+echo [+] 2. Helyi mentes letrehozasa (git commit)...
+git commit -m "%commit_msg%"
+
+echo.
+echo [+] 3. Kenyszeritett feltoltes az ELES (main) agra...
+git push origin HEAD:main --force
+
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo [HIBA] A feltoltes nem sikerult! Ellenorizd a GitHub jogaidat vagy az internetkapcsolatot.
+) else (
+    echo.
+    echo [OK] Az ELES oldal frissitese sikeresen elindult a Railway-en!
+)
+
+echo.
+echo Nyomj meg egy gombot a kilepeshez...
+pause > nul
